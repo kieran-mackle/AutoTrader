@@ -1,3 +1,8 @@
+name: Kieran Mackle
+
+description: a development platform for automated trading systems
 navigation:
   - {title: "Test"}
   - {file: "backtesting-with-autotrader.md", title: "backtesting", icon: home}
+
+
