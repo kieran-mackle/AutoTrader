@@ -9,3 +9,6 @@ github_username: kieran-mackle
 # Build settings
 theme: minima
 markdown: kramdown
+
+navigation:
+  - {title: test}
