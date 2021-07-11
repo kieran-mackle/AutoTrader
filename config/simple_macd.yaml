@@ -1,0 +1,37 @@
+ENVIRONMENT: 'demo'
+
+STRATEGY:
+  MODULE: 'simple_macd'
+  NAME: 'SimpleMACD'
+  INTERVAL: 'M15'
+  PERIOD: 300
+  RISK_PC: 1.5
+  SIZING: 'risk'
+  PARAMETERS:
+    ema_period: 200
+    MACD_fast: 12
+    MACD_slow: 26
+    MACD_smoothing: 9
+    
+    # Exit level parameters
+    RR: 1.5
+
+WATCHLIST: ['EUR_USD',
+            'EUR_AUD',
+            'EUR_JPY',
+            'EUR_CAD',
+            'EUR_NZD',
+            'AUD_CAD',
+            'AUD_JPY',
+            'GBP_JPY',
+            'GBP_AUD',
+            'USD_JPY']
+
+BACKTESTING:
+  base_currency: 'AUD'
+  initial_balance: 1000
+  spread: 0.5
+  commission: 0.005
+  leverage: 30
+  FROM: 1/1/2021
+  TO: 1/7/2021

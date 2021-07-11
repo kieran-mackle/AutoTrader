@@ -1,0 +1,16 @@
+OANDA:
+  LIVE_API: "api-fxtrade.oanda.com"
+  PRACTICE_API: "api-fxpractice.oanda.com"
+  ACCESS_TOKEN: "xxxxxx"
+  DEFAULT_ACCOUNT_ID: "xxx-xxx-xxxxxxxx-xxx"
+  PORT: 443
+
+EMAILING:
+  HOST_ACCOUNT:
+    email: "email@email.com"
+    password: "password"
+  MAILING_LIST:
+    Jonh_Doe: 
+      title: "Mr"
+      email: "john.doe@gmail.com"
+
