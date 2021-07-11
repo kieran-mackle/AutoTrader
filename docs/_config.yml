@@ -1,1 +1,4 @@
 theme: jekyll-theme-minimal
+
+navigation:
+  - {file: "backtesting-with-autotrader.md", title: "backtesting", icon: home}
