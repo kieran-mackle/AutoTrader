@@ -2,6 +2,10 @@ title: AutoTrader
 
 description: AutoTrader
 
+baseurl: "/AutoTrader"
 email: kemackle98@gmail.com
-
 github_username: kieran-mackle
+
+# Build settings
+theme: minima
+markdown: kramdown
