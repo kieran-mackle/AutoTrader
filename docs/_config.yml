@@ -1,4 +1,4 @@
-theme: jekyll-theme-minimal
+theme: jekyll-theme-leap-day
 
 navigation:
   - {file: "backtesting-with-autotrader.md", title: "backtesting", icon: home}
