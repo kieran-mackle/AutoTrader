@@ -25,12 +25,18 @@ jobs:
           ruby-version: 2.7
           bundler-cache: true
 
+      - name: Check baseurl
+        run: |
+          baseurl="$(grep '^baseurl:' docs/_config.yml | sed "s/.*: *//;s/['\"]//g;s/#.*//")"
+          if [[ -n $baseurl ]]; then
+            echo "BASE_URL=$baseurl" >> $GITHUB_ENV
+          fi
+      
       - name: Deploy
         run: |
           if [[ -n $BASE_URL ]]; then
-            mv _site$BASE_URL _site-rename
-            rm -rf _site
-            mv _site-rename _site
+            mv docs/_site$BASE_URL docs/_site-rename
+            rm -rf docs/_site
+            mv docs/_site-rename docs/_site
           fi
-
           bash docs/tools/deploy.sh
