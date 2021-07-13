@@ -1,0 +1,337 @@
+I"�G<p>This post is to enable Page Views on the <a href="https://github.com/cotes2020/jekyll-theme-chirpy/"><strong>Chirpy</strong></a> theme based blog that you just built. This requires technical knowledge and it’s recommended to keep the <code class="language-plaintext highlighter-rouge">google_analytics.pv.*</code> empty unless you have a good reason. If your website has low traffic, the page views count would discourage you to write more blogs. With that said, let’s start with the setup.</p>
+
+<h2 id="set-up-google-analytics">Set up Google Analytics</h2>
+
+<h3 id="create-ga-account-and-property">Create GA account and property</h3>
+
+<p>First, you need to setup your account on Google analytics. While your create your account, you must create your first <strong>Property</strong> as well.</p>
+
+<ol>
+  <li>Head to <a href="https://analytics.google.com/">https://analytics.google.com/</a> and click on <strong>Start Measuring</strong></li>
+  <li>Enter your desired <em>Account Name</em> and choose the desired checkboxes</li>
+  <li>Enter your desired <em>Property Name</em>. This is the name of the tracker project that appears on your Google Analytics dashboard</li>
+  <li>Enter the required information <em>About your business</em></li>
+  <li>Hit <em>Create</em> and accept any license popup to setup your Google Analytics account and create your property</li>
+</ol>
+
+<h3 id="create-data-stream">Create Data Stream</h3>
+
+<p>With your property created, you now need to set up Data Stream to track your blog traffic. After you signup, the prompt should automatically take you to creating your first <strong>Data Stream</strong>. If not, follow these steps:</p>
+
+<ol>
+  <li>Go to <strong>Admin</strong> on the left column</li>
+  <li>Select the desired property from the drop down on the second column</li>
+  <li>Click on <strong>Data Streams</strong></li>
+  <li>Add a stream and click on <strong>Web</strong></li>
+  <li>Enter your blog’s URL</li>
+</ol>
+
+<p>It should look like this:</p>
+
+<p><img src="https://cdn.jsdelivr.net/gh/cotes2020/chirpy-images/posts/20210103/01-google-analytics-data-stream.png" alt="google-analytics-data-stream" width="1086" height="542" /></p>
+
+<p>Now, click on the new data stream and grab the <strong>Measurement ID</strong>. It should look something like <code class="language-plaintext highlighter-rouge">G-V6XXXXXXXX</code>. Copy this to your <code class="language-plaintext highlighter-rouge">_config.yml</code> file</p>
+
+<div class="language-yaml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><table class="rouge-table"><tbody><tr><!-- <td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+</pre></td> --><td class="rouge-code"><pre><span class="na">google_analytics</span><span class="pi">:</span>
+  <span class="na">id</span><span class="pi">:</span> <span class="s1">'</span><span class="s">G-V6XXXXXXX'</span>   <span class="c1"># fill in your Google Analytics ID</span>
+  <span class="c1"># Google Analytics pageviews report settings</span>
+  <span class="na">pv</span><span class="pi">:</span>
+    <span class="na">proxy_endpoint</span><span class="pi">:</span>   <span class="c1"># fill in the Google Analytics superProxy endpoint of Google App Engine</span>
+    <span class="na">cache_path</span><span class="pi">:</span>       <span class="c1"># the local PV cache data, friendly to visitors from GFW region</span>
+</pre></td></tr></tbody></table></code></pre></div></div>
+
+<p>When you push these changes to your blog, you should start seeing the traffic on your Google Analytics. Play around with Google Analytics dashboard to get familiar with the options available as it takes like 5 mins to pickup your changes. You should now be able to monitor your traffic in realtime.</p>
+
+<p><img src="https://cdn.jsdelivr.net/gh/cotes2020/chirpy-images/posts/20210103/02-google-analytics-realtime.png" alt="google-analytics-realtime" width="616" height="557" /></p>
+
+<h2 id="setup-page-views">Setup Page Views</h2>
+
+<p>There is a detailed <a href="https://developers.google.com/analytics/solutions/google-analytics-super-proxy">tutorial</a> available to set up Google Analytics superProxy. But, if you are interested to just quickly get your Chirpy-based blog display page views, follow along. These steps were tested on a Linux machine. If you are running Windows, you can use Git bash terminal to run Unix-like commands.</p>
+
+<h3 id="setup-google-app-engine">Setup Google App Engine</h3>
+
+<ol>
+  <li>
+    <p>Visit <a href="https://console.cloud.google.com/appengine">https://console.cloud.google.com/appengine</a></p>
+  </li>
+  <li>
+    <p>Click on <strong>Create Application</strong></p>
+  </li>
+  <li>
+    <p>Click on <strong>Create Project</strong></p>
+  </li>
+  <li>
+    <p>Enter the name and choose the data center close to you</p>
+  </li>
+  <li>
+    <p>Select <strong>Python</strong> language and <strong>Standard</strong> environment</p>
+  </li>
+  <li>
+    <p>Enable billing account. Yeah, you have to link your credit card. But, you won’t be billed unless you exceed your free quota. For a simple blog, free quota is more than sufficient.</p>
+  </li>
+  <li>
+    <p>Go to your App Engine dashboard on your browser and select <strong>API &amp; Services</strong> from the left navigation menu</p>
+  </li>
+  <li>
+    <p>Click on <strong>Enable APIs and Services</strong> button on the top</p>
+  </li>
+  <li>
+    <p>Enable the following APIs: <em>Google Analytics API</em></p>
+  </li>
+  <li>
+    <p>On the left, Click on <em>OAuth Consent Screen</em> and accept <strong>Configure Consent Screen</strong>. Select <strong>External</strong> since your blog is probably hosted for the public. Click on <strong>Publish</strong> under <em>Publishing Status</em></p>
+  </li>
+  <li>
+    <p>Click on <strong>Credentials</strong> on the left and create a new <strong>OAuth Client IDs</strong> credential. Make sure to add a entry under <code class="language-plaintext highlighter-rouge">Authorized redirect URIs</code> that matches: <code class="language-plaintext highlighter-rouge">https://&lt;project-id&gt;.&lt;region&gt;.r.appspot.com/admin/auth</code></p>
+  </li>
+  <li>
+    <p>Note down the <strong>Your Client ID</strong> and <strong>Your Client Secret</strong>. You’ll need this in the next section.</p>
+  </li>
+  <li>
+    <p>Download and install the cloud SDK for your platform: <a href="https://cloud.google.com/sdk/docs/quickstart">https://cloud.google.com/sdk/docs/quickstart</a></p>
+  </li>
+  <li>
+    <p>Run the following commands:</p>
+
+    <div class="language-console highlighter-rouge"><div class="highlight"><pre class="highlight"><code><table class="rouge-table"><tbody><tr><!-- <td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+</pre></td> --><td class="rouge-code"><pre><span class="gp">[root@bc96abf71ef8 /]#</span><span class="w"> </span>gcloud init
+<span class="go">
+~snip~
+
+Go to the following link in your browser:
+
+    https://accounts.google.com/o/oauth2/auth?response_type=code&amp;client_id=XYZ.apps.googleusercontent.com&amp;redirect_uri=ABCDEFG
+
+</span><span class="gp">Enter verification code: &lt;VERIFICATION CODE THAT YOU GET AFTER YOU VISIT AND AUTHENTICATE FROM THE ABOVE LINK&gt;</span><span class="w">
+</span><span class="go">
+You are logged in as: [blah_blah@gmail.com].
+
+Pick cloud project to use:
+[1] chirpy-test-300716
+[2] Create a new project
+Please enter numeric choice or text value (must exactly match list
+item): 1
+
+
+</span><span class="gp">[root@bc96abf71ef8 /]#</span><span class="w"> </span>gcloud info
+<span class="gp">#</span><span class="w"> </span>Your selected project info should be displayed here
+</pre></td></tr></tbody></table></code></pre></div>    </div>
+  </li>
+</ol>
+
+<h3 id="setup-google-analytics-superproxy">Setup Google Analytics superProxy</h3>
+
+<ol>
+  <li>
+    <p>Clone the <strong>Google Analytics superProxy</strong> project on Github: <a href="https://github.com/googleanalytics/google-analytics-super-proxy">https://github.com/googleanalytics/google-analytics-super-proxy</a> to your local.</p>
+  </li>
+  <li>Remove the first 2 lines in the <a href="https://github.com/googleanalytics/google-analytics-super-proxy/blob/master/src/app.yaml#L1-L2"><code class="language-plaintext highlighter-rouge">src/app.yaml</code></a> file:
+    <div class="language-diff highlighter-rouge"><div class="highlight"><pre class="highlight"><code><table class="rouge-table"><tbody><tr><!-- <td class="rouge-gutter gl"><pre class="lineno">1
+2
+</pre></td> --><td class="rouge-code"><pre><span class="gd">- application: your-project-id
+- version: 1
+</span></pre></td></tr></tbody></table></code></pre></div>    </div>
+  </li>
+  <li>
+    <p>In <code class="language-plaintext highlighter-rouge">src/config.py</code>, add the <code class="language-plaintext highlighter-rouge">OAUTH_CLIENT_ID</code> and <code class="language-plaintext highlighter-rouge">OAUTH_CLIENT_SECRET</code> that you gathered from you App Engine Dashboard.</p>
+  </li>
+  <li>
+    <p>Enter any random key for <code class="language-plaintext highlighter-rouge">XSRF_KEY</code>, your <code class="language-plaintext highlighter-rouge">config.py</code> should look similar to this</p>
+
+    <div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><table class="rouge-table"><tbody><tr><!-- <td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+</pre></td> --><td class="rouge-code"><pre> <span class="c1">#!/usr/bin/python2.7
+</span>
+ <span class="n">__author__</span> <span class="o">=</span> <span class="s">'pete.frisella@gmail.com (Pete Frisella)'</span>
+
+ <span class="c1"># OAuth 2.0 Client Settings
+</span> <span class="n">AUTH_CONFIG</span> <span class="o">=</span> <span class="p">{</span>
+   <span class="s">'OAUTH_CLIENT_ID'</span><span class="p">:</span> <span class="s">'YOUR_CLIENT_ID'</span><span class="p">,</span>
+   <span class="s">'OAUTH_CLIENT_SECRET'</span><span class="p">:</span> <span class="s">'YOUR_CLIENT_SECRET'</span><span class="p">,</span>
+   <span class="s">'OAUTH_REDIRECT_URI'</span><span class="p">:</span> <span class="s">'%s%s'</span> <span class="o">%</span> <span class="p">(</span>
+     <span class="s">'https://chirpy-test-XXXXXX.ue.r.appspot.com'</span><span class="p">,</span>
+     <span class="s">'/admin/auth'</span>
+   <span class="p">)</span>
+ <span class="p">}</span>
+
+ <span class="c1"># XSRF Settings
+</span> <span class="n">XSRF_KEY</span> <span class="o">=</span> <span class="s">'OnceUponATimeThereLivedALegend'</span>
+</pre></td></tr></tbody></table></code></pre></div>    </div>
+
+    <p><strong>Tip:</strong> You can configure a custom domain instead of <code class="language-plaintext highlighter-rouge">https://PROJECT_ID.REGION_ID.r.appspot.com</code>. But, for the sake of keeping it simple, we will be using the Google provided default URL.</p>
+  </li>
+  <li>
+    <p>From inside the src/ directory, deploy the app</p>
+
+    <div class="language-console highlighter-rouge"><div class="highlight"><pre class="highlight"><code><table class="rouge-table"><tbody><tr><!-- <td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+</pre></td> --><td class="rouge-code"><pre><span class="gp"> [root@bc96abf71ef8 src]#</span><span class="w"> </span>gcloud app deploy
+<span class="go"> Services to deploy:
+
+ descriptor:      [/tmp/google-analytics-super-proxy/src/app.yaml]
+ source:          [/tmp/google-analytics-super-proxy/src]
+ target project:  [chirpy-test-XXXX]
+ target service:  [default]
+ target version:  [VESRION_NUM]
+ target url:      [https://chirpy-test-XXXX.ue.r.appspot.com]
+
+
+ Do you want to continue (Y/n)? Y
+
+ Beginning deployment of service [default]...
+ ╔════════════════════════════════════════════════════════════╗
+ ╠═ Uploading 1 file to Google Cloud Storage                 ═╣
+ ╚════════════════════════════════════════════════════════════╝
+ File upload done.
+ Updating service [default]...done.
+ Setting traffic split for service [default]...done.
+ Deployed service [default] to [https://chirpy-test-XXXX.ue.r.appspot.com]
+
+ You can stream logs from the command line by running:
+</span><span class="gp"> $</span><span class="w"> </span>gcloud app logs <span class="nb">tail</span> <span class="nt">-s</span> default
+<span class="go">
+ To view your application in the web browser run:
+</span><span class="gp"> $</span><span class="w"> </span>gcloud app browse
+</pre></td></tr></tbody></table></code></pre></div>    </div>
+  </li>
+  <li>
+    <p>Visit the deployed service. Add a <code class="language-plaintext highlighter-rouge">/admin</code> to the end of the URL.</p>
+  </li>
+  <li>
+    <p>Click on <strong>Authorize Users</strong> and make sure to add yourself as a managed user.</p>
+  </li>
+  <li>If you get any errors, please Google it. The errors are self-explanatory and should be easy to fix.</li>
+</ol>
+
+<p>If everything went good, you’ll get this screen:</p>
+
+<p><img src="https://cdn.jsdelivr.net/gh/cotes2020/chirpy-images/posts/20210103/03-superProxy-deployed.png" alt="superProxy-deployed" width="1366" height="354" /></p>
+
+<h3 id="create-google-analytics-query">Create Google Analytics Query</h3>
+
+<p>Head to <code class="language-plaintext highlighter-rouge">https://PROJECT_ID.REGION_ID.r.appspot.com/admin</code> and create a query after verifying the account. <strong>GA Core Reporting API</strong> query request can be created in <a href="https://ga-dev-tools.appspot.com/query-explorer/">Query Explorer</a>.</p>
+
+<p>The query parameters are as follows:</p>
+
+<ul>
+  <li><strong>start-date</strong>: fill in the first day of blog posting</li>
+  <li><strong>end-date</strong>: fill in <code class="language-plaintext highlighter-rouge">today</code> (this is a parameter supported by GA Report, which means that it will always end according to the current query date)</li>
+  <li><strong>metrics</strong>: select <code class="language-plaintext highlighter-rouge">ga:pageviews</code></li>
+  <li><strong>dimensions</strong>: select <code class="language-plaintext highlighter-rouge">ga:pagePath</code></li>
+</ul>
+
+<p>In order to reduce the returned results and reduce the network bandwidth, we add custom filtering rules <sup id="fnref:ga-filters" role="doc-noteref"><a href="#fn:ga-filters" class="footnote" rel="footnote">1</a></sup>:</p>
+
+<ul>
+  <li>
+    <p><strong>filters</strong>: fill in <code class="language-plaintext highlighter-rouge">ga:pagePath=~^/posts/.*/$;ga:pagePath!@=</code>.</p>
+
+    <p>Among them, <code class="language-plaintext highlighter-rouge">;</code> means using <em>logical AND</em> to concatenate two rules.</p>
+
+    <p>If the <code class="language-plaintext highlighter-rouge">site.baseurl</code> is specified, change the first filtering rule to <code class="language-plaintext highlighter-rouge">ga:pagePath=~^/BASE_URL/posts/.*/$</code>, where <code class="language-plaintext highlighter-rouge">BASE_URL</code> is the value of <code class="language-plaintext highlighter-rouge">site.baseurl</code>.</p>
+  </li>
+</ul>
+
+<p>After <kbd>Run Query</kbd>, copy the generated contents of <strong>API Query URI</strong> at the bottom of the page, and fill in the <strong>Encoded URI for the query</strong> of SuperProxy on GAE.</p>
+
+<p>After the query is saved on GAE, a <strong>Public Endpoint</strong> (public access address) will be generated, and we will get the query result in JSON format when accessing it. Finally, click <kbd>Enable Endpoint</kbd> in <strong>Public Request Endpoint</strong> to make the query effective, and click <kbd>Start Scheduling</kbd> in <strong>Scheduling</strong> to start the scheduled task.</p>
+
+<p><img src="https://cdn.jsdelivr.net/gh/cotes2020/chirpy-images/posts/20210103/04-superproxy-query.png" alt="superproxy-query" width="1100" height="126" /></p>
+
+<h2 id="configure-chirpy-to-display-page-view">Configure Chirpy to Display Page View</h2>
+
+<p>Once all the hard part is done, it is very easy to enable the Page View on Chirpy theme. Your superProxy dashboard should look something like below and you can grab the required values.</p>
+
+<p><img src="https://cdn.jsdelivr.net/gh/cotes2020/chirpy-images/posts/20210103/05-superproxy-dashboard.png" alt="superproxy-dashboard" width="1210" height="694" /></p>
+
+<p>Update the <code class="language-plaintext highlighter-rouge">_config.yml</code> file of <a href="https://github.com/cotes2020/jekyll-theme-chirpy/"><strong>Chirpy</strong></a> project with the values from your dashboard, to look similar to the following:</p>
+
+<div class="language-yaml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><table class="rouge-table"><tbody><tr><!-- <td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+</pre></td> --><td class="rouge-code"><pre><span class="na">google_analytics</span><span class="pi">:</span>
+  <span class="na">id</span><span class="pi">:</span> <span class="s1">'</span><span class="s">G-V6XXXXXXX'</span>   <span class="c1"># fill in your Google Analytics ID</span>
+  <span class="na">pv</span><span class="pi">:</span>
+    <span class="na">proxy_endpoint</span><span class="pi">:</span> <span class="s1">'</span><span class="s">https://PROJECT_ID.REGION_ID.r.appspot.com/query?id=&lt;ID</span><span class="nv"> </span><span class="s">FROM</span><span class="nv"> </span><span class="s">SUPER</span><span class="nv"> </span><span class="s">PROXY&gt;'</span>
+    <span class="na">cache_path</span><span class="pi">:</span>       <span class="c1"># the local PV cache data, friendly to visitors from GFW region</span>
+</pre></td></tr></tbody></table></code></pre></div></div>
+
+<p>Now, you should see the Page View enabled on your blog.</p>
+
+<h2 id="reference">Reference</h2>
+
+<div class="footnotes" role="doc-endnotes">
+  <ol>
+    <li id="fn:ga-filters" role="doc-endnote">
+      <p><a href="https://developers.google.com/analytics/devguides/reporting/core/v3/reference#filters">Google Analytics Core Reporting API: Filters</a> <a href="#fnref:ga-filters" class="reversefootnote" role="doc-backlink">&#8617;</a></p>
+    </li>
+  </ol>
+</div>
+:ET

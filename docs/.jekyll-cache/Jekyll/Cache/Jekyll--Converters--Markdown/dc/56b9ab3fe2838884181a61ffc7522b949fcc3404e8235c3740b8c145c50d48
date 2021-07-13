@@ -1,0 +1,178 @@
+I"{1<h2 id="prerequisites">Prerequisites</h2>
+
+<p>Follow the <a href="https://jekyllrb.com/docs/installation/">Jekyll Docs</a> to complete the installation of <code class="language-plaintext highlighter-rouge">Ruby</code>, <code class="language-plaintext highlighter-rouge">RubyGems</code>, <code class="language-plaintext highlighter-rouge">Jekyll</code> and <code class="language-plaintext highlighter-rouge">Bundler</code>.</p>
+
+<h2 id="installation">Installation</h2>
+
+<p>There are two ways to get the theme:</p>
+
+<ul>
+  <li><strong>Install from RubyGems</strong> - Easy to update, isolate irrelevant project files so you can focus on writing.</li>
+  <li><strong>Fork on GitHub</strong> - Convenient for custom development, but difficult to update, only suitable for web developers.</li>
+</ul>
+
+<h3 id="installing-the-theme-gem">Installing the Theme Gem</h3>
+
+<p>Add this line to your Jekyll site’s <code class="language-plaintext highlighter-rouge">Gemfile</code>:</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+</pre></td><td class="rouge-code"><pre><span class="n">gem</span> <span class="s2">"jekyll-theme-chirpy"</span>
+</pre></td></tr></tbody></table></code></pre></div></div>
+
+<p>And add this line to your Jekyll site’s <code class="language-plaintext highlighter-rouge">_config.yml</code>:</p>
+
+<div class="language-yaml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+</pre></td><td class="rouge-code"><pre><span class="na">theme</span><span class="pi">:</span> <span class="s">jekyll-theme-chirpy</span>
+</pre></td></tr></tbody></table></code></pre></div></div>
+
+<p>And then execute:</p>
+
+<div class="language-console highlighter-rouge"><div class="highlight"><pre class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+</pre></td><td class="rouge-code"><pre><span class="gp">$</span><span class="w"> </span>bundle
+</pre></td></tr></tbody></table></code></pre></div></div>
+
+<p>Finally, copy the required files from the theme’s gem (for detailed files, see <a href="https://github.com/cotes2020/chirpy-starter">starter project</a>) to your Jekyll site.</p>
+
+<blockquote>
+  <p><strong>Hint</strong>: To locate the installed theme’s gem, execute:</p>
+
+  <div class="language-console highlighter-rouge"><div class="highlight"><pre class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+</pre></td><td class="rouge-code"><pre><span class="gp">$</span><span class="w"> </span>bundle info <span class="nt">--path</span> jekyll-theme-chirpy
+</pre></td></tr></tbody></table></code></pre></div>  </div>
+</blockquote>
+
+<p>Or you can <a href="https://github.com/cotes2020/chirpy-starter/generate"><strong>use the starter template</strong></a> to create a Jekyll site to save time copying files from the theme’s gem. We have prepared everything for you there!</p>
+
+<h3 id="fork-on-github">Fork on GitHub</h3>
+
+<p><a href="https://github.com/cotes2020/jekyll-theme-chirpy/fork">Fork <strong>Chirpy</strong></a> on GitHub and then clone your fork to local. (Please note that the default branch code is in development.  If you want the blog to be stable, please switch to the <a href="https://github.com/cotes2020/jekyll-theme-chirpy/tags">latest tag</a> and start writing.)</p>
+
+<p>Install gem dependencies by:</p>
+
+<div class="language-console highlighter-rouge"><div class="highlight"><pre class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+</pre></td><td class="rouge-code"><pre><span class="gp">$</span><span class="w"> </span>bundle
+</pre></td></tr></tbody></table></code></pre></div></div>
+
+<p>And then execute:</p>
+
+<div class="language-console highlighter-rouge"><div class="highlight"><pre class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+</pre></td><td class="rouge-code"><pre><span class="gp">$</span><span class="w"> </span>bash tools/init.sh
+</pre></td></tr></tbody></table></code></pre></div></div>
+
+<blockquote>
+  <p><strong>Note</strong>: If you don’t plan to deploy your site on GitHub Pages, append parameter option <code class="language-plaintext highlighter-rouge">--no-gh</code> at the end of the above command.</p>
+</blockquote>
+
+<p>What it does is:</p>
+
+<ol>
+  <li>Remove some files or directories from your repository:
+    <ul>
+      <li><code class="language-plaintext highlighter-rouge">.travis.yml</code></li>
+      <li>files under <code class="language-plaintext highlighter-rouge">_posts</code></li>
+      <li>folder <code class="language-plaintext highlighter-rouge">docs</code></li>
+    </ul>
+  </li>
+  <li>
+    <p>If you use the <code class="language-plaintext highlighter-rouge">--no-gh</code> option, the directory <code class="language-plaintext highlighter-rouge">.github</code> will be deleted. Otherwise, setup the GitHub Action workflow by removing the extension <code class="language-plaintext highlighter-rouge">.hook</code> of <code class="language-plaintext highlighter-rouge">.github/workflows/pages-deploy.yml.hook</code>, and then remove the other files and directories in the folder <code class="language-plaintext highlighter-rouge">.github</code>.</p>
+  </li>
+  <li>Automatically create a commit to save the changes.</li>
+</ol>
+
+<h2 id="usage">Usage</h2>
+
+<h3 id="configuration">Configuration</h3>
+
+<p>Update the variables of <code class="language-plaintext highlighter-rouge">_config.yml</code> as needed. Some of them are typical options:</p>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">url</code></li>
+  <li><code class="language-plaintext highlighter-rouge">avatar</code></li>
+  <li><code class="language-plaintext highlighter-rouge">timezone</code></li>
+  <li><code class="language-plaintext highlighter-rouge">lang</code></li>
+</ul>
+
+<h3 id="running-local-server">Running Local Server</h3>
+
+<p>You may want to preview the site contents before publishing, so just run it by:</p>
+
+<div class="language-console highlighter-rouge"><div class="highlight"><pre class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+</pre></td><td class="rouge-code"><pre><span class="gp">$</span><span class="w"> </span>bundle <span class="nb">exec </span>jekyll s
+</pre></td></tr></tbody></table></code></pre></div></div>
+
+<p>Or run the site on Docker with the following command:</p>
+
+<div class="language-terminal highlighter-rouge"><div class="highlight"><pre class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+</pre></td><td class="rouge-code"><pre><span class="gp">$</span><span class="w"> </span>docker run <span class="nt">-it</span> <span class="nt">--rm</span> <span class="se">\</span>
+    <span class="nt">--volume</span><span class="o">=</span><span class="s2">"</span><span class="nv">$PWD</span><span class="s2">:/srv/jekyll"</span> <span class="se">\</span>
+    <span class="nt">-p</span> 4000:4000 jekyll/jekyll <span class="se">\</span>
+    jekyll serve
+</pre></td></tr></tbody></table></code></pre></div></div>
+
+<p>Open a browser and visit to <em><a href="http://localhost:4000">http://localhost:4000</a></em>.</p>
+
+<h3 id="deployment">Deployment</h3>
+
+<p>Before the deployment begins, checkout the file <code class="language-plaintext highlighter-rouge">_config.yml</code> and make sure the <code class="language-plaintext highlighter-rouge">url</code> is configured correctly. Furthermore, if you prefer the <a href="https://help.github.com/en/github/working-with-github-pages/about-github-pages#types-of-github-pages-sites"><strong>project site</strong></a> and don’t use a custom domain, or you want to visit your website with a base URL on a web server other than <strong>GitHub Pages</strong>, remember to change the <code class="language-plaintext highlighter-rouge">baseurl</code> to your project name that starting with a slash, e.g, <code class="language-plaintext highlighter-rouge">/project-name</code>.</p>
+
+<p>Now you can choose ONE of the following methods to deploy your Jekyll site.</p>
+
+<h4 id="deploy-on-github-pages">Deploy on GitHub Pages</h4>
+
+<p>For security reasons, GitHub Pages build runs on <code class="language-plaintext highlighter-rouge">safe</code> mode, which restricts us from using plugins to generate additional page files. Therefore, we can use <strong>GitHub Actions</strong> to build the site, store the built site files on a new branch, and use that branch as the source of the GH Pages service.</p>
+
+<p>Quickly check the files needed for GitHub Actions build:</p>
+
+<ul>
+  <li>Ensure your Jekyll site has the file <code class="language-plaintext highlighter-rouge">.github/workflows/pages-deploy.yml</code>. Otherwise, create a new one and fill in the contents of the <a href="https://github.com/cotes2020/jekyll-theme-chirpy/blob/master/.github/workflows/pages-deploy.yml.hook">workflow file</a>, and the value of the <code class="language-plaintext highlighter-rouge">on.push.branches</code> should be the same as your repo’s default branch name.</li>
+  <li>Ensure your Jekyll site has file <code class="language-plaintext highlighter-rouge">tools/test.sh</code> and <code class="language-plaintext highlighter-rouge">tools/deploy.sh</code>. Otherwise, copy them from this repo to your Jekyll site.</li>
+</ul>
+
+<p>And then rename your repository to <code class="language-plaintext highlighter-rouge">&lt;GH-USERNAME&gt;.github.io</code> on GitHub.</p>
+
+<p>Now publish your Jekyll site by:</p>
+
+<ol>
+  <li>
+    <p>Push any commit to remote to trigger the GitHub Actions workflow. Once the build is complete and successful, a new remote branch named <code class="language-plaintext highlighter-rouge">gh-pages</code> will appear to store the built site files.</p>
+  </li>
+  <li>
+    <p>Browse to your repo’s landing page on GitHub and select the branch <code class="language-plaintext highlighter-rouge">gh-pages</code> as the <a href="https://docs.github.com/en/github/working-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site">publishing source</a> through <em>Settings</em> → <em>Options</em> → <em>GitHub Pages</em>:</p>
+
+    <p><img src="https://cdn.jsdelivr.net/gh/cotes2020/chirpy-images/posts/20190809/gh-pages-sources.png" alt="gh-pages-sources" width="850" height="153" /></p>
+  </li>
+  <li>
+    <p>Visit your website at the address indicated by GitHub.</p>
+  </li>
+</ol>
+
+<h4 id="deploy-on-other-platforms">Deploy on Other Platforms</h4>
+
+<p>On platforms other than GitHub, we cannot enjoy the convenience of <strong>GitHub Actions</strong>. Therefore, we should build the site locally (or on some other 3rd-party CI platform) and then put the site files on the server.</p>
+
+<p>Go to the root of the source project, build your site by:</p>
+
+<div class="language-console highlighter-rouge"><div class="highlight"><pre class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+</pre></td><td class="rouge-code"><pre><span class="gp">$</span><span class="w"> </span><span class="nv">JEKYLL_ENV</span><span class="o">=</span>production bundle <span class="nb">exec </span>jekyll b
+</pre></td></tr></tbody></table></code></pre></div></div>
+
+<p>Or build the site with Docker by:</p>
+
+<div class="language-terminal highlighter-rouge"><div class="highlight"><pre class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+</pre></td><td class="rouge-code"><pre><span class="gp">$</span><span class="w"> </span>docker run <span class="nt">-it</span> <span class="nt">--rm</span> <span class="se">\</span>
+    <span class="nt">--env</span> <span class="nv">JEKYLL_ENV</span><span class="o">=</span>production <span class="se">\</span>
+    <span class="nt">--volume</span><span class="o">=</span><span class="s2">"</span><span class="nv">$PWD</span><span class="s2">:/srv/jekyll"</span> <span class="se">\</span>
+    jekyll/jekyll <span class="se">\</span>
+    jekyll build
+</pre></td></tr></tbody></table></code></pre></div></div>
+
+<p>Unless you specified the output path, the generated site files will be placed in folder <code class="language-plaintext highlighter-rouge">_site</code> of the project’s root directory. Now you should upload those files to your web server.</p>
+
+:ET

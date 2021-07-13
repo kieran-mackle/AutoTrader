@@ -1,4 +1,79 @@
 [
   
+  {
+    "title": "Enable Google Page Views",
+    "url": "/autotrader/posts/enable-google-pv/",
+    "categories": "Blogging, Tutorial",
+    "tags": "google analytics, pageviews",
+    "date": "2021-01-04 09:32:00 +1000",
+    
+
+
+
+
+
+    "snippet": "This post is to enable Page Views on the Chirpy theme based blog that you just built. This requires technical knowledge and it’s recommended to keep the google_analytics.pv.* empty unless you have a good reason. If your website has low traffic, the page views count would discourage you to write m..."
+  },
+  
+  {
+    "title": "Customize the Favicon",
+    "url": "/autotrader/posts/customize-the-favicon/",
+    "categories": "Blogging, Tutorial",
+    "tags": "favicon",
+    "date": "2019-08-11 02:34:00 +1000",
+    
+
+
+
+
+
+    "snippet": "The favicons of Chirpy are placed in the directory assets/img/favicons/. You may need to replace them with your own. The following sections will guide you how to create and replace the default favicons.Generate the faviconPrepare a square image (PNG, JPG, or SVG) with a size of 512x512 or more, a..."
+  },
+  
+  {
+    "title": "Getting Started",
+    "url": "/autotrader/posts/getting-started/",
+    "categories": "Blogging, Tutorial",
+    "tags": "getting started",
+    "date": "2019-08-09 22:55:00 +1000",
+    
+
+
+
+
+
+    "snippet": "PrerequisitesFollow the Jekyll Docs to complete the installation of Ruby, RubyGems, Jekyll and Bundler.InstallationThere are two ways to get the theme:  Install from RubyGems - Easy to update, isolate irrelevant project files so you can focus on writing.  Fork on GitHub - Convenient for custom de..."
+  },
+  
+  {
+    "title": "Writing a New Post",
+    "url": "/autotrader/posts/write-a-new-post/",
+    "categories": "Blogging, Tutorial",
+    "tags": "writing",
+    "date": "2019-08-08 16:10:00 +1000",
+    
+
+
+
+
+
+    "snippet": "Naming and PathCreate a new file named YYYY-MM-DD-TITLE.EXTENSION and put it in the _posts/ of the root directory. Please note that the EXTENSION must be one of md and markdown.Front MatterBasically, you need to fill the Front Matter as below at the top of the post:---title: TITLEdate: YYYY-MM-DD..."
+  },
+  
+  {
+    "title": "Text and Typography",
+    "url": "/autotrader/posts/text-and-typography/",
+    "categories": "Blogging, Demo",
+    "tags": "typography",
+    "date": "2019-08-08 13:33:00 +1000",
+    
+
+
+
+
+
+    "snippet": "This post is to show Markdown syntax rendering on Chirpy, you can also use it as an example of writing. Now, let’s start looking at text and typography.TitlesH1 - headingH2 - headingH3 - headingH4 - headingParagraphI wandered lonely as a cloudThat floats on high o’er vales and hills,When all at o..."
+  }
+  
 ]
 

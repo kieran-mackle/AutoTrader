@@ -4,7 +4,7 @@
   <id>http://localhost:4001/autotrader/</id>
   <title>AutoTrader</title>
   <subtitle>A minimal, portfolio, sidebar, bootstrap Jekyll theme with responsive web design and focuses on text presentation.</subtitle>
-  <updated>2021-07-13T11:16:46+10:00</updated>
+  <updated>2021-07-13T16:01:25+10:00</updated>
   <author>
     <name>Kieran Mackle</name>
     <uri>http://localhost:4001/autotrader/</uri>
@@ -17,6 +17,243 @@
   <icon>/autotrader/assets/img/favicons/favicon.ico</icon>
   <logo>/autotrader/assets/img/favicons/favicon-96x96.png</logo>
 
+
+  
+  <entry>
+    <title>Enable Google Page Views</title>
+    <link href="http://localhost:4001/autotrader/posts/enable-google-pv/" rel="alternate" type="text/html" title="Enable Google Page Views" />
+    <published>2021-01-04T09:32:00+10:00</published>
+  
+    <updated>2021-01-04T09:32:00+10:00</updated>
+  
+    <id>http://localhost:4001/autotrader/posts/enable-google-pv/</id>
+    <content src="http://localhost:4001/autotrader/posts/enable-google-pv/" />
+    <author>
+      <name>Dinesh Prasanth Moluguwan Krishnamoorthy</name>
+    </author>
+
+  
+    
+    <category term="Blogging" />
+    
+    <category term="Tutorial" />
+    
+  
+
+  
+    <summary>
+      
+
+
+
+
+
+      This post is to enable Page Views on the Chirpy theme based blog that you just built. This requires technical knowledge and it’s recommended to keep the google_analytics.pv.* empty unless you have a good reason. If your website has low traffic, the page views count would discourage you to write more blogs. With that said, let’s start with the setup.
+
+Set up Google Analytics
+
+Create GA account a...
+    </summary>
+  
+
+  </entry>
+
+  
+  <entry>
+    <title>Customize the Favicon</title>
+    <link href="http://localhost:4001/autotrader/posts/customize-the-favicon/" rel="alternate" type="text/html" title="Customize the Favicon" />
+    <published>2019-08-11T02:34:00+10:00</published>
+  
+    <updated>2019-08-11T02:34:00+10:00</updated>
+  
+    <id>http://localhost:4001/autotrader/posts/customize-the-favicon/</id>
+    <content src="http://localhost:4001/autotrader/posts/customize-the-favicon/" />
+    <author>
+      <name>Cotes Chung</name>
+    </author>
+
+  
+    
+    <category term="Blogging" />
+    
+    <category term="Tutorial" />
+    
+  
+
+  
+    <summary>
+      
+
+
+
+
+
+      The favicons of Chirpy are placed in the directory assets/img/favicons/. You may need to replace them with your own. The following sections will guide you how to create and replace the default favicons.
+
+Generate the favicon
+
+Prepare a square image (PNG, JPG, or SVG) with a size of 512x512 or more, and then go to the online tool Real Favicon Generator and click button Select your Favicon image ...
+    </summary>
+  
+
+  </entry>
+
+  
+  <entry>
+    <title>Getting Started</title>
+    <link href="http://localhost:4001/autotrader/posts/getting-started/" rel="alternate" type="text/html" title="Getting Started" />
+    <published>2019-08-09T22:55:00+10:00</published>
+  
+    <updated>2019-08-09T22:55:00+10:00</updated>
+  
+    <id>http://localhost:4001/autotrader/posts/getting-started/</id>
+    <content src="http://localhost:4001/autotrader/posts/getting-started/" />
+    <author>
+      <name>Cotes Chung</name>
+    </author>
+
+  
+    
+    <category term="Blogging" />
+    
+    <category term="Tutorial" />
+    
+  
+
+  
+    <summary>
+      
+
+
+
+
+
+      Prerequisites
+
+Follow the Jekyll Docs to complete the installation of Ruby, RubyGems, Jekyll and Bundler.
+
+Installation
+
+There are two ways to get the theme:
+
+
+  Install from RubyGems - Easy to update, isolate irrelevant project files so you can focus on writing.
+  Fork on GitHub - Convenient for custom development, but difficult to update, only suitable for web developers.
+
+
+Installing the The...
+    </summary>
+  
+
+  </entry>
+
+  
+  <entry>
+    <title>Writing a New Post</title>
+    <link href="http://localhost:4001/autotrader/posts/write-a-new-post/" rel="alternate" type="text/html" title="Writing a New Post" />
+    <published>2019-08-08T16:10:00+10:00</published>
+  
+    <updated>2019-08-08T16:10:00+10:00</updated>
+  
+    <id>http://localhost:4001/autotrader/posts/write-a-new-post/</id>
+    <content src="http://localhost:4001/autotrader/posts/write-a-new-post/" />
+    <author>
+      <name>Cotes Chung</name>
+    </author>
+
+  
+    
+    <category term="Blogging" />
+    
+    <category term="Tutorial" />
+    
+  
+
+  
+    <summary>
+      
+
+
+
+
+
+      Naming and Path
+
+Create a new file named YYYY-MM-DD-TITLE.EXTENSION and put it in the _posts/ of the root directory. Please note that the EXTENSION must be one of md and markdown.
+
+Front Matter
+
+Basically, you need to fill the Front Matter as below at the top of the post:
+
+---
+title: TITLE
+date: YYYY-MM-DD HH:MM:SS +/-TTTT
+categories: [TOP_CATEGORIE, SUB_CATEGORIE]
+tags: [TAG]     # TAG names s...
+    </summary>
+  
+
+  </entry>
+
+  
+  <entry>
+    <title>Text and Typography</title>
+    <link href="http://localhost:4001/autotrader/posts/text-and-typography/" rel="alternate" type="text/html" title="Text and Typography" />
+    <published>2019-08-08T13:33:00+10:00</published>
+  
+    <updated>2019-08-08T13:33:00+10:00</updated>
+  
+    <id>http://localhost:4001/autotrader/posts/text-and-typography/</id>
+    <content src="http://localhost:4001/autotrader/posts/text-and-typography/" />
+    <author>
+      <name>Cotes Chung</name>
+    </author>
+
+  
+    
+    <category term="Blogging" />
+    
+    <category term="Demo" />
+    
+  
+
+  
+    <summary>
+      
+
+
+
+
+
+      This post is to show Markdown syntax rendering on Chirpy, you can also use it as an example of writing. Now, let’s start looking at text and typography.
+
+Titles
+
+H1 - heading
+
+H2 - heading
+
+H3 - heading
+
+H4 - heading
+
+
+
+Paragraph
+
+I wandered lonely as a cloud
+
+That floats on high o’er vales and hills,
+
+When all at once I saw a crowd,
+
+A host, of golden daffodils;
+
+Beside the lake, beneath the t...
+    </summary>
+  
+
+  </entry>
 
 </feed>
 
