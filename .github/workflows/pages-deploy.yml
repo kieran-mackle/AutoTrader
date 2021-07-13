@@ -36,7 +36,7 @@ jobs:
         env:
           JEKYLL_ENV: production
         run: |
-          (cd docs/ ; bundle exec jekyll b -d "_site$BASE_URL")
+          bash (cd docs/ ; bundle exec jekyll b -d "_site$BASE_URL")
 
       - name: Test Site
         run: |
