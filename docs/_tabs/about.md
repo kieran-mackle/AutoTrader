@@ -1,8 +1,6 @@
 ---
 title: About
 icon: fas fa-info
-order: 4
+order: 2
 ---
-
-
-> **Note**: Add Markdown syntax content to file `_tabs/about.md` and it will show up on this page.
+This is a test about page. Will it fix anything? Probably not.
