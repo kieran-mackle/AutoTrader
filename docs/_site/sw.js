@@ -1,6 +1,6 @@
-self.importScripts('/AutoTrader/assets/js/data/swcache.js');
+self.importScripts('/autotrader/assets/js/data/swcache.js');
 
-const cacheName = 'chirpy-20210713.1100';
+const cacheName = 'chirpy-20210713.1116';
 
 function verifyDomain(url) {
   for (const domain of allowedDomains) {

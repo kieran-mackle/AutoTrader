@@ -1,21 +1,21 @@
 
 
 <feed xmlns="http://www.w3.org/2005/Atom">
-  <id>http://localhost:4001/AutoTrader/</id>
+  <id>http://localhost:4001/autotrader/</id>
   <title>AutoTrader</title>
   <subtitle>A minimal, portfolio, sidebar, bootstrap Jekyll theme with responsive web design and focuses on text presentation.</subtitle>
-  <updated>2021-07-13T11:00:58+10:00</updated>
+  <updated>2021-07-13T11:16:46+10:00</updated>
   <author>
     <name>Kieran Mackle</name>
-    <uri>http://localhost:4001/AutoTrader/</uri>
+    <uri>http://localhost:4001/autotrader/</uri>
   </author>
-  <link rel="self" type="application/atom+xml" href="http://localhost:4001/AutoTrader/feed.xml"/>
+  <link rel="self" type="application/atom+xml" href="http://localhost:4001/autotrader/feed.xml"/>
   <link rel="alternate" type="text/html" hreflang="en-US"
-    href="http://localhost:4001/AutoTrader/"/>
+    href="http://localhost:4001/autotrader/"/>
   <generator uri="https://jekyllrb.com/" version="4.2.0">Jekyll</generator>
   <rights> © 2021 Kieran Mackle </rights>
-  <icon>/AutoTrader/assets/img/favicons/favicon.ico</icon>
-  <logo>/AutoTrader/assets/img/favicons/favicon-96x96.png</logo>
+  <icon>/autotrader/assets/img/favicons/favicon.ico</icon>
+  <logo>/autotrader/assets/img/favicons/favicon-96x96.png</logo>
 
 
 </feed>

@@ -1,22 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9 http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd" xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 <url>
-<loc>http://localhost:4001/AutoTrader/categories/</loc>
-<lastmod>2021-07-13T11:00:58+10:00</lastmod>
+<loc>http://localhost:4001/autotrader/categories/</loc>
+<lastmod>2021-07-13T11:16:46+10:00</lastmod>
 </url>
 <url>
-<loc>http://localhost:4001/AutoTrader/tags/</loc>
-<lastmod>2021-07-13T11:00:58+10:00</lastmod>
+<loc>http://localhost:4001/autotrader/tags/</loc>
+<lastmod>2021-07-13T11:16:46+10:00</lastmod>
 </url>
 <url>
-<loc>http://localhost:4001/AutoTrader/archives/</loc>
-<lastmod>2021-07-13T11:00:58+10:00</lastmod>
+<loc>http://localhost:4001/autotrader/archives/</loc>
+<lastmod>2021-07-13T11:16:46+10:00</lastmod>
 </url>
 <url>
-<loc>http://localhost:4001/AutoTrader/about/</loc>
-<lastmod>2021-07-13T11:00:58+10:00</lastmod>
+<loc>http://localhost:4001/autotrader/about/</loc>
+<lastmod>2021-07-13T11:16:46+10:00</lastmod>
 </url>
 <url>
-<loc>http://localhost:4001/AutoTrader/</loc>
+<loc>http://localhost:4001/autotrader/</loc>
 </url>
 </urlset>

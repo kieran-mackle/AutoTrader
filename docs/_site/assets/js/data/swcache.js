@@ -1,43 +1,43 @@
 const resource = [
 
   /* --- CSS --- */
-  '/AutoTrader/assets/css/style.css',
+  '/autotrader/assets/css/style.css',
 
   /* --- JavaScripts --- */
   
-  '/AutoTrader/assets/js/dist/home.min.js',
-  '/AutoTrader/assets/js/dist/page.min.js',
-  '/AutoTrader/assets/js/dist/post.min.js',
-  '/AutoTrader/assets/js/dist/categories.min.js',
-  '/AutoTrader/assets/js/data/search.json',
-  '/AutoTrader/app.js',
-  '/AutoTrader/sw.js',
+  '/autotrader/assets/js/dist/home.min.js',
+  '/autotrader/assets/js/dist/page.min.js',
+  '/autotrader/assets/js/dist/post.min.js',
+  '/autotrader/assets/js/dist/categories.min.js',
+  '/autotrader/assets/js/data/search.json',
+  '/autotrader/app.js',
+  '/autotrader/sw.js',
 
   /* --- HTML --- */
-  '/AutoTrader/index.html',
-  '/AutoTrader/404.html',
+  '/autotrader/index.html',
+  '/autotrader/404.html',
   
-    '/AutoTrader/categories/',
+    '/autotrader/categories/',
   
-    '/AutoTrader/tags/',
+    '/autotrader/tags/',
   
-    '/AutoTrader/archives/',
+    '/autotrader/archives/',
   
-    '/AutoTrader/about/',
+    '/autotrader/about/',
   
 
   /* --- Favicons --- */
   
 
-  '/AutoTrader/assets/img/favicons/android-chrome-192x192.png',
-  '/AutoTrader/assets/img/favicons/android-chrome-512x512.png',
-  '/AutoTrader/assets/img/favicons/apple-touch-icon.png',
-  '/AutoTrader/assets/img/favicons/favicon-16x16.png',
-  '/AutoTrader/assets/img/favicons/favicon-32x32.png',
-  '/AutoTrader/assets/img/favicons/favicon.ico',
-  '/AutoTrader/assets/img/favicons/mstile-150x150.png',
-  '/AutoTrader/assets/img/favicons/site.webmanifest',
-  '/AutoTrader/assets/img/favicons/browserconfig.xml'
+  '/autotrader/assets/img/favicons/android-chrome-192x192.png',
+  '/autotrader/assets/img/favicons/android-chrome-512x512.png',
+  '/autotrader/assets/img/favicons/apple-touch-icon.png',
+  '/autotrader/assets/img/favicons/favicon-16x16.png',
+  '/autotrader/assets/img/favicons/favicon-32x32.png',
+  '/autotrader/assets/img/favicons/favicon.ico',
+  '/autotrader/assets/img/favicons/mstile-150x150.png',
+  '/autotrader/assets/img/favicons/site.webmanifest',
+  '/autotrader/assets/img/favicons/browserconfig.xml'
 
 ];
 
