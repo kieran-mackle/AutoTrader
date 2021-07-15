@@ -21,3 +21,10 @@
       url: "about"
     - title: "News"
       url: "news"
+- title: NewTOCitem
+  url: newtoc
+  links:
+    - title: level 2
+    - title: level 2 again
+    children:
+      - title: level 3
