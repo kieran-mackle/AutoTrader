@@ -1,3 +1,5 @@
 remote_theme: minimal
 name: AutoTrader
 baseurl: 'autotrader'
+
+theme: jekyll-theme-cayman
