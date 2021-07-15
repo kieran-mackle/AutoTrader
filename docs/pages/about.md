@@ -5,9 +5,10 @@ permalink: /about/
 
 # About
 
-This is a [starter template](https://vsoch.github.com/docsy-jekyll/) for a Docsy jekyll theme, based
-on the Beautiful [Docsy](https://github.com/google/docsy) that renders with Hugo. This version is intended for
-native deployment on GitHub pages. See the [respository]({{ site.repo }}) for more details.
+AutoTrader is a platform indended to help in the development, optimisation and deployment of automated trading systems.
+It is written in Python, and can be used as a black-box, or for those with Python experience, as a starting point 
+for their own automated system.
+
 
 ## Support
 
