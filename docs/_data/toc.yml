@@ -25,6 +25,8 @@
   url: newtoc
   links:
     - title: level 2
+      url: "docs/getting-started"
     - title: level 2 again
-    children:
-      - title: level 3
+      url: "docs/getting-started"
+      children:
+        - title: level 3
