@@ -14,13 +14,12 @@
 # You can create any custom variable you would like, and they will be accessible
 # in the templates via {{ site.myvariable }}.
 
-title: Docsy Jekyll
-email: your-email@domain.com
-author: Dinosaur Avocado
+title: AutoTrader
+email: kemackle98@gmail.com
+author: Kieran Mackle
 description: > # this means to ignore newlines until "baseurl:"
-  Write an awesome description for your new site here. You can edit this
-  line in _config.yml. It will appear in your document head meta (for
-  Google search results) and in your feed.xml site description.
+  AutoTrader is a platform for developing, optimising and deploying 
+  automated trading strategies.
 
 # DO NOT CHANGE THE LINE OF THIS FILE without editing .circleci/circle_urls.sh
 baseurl: "/AutoTrader" # the subpath of your site, e.g. /blog
@@ -35,9 +34,9 @@ github_repo: "AutoTrader"
 github_branch: "main"
 
 # Optional
-twitter: vsoch
+#twitter: vsoch
 linkedin: Kieran Mackle
-dockerhub: vanessa
+#dockerhub: vanessa
 
 # Should there be feedback buttons at the bottom of pages?
 feedback: true
