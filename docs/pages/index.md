@@ -4,7 +4,7 @@ title: AutoTrader
 permalink: /
 ---
 
-# Welcome to Docsy Jekyll
+# AutoTrader
 
 This is a starter template for a docsy jekyll theme.
 
