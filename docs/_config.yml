@@ -39,7 +39,7 @@ linkedin: kieran-mackle-820090163/
 #dockerhub: vanessa
 
 # Should there be feedback buttons at the bottom of pages?
-feedback: true
+feedback: false
 
 # Link to a privacy policy in footer, uncomment and define if wanted
 # privacy: https://domain.com/privacy
