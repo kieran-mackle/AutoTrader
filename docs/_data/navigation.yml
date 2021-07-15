@@ -2,5 +2,7 @@
   url: about
 - title: Documentation
   url: docs
-- title: Test Nav
-  url: test
+- title: Strategies
+  url: strategies
+- title: Tutorials
+  url: tutorials
