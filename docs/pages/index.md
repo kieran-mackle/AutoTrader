@@ -8,7 +8,7 @@ permalink: /
 
 This is a starter template for a docsy jekyll theme.
 
-![test](https://github.com/kieran-mackle/AutoTrader/tree/main/docs/assets/img/test_image.png)
+![test](../docs/assets/img/test_image.png)
 
 ## Purpose
 
