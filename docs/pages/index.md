@@ -8,7 +8,7 @@ permalink: /
 
 This is a starter template for a docsy jekyll theme.
 
-![test](../docs/assets/img/test_image.png)
+![test](assets/img/test_image.png)
 
 ## Purpose
 
