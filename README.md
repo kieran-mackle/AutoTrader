@@ -1,5 +1,5 @@
 # AutoTrader
-Automated trading system development platform
+A platform for developing, optimising and deploying automated trading systems.
 
 ## Features
 - backtesting
