@@ -8,3 +8,5 @@ Automated trading system development platform
 
 ## Dependencies
 - TaLib
+
+![test](docs/assets/img/test_image.png)
