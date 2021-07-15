@@ -19,7 +19,7 @@ email: kemackle98@gmail.com
 author: Kieran Mackle
 description: > # this means to ignore newlines until "baseurl:"
   AutoTrader is a platform for developing, optimising and deploying 
-  automated trading strategies.
+  automated trading systems.
 
 # DO NOT CHANGE THE LINE OF THIS FILE without editing .circleci/circle_urls.sh
 baseurl: "/AutoTrader" # the subpath of your site, e.g. /blog
