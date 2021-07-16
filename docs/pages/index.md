@@ -87,6 +87,10 @@ Max loss:                -$25.93
 Average loss:            -$19.24
 ```
 
+
+![backtest-plot](../assets/img/backtest-example-plot.jpg)
+
+
 For a more detailed guide on getting started with AutoTrader, check out the Getting Started guide, or read the [documentation](docs). 
 
 
