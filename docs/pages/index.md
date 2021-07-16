@@ -28,6 +28,9 @@ guide for a complete summary. Briefly:
  - *Historical data*
  - *Live market scanning with email notification*
  - *Complex strategy implementation*: the limit is your imagination!
+ - *file-controlled strategies*: the configuration of each strategy is contained within config files, allowing for easy 
+    manipulation of strategy parameters. This also means that you can run the same strategy with different parameters,
+    in parallel! 
 
 
 ## Simple Example
