@@ -4,6 +4,9 @@ title: AutoTrader
 permalink: /
 ---
 
+{% include backtest-plot.html %}
+
+
 # AutoTrader
 AutoTrader is an event-driven platform indended to help in the development, optimisation and deployment of automated trading systems. 
 
