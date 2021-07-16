@@ -4,9 +4,6 @@ title: AutoTrader
 permalink: /
 ---
 
-{% include backtest-plot.html %}
-
-
 # AutoTrader
 AutoTrader is an event-driven platform indended to help in the development, optimisation and deployment of automated trading systems. 
 
@@ -90,8 +87,7 @@ Max loss:                -$25.93
 Average loss:            -$19.24
 ```
 
-
-![backtest-plot](../assets/img/backtest-example-plot.jpg)
+{% include backtest-plot.html %}
 
 
 For a more detailed guide on getting started with AutoTrader, check out the Getting Started guide, or read the [documentation](docs). 
