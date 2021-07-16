@@ -21,12 +21,23 @@
       url: "about"
     - title: "News"
       url: "news"
-- title: NewTOCitem
-  url: newtoc
+
+- title: "Strategies"
+  url: "strategies"
   links:
-    - title: level 2
-      url: "docs/getting-started"
-    - title: level 2 again
-      url: "docs/getting-started"
+    - title: "MACD"
+      url: "strategies/macd"
       children:
-        - title: level 3
+        - title: "MACD+RSI"
+        - title: "Another MACD"
+        - title: "Yet another MACD"
+    - title: "Bollinger Bands" 
+      url: "strategies/bb"
+
+- title: "Tutorials"
+  url: "tutorials"
+  links:
+    - title: "Building a strategy"
+    - title: "Deploying for live-trading"
+    - title: "Optimising a strategy"
+    - title: "Backtesting a strategy"
