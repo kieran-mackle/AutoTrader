@@ -14,8 +14,25 @@ for their own automated system.
 Flow chart to give overview of code and how everything runs
 
 
+AutoTrader is organised according to the following heirarchy.
+
+
+```
+AutoTrader/
++-- brokers/
++-- config/
+|   +-- GLOBAL.yml
++-- docs/
++-- emailing/
++-- lib/
++-- logfiles/
++-- price_data/
++-- strategies/
+```
+
+
 
 ## Support
 
-If you need help, please don't hesitate to [open an issue](https://www.github.com/{{ site.github_user }}/{{ site.github_repo }}).
+If you need help, please don't hesitate to [open an issue](https://www.github.com/{{ site.github_user }}/{{ site.github_repo }}) on GitHub.
 
