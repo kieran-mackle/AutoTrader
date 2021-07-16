@@ -13,10 +13,9 @@ is able to pick up the key elements as they go. If you are new to Python, you ma
 
 ## Features
 
-What are these features? You should see the {% include doc.html name="Getting Started" path="getting-started" %}
-guide for a complete summary. Briefly:
+What are these features? You should see the {% include doc.html name="Getting Started" path="getting-started" %} guide for a complete summary. Briefly:
 
- - *Visualisation*
+ - *Interactive results visualisation*
  - *Simple, elegant code*
  - *Backtesting* 
  - *Live-trading*
