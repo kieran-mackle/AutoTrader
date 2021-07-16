@@ -130,7 +130,7 @@ dmypy.json
 
 # Miscellaneous
 *.png
-*.jpg
+#*.jpg
 *.pyc
 testing.py
 Notes.txt
