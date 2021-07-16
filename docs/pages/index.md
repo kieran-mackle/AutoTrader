@@ -45,11 +45,10 @@ The key components required to run a strategy using AutoTrader are:
 /_/   \_\__,_|\__\___/|____/ \__,_|\___|_|\_\\__\___||___/\__|
                                                               
 
-
 Analysing EUR/USD on H1 timeframe using Simple MACD Trend Strategy.
-Time: Friday, July 16 2021, 10:35:54
+Time: Friday, July 16 2021, 11:25:59
 From:  2020-01-01 00:00:00+00:00
-To:    2021-01-01 00:00:00+00:00
+To:    2021-02-01 00:00:00+00:00
 
 -------------------------------------------
             Backtest Results
