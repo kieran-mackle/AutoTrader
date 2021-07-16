@@ -31,6 +31,10 @@ guide for a complete summary. Briefly:
  - *file-controlled strategies*: the configuration of each strategy is contained within config files, allowing for easy 
     manipulation of strategy parameters. This also means that you can run the same strategy with different parameters,
     in parallel! 
+ - *Consideration of margin requirements* for leveraged accounts
+ - *Commission modelling*
+ - *Slippage modelling*
+ - *Bid/Ask spread modelling*
 
 
 ## Simple Example
