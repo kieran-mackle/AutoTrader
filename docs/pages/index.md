@@ -94,7 +94,7 @@ Average loss:            -$19.24
 
 <iframe id="igraph" scrolling="no" style="border:none;" seamless="seamless" src="backtest-plot.html" height="525" width="100%"></iframe>
 
-Click [here](AutoTrader/interactive-visualisation) for an interactive version of the image below.
+Click [here](interactive-visualisation) for an interactive version of the image below.
 
 ![backtest-demo-plot](../assets/img/backtest-example-plot.jpg)
 
