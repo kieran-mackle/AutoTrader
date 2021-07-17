@@ -7,7 +7,7 @@ permalink: /docs/
 # Documentation
 
 Welcome to the AutoTrader Documentation pages. Everything you need to know about the code is documented here. If you are 
-new here, start with the [*Getting Started*](docs/getting-started.md) page.
+new here, start with the [*Getting Started*](docs/getting-started) page.
 
 Other useful links are provided below.
 
