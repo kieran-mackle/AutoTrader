@@ -3,10 +3,9 @@ title: News
 permalink: /news/
 ---
 
-# News
+# AutoTrader Blog
 
-<p>Subscribe with <a href="{{ site.baseurl }}/feed.xml">RSS</a> to keep up with the latest news.
-For site changes, see the <a href="https://github.com/{{ site.github_user }}/{{ site.github_repo }}/blob/master/CHANGELOG.md">changelog</a> kept with the code base.</p>
+<p>Subscribe with <a href="{{ site.baseurl }}/feed.xml">RSS</a> to keep up with the posts.</p>
 
 <br>
 
@@ -23,4 +22,4 @@ For site changes, see the <a href="https://github.com/{{ site.github_user }}/{{ 
    <hr>
 {% endfor %}
 
-Want to see more? See the <a href="{{ site.baseurl }}/archive/">News Archive</a>.
+Want to see more? See the <a href="{{ site.baseurl }}/archive/">Post Archive</a>.
