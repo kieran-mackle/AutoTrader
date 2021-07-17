@@ -1,6 +1,6 @@
 ---
 title: News
-permalink: /news/
+permalink: /blog/
 ---
 
 # AutoTrader Blog
