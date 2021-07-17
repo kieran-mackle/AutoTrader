@@ -3,24 +3,20 @@
   links:
     - title: "Getting Started"
       url: "docs/getting-started"
-      children:
-        - title: Features
-          url: "docs/getting-started#getting-started"
-        - title: Development
-          url: "docs/getting-started#development"
-        - title: Customization
-          url: "docs/getting-started#customization"
-    - title: "Extras"
+    - title: "Brokers"
       url: "docs/extras"
-      children:
-        - title: Quizzes
-          url: "docs/extras/example-quiz"
-        - title: Tags Page
-          url: "tags"
-    - title: "About"
+    - title: "Configuration files"
       url: "about"
-    - title: "News"
+    - title: "Strategy files"
       url: "news"
+    - title: "Emailing utilities"
+      url: "news"
+    - title: "Logging"
+      url: "logging"
+    - title: "Streaming price data"
+      url: "streaming"
+    - title: "Utilities"
+      url: "lib"
 
 - title: "Strategies"
   url: "strategies"
