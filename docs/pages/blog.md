@@ -5,7 +5,7 @@ permalink: /blog/
 
 # AutoTrader Blog
 
-<p>Subscribe with <a href="{{ site.baseurl }}/feed.xml">RSS</a> to keep up with the posts.</p>
+<p>Subscribe with <a href="{{ site.baseurl }}/feed.xml">RSS</a> to keep up with the latest posts.</p>
 
 <br>
 
