@@ -17,6 +17,8 @@
       url: "streaming"
     - title: "Utilities"
       url: "lib"
+    - title: "Validation"
+      url: "validation"
 
 - title: "Strategies"
   url: "strategies"
