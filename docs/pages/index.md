@@ -92,8 +92,6 @@ Max loss:                -$25.93
 Average loss:            -$19.24
 ```
 
-<iframe id="igraph" scrolling="no" style="border:none;" seamless="seamless" src="https://kieran-mackle.github.io/AutoTrader/interactive-visualisation" height="525" width="100%"></iframe>
-
 Click [here](interactive-visualisation) for an interactive version of the image below.
 
 ![backtest-demo-plot](../assets/img/backtest-example-plot.jpg)
