@@ -8,7 +8,7 @@
     - title: "Configuration files"
       url: "about"
     - title: "Strategy files"
-      url: "news"
+      url: "docs/strategies"
     - title: "Emailing utilities"
       url: "news"
     - title: "Logging"
