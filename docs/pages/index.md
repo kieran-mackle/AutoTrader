@@ -4,7 +4,7 @@ title: AutoTrader
 permalink: /
 ---
 
-# AutoTrader
+# AutoTrader: the one stop solution for automated trading systems
 AutoTrader is an event-driven platform indended to help in the development, optimisation and deployment of automated trading systems. 
 
 A basic level of experience with Python is recommended for using AutoTrader, but the documentation aims to be clear enough that a beginner 
@@ -36,9 +36,29 @@ What are these features? You should see the {% include doc.html name="Getting St
  - *Bid/Ask spread modelling*
 
 
-## Simple Example
+## MACD Strategy Example
 
-The key components required to run a strategy using AutoTrader are:
+Consider you want to develop and test a strategy using Moving Average Divergence Convergence (MACD), a popular trend-following momentum indicator. 
+In your strategy, you go long (buy) when the MACD line crosses above the signal line, and go short when the oppposite happens. After doing some
+research, you discover that MACD signals are strongest when cross-ups occur below the histogram-zero line (for long entries), or when cross-downs 
+occur above the histogram-zero line. Furthermore, you follow the adage that 'the trend is your friend', so only go long when price is above the 
+200 exponential moving average, and short when price is below it.
+
+Coding this up in AutoTrader is easy; all you need is a [strategy](/docs/strategies) file and a [config](/docs/config-files) file. Then, with a
+one line command, you can backtest your strategy over any time period and any time frame.
+
+The command to do this is:
+
+```
+$ ./AutoTrader -c macd -b -p -v 1
+```
+
+As you can see, the executable here is *AutoTrader*, to which you passed four flags:
+ - -c: this flag is used to specify the strategy [config](/docs/config-files) file
+ - -b: this flag tells AutoTrader to run in backtest mode
+ - -p: this flag
+ 
+
 
 ```
     _         _        ____             _    _            _   
