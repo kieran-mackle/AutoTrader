@@ -19,6 +19,10 @@
       url: "lib"
     - title: "Validation"
       url: "validation"
+    - title: "Live trading"
+      url: "live-trading"
+    - title: "Automated running"
+      url: "automation"
 
 - title: "Strategies"
   url: "strategies"
