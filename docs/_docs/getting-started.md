@@ -8,10 +8,26 @@ description: Getting started with AutoTrader
 AutoTrader organisation
 
 
+## Getting AutoTrader
+
+
 
 # Usage
 
 command line vs. from file
+
+```python
+$ ./AutoTrader -c macd -b -p -v 1
+```
+Note that this is equivalent to:
+```python
+$ ./AutoTrader --config macd --backtest --plot --verbosity 1
+```
+
+
+
+
+If you are running AutoTrader from the command line, you can get help on any of the options using the --help flag.
 
 
 
