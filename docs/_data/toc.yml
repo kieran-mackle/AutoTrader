@@ -4,7 +4,7 @@
     - title: "Getting Started"
       url: "docs/getting-started"
     - title: "Brokers"
-      url: "docs/extras"
+      url: "docs/brokers"
     - title: "Configuration files"
       url: "docs/configuration"
     - title: "Strategy files"
