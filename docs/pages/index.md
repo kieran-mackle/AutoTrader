@@ -18,11 +18,11 @@ complete summary. Some key features include:
 
  - [Validated backtesting](docs/validation) with a high-fidelity virtual broker: multiple order types supported, commissions, bid/ask 
    spread modelling, margin considerations for leveraged accounts
- - Interactive visualisation of backtest results and live-trade performance
- - Strategy optimisation
- - Streaming of price data (Oanda v20 API)
+ - [Interactive visualisation](interactive-visualisation) of backtest results and live-trade performance
+ - [Strategy optimisation](docs/auto-optimise)
+ - [Streaming](docs/autostream) of price data (Oanda v20 API)
  - Access to historical price data (Yahoo finance, Oanda)
- - Market scanning with email notifications
+ - Market scanning with [email notifications](docs/emailing)
 
 
 ## MACD Strategy Example
