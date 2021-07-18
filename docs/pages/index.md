@@ -56,8 +56,11 @@ $ ./AutoTrader -c macd -b -p -v 1
 As you can see, the executable here is *AutoTrader*, to which you passed four flags:
  - -c: this flag is used to specify the strategy [config](/docs/config-files) file
  - -b: this flag tells AutoTrader to run in backtest mode
- - -p: this flag
- 
+ - -p: this flag tells AutoTrader to plot the results of the backtest onto an interactive chart
+ - -v: this flag sets the verbosity of the code - a value of 1 requests moderate verbosity.
+
+With a verbosity of 1, you will see an output similar to that shown below. As you can see, there is a detailed breakdown of traders taken during 
+the backtest period. 
 
 
 ```
@@ -112,14 +115,16 @@ Max loss:                -$25.93
 Average loss:            -$19.24
 ```
 
-Click [here](interactive-visualisation) for an interactive version of the image below.
+The plot will look something like the one shown below. Note that the one here is just a static image, but you will be given an interactive chart when running AutoTrader. 
+Click [here](interactive-visualisation) to see the interactive version of the chart (which isn't quite ready to be viewed on mobile devices)! 
 
 ![backtest-demo-plot](../assets/img/backtest-example-plot.jpg)
 
+Looks pretty good right? Well good news! Going from backtesting to live-trading is as easy as removing the '-b' flag from the command above!
 
 
-For a more detailed guide on getting started with AutoTrader, check out the [Getting Started] guide, or read the [documentation](docs). 
+For a more detailed guide on using AutoTrader, check out the [Getting Started](docs/getting-started) guide, or read the [documentation](docs). 
 
 
-For features, getting started with development, see the {% include doc.html name="Getting Started" path="getting-started" %} page. Would you like to request a feature or contribute?
+Would you like to request a feature or contribute?
 [Open an issue]({{ site.repo }}/issues)
