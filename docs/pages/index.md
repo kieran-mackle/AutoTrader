@@ -13,27 +13,16 @@ is able to pick up the key elements as they go. If you are new to Python, you ma
 
 ## Features
 
-What are these features? You should see the {% include doc.html name="Getting Started" path="getting-started" %} guide for a complete summary. Briefly:
+AutoTrader has many features, so be sure to check out the [Documentation](docs) and the [Getting Started](docs/getting-started) guide for a 
+complete summary. Some key features include:
 
- - *Interactive results visualisation*
- - *Simple, elegant code*
- - *Backtesting* 
- - *Live-trading*
- - *Optimisation*
- - *Validation*
- - *Event-driven*
- - *Variety of order types* available in backtesting, such as market orders, limit orders, and trailing stop orders.
- - *Data streaming*
- - *Historical data*
- - *Live market scanning with email notification*
- - *Complex strategy implementation*: the limit is your imagination!
- - *file-controlled strategies*: the configuration of each strategy is contained within config files, allowing for easy 
-    manipulation of strategy parameters. This also means that you can run the same strategy with different parameters,
-    in parallel! 
- - *Consideration of margin requirements* for leveraged accounts
- - *Commission modelling*
- - *Slippage modelling*
- - *Bid/Ask spread modelling*
+ - [Validated](backtest-validation) backtesting with a high-fidelity virtual broker: multiple order types supported, commissions, bid/ask 
+   spread modelling, margin considerations for leveraged accounts
+ - Interactive visualisation of backtest results and live-trade performance
+ - Strategy optimisation
+ - Streaming of price data (Oanda v20 API)
+ - Access to historical price data (Yahoo finance, Oanda)
+ - Market scanning with email notifications
 
 
 ## MACD Strategy Example
