@@ -16,11 +16,11 @@ AutoTrader organisation
 
 command line vs. from file
 
-```python
+```
 $ ./AutoTrader -c macd -b -p -v 1
 ```
 Note that this is equivalent to:
-```python
+```
 $ ./AutoTrader --config macd --backtest --plot --verbosity 1
 ```
 
