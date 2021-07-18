@@ -1,5 +1,5 @@
 ---
-title: AutoTrader Brokers Directory
+title: AutoTrader Brokers
 permalink: /docs/brokers
 ---
 
