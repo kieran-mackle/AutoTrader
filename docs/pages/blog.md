@@ -5,7 +5,8 @@ permalink: /blog/
 
 # AutoTrader Blog
 
-<p>Subscribe with <a href="{{ site.baseurl }}/feed.xml">RSS</a> to keep up with the latest posts.</p>
+Welcome to the AutoTrader Blog. Here you will find popular strategies put to the test - and more than the usual 100 times. I will also use the
+various features of AutoTrader to improve these strategies where possible and provide you with the code for each one.
 
 <br>
 
