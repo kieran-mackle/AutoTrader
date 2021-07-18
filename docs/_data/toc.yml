@@ -10,7 +10,7 @@
     - title: "Strategy files"
       url: "docs/strategies"
     - title: "Emailing utilities"
-      url: "emailing"
+      url: "docs/emailing"
     - title: "Logging"
       url: "docs/logging"
     - title: "Streaming price data"
