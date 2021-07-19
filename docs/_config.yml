@@ -44,7 +44,7 @@ feedback: false
 # Link to a privacy policy in footer, uncomment and define if wanted
 # privacy: https://domain.com/privacy
 
-# google-analytics: UA-XXXXXXXXXX
+google-analytics: G-SG9P9ZTCBH
 # Image and (square) dimension for logo (don't start with /)
 # If commented, will use material hat theme
 # logo: "assets/img/logo/SRCC-square-red.png"
