@@ -95,8 +95,3 @@ defaults:
       path: "assets/img"
     values:
       image: true
-  - scope:
-      path: "_tutorials"
-      type: "tutorials"
-    values:
-      layout: page
