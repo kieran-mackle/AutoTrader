@@ -4,7 +4,7 @@ title: AutoTrader
 permalink: /
 ---
 
-# AutoTrader: the one stop solution for automated trading systems
+# AutoTrader: A Development Platform For Automated Trading Systems
 AutoTrader is an event-driven platform intended to help in the development, optimisation and deployment of automated trading systems. 
 
 A basic level of experience with Python is recommended for using AutoTrader, but the documentation aims to be clear enough that a beginner 
