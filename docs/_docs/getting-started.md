@@ -9,10 +9,10 @@ AutoTrader organisation
 
 
 ## Getting AutoTrader
+To get AutoTrader, clone the [Github repository]({{ site.repo }}) onto you machine and install the dependencies.
 
 
-
-# Usage
+## Usage
 
 command line vs. from file
 
