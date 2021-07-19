@@ -8,8 +8,8 @@ permalink: /docs/brokers
 
 
 ## Virtual Broker
-[Virtual Broker](virtual-broker)
+[Virtual Broker](brokers/virtual-broker)
 
 
 ## Oanda
-[OANDA v20 API](oanda)
+[OANDA v20 API](brokers/oanda)
