@@ -21,18 +21,19 @@ $ ./AutoTrader -c ...
 ```
 
 
-> Dear Mr Mackle,
+> Dear Mr Smith,
 >
-> A market order has been placed for -4056 units of EUR/USD following an entry signal recieved by MACD Trend Strategy.
+> A market order has been placed for -15103 units of EUR/USD following an entry signal recieved 
+> by MACD Trend Strategy.
 >
 > A summary of the entry signal is provided below.
 >
-> | Pair        | EUR/USD        |
-> | :---------- |:-------------: |
-> | Size        | -15103         |
-> | Price       | 1.18003        |
-> | Stop loss   | 1.18181 (17.7) |
-> | Take profit | 1.17818 (18.6) |
+> | Pair        |   | EUR/USD        |
+> | :---------- |---|:-------------: |
+> | Size        |   |-15103         |
+> | Price       |   | 1.18003        |
+> | Stop loss   |   | 1.18181 (17.7) |
+> | Take profit |   | 1.17818 (18.6) |
 
 
 
