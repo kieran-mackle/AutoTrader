@@ -1,6 +1,5 @@
 ---
 title: AutoTrader Brokers
-permalink: /docs/brokers
 ---
 
 # AutoTrader Broker API's
