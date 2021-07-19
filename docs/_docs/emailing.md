@@ -4,7 +4,60 @@ description: Email notifications
 ---
 
 # Email Notification
-AutoTrader has the ability to notify you of various things as it runs.
+
+AutoTrader has the ability to notify you of various things as it runs. 
+
+See the [Global Config](configuration#global-config) for more information.
+
+
+Discuss notification output level using -n flag.
+
+
+
+## Trade Notifications
+
+```
+$ ./AutoTrader -c ...
+```
+
+
+> Dear Mr Mackle,
+>
+> A market order has been placed for -4056 units of EUR/USD following an entry signal recieved by MACD Trend Strategy.
+>
+> A summary of the entry signal is provided below.
+>
+> | Pair        | EUR/USD        |
+> | :---------- |:-------------: |
+> | Size        | -15103         |
+> | Price       | 1.18003        |
+> | Stop loss   | 1.18181 (17.7) |
+> | Take profit | 1.17818 (18.6) |
+
+
+
+## Market Scan Notifications
+```
+$ ./AutoTrader -c ...
+```
+
+
+
+## Daily Trade Reports
+
+```
+$ ./AutoTrader -c ...
+```
+
+
+
+
+
+
+
+
+
+
 
 
 
