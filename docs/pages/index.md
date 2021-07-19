@@ -53,14 +53,8 @@ the backtest period.
 
 
 ```
-    _         _        ____             _    _            _   
-   / \  _   _| |_ ___ | __ )  __ _  ___| | _| |_ ___  ___| |_ 
-  / _ \| | | | __/ _ \|  _ \ / _` |/ __| |/ / __/ _ \/ __| __|
- / ___ \ |_| | || (_) | |_) | (_| | (__|   <| ||  __/\__ \ |_ 
-/_/   \_\__,_|\__\___/|____/ \__,_|\___|_|\_\\__\___||___/\__|
-                                                              
-
-Analysing EUR/USD on H1 timeframe using Simple MACD Trend Strategy.
+Analysing EUR/USD on H1 timeframe using Simple 
+ MACD Trend Strategy.
 Time: Friday, July 16 2021, 11:25:59
 From:  2020-01-01 00:00:00+00:00
 To:    2021-02-01 00:00:00+00:00
