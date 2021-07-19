@@ -34,7 +34,11 @@ $ ./AutoTrader --config macd --backtest --plot --verbosity 1
 ## Modes of AutoTrader
 AutoTrader has three modes of running:
   1) [Live-trade mode](livetrading), default
+
+
   2) [Backtest mode](backtesting), activated with `--backtest` or `-b`
+
+
   3) [Scan mode](scanning), activated with `--scan` or `-s`
 
 The default mode is live-trade mode - unless specified otherwise, AutoTrader will run in this mode. 
