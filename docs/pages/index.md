@@ -33,7 +33,7 @@ research, you discover that MACD signals are strongest when cross-ups occur belo
 occur above the histogram-zero line. Furthermore, you follow the adage that 'the trend is your friend', so only go long when price is above the 
 200 exponential moving average, and short when price is below it.
 
-Coding this up in AutoTrader is easy; all you need is a [strategy](/docs/strategies) file and a [config](/docs/config-files) file. Then, with a
+Coding this up in AutoTrader is easy; all you need is a [strategy](docs/strategies) file and a [config](docs/config-files) file. Then, with a
 one line command, you can backtest your strategy over any time period and any time frame.
 
 The command to do this is:
