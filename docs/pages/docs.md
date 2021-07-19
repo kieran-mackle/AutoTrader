@@ -9,7 +9,7 @@ permalink: /docs/
 Welcome to the AutoTrader Documentation. Everything you need to know about the code is documented here. If you are 
 new here, start with the [Getting Started](getting-started) page. The documentation provided here is intended as a 
 reference for the code. If you are looking for detailed guides on using various features of the code, check out
-the [Tutorials](/tutorials).
+the [Tutorials](tutorials).
 
 Other useful links are provided below.
 
@@ -23,7 +23,7 @@ Other useful links are provided below.
     </div>
     
     <div class="entry">
-        <h5><a href="config-files">Configuration Files</a></h5>
+        <h5><a href="configuration">Configuration Files</a></h5>
         <p>Details of the configuration files used to configure AutoTrader.</p>
     </div>
     
