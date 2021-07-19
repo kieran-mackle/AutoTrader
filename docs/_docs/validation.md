@@ -10,7 +10,7 @@ study consisted of two phases:
   2) Backtest validation: AutoTrader was run in backtest mode over the live-trade period to see how the predicted performance 
      of the backtest algorithm.
 
-Performing such a study is made easy with [AutoPlot](docs/autoplot).
+Performing such a study is made easy with [AutoPlot](autoplot).
 
 
 Show image here to compare
