@@ -7,8 +7,8 @@ title: AutoTrader Brokers
 
 
 ## Virtual Broker
-[Virtual Broker](brokers/virtual-broker)
+[Virtual Broker](virtual-broker)
 
 
 ## Oanda
-[OANDA v20 API](brokers/oanda)
+[OANDA v20 API](oanda)
