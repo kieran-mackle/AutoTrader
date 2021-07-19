@@ -4,7 +4,7 @@ title: Documentation
 permalink: /docs/
 ---
 
-# Documentation
+# AutoTrader Documentation
 
 Welcome to the AutoTrader Documentation. Everything you need to know about the code is documented here. If you are 
 new here, start with the [Getting Started](getting-started) page. The documentation provided here is intended as a 
