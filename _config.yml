@@ -49,14 +49,14 @@ author:
   medium    : # "user_name" the last part of your profile url, e.g. https://medium.com/user_name
   zhihu     : # "user_name" the last part of your profile url, e.g. https://www.zhihu.com/people/user_name
   douban    : # "user_name" the last part of your profile url, e.g. https://www.douban.com/people/user_name
-  linkedin  : # "user_name" the last part of your profile url, e.g. https://www.linkedin.com/in/user_name
+  linkedin  : kieran-mackle-820090163 # "user_name" the last part of your profile url, e.g. https://www.linkedin.com/in/user_name
   github    : kieran-mackle # "user_name" the last part of your profile url, e.g. https://github.com/user_name
   npm       : # "user_name" the last part of your profile url, e.g. https://www.npmjs.com/~user_name
 
 
 ## => GitHub Repository (if the site is hosted by GitHub)
 ##############################
-repository: kieran-mackle/another-test
+repository: kieran-mackle/AutoTrader
 repository_tree: gh-pages
 
 
@@ -213,7 +213,8 @@ defaults:
     values:
       layout: article
       sharing: true
-      license: true
+      license: false
+      nav_key: Blog
       aside:
         toc: true
       show_edit_on_github: false
