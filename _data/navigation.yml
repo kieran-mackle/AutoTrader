@@ -1,0 +1,77 @@
+header:
+  - title: Home
+    url: /about.html
+    key: Home
+
+  - title: Documentation
+    url: /docs
+    key: Documentation
+
+  - title: Tutorials
+    url: /tutorials
+    key: Tutorials
+
+  - title: Blog
+    url: /blog
+    key: Blog
+
+
+Documentation:
+  - title: Core Functions
+    children:
+      - title: AutoTrader
+        url: /docs/autotrader
+      - title: Strategy Files
+        url: /docs/strategies
+  - title: Broker API's
+    children:
+      - title: Virtual Broker
+        url: /docs/brokers-virtual
+      - title: Oanda
+        url: /docs/brokers-oanda
+      - title: Coming Soon
+        url: /docs/brokers-coming-soon
+  - title: Configuration Files
+    children:
+      - title: Global Configuration
+        url: /docs/configuration-global
+      - title: Strategy Configuration
+        url: /docs/configuration-strategy
+  - title: Utility Functions
+    children:
+      - title: Emailing utilities
+        url: /docs/emailing
+      - title: AutoPlot
+        url: /docs/autoplot
+      - title: AutoStream
+        url: /docs/autostream
+      - title: Logging
+        url: /docs/logging
+
+Tutorials:
+  - title: Quick Start Guide
+    children:
+      - title: Getting AutoTrader 
+        url: /tutorials/getting-autotrader
+      - title: Getting Price Data
+        url: /tutorials/price-data
+      - title: Building a Strategy
+        url: /tutorials/strategy
+      - title: Backtesting
+        url: /tutorials/backtesting
+      - title: Optimisation
+        url: /tutorials/optimisation
+      - title: Going Live
+        url: /tutorials/live-trading
+      - title: Getting Help
+        url: /tutorials/help
+  - title: Building Strategies
+    children:
+      - title: Adding Indicators
+      - title: Troubleshooting
+      
+  - title: Miscellaneous
+    children:
+      - title: Setting up email notifications
+        url: /tutorials/host-email
+
