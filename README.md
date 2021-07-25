@@ -8,5 +8,3 @@ AutoTrader is a Python-based platform for developing, optimising and deploying a
 
 ## Dependencies
 - TaLib
-
-![test](docs/assets/img/test_image.png)
