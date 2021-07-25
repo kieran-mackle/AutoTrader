@@ -24,70 +24,64 @@ article_header:
 
 data:
   sections:
-    - title: Automated Trading from Beginning to End 
-      excerpt: This theme will look great on any device, no matter the size!
+    - title: Features
+      excerpt: >
+        AutoTrader is jam-packed with useful features to help you create the 
+        best trading system - at all steps along the way.
       theme: dark
-      image:
-        src: /screenshots/TeXt-responsive.png
       background_color: "#515151"
 
-    - title: Feature Rich
-      actions:
-        - text: See Documentation
-          url: /docs
-
-    - title: Performance Validated Backtesting
-
-    - title: Strategy Optimisation
-
-    - title: Seamless Transition to Live-Trading
-
-    - title: Super Customizable
-      excerpt: Everything from the menus, sidebars, comments, and more can be configured or set with YAML Front Matter.
-      actions:
-        - text: See Examples
-          url: /samples.html
-        - text: Learn More
-          url: /docs/en/configuration
-      image:
-        src: /screenshots/TeXt-layouts.png
-        is_row: true
-        full_width: true
-        style: "max-width: 1200px;"
-
-    - title: Skins
-      excerpt: TeXt has 6 built-in skins, you can also set up your own skin.
-      image:
-        src: /screenshots/TeXt-skins.png
-        is_row: true
-        full_width: true
-        style: "max-width: 1000px;"
-
-    - title: Enhanced User Experience
+    - title: 
       children:
-        - title: Additional Styles
-          excerpt: TeXt offer some CSS classes for your page, including alert, tag, image, button, etc.
+        - title: Backtesting
+          excerpt: Event-driven backtesting with data pre-loading and detailed statistics
           actions:
             - text: Learn More
-              url: /docs/en/additional-styles
-        - title: Extensions
-          excerpt: Adding audios, videos, slides and demos to your page.
+              url: /tutorials/backtesting
+          image:
+            src: /assets/images/backtest-example-plot.jpg
+
+        - title: Strategy Optimisation
+          excerpt: Parameter optimisation with NumPy
           actions:
             - text: Learn More
-              url: /docs/en/extensions
-        - title: Markdown Enhancements
-          excerpt: Using Mathjax, Mermaid and Charts in your page.
+              url: /tutorials/optimisation
+
+        - title: Market Scanning
+          excerpt: > 
+            Easily turn your strategy into a market scanner 
+            with email notifications
           actions:
             - text: Learn More
-              url: /docs/en/markdown-enhancements
+              url: /docs/emailing
+
+    - title: 
+      children:
+        - title: Live-trading
+          excerpt: Effortlessly take your backtested, optimised strategy live
+          actions:
+            - text: Learn More
+              url: /tutorials/live-trading
+
+        - title: Data Feeds
+          excerpt: > 
+            AutoTrader is integrated with major financial API's, making getting
+            (and streaming) data easier than ever 
+          actions:
+            - text: Learn More
+              url: /tutorials/price-data
+
+        - title: Interactive Visualisation
+          excerpt: Analyse backtest and live-trade performance with interactive charting tools
+          actions:
+            - text: Learn More
+              url: /docs/autoplot
 
     - title: AutoTrader is 100% Free
-      theme: dark
       excerpt: Use it however you want under the MIT License.      
       actions:
         - text: '<i class="fab fa-github"></i> GitHub'
           type: outline-theme-dark
           url: https://github.com/kieran-mackle/AutoTrader
-      background_color: "#515151"
 
 ---
