@@ -1,0 +1,18 @@
+I"�<h2 id="virtual-broker">Virtual Broker</h2>
+<p>At the heart of AutoTrader’s backtesting algorithm is the virtual broker, a Python class intended to replicate the functionality of a real broker.</p>
+
+<p><a href="brokers/virtual-broker">Virtual Broker</a></p>
+
+<h2 id="oanda">Oanda</h2>
+<p>AutoTrader supports Oanda’s v20 REST API. This API is best suited for Foreign Exchange trading.</p>
+
+<p><a href="brokers/oanda">OANDA v20 API</a></p>
+
+<h2 id="coming-soon">Coming Soon</h2>
+<p>Support for the following API’s is in development:</p>
+<ul>
+  <li><a href="https://www.interactivebrokers.com.au/en/index.php?f=5041">Interactive Brokers</a></li>
+  <li><a href="https://www.binance.com/en/">Binance</a></li>
+</ul>
+
+:ET

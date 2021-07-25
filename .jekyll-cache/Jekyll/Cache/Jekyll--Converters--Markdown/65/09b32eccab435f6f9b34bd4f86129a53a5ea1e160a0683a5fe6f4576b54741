@@ -1,0 +1,4 @@
+I"°<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>$ ./AutoStream -i EUR_USD,USD_JPY -g M15 -N 10
+</code></pre></div></div>
+
+:ET

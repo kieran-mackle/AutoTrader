@@ -1,6 +1,0 @@
----
-title: AutoPlot
----
-
-# AutoPlot
-

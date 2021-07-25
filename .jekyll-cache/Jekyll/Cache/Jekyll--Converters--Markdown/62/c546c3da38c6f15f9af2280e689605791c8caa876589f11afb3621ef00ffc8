@@ -1,0 +1,80 @@
+I"�<p>Consider you want to develop and test a strategy using Moving Average Divergence Convergence (MACD), a popular trend-following momentum indicator. 
+In your strategy, you go long (buy) when the MACD line crosses above the signal line, and go short when the oppposite happens. After doing some
+research, you discover that MACD signals are strongest when cross-ups occur below the histogram-zero line (for long entries), or when cross-downs 
+occur above the histogram-zero line. Furthermore, you follow the adage that ‘the trend is your friend’, so only go long when price is above the 
+200 exponential moving average, and short when price is below it.</p>
+
+<p>Coding this up in AutoTrader is easy; all you need is a <a href="docs/strategies">strategy</a> file and a <a href="docs/config-files">config</a> file. Then, with a
+one line command, you can backtest your strategy over any time period and any time frame.</p>
+
+<p>The command to do this is:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>$ ./AutoTrader -c macd -b -p -v 1
+</code></pre></div></div>
+
+<p>As you can see, the executable here is <em>AutoTrader</em>, to which you passed four flags:</p>
+<ul>
+  <li>-c: this flag is used to specify the strategy <a href="/docs/config-files">config</a> file</li>
+  <li>-b: this flag tells AutoTrader to run in backtest mode</li>
+  <li>-p: this flag tells AutoTrader to plot the results of the backtest onto an interactive chart</li>
+  <li>-v: this flag sets the verbosity of the code - a value of 1 requests moderate verbosity.</li>
+</ul>
+
+<p>With a verbosity of 1, you will see an output similar to that shown below. As you can see, there is a detailed breakdown of traders taken during 
+the backtest period.</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Analysing EUR/USD on H1 timeframe using Simple 
+ MACD Trend Strategy.
+Time: Friday, July 16 2021, 11:25:59
+From:  2020-01-01 00:00:00+00:00
+To:    2021-02-01 00:00:00+00:00
+
+-------------------------------------------
+            Backtest Results
+-------------------------------------------
+Strategy: Simple MACD Trend Strategy
+Timeframe:               H1
+Risk to reward ratio:    1.5
+Profitable win rate:     40.0%
+Backtest win rate:       50.0%
+Total no. trades:        134
+Profit:                  $342.872 (34.3%)
+Maximum drawdown:        -13.0%
+Max win:                 $29.16
+Average win:             $24.22
+Max loss:                -$25.93
+Average loss:            -$18.94
+Longest win streak:      9 trades
+Longest losing streak:   7 trades
+Average trade duration   8:44:46
+Cancelled orders:        2
+
+         Summary of long trades
+-------------------------------------------
+Number of long trades:   61
+Long win rate:           55.7%
+Max win:                 $28.5
+Average win:             $23.47
+Max loss:                -$21.11
+Average loss:            -$18.53
+
+          Summary of short trades
+-------------------------------------------
+Number of short trades:  69
+short win rate:          44.9%
+Max win:                 $29.16
+Average win:             $25.04
+Max loss:                -$25.93
+Average loss:            -$19.24
+</code></pre></div></div>
+
+<p>The plot will look something like the one shown below. Note that the one here is just a static image, but you 
+will be given an interactive chart when running AutoTrader. Click <a href="/docs/interactive-charts">here</a> to see the 
+interactive version of the chart (which isn’t quite ready to be viewed on mobile devices)!</p>
+
+<p><img src="another-test/assets/images/backtest-example-plot.jpg" alt="backtest-demo-plot" /></p>
+
+<p>Looks pretty good right? Well good news! Going from backtesting to live-trading is as easy as removing 
+the ‘-b’ flag from the command above!</p>
+
+:ET

@@ -1,0 +1,62 @@
+I"�<p>Your trading strategies are built as classes in the strategies/ directory of AutoTrader.</p>
+
+<p>A template strategy class file can be found in the strategies directory.</p>
+
+<p>The strategy must be initialised by …</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">pair</span><span class="p">):</span>
+    <span class="s">''' Define all indicators used in the strategy '''</span>
+    <span class="bp">self</span><span class="p">.</span><span class="n">name</span>   <span class="o">=</span> <span class="s">"Strategy name"</span>
+    <span class="bp">self</span><span class="p">.</span><span class="n">data</span>   <span class="o">=</span> <span class="n">data</span>
+    <span class="bp">self</span><span class="p">.</span><span class="n">params</span> <span class="o">=</span> <span class="n">params</span>
+
+    <span class="c1"># Path variables
+</span>    <span class="n">strat_dir</span>       <span class="o">=</span> <span class="n">os</span><span class="p">.</span><span class="n">path</span><span class="p">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="p">.</span><span class="n">path</span><span class="p">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">__file__</span><span class="p">))</span>
+    <span class="bp">self</span><span class="p">.</span><span class="n">home_dir</span>   <span class="o">=</span> <span class="n">os</span><span class="p">.</span><span class="n">path</span><span class="p">.</span><span class="n">join</span><span class="p">(</span><span class="n">strat_dir</span><span class="p">,</span> <span class="s">'..'</span><span class="p">)</span>
+</code></pre></div></div>
+
+<p>The signal …</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">generate_signal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">current_position</span><span class="p">):</span>
+    <span class="s">''' Define strategy to determine entry signals '''</span>
+
+    <span class="c1"># In this example, the strategy will place market orders.
+</span>    <span class="c1"># Other order types are:
+</span>        <span class="c1"># limit - to place a limit order
+</span>        <span class="c1"># close - to close the current_position
+</span>    <span class="n">order_type</span>  <span class="o">=</span> <span class="s">'market'</span>
+    <span class="n">signal_dict</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="c1"># Put entry strategy here
+</span>    <span class="n">signal</span>      <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="c1"># Calculate exit targets
+</span>    <span class="n">exit_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="p">.</span><span class="n">generate_exit_levels</span><span class="p">(</span><span class="n">signal</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
+
+    <span class="c1"># Construct signal dictionary
+</span>    <span class="n">signal_dict</span><span class="p">[</span><span class="s">"order_type"</span><span class="p">]</span>   <span class="o">=</span> <span class="n">order_type</span>
+    <span class="n">signal_dict</span><span class="p">[</span><span class="s">"direction"</span><span class="p">]</span>    <span class="o">=</span> <span class="n">signal</span>
+    <span class="n">signal_dict</span><span class="p">[</span><span class="s">"stop_loss"</span><span class="p">]</span>    <span class="o">=</span> <span class="n">exit_dict</span><span class="p">[</span><span class="s">"stop_loss"</span><span class="p">]</span>
+    <span class="n">signal_dict</span><span class="p">[</span><span class="s">"stop_type"</span><span class="p">]</span>    <span class="o">=</span> <span class="n">exit_dict</span><span class="p">[</span><span class="s">"stop_type"</span><span class="p">]</span>
+    <span class="n">signal_dict</span><span class="p">[</span><span class="s">"take_profit"</span><span class="p">]</span>  <span class="o">=</span> <span class="n">exit_dict</span><span class="p">[</span><span class="s">"take_profit"</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">signal_dict</span>
+</code></pre></div></div>
+
+<p>It is often useful to include a separate function for generating</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">generate_exit_levels</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">signal</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
+    <span class="s">''' Function to determine stop loss and take profit levels '''</span>
+
+    <span class="c1"># Put exit strategy here
+</span>    <span class="n">stop</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">take</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">stop_type</span> <span class="o">=</span> <span class="s">'limit'</span>
+
+    <span class="n">exit_dict</span> <span class="o">=</span> <span class="p">{</span><span class="s">'stop_loss'</span>    <span class="p">:</span> <span class="n">stop</span><span class="p">,</span> 
+                 <span class="s">'stop_type'</span>    <span class="p">:</span> <span class="n">stop_type</span><span class="p">,</span>
+                 <span class="s">'take_profit'</span>  <span class="p">:</span> <span class="n">take</span><span class="p">}</span>
+
+    <span class="k">return</span> <span class="n">exit_dict</span>
+</code></pre></div></div>
+
+:ET
