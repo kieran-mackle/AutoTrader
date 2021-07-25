@@ -9,3 +9,4 @@ articles:
   show_info: true
 ---
 
+Looking for more posts? Go to the [Archive](archive).
