@@ -47,6 +47,8 @@ Documentation:
         url: /docs/autostream
       - title: Logging
         url: /docs/logging
+      - title: AutoData
+        url: /docs/autodata
 
 Tutorials:
   - title: Quick Start Guide
