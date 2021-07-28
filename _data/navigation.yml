@@ -49,6 +49,8 @@ Documentation:
         url: /docs/logging
       - title: AutoData
         url: /docs/autodata
+      - title: Indicators Library
+        url: /docs/indicators
 
 Tutorials:
   - title: Quick Start Guide
