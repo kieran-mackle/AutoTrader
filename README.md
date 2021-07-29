@@ -1,4 +1,4 @@
-# AutoTrader
+# AutoTrader (coming soon)
 AutoTrader is a Python-based platform for developing, optimising and deploying automated trading systems.
 
 ## Features
@@ -6,5 +6,3 @@ AutoTrader is a Python-based platform for developing, optimising and deploying a
 - live trading
 - parameter optimisation
 
-## Dependencies
-- TaLib
