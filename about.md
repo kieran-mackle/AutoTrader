@@ -3,7 +3,7 @@ layout: article
 title: Welcome to the Home of AutoTrader
 ---
 
-AutoTrader is an event-driven platform intended to help in the development, optimisation and deployment of automated trading systems. 
+AutoTrader is an event-driven platform intended to help in the development, optimisation and live deployment of automated trading systems. 
 
 A basic level of experience with Python is recommended for using AutoTrader, but the documentation aims to be clear enough that a beginner 
 is able to pick up the key elements as they go. If you are new to Python, you may find the [tutorials](tutorials) especially useful.
