@@ -14,11 +14,6 @@ Rules for strategy:
 
 # Import packages
 import talib
-import plotly.graph_objs as go
-from plotly.subplots import make_subplots
-import plotly.io as pio
-pio.renderers.default = 'browser'
-import pandas as pd
 from lib import indicators
 
 # Path management
@@ -46,6 +41,19 @@ class SimpleMACD:
         self.MACD_CO_vals   = indicators.cross_values(self.MACD, 
                                                       self.MACDsignal,
                                                       self.MACD_CO)
+        # Construct indicators dict for plotting
+        self.indicators = {'MACD (12/26/9)': {'type': 'MACD',
+                                              'macd': self.MACD,
+                                              'signal': self.MACDsignal,
+                                              'histogram': self.MACDhist},
+                           'EMA (200)': {'type': 'EMA',
+                                         'data': self.ema},
+                           'RSI (14)': {'type': 'RSI',
+                                        'data': talib.RSI(data.Close.values)},
+                           'RSI (7)': {'type': 'RSI',
+                                       'data': talib.RSI(data.Close.values, 7)},
+                           'EMA (21)': {'type': 'EMA',
+                                        'data': talib.EMA(data.Close.values, 21)}}
         
         # Price swings
         self.swings         = indicators.find_swings(data)
@@ -111,195 +119,3 @@ class SimpleMACD:
         
         return exit_dict
     
-    
-    def create_backtest_chart(self, pair, interval, trade_summary, pf_df):
-        # Generate chart
-        fig = make_subplots(rows = 3, cols = 1,
-                            shared_xaxes = True,
-                            vertical_spacing = 0.02,
-                            row_heights = [0.3, 0.5, 0.2]
-                            )
-        
-        # Portfolio balance
-        fig.add_trace(go.Scatter(x = pf_df.index, 
-                                 y = pf_df.Balance.values, 
-                                 line = dict(color = 'blue', 
-                                             width = 1), 
-                                 name = 'Portfolio Balance'),
-                      row = 1,
-                      col = 1
-                      )
-        
-        # Price chart
-        fig.add_trace(go.Candlestick(x = self.data.index[-self.params['view_window']:],
-                                     open = self.data['Open'],
-                                     high = self.data['High'],
-                                     low  = self.data['Low'],
-                                     close= self.data['Close'], 
-                                     name = 'market data'
-                                     ),
-                      row = 2,
-                      col = 1
-                      )
-        
-        # Moving averages
-        fig.add_trace(go.Scatter(x      = self.data.index[-self.params['view_window']:], 
-                                 y      = self.ema[-self.params['view_window']:], 
-                                 line   = dict(color='orange', 
-                                               width=1
-                                               ), 
-                                 name='200EMA'),
-                      row = 2,
-                      col = 1
-                      )
-        
-        # Backtesting signals
-        profitable_longs        = trade_summary[(trade_summary['Profit'] > 0) 
-                                                & (trade_summary['Size'] > 0)]
-        profitable_shorts       = trade_summary[(trade_summary['Profit'] > 0) 
-                                                & (trade_summary['Size'] < 0)]
-        unprofitable_longs      = trade_summary[(trade_summary['Profit'] < 0) 
-                                                & (trade_summary['Size'] > 0)]
-        unprofitable_shorts     = trade_summary[(trade_summary['Profit'] < 0) 
-                                                & (trade_summary['Size'] < 0)]
-        stop_losses             = trade_summary.Stop_loss
-        take_profits            = trade_summary.Take_profit
-        entry_times             = pd.to_datetime(trade_summary.Entry_time.values, 
-                                                 utc=True)
-        exit_times              = list(trade_summary.Exit_time)
-        exit_prices             = trade_summary.Exit_price
-        
-        
-        # Profitable long trades
-        fig.add_trace(go.Scatter(x = pd.to_datetime(profitable_longs.Entry_time.values, utc=True), 
-                                 y = profitable_longs.Entry.values, 
-                                 mode = "markers",
-                                 marker_symbol = 5,
-                                 marker_size = 12,
-                                 marker_line_width = 1,
-                                 marker_color = 'lightgreen',
-                                 name = 'Profitable long position entry',
-                                 text = profitable_longs.Order_ID.values),
-                      row = 2,
-                      col = 1
-                      )
-        
-        # Profitable short trades
-        fig.add_trace(go.Scatter(x = pd.to_datetime(profitable_shorts.Entry_time.values, utc=True), 
-                                 y = profitable_shorts.Entry.values, 
-                                 mode="markers",
-                                 marker_symbol = 6,
-                                 marker_size = 12,
-                                 marker_line_width = 1,
-                                 marker_color = 'lightgreen',
-                                 name = 'Profitable short position entry',
-                                 text = profitable_shorts.Order_ID.values),
-                      row = 2,
-                      col = 1
-                      )
-        
-        # Unprofitable long trades
-        fig.add_trace(go.Scatter(x = pd.to_datetime(unprofitable_longs.Entry_time.values, utc=True), 
-                                 y = unprofitable_longs.Entry.values, 
-                                 mode="markers",
-                                 marker_symbol = 5,
-                                 marker_size = 12,
-                                 marker_line_width = 1,
-                                 marker_color = 'orangered',
-                                 name = 'Unprofitable long position entry',
-                                 text = unprofitable_longs.Order_ID.values),
-                      row = 2,
-                      col = 1
-                      )
-        
-        # Unprofitable short trades
-        fig.add_trace(go.Scatter(x = pd.to_datetime(unprofitable_shorts.Entry_time.values, utc=True), 
-                                 y = unprofitable_shorts.Entry.values, 
-                                 mode="markers",
-                                 marker_symbol = 6,
-                                 marker_size = 12,
-                                 marker_line_width = 1,
-                                 marker_color = 'orangered',
-                                 name = 'Unprofitable short position entry',
-                                 text = unprofitable_shorts.Order_ID.values),
-                      row = 2,
-                      col = 1
-                      )
-        
-        # Stop loss levels
-        fig.add_trace(go.Scatter(x = entry_times, 
-                                  y = stop_losses.values, 
-                                  mode="markers",
-                                  marker_symbol = 41,
-                                  marker_size = 12,
-                                  marker_line_width = 1,
-                                  marker_color = 'black',
-                                  name = 'Stop loss level'),
-                      row = 2,
-                      col = 1
-                      )
-        
-        # Take profit levels
-        fig.add_trace(go.Scatter(x = entry_times, 
-                                  y = take_profits.values, 
-                                  mode="markers",
-                                  marker_symbol = 41,
-                                  marker_size = 12,
-                                  marker_line_width = 1,
-                                  marker_color = 'black',
-                                  name = 'Stop loss level'),
-                      row = 2,
-                      col = 1
-                      )
-        
-        # Position exits
-        fig.add_trace(go.Scatter(x = exit_times,
-                                 y = exit_prices.values, 
-                                 mode="markers",
-                                 marker_symbol = 0,
-                                 marker_size = 5,
-                                 marker_line_width = 1,
-                                 marker_color = 'black',
-                                 name = 'Position exit',
-                                 text = trade_summary.Order_ID),
-                      row = 2,
-                      col = 1
-                      )
-        
-        
-        # RSI
-        fig.add_trace(go.Scatter(x = self.data.index,
-                                 y = self.MACD, 
-                                 line = dict(color = 'blue',
-                                             width = 1), 
-                                 name = 'MACD'),
-                      row = 3,
-                      col = 1
-                      )
-        fig.add_trace(go.Scatter(x = self.data.index,
-                                 y = self.MACDsignal, 
-                                 line = dict(color = 'red',
-                                             width = 1), 
-                                 name = 'MACD signal'),
-                      row = 3,
-                      col = 1
-                      )
-        
-        # fig.update_layout(hovermode="y unified")
-        fig.update_layout(
-                          title = "Backtest chart for {}/{} ({} candles) using {}".format(pair[:3], 
-                                                                                        pair[-3:], 
-                                                                                        interval,
-                                                                                        self.name)
-                          )
-        
-        # Hide weekends
-        fig.update_xaxes(
-                rangeslider_visible=False,
-                rangebreaks=[
-                    dict(bounds=["sat", "mon"]),
-                            ]
-                        )
-        
-        if self.params['show_fig']:
-            fig.show()
