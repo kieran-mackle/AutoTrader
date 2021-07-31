@@ -18,7 +18,7 @@ import time
 import re
 import os
 import pyfiglet
-from lib import instrument_list
+from autotrader.lib import instrument_list
 
 
 def connect_to_stream(config):

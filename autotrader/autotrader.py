@@ -20,39 +20,39 @@ import os
 import pyfiglet
 import yaml
 import importlib
-from brokers.oanda import Oanda
-from brokers.virtual.virtual_broker import Broker
+from autotrader.brokers.oanda import Oanda
+from autotrader.brokers.virtual.virtual_broker import Broker
 from datetime import datetime, timedelta
-from emailing import emailing
-from lib import logger, instrument_list, environment_manager, autodata
+from autotrader.emailing import emailing
+from autotrader.lib import logger, instrument_list, environment_manager, autodata
 import time
 import pytz
 import numpy as np
 import pandas as pd
-from autoplot import plot_backtest
+from autotrader.autoplot import plot_backtest
 
 
 class AutoTrader():
     
     def __init__(self):
-        self.config_file     = None
-        self.verbosity       = 0
-        self.show_help       = None
-        self.notify          = 0
-        self.backtest        = False
-        self.show_plot       = False
-        self.log             = False
-        self.analyse         = False
-        self.scan            = None
-        self.optimise        = False
-        self.data_file       = None
-        self.instruments     = None
+        self.config_file    = None
+        self.verbosity      = 0
+        self.show_help      = None
+        self.notify         = 0
+        self.backtest       = False
+        self.show_plot      = False
+        self.log            = False
+        self.analyse        = False
+        self.scan           = None
+        self.optimise       = False
+        self.data_file      = None
+        self.instruments    = None
     
     def run(self):
         ''' -------------------------------------------------------------- '''
         '''                         Load configuration                     '''
         ''' -------------------------------------------------------------- '''
-        home_dir                = os.path.dirname(os.path.abspath(__file__))
+        home_dir                = os.getcwd()
         price_data_path         = os.path.join(home_dir, 'price_data')
         
         if self.optimise is True and self.backtest is True:

@@ -16,8 +16,8 @@ import plotly.graph_objs as go
 from plotly.subplots import make_subplots
 import plotly.io as pio
 pio.renderers.default = 'browser'
-from lib import environment_manager
-from lib.autodata import GetData
+from autotrader.lib import environment_manager
+from autotrader.lib.autodata import GetData
 import yaml
 import numpy as np
 from getopt import getopt

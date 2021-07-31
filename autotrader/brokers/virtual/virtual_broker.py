@@ -3,12 +3,10 @@
 """
 Virtual broker.
 
-Note: portfolio balance will only change once a position is closed.
-    
 """
 
 import v20
-from brokers.virtual import utils
+from autotrader.brokers.virtual import utils
 
 class Broker():
     

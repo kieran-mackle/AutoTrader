@@ -9,7 +9,7 @@ Created on Wed Jun 23 10:19:44 2021
 from getopt import getopt
 import sys
 import os
-from emailing import send_order_summary
+from autotrader.emailing import send_order_summary
 import yaml
 
 

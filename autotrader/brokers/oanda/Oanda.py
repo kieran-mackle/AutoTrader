@@ -7,7 +7,7 @@ Oanda API Wrapper
 """
 
 import v20
-from brokers.oanda import utils
+from autotrader.brokers.oanda import utils
 import datetime
 import pandas as pd
 
