@@ -219,8 +219,8 @@ def trade_summary(pair, closed_positions_dict):
             portfolio_balance.append(closed_positions_dict[order]['balance'])
             exit_times.append(closed_positions_dict[order]['exit_time'])
             exit_prices.append(closed_positions_dict[order]['exit_price'])
-            trade_duration.append((closed_positions_dict[order]['exit_time'] - 
-                                  closed_positions_dict[order]['entry_time']).seconds)
+            trade_duration.append(closed_positions_dict[order]['exit_time'].timestamp() - 
+                                  closed_positions_dict[order]['entry_time'].timestamp())
             
     dataframe = pd.DataFrame({"Order_ID": order_ID, "Order_price": order_price,
                               "Entry_time": entry_time,

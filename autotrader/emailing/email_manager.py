@@ -18,7 +18,7 @@ def main(uo_dict):
     file_dir    = os.path.join(email_dir, '../logfiles')
     file_path   = os.path.join(file_dir, uo_dict["filename"])
     
-    global_config   = read_yaml(email_dir + '../config/GLOBAL.yaml')
+    global_config   = read_yaml(email_dir + '/../config/GLOBAL.yaml')
     host_email      = global_config["EMAILING"]["HOST_ACCOUNT"]
     mailing_list    = global_config["EMAILING"]["MAILING_LIST"]
     

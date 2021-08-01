@@ -14,7 +14,7 @@ Rules for strategy:
 
 # Import packages
 import talib
-from lib import indicators
+from autotrader.lib import indicators
 
 # Path management
 import os

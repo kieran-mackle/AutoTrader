@@ -3,22 +3,15 @@
 """
 Virtual broker.
 
+Note: portfolio balance will only change once a position is closed.
+    
 """
 
-import v20
 from autotrader.brokers.virtual import utils
 
 class Broker():
     
     def __init__(self, broker_config):
-        # Create v20 context
-        API                     = broker_config["API"]
-        ACCESS_TOKEN            = broker_config["ACCESS_TOKEN"]
-        port                    = broker_config["PORT"]
-        
-        self.ACCOUNT_ID         = broker_config["ACCOUNT_ID"]
-        self.api                = v20.Context(hostname=API, token=ACCESS_TOKEN, port=port)
-        
         self.fee                = 0
         self.leverage           = 1
         self.commission         = 0
@@ -35,6 +28,7 @@ class Broker():
         self.low_value          = 0
         self.max_drawdown       = 0
         self.base_currency      = 'AUD'
+        self.NAV                = 0
     
     
     def place_order(self, order_details):
@@ -142,6 +136,7 @@ class Broker():
         
         # Update trailing stops
         # For other methods, move the stop update to an external function
+        # Can this be moved into the loop below?
         for order_no in self.open_positions:
             if self.open_positions[order_no]['stop_type'] == 'trailing_stop':
                 # Trailing stop loss is enabled, check if price has moved SL
@@ -155,8 +150,7 @@ class Broker():
                     distance = abs(self.open_positions[order_no]['entry_price'] - \
                                    self.open_positions[order_no]['stop'])
                 
-                
-                
+
                 if self.open_positions[order_no]['size'] > 0:
                     # long position, stop loss only moves up
                     new_stop = candle.High - distance
@@ -172,18 +166,29 @@ class Broker():
         
         # Update self.open_positions
         open_position_orders = list(self.open_positions.keys())
+        unrealised_PL  = 0        # Un-leveraged value
         for order_no in open_position_orders:
             if self.open_positions[order_no]['size'] > 0:
                 if candle.Low < self.open_positions[order_no]['stop']:
+                    # Stop loss hit
                     self.close_position(order_no, 
                                         candle, 
                                         self.open_positions[order_no]['stop']
                                         )
                 elif candle.High > self.open_positions[order_no]['take']:
+                    # Take Profit hit
                     self.close_position(order_no, 
                                         candle, 
                                         self.open_positions[order_no]['take']
                                         )
+                else:
+                    # Position is still open, update value of holding
+                    size        = self.open_positions[order_no]['size']
+                    entry_price = self.open_positions[order_no]['entry_price']
+                    price       = candle.Close
+                    HCF         = self.open_positions[order_no]['HCF']
+                    position_value = size*(price - entry_price)*HCF
+                    unrealised_PL += position_value
             
             else:
                 if candle.High > self.open_positions[order_no]['stop']:
@@ -196,9 +201,19 @@ class Broker():
                                         candle, 
                                         self.open_positions[order_no]['take']
                                         )
+                else:
+                    size        = self.open_positions[order_no]['size']
+                    entry_price = self.open_positions[order_no]['entry_price']
+                    price       = candle.Close
+                    HCF         = self.open_positions[order_no]['HCF']
+                    position_value = size*(price - entry_price)*HCF
+                    unrealised_PL += position_value
         
         # Update margin available
         self.update_margin(candle.Close)
+        
+        # Update open position value
+        self.NAV = self.portfolio_balance + unrealised_PL
         
     
     def close_position(self, order_no, candle, exit_price):
@@ -311,156 +326,8 @@ class Broker():
             margin_used     += margin_required
         
         self.margin_available = self.portfolio_balance - margin_used
-    
-    
-    def get_data(self, pair, interval, period=None, start=None, end=None):
-        ''' Get historical price data of a pair. '''
-        # specifying a start and end takes precedence over specifying a period.
 
-        # what if I wanted to request 25,000 candles, rather than specifying 
-        # a time range? Would need to modify function again...
-        #       Ignore this as an edge case for now. 
-        # This would basically be the inverse of what I have already done, 
-        # instead of stepping forward, I would step backward with partial_to
-        # times until my requested count is hit.
-        
-        if period is not None:
-            # either of period, start+period, end+period (or start+end+period)
-            # if period is provided, period must be less than 5000
-            if start is None and end is None:
-                # period
-                response    = self.api.instrument.candles(pair,
-                                             granularity = interval,
-                                             count = period
-                                             )
-                data        = utils.response_to_df(response)
-                
-            elif start is not None and end is None:
-                # start+period
-                from_time   = start.timestamp()
-                response    = self.api.instrument.candles(pair,
-                                             granularity = interval,
-                                             count = period,
-                                             fromTime = from_time
-                                             )
-                data        = utils.response_to_df(response)
-            
-            elif end is not None and start is None:
-                # end+period
-                to_time     = end.timestamp()
-                response    = self.api.instrument.candles(pair,
-                                             granularity = interval,
-                                             count = period,
-                                             toTime = to_time
-                                             )
-                data        = utils.response_to_df(response)
-                
-            else:
-                # start+end+period
-                print("Ignoring period input since start and end",
-                       "times have been specified.")
-                from_time       = start.timestamp()
-                to_time         = end.timestamp()
-            
-                # try to get data 
-                response        = self.api.instrument.candles(pair,
-                                                         granularity = interval,
-                                                         fromTime = from_time,
-                                                         toTime = to_time
-                                                         )
-                
-                # If the request is rejected, max candles likely exceeded
-                if response.status != 200:
-                    data        = self.get_extended_data(pair,
-                                                         interval,
-                                                         from_time,
-                                                         to_time)
-                else:
-                    data        = utils.response_to_df(response)
-                
-        else:
-            # period is None
-            # Assume that both start and end have been specified.
-            from_time       = start.timestamp()
-            to_time         = end.timestamp()
-            
-            # try to get data 
-            response        = self.api.instrument.candles(pair,
-                                                     granularity = interval,
-                                                     fromTime = from_time,
-                                                     toTime = to_time
-                                                     )
-            
-            # If the request is rejected, max candles likely exceeded
-            if response.status != 200:
-                data        = self.get_extended_data(pair,
-                                                     interval,
-                                                     from_time,
-                                                     to_time)
-            else:
-                data        = utils.response_to_df(response)
-        
-        
-        # if livetesting, specify end time and count (end=now, count=300)
-        # if backtesting, specify start time and count (start=last_start+interval, count=300)
-        # OR
-        # if backtesting, specify end time and count (end=last_end+interval, count=300)
-        # This is closer to the sliding window method of backtesting
-        
-        return data
-    
-    
-    def get_extended_data(self, pair, interval, from_time, to_time):
-        ''' Returns historical data between a date range. '''
-        # Currently does not accept period (count) input, but in the future...
-        
-        max_candles     = 5000
-        
-        my_int          = utils.interval_to_seconds(interval)
-        end_time        = to_time - my_int
-        partial_from    = from_time
-        response        = self.api.instrument.candles(pair,
-                                                 granularity = interval,
-                                                 fromTime = partial_from,
-                                                 count = max_candles
-                                                 )
-        data            = utils.response_to_df(response)
-        last_time       = data.index[-1].timestamp()
-        
-        while last_time < end_time:
-            partial_from    = last_time
-            response        = self.api.instrument.candles(pair,
-                                                     granularity = interval,
-                                                     fromTime = partial_from,
-                                                     count = max_candles
-                                                     )
-            
-            partial_data    = utils.response_to_df(response)
-            data            = data.append(partial_data)
-            last_time       = data.index[-1].timestamp()
-            
-        return data
-    
-    
-    def get_quote_data(self, data, pair, interval, period=None, start=None, end=None):
-        # Currently wont work if period is given, onyl start and end
-        
-        quote_currency  = pair[-3:]
-        base_currency   = pair[:3]
 
-        if quote_currency == self.base_currency:
-            conversion_data = data
-        else:
-            conversion_pair = self.base_currency + "_" + quote_currency
-            conversion_data = self.get_data(conversion_pair,
-                                            interval,
-                                            start=start,
-                                            end=end
-                                            )
-        
-        return conversion_data
-        
-    
     def get_price(self, pair, data, conversion_data, i):
         ''' Returns the price data dict. '''
         
@@ -513,5 +380,11 @@ class Broker():
           # initial balance, giving a false MDD
           # Should only update low value if it comes after --- wait
           # I dont think this is true, ignore for now...
+
+    def update_NAV(self):
+        # Iterate over open positions to calculate value
+        
+        
+        self.NAV = 0
         
             

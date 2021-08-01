@@ -9,8 +9,6 @@ Created on Sun May  2 17:18:38 2021
 import smtplib, ssl
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-# from email import encoders
-# from email.mime.base import MIMEBase
 from datetime import datetime
 import pandas as pd
 
