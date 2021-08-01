@@ -1,4 +1,5 @@
 ENVIRONMENT: 'demo'
+FEED: 'OANDA'
 
 STRATEGY:
   MODULE: 'modulename'

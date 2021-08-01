@@ -1,9 +1,11 @@
 ENVIRONMENT: 'demo'
+FEED: 'OANDA'
+ACCOUNT_ID: "101-011-18771552-009"
 
 STRATEGY:
   MODULE: 'simple_macd'
   NAME: 'SimpleMACD'
-  INTERVAL: 'M15'
+  INTERVAL: 'H1'
   PERIOD: 300
   RISK_PC: 1.5
   SIZING: 'risk'
@@ -16,16 +18,7 @@ STRATEGY:
     # Exit level parameters
     RR: 1.5
 
-WATCHLIST: ['EUR_USD',
-            'EUR_AUD',
-            'EUR_JPY',
-            'EUR_CAD',
-            'EUR_NZD',
-            'AUD_CAD',
-            'AUD_JPY',
-            'GBP_JPY',
-            'GBP_AUD',
-            'USD_JPY']
+WATCHLIST: ['EUR_USD']
 
 BACKTESTING:
   base_currency: 'AUD'
@@ -33,5 +26,5 @@ BACKTESTING:
   spread: 0.5
   commission: 0.005
   leverage: 30
-  FROM: 1/1/2021
-  TO: 1/7/2021
+  FROM: 1/1/2020
+  TO: 1/6/2020
