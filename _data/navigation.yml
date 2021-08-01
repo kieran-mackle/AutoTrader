@@ -57,10 +57,10 @@ Tutorials:
     children:
       - title: Getting AutoTrader 
         url: /tutorials/getting-autotrader
-      - title: Getting Price Data
-        url: /tutorials/price-data
       - title: Building a Strategy
         url: /tutorials/strategy
+      - title: Getting Price Data
+        url: /tutorials/price-data
       - title: Backtesting
         url: /tutorials/backtesting
       - title: Optimisation
