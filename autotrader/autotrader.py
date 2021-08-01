@@ -47,12 +47,16 @@ class AutoTrader():
         self.optimise       = False
         self.data_file      = None
         self.instruments    = None
+        self.home_dir       = None
     
     def run(self):
         ''' -------------------------------------------------------------- '''
         '''                         Load configuration                     '''
         ''' -------------------------------------------------------------- '''
-        home_dir                = os.getcwd()
+        if self.home_dir is not None:
+            home_dir            = self.home_dir
+        else:
+            home_dir            = os.getcwd()
         price_data_path         = os.path.join(home_dir, 'price_data')
         
         if self.optimise is True and self.backtest is True:
