@@ -94,7 +94,7 @@ class AutoTrader():
         strategy            = getattr(module, strat_name)
         
         if self.backtest is True:
-            utils           = importlib.import_module('brokers.virtual.utils')
+            utils           = importlib.import_module('autotrader.brokers.virtual.utils')
             broker          = Broker(broker_config)
             
             from_date       = datetime.strptime(config['BACKTESTING']['FROM']+'+0000', '%d/%m/%Y%z')
@@ -119,7 +119,7 @@ class AutoTrader():
                 print(banner)
                 
         else:
-            utils           = importlib.import_module('brokers.oanda.utils')
+            utils           = importlib.import_module('autotrader.brokers.oanda.utils')
             broker          = Oanda.Oanda(broker_config)
         
         if int(self.notify) > 0:
