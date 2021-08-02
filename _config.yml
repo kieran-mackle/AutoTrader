@@ -175,11 +175,9 @@ include:
 
 exclude:
   - CHANGELOG.md
-  - HOW_TO_RELEASE.md
   - Gemfile
   - Gemfile.lock
   - LICENSE
-  - README-*.md
   - README.md
   - gulpfile.js
   - jekyll-text-theme.gemspec
@@ -188,6 +186,11 @@ exclude:
   - /node_modules
   - /vendor
 
+collections:
+  docs:
+    output: true
+  tutorials:
+    output: true
 
 defaults:
   ## Posts
