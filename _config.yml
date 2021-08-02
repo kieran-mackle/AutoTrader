@@ -170,8 +170,9 @@ highlighter : rouge
 permalink   : date
 
 include:
-  - _docs
-  - _tutorials
+  - content
+  # - _docs
+  # - _tutorials
 
 exclude:
   - CHANGELOG.md
@@ -186,17 +187,20 @@ exclude:
   - /node_modules
   - /vendor
 
+collections_dir: content
 collections:
-  docs:
+  documentation:
     output: true
   tutorials:
+    output: true
+  posts:
     output: true
 
 defaults:
   ## Posts
   - 
     scope:
-      path: ""
+      path: _posts
       type: posts
     values:
       layout: article
@@ -211,7 +215,7 @@ defaults:
   ## docs
   - 
     scope:
-      path: _docs
+      path: _documentation
     values:
       layout: article
       nav_key: Documentation
