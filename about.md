@@ -1,5 +1,6 @@
 ---
 layout: article
+permalink: home
 title: Welcome to the Home of AutoTrader
 ---
 

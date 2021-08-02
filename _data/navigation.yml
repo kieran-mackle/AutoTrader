@@ -1,6 +1,6 @@
 header:
   - title: Home
-    url: /about.html
+    url: /home
     key: Home
 
   - title: Documentation
