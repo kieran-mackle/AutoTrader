@@ -145,7 +145,7 @@ pageview:
 ## => Search
 ##############################
 search:
-  provider: 'default' # "default" (default), false, "google", "custom"
+  provider: 'google' # "default" (default), false, "google", "custom"
 
   ## Google Custom Search Engine
   google:
