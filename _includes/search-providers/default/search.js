@@ -1,6 +1,6 @@
 var SOURCES = window.TEXT_VARIABLES.sources;
 var PAHTS = window.TEXT_VARIABLES.paths;
-window.js([SOURCES.jquery, PAHTS.search_js], function() {
+window.Lazyload.js([SOURCES.jquery, PAHTS.search_js], function() {
   var search = (window.search || (window.search = {}));
   var searchData = window.TEXT_SEARCH_DATA || {};
 
