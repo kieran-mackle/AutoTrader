@@ -67,11 +67,6 @@ Tutorials:
         url: /tutorials/optimisation
       - title: Getting Help
         url: /tutorials/help
-  - title: Building Strategies
-    children:
-      - title: Adding Indicators
-      - title: Troubleshooting
-      
   - title: Miscellaneous
     children:
       - title: Setting up email notifications
