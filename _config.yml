@@ -113,8 +113,8 @@ comments:
   ## Gitalk
   # please refer to https://github.com/gitalk/gitalk for more info.
   gitalk:
-    clientID    : Iv1.c8ee727b402e3066 # GitHub Application Client ID
-    clientSecret: fe75f87cd5966fac9f99c3775961c2679a7ecea9 # GitHub Application Client Secret
+    clientID    : 60e2ebb8196620e59928 # GitHub Application Client ID
+    clientSecret: 07a6e5a98dce70bf243fa45d9e63f124706c4313 # GitHub Application Client Secret
     repository  : AutoTrader # GitHub repo
     owner       : kieran-mackle # GitHub repo owner
     admin: # GitHub repo owner and collaborators, only these guys can initialize GitHub issues, IT IS A LIST.
