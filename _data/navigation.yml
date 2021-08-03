@@ -29,8 +29,6 @@ Documentation:
         url: /docs/brokers-virtual
       - title: Oanda
         url: /docs/brokers-oanda
-      - title: Coming Soon
-        url: /docs/brokers-coming-soon
   - title: Configuration Files
     children:
       - title: Global Configuration
