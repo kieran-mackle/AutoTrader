@@ -65,6 +65,8 @@ Tutorials:
         url: /tutorials/backtesting
       - title: Optimisation
         url: /tutorials/optimisation
+      - title: Going Live
+        url: /tutorials/live-trading
       - title: Getting Help
         url: /tutorials/help
   - title: Miscellaneous
