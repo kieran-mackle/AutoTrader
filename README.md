@@ -22,5 +22,8 @@ AutoTrader is documented on the [project website](https://kieran-mackle.github.i
 
 There is also a detailed [Quick Start Guide](https://kieran-mackle.github.io/AutoTrader/tutorials/getting-autotrader).
 
+## Demo Chart
+![MACD-backtest-demo](https://user-images.githubusercontent.com/60687606/128127659-bf81fdd2-c246-4cd1-b86d-ef624cac50a7.png)
+
 ## License
 GNU General Public License v3.0
