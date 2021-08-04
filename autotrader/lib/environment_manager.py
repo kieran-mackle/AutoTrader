@@ -61,7 +61,6 @@ def get_config(environment, global_config, feed):
             return
             
         elif feed.upper() == 'YAHOO':
-            print("WTF")
             data_source = 'yfinance'
             config_dict = {'data_source'    : data_source}
             

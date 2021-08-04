@@ -47,13 +47,7 @@ class SimpleMACD:
                                               'signal': self.MACDsignal,
                                               'histogram': self.MACDhist},
                            'EMA (200)': {'type': 'EMA',
-                                         'data': self.ema},
-                           'RSI (14)': {'type': 'RSI',
-                                        'data': talib.RSI(data.Close.values)},
-                           'RSI (7)': {'type': 'RSI',
-                                       'data': talib.RSI(data.Close.values, 7)},
-                           'EMA (21)': {'type': 'EMA',
-                                        'data': talib.EMA(data.Close.values, 21)}}
+                                         'data': self.ema}}
         
         # Price swings
         self.swings         = indicators.find_swings(data)
@@ -68,6 +62,7 @@ class SimpleMACD:
         
         order_type  = 'market'
         signal_dict = {}
+        related_orders  = None
         
         if self.data.Close.values[i] > self.ema[i] and \
             self.MACD_CO[i] == 1 and \
@@ -91,6 +86,7 @@ class SimpleMACD:
         signal_dict["stop_loss"]    = exit_dict["stop_loss"]
         signal_dict["stop_type"]    = exit_dict["stop_type"]
         signal_dict["take_profit"]  = exit_dict["take_profit"]
+        signal_dict["related_orders"] = related_orders
         
         return signal_dict
     

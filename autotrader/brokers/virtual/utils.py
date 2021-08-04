@@ -9,6 +9,7 @@ Utilities for virtual broker.
 import pandas as pd
 import numpy as np
 import talib as ta
+from datetime import datetime
 
 def response_to_df(response):
     ''' Function to convert api response into a pandas dataframe. '''
@@ -54,7 +55,7 @@ def get_pip_ratio(pair):
 def get_size(pair, amount_risked, price, stop_price, HCF):
     ''' Calculate position size based on account balance and risk profile. '''
     if np.isnan(stop_price):
-        units = 10000 # TODO: generalise
+        units               = amount_risked/(HCF*price)
     else:
         pip_value           = get_pip_ratio(pair)
         pip_stop_distance   = abs(price - stop_price) / pip_value
@@ -219,8 +220,15 @@ def trade_summary(pair, closed_positions_dict):
             portfolio_balance.append(closed_positions_dict[order]['balance'])
             exit_times.append(closed_positions_dict[order]['exit_time'])
             exit_prices.append(closed_positions_dict[order]['exit_price'])
-            trade_duration.append(closed_positions_dict[order]['exit_time'].timestamp() - 
-                                  closed_positions_dict[order]['entry_time'].timestamp())
+            if type(closed_positions_dict[order]['exit_time']) == str:
+                exit_dt     = datetime.strptime(closed_positions_dict[order]['exit_time'],
+                                                "%Y-%m-%d %H:%M:%S%z")
+                entry_dt    = datetime.strptime(closed_positions_dict[order]['entry_time'],
+                                                "%Y-%m-%d %H:%M:%S%z")
+                trade_duration.append(exit_dt.timestamp() - entry_dt.timestamp())
+            else:
+                trade_duration.append(closed_positions_dict[order]['exit_time'].timestamp() - 
+                                      closed_positions_dict[order]['entry_time'].timestamp())
             
     dataframe = pd.DataFrame({"Order_ID": order_ID, "Order_price": order_price,
                               "Entry_time": entry_time,

@@ -22,7 +22,7 @@ class GetData():
                                                   port=port)
         
         
-        self.base_currency      = None
+        self.home_currency      = None
         
 
     def oanda(self, instrument, granularity, count=None, start_time=None, end_time=None):
@@ -175,10 +175,10 @@ class GetData():
         '''
         quote_currency  = pair[-3:]
         
-        if self.base_currency is None or quote_currency == self.base_currency:
+        if self.home_currency is None or quote_currency == self.home_currency:
             quote_data = data
         else:
-            conversion_pair = self.base_currency + "_" + quote_currency
+            conversion_pair = self.home_currency + "_" + quote_currency
             quote_data = self.oanda(instrument  = conversion_pair,
                                     granularity = granularity,
                                     start_time  = start_time,

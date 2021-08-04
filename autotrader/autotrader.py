@@ -36,6 +36,7 @@ class AutoTrader():
     
     def __init__(self):
         self.config_file    = None
+        self.custom_config  = None
         self.verbosity      = 0
         self.show_help      = None
         self.notify         = 0
@@ -50,6 +51,16 @@ class AutoTrader():
         self.home_dir       = None
     
     def run(self):
+        if self.show_help is not None:
+            self.print_help(self.show_help)
+            return
+        
+        if self.config_file is None and self.backtest is False:
+            self.print_usage()
+        else:
+            self.main()
+    
+    def main(self):
         ''' -------------------------------------------------------------- '''
         '''                         Load configuration                     '''
         ''' -------------------------------------------------------------- '''
@@ -185,6 +196,7 @@ class AutoTrader():
                         # Check if historical data already exists
                         historical_data_name = 'hist_{0}{1}.csv'.format(interval, instrument)
                         historical_quote_data_name = 'hist_{0}{1}_quote.csv'.format(interval, instrument)
+                        data_dir_path = os.path.join(home_dir, 'price_data')
                         historical_data_file_path = os.path.join(home_dir, 
                                                                  'price_data',
                                                                  historical_data_name)
@@ -205,6 +217,11 @@ class AutoTrader():
                                                                                           to_date)
                             data, quote_data    = utils.check_dataframes(data, quote_data)
                             
+                            # Check if price_data folder exists
+                            if not os.path.exists(data_dir_path):
+                                # If price data directory doesn't exist, make it
+                                os.makedirs(data_dir_path)
+                                
                             # Save data in file/s
                             data.to_csv(historical_data_file_path)
                             quote_data.to_csv(historical_quote_data_file_path)
@@ -331,6 +348,11 @@ class AutoTrader():
                                                                       data.Close[i]
                                                                       ))
                     
+                    # if signal_dict["order_type"] == 'close':
+                    #     # Exit signal detected
+                    #     continue
+                        
+                    # else:
                     
                     # Entry signal detected
                     if self.backtest is True:
@@ -378,7 +400,8 @@ class AutoTrader():
                                      "take_profit":     take_price,
                                      "HCF":             HCF,
                                      "stop_type":       stop_type,
-                                     "granularity":     interval
+                                     "granularity":     interval,
+                                     "related_orders":  signal_dict["related_orders"]
                                      }
                     
                     # Place order

@@ -7,17 +7,14 @@ AutoTrader strategy template.
 # Import packages
 import talib
 import numpy as np
-import plotly.graph_objs as go
-from plotly.subplots import make_subplots
-import plotly.io as pio
-pio.renderers.default = 'browser'
 import pandas as pd
+from autotrader.lib.indicators import crossover
 
 # Path management
 import os
 
 
-class StrategyClass:
+class EMACrossover:
 
     def __init__(self, params, data, pair):
         ''' Define all indicators used in the strategy '''
@@ -25,27 +22,42 @@ class StrategyClass:
         self.data   = data
         self.params = params
         
-        # Construct indicators dict for plotting
-        self.indicators = {}
+        # EMA's
+        self.slow_ema = talib.EMA(self.data.Close.values, 
+                                  self.params['slow_ema'])
         
-        # Path variables
-        strat_dir       = os.path.dirname(os.path.abspath(__file__))
-        self.home_dir   = os.path.join(strat_dir, '..')
+        self.fast_ema = talib.EMA(self.data.Close.values, 
+                                  self.params['fast_ema'])
+        
+        self.crossovers = crossover(self.fast_ema, self.slow_ema)
+        
+        # Construct indicators dict for plotting
+        self.indicators = {'Fast EMA': {'type': 'EMA',
+                                        'data': self.fast_ema},
+                           'Slow EMA': {'type': 'EMA',
+                                        'data': self.slow_ema}
+                           }
         
 
     def generate_signal(self, i, current_position):
         ''' Define strategy to determine entry signals '''
-        
-        # In this example, the strategy will place market orders.
-        # Other order types are:
-            # limit - to place a limit order
-            # close - to close the current_position
-        order_type  = 'market'
-        signal_dict = {}
+        order_type      = 'market'
         related_orders  = None
+        signal_dict     = {}
         
         # Put entry strategy here
         signal      = 0
+        if len(current_position) == 0:
+            # Not currently in any position, okay to enter long
+            if self.crossovers[i] == 1:
+                # Fast EMA has crossed above slow EMA, enter long
+                signal = 1
+        else:
+            # Already in a position, only look for long exits
+            if self.crossovers[i] == -1:
+                signal = -1
+                related_orders = list(current_position.keys())[0]
+                order_type = 'close'
         
         # Calculate exit targets
         exit_dict = self.generate_exit_levels(signal, i)
@@ -65,8 +77,8 @@ class StrategyClass:
         ''' Function to determine stop loss and take profit levels '''
         
         # Put exit strategy here
-        stop = 0
-        take = 0
+        stop = np.nan
+        take = np.nan
         stop_type = 'limit'
         
         exit_dict = {'stop_loss'    : stop, 

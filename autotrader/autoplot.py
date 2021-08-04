@@ -27,7 +27,7 @@ import os
 
 # Bokeh
 from bokeh.models.annotations import Title
-from bokeh.plotting import figure, output_file, show, save
+from bokeh.plotting import figure, output_file, show
 from bokeh.models import (
     CustomJS,
     ColumnDataSource,
@@ -35,7 +35,6 @@ from bokeh.models import (
 )
 from bokeh.layouts import gridplot
 from bokeh.transform import factor_cmap
-import os
 
 
 def read_yaml(file_path):
@@ -609,53 +608,65 @@ def plot_trade_history(data, trade_summary, linked_fig):
     
     
     # Profitable long trades
-    linked_fig.scatter(list(profitable_longs.index),
-                       list(profitable_longs.Entry.values),
-                       marker = 'triangle',
-                       size = 15,
-                       fill_color = 'lightgreen',
-                       legend_label = 'Profitable long trades')
+    if len(profitable_longs) > 0:
+        linked_fig.scatter(list(profitable_longs.index),
+                           list(profitable_longs.Entry.values),
+                           marker = 'triangle',
+                           size = 15,
+                           fill_color = 'lightgreen',
+                           legend_label = 'Profitable long trades')
     
     # Profitable short trades
-    linked_fig.scatter(list(profitable_shorts.index),
-                       list(profitable_shorts.Entry.values),
-                       marker = 'inverted_triangle',
-                       size = 15,
-                       fill_color = 'lightgreen',
-                       legend_label = 'Profitable short trades')
+    if len(profitable_shorts) > 0:
+        linked_fig.scatter(list(profitable_shorts.index),
+                           list(profitable_shorts.Entry.values),
+                           marker = 'inverted_triangle',
+                           size = 15,
+                           fill_color = 'lightgreen',
+                           legend_label = 'Profitable short trades')
     
     # Unprofitable long trades
-    linked_fig.scatter(list(unprofitable_longs.index),
-                       list(unprofitable_longs.Entry.values),
-                       marker = 'triangle',
-                       size = 15,
-                       fill_color = 'orangered',
-                       legend_label = 'Unprofitable long trades')
+    if len(unprofitable_longs) > 0:
+        linked_fig.scatter(list(unprofitable_longs.index),
+                           list(unprofitable_longs.Entry.values),
+                           marker = 'triangle',
+                           size = 15,
+                           fill_color = 'orangered',
+                           legend_label = 'Unprofitable long trades')
     
     # Unprofitable short trades
-    linked_fig.scatter(list(unprofitable_shorts.index),
-                       list(unprofitable_shorts.Entry.values),
-                       marker = 'inverted_triangle',
-                       size = 15,
-                       fill_color = 'orangered',
-                       legend_label = 'Unprofitable short trades')
+    if len(unprofitable_shorts) > 0:
+        linked_fig.scatter(list(unprofitable_shorts.index),
+                           list(unprofitable_shorts.Entry.values),
+                           marker = 'inverted_triangle',
+                           size = 15,
+                           fill_color = 'orangered',
+                           legend_label = 'Unprofitable short trades')
     
     
-    # Stop loss levels
-    linked_fig.scatter(list(trade_summary.index),
-                       list(trade_summary.Stop_loss.values),
-                       marker = 'dash',
-                       size = 15,
-                       fill_color = 'black',
-                       legend_label = 'Stop loss')
+    # Stop loss  levels
+    stop_losses = list(trade_summary.Stop_loss.values)
+    if np.isnan(stop_losses).any():
+        pass
+    else:
+        linked_fig.scatter(list(trade_summary.index),
+                            list(trade_summary.Stop_loss.values),
+                            marker = 'dash',
+                            size = 15,
+                            fill_color = 'black',
+                            legend_label = 'Stop loss')
     
     # Take profit levels
-    linked_fig.scatter(list(trade_summary.index),
-                       list(trade_summary.Take_profit.values),
-                       marker = 'dash',
-                       size = 15,
-                       fill_color = 'black',
-                       legend_label = 'Take profit')
+    take_profits = list(trade_summary.Take_profit.values)
+    if np.isnan(take_profits).any():
+        pass
+    else:
+        linked_fig.scatter(list(trade_summary.index),
+                            list(trade_summary.Take_profit.values),
+                            marker = 'dash',
+                            size = 15,
+                            fill_color = 'black',
+                            legend_label = 'Take profit')
     
     # Position exits
     linked_fig.scatter(list(exit_summary.data_index),
@@ -702,6 +713,8 @@ def plot_indicators(x_range, indicators, linked_fig):
     max_indis_below         = 2
     bottom_figs             = []
     
+    colours                 = ['red', 'blue', 'orange', 'green']
+    
     for indicator in indicators:
         indi_type = indicators[indicator]['type']
         
@@ -710,8 +723,9 @@ def plot_indicators(x_range, indicators, linked_fig):
     
                 linked_fig.line(x_range, 
                                 indicators[indicator]['data'], 
-                                line_width = 1, 
-                                legend_label = indicator)
+                                line_width = 1.5, 
+                                legend_label = indicator,
+                                line_color = colours[indis_over])
                 indis_over     += 1
                 
             elif plot_type[indi_type] == 'below' and indis_below < max_indis_below:

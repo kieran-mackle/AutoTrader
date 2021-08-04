@@ -12,7 +12,6 @@ from autotrader.brokers.virtual import utils
 class Broker():
     
     def __init__(self, broker_config):
-        self.fee                = 0
         self.leverage           = 1
         self.commission         = 0
         self.spread             = 0
@@ -27,14 +26,13 @@ class Broker():
         self.peak_value         = 0
         self.low_value          = 0
         self.max_drawdown       = 0
-        self.base_currency      = 'AUD'
+        self.home_currency      = 'AUD'
         self.NAV                = 0
     
     
     def place_order(self, order_details):
         ''' 
-            Place order with broker. Currently only supports market 
-            order types. 
+            Place order with broker.
             
         '''
         order_type  = order_details["order_type"]
@@ -45,6 +43,7 @@ class Broker():
         take_price  = order_details["take_profit"]
         HCF         = order_details["HCF"]
         stop_type   = order_details["stop_type"]
+        related     = order_details["related_orders"]
         
         if 'stop_distance' not in order_details:
             stop_distance   = None
@@ -66,7 +65,8 @@ class Broker():
                         'size'      : size,
                         'HCF'       : HCF,
                         'distance'  : stop_distance,
-                        'stop_type' : stop_type
+                        'stop_type' : stop_type,
+                        'related'   : related
                         }
         self.pending_positions[order_no] = new_position
         
@@ -109,6 +109,7 @@ class Broker():
         opened_positions = 0
         
         # Update pending positions
+        closing_orders = []
         for order_no in self.pending_positions:
             if self.pending_positions[order_no]['order_time'] != candle.name:
                 if self.pending_positions[order_no]['type'] == 'market':
@@ -123,14 +124,30 @@ class Broker():
                         if candle.High > self.open_positions[order_no]['order_price']:
                             self.open_position(order_no, candle)
                             opened_positions += 1
+                            
+            if self.pending_positions[order_no]['type'] == 'close':
+                related_order = self.pending_positions[order_no]['related']
+                self.close_position(related_order, 
+                                    candle, 
+                                    candle.Close
+                                    )
+                opened_positions += 1 # To remove from pending orders
+                closing_orders.append(order_no)
+                    
         
         
         # Remove position from pending positions
         if opened_positions > 0:
+            # For orders that were opened
             for order_no in self.open_positions.keys():
                 self.pending_positions.pop(order_no, 0)
             
+            # For orders that were cancelled
             for order_no in self.cancelled_orders.keys():
+                self.pending_positions.pop(order_no, 0)
+            
+            # For close orders
+            for order_no in closing_orders:
                 self.pending_positions.pop(order_no, 0)
         
         
@@ -331,13 +348,13 @@ class Broker():
     def get_price(self, pair, data, conversion_data, i):
         ''' Returns the price data dict. '''
         
-        quote_currency = pair[-3:]
+        # quote_currency = pair[-3:]
         
         ask = data.Close[i]
         bid = data.Close[i]
         conversion_data = conversion_data.Close[i]
         
-        if quote_currency == self.base_currency:
+        if bid == conversion_data:
             negativeHCF = 1
             positiveHCF = 1
         else:
