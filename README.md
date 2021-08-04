@@ -1,8 +1,26 @@
-# AutoTrader (coming soon)
-AutoTrader is a Python-based platform for developing, optimising and deploying automated trading systems.
+# AutoTrader
+AutoTrader is an event-driven platform intended to help in the development, optimisation and live deployment of automated trading systems. 
+A basic level of experience with Python is recommended for using AutoTrader, but the [website](https://kieran-mackle.github.io/AutoTrader) 
+aims to make using it as easy as possible with detailed tutorials.
 
 ## Features
-- backtesting
-- live trading
-- parameter optimisation
+- [Backtesting](https://kieran-mackle.github.io/AutoTrader/tutorials/backtesting)
+- [Integrated data feeds](https://kieran-mackle.github.io/AutoTrader/tutorials/price-data)
+- [Interactive visualisation](https://kieran-mackle.github.io/AutoTrader/interactive-visualisation)
+- [Built-in parameter optimisation](https://kieran-mackle.github.io/AutoTrader/tutorials/optimisation)
+- [Library of custom indicators](https://kieran-mackle.github.io/AutoTrader/docs/indicators)
+- [Price streaming](https://kieran-mackle.github.io/AutoTrader/docs/autostream)
+- [Live trading](https://kieran-mackle.github.io/AutoTrader/supported-api)
+- [Email notification system](https://kieran-mackle.github.io/AutoTrader/docs/emailing)
 
+## Installation
+```
+pip install autotrader
+```
+## Documentation
+AutoTrader is documented on the [project website](https://kieran-mackle.github.io/AutoTrader/docs).
+
+There is also a detailed [Quick Start Guide](https://kieran-mackle.github.io/AutoTrader/tutorials/getting-autotrader).
+
+## License
+GNU General Public License v3.0
