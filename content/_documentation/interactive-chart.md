@@ -1,6 +1,7 @@
 ---
 title: Interactive Chart Visualisation
 permalink: interactive-visualisation
+key: docs-interactive-vis
 ---
 
 AutoTrader employs Python plotting packages [Plotly](https://plotly.com/python/) and [Bokeh](https://bokeh.org/). The choice of which to 
