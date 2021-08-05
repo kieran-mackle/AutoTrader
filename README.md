@@ -18,7 +18,7 @@ aims to make using it as easy as possible with detailed tutorials.
 pip install autotrader
 ```
 ## Documentation
-AutoTrader is documented on the [project website](https://kieran-mackle.github.io/AutoTrader/docs).
+AutoTrader is well documented on the [project website](https://kieran-mackle.github.io/AutoTrader/docs).
 
 There is also a detailed [Quick Start Guide](https://kieran-mackle.github.io/AutoTrader/tutorials/getting-autotrader).
 
