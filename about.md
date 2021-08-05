@@ -12,8 +12,8 @@ is able to pick up the key elements as they go. If you are new to Python, you ma
 
 ## Features
 
-AutoTrader has many features, so be sure to check out the [Documentation](docs) and the [Getting Started](tutorials/getting-autotrader) guide for a 
-complete summary. Some key features include:
+AutoTrader has many features, so be sure to check out the [Documentation](docs) and the [Getting Started](tutorials/getting-autotrader) guide 
+for a complete summary. Some key features include:
 
  - [Validated backtesting](tutorials/validation) with a high-fidelity virtual broker: multiple order types supported, commissions, bid/ask 
    spread modelling, margin considerations for leveraged accounts
