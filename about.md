@@ -18,7 +18,7 @@ complete summary. Some key features include:
  - [Validated backtesting](tutorials/validation) with a high-fidelity virtual broker: multiple order types supported, commissions, bid/ask 
    spread modelling, margin considerations for leveraged accounts
  - [Interactive visualisation](interactive-visualisation) of backtest results and live-trade performance
- - [Strategy optimisation](docs/auto-optimise)
+ - [Strategy optimisation](docs/optimisation)
  - [Streaming](docs/autostream) of price data (Oanda v20 API)
  - Built-in access to [price data](tutorials/price-data) (Yahoo finance, Oanda)
  - [Market scanning](docs/autotrader#scan-mode) with [email notifications](docs/emailing)
