@@ -21,4 +21,4 @@ complete summary. Some key features include:
  - [Strategy optimisation](docs/auto-optimise)
  - [Streaming](docs/autostream) of price data (Oanda v20 API)
  - Built-in access to [price data](tutorials/price-data) (Yahoo finance, Oanda)
- - [Market scanning](docs/autotrader) with [email notifications](docs/emailing)
+ - [Market scanning](docs/autotrader#scan-mode) with [email notifications](docs/emailing)
