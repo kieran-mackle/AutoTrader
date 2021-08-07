@@ -72,3 +72,22 @@ Tutorials:
       - title: Setting up email notifications
         url: /tutorials/host-email
 
+Features:
+  - title: Features
+    children:
+      - title: Backtesting
+        url: /features/backtesting
+      - title: Optimisation
+        url: /features/optimisation
+      - title: Market Scanning
+        url: /features/scanning
+      - title: Live Trading
+        url: /features/live-trading
+      - title: Data Feeds
+        url: /features/data-feeds
+      - title: Interactive Visualisation
+        url: /features/visualisation
+      - title: Statistics
+        url: /features/statistics
+      - title: Indicator Library
+        url: /features/indicators

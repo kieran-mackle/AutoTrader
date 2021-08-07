@@ -195,6 +195,8 @@ collections:
     output: true
   posts:
     output: true
+  features:
+    output: true
 
 defaults:
   ## Posts
@@ -236,6 +238,21 @@ defaults:
       nav_key: Tutorials
       sidebar:
         nav: Tutorials
+      license: false
+      aside:
+        toc: true
+      show_edit_on_github: false
+      show_date: false
+      # lightbox: true
+  ## Features
+  - 
+    scope:
+      path: _features
+    values:
+      layout: article
+      nav_key: Features
+      sidebar:
+        nav: Features
       license: false
       aside:
         toc: true
