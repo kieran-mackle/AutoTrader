@@ -2,6 +2,8 @@
 title: Backtesting Validation
 permalink: tutorials/validation
 ---
+*This page is currently in development. Check back again soon!*
+
 
 
 To ensure that the backtest framework is correctly modelling market dynamics, a validation study was performed. This 
