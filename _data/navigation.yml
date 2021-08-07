@@ -49,6 +49,8 @@ Documentation:
         url: /docs/autodata
       - title: Indicators Library
         url: /docs/indicators
+      - title: Environment Manager
+        url: /docs/environment-manager
 
 Tutorials:
   - title: Quick Start Guide
