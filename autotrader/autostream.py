@@ -249,7 +249,7 @@ def process_stream(stream, candle_builders, file_names,
 
 
 
-def main(uo_dict):
+def main(uo_dict, stream_config):
 
     ''' Subscribes to stream and build candlestick price files '''
     
@@ -283,14 +283,6 @@ def main(uo_dict):
             f = open(file_names[instrument], "a+")
             f.write("Time, Open, High, Low, Close\n")
             f.close()
-    
-    
-    stream_config = {"API": "api-fxpractice.oanda.com", 
-                     "ACCESS_TOKEN": "10e4274b525a96e161e37f4924fb5eab-d8bb76130ca0fce275ae678a6811b1d4",
-                     "ACCOUNT_ID": "101-011-18771552-003",
-                     "PORT": 443,
-                     "instruments": instruments
-                     }
     
     stream = connect_to_stream(stream_config)
     

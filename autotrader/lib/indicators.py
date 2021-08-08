@@ -10,7 +10,7 @@ import pandas as pd
 
 
 def supertrend(data, period = 10, ATR_multiplier = 3.0):
-    '''  '''
+    ''' Based on the SuperTrend indicator by KivancOzbilgic on TradingView '''
     hl2             = (data.High.values + data.Low.values) / 2
     true_range      = ta.TRANGE(data.High.values, data.Low.values, data.Close.values)
     atr             = ta.SMA(true_range, timeperiod=period)
@@ -67,11 +67,15 @@ def supertrend(data, period = 10, ATR_multiplier = 3.0):
         
         trend_list.append(trend)
     
-    up_trend = pd.DataFrame({'uptrend': up_list}, index = up_times)
-    dn_trend = pd.DataFrame({'downtrend': dn_list}, index = dn_times)
+    # up_trend = pd.DataFrame({'uptrend': up_list}, index = up_times)
+    # dn_trend = pd.DataFrame({'downtrend': dn_list}, index = dn_times)
     
+    supertrend_df = pd.DataFrame({'uptrend': up_list,
+                                  'downtrend': dn_list,
+                                  'trend': trend_list}, 
+                                 index = up_times)
     
-    return up_trend, dn_trend, trend_list
+    return supertrend_df
 
 
 def stoch_rsi(data, K_period=3, D_period=3, RSI_length=14, Stochastic_length=14):
@@ -143,25 +147,28 @@ def crossover(list_1, list_2):
 
 
 def cross_values(a, b, ab_crossover):
-        cross_point_list = [0]
-        last_cross_point = 0
-        for i in range(1, len(ab_crossover)):
-            if ab_crossover[i] != 0:
-                i0 = 0
-                m_a = a[i] - a[i-1]
-                m_b = b[i] - b[i-1]
-                ix = (b[i-1] - a[i-1])/(m_a-m_b) + i0
-                
-                cross_point = m_a*(ix - i0) + a[i-1]
-                
-                last_cross_point = cross_point
-                
-            else:
-                cross_point = last_cross_point #0
+    cross_point_list = [0]
+    last_cross_point = 0
+    for i in range(1, len(ab_crossover)):
+        if ab_crossover[i] != 0:
+            i0 = 0
+            m_a = a[i] - a[i-1]
+            m_b = b[i] - b[i-1]
+            ix = (b[i-1] - a[i-1])/(m_a-m_b) + i0
             
-            cross_point_list.append(cross_point)
+            cross_point = m_a*(ix - i0) + a[i-1]
             
-        return cross_point_list
+            last_cross_point = cross_point
+            
+        else:
+            cross_point = last_cross_point #0
+        
+        cross_point_list.append(cross_point)
+    
+    # Replace nans with 0
+    cross_point_list = [0 if x!=x  else x for x in cross_point_list]
+    
+    return cross_point_list
 
 
 def candles_between_crosses(cross_list):

@@ -207,7 +207,7 @@ def send_order_summary(filepath, mailing_list, host_email):
             
             # f.write('<p>&nbsp;</p>\n')
             f.write('<p>All the best in your trading endeavours,\n')
-            f.write('<br />The Friendly FX Bot</p>\n')
+            f.write('<br />AutoTrader</p>\n')
             
         
         # Read file in
@@ -314,7 +314,7 @@ def send_scan_results(scan_results, scan_details, mailing_list, host_email):
                 
                 f.write('<p>&nbsp;</p>\n')
                 f.write('<p>All the best in your trading endeavours,</p>\n')
-                f.write('<p>The Friendly FX Bot</p>\n')
+                f.write('<p>AutoTrader</p>\n')
             else:
                 f.write('<p>Dear {} {},</p>\n'.format(title,
                                                       last_name))
@@ -326,7 +326,7 @@ def send_scan_results(scan_results, scan_details, mailing_list, host_email):
                 f.write('<p>Scan index: {}.</p>\n'.format(index))
                 
                 f.write('<p>All the best in your trading endeavours,\n')
-                f.write('<br /><strong>The Friendly FX Bot</strong></p>\n')
+                f.write('<br /><strong>AutoTrader</strong></p>\n')
             
         
         # Read file in

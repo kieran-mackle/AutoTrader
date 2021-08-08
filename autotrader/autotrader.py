@@ -10,7 +10,7 @@
     
 ---------------------------------------------------------------------------
 Kieran Mackle
-version 0.0.1
+version 0.0.11
 
 """
 
@@ -29,7 +29,7 @@ from autotrader.emailing import emailing
 from autotrader.brokers.oanda import Oanda
 from autotrader.brokers.virtual.virtual_broker import Broker
 from autotrader.lib import logger, instrument_list, environment_manager, autodata
-from autotrader.autoplot import plot_backtest
+from autotrader import autoplot
 
 
 class AutoTrader():
@@ -49,6 +49,8 @@ class AutoTrader():
         self.data_file      = None
         self.instruments    = None
         self.home_dir       = None
+        self.validation_file = None
+        self.plot_validation_balance = True
     
     def run(self):
         if self.show_help is not None:
@@ -77,6 +79,10 @@ class AutoTrader():
             config_file_path    = os.path.join(home_dir, 'config', config_file)
             config              = self.read_yaml(config_file_path + '.yaml')
         
+        if self.validation_file is not None:
+            livetrade_history   = pd.read_csv(self.validation_file, index_col = 0)
+            livetrade_history   = livetrade_history.fillna(method='ffill')
+        
         # Read configuration file
         interval            = config["STRATEGY"]["INTERVAL"]
         period              = config["STRATEGY"]["PERIOD"]
@@ -102,6 +108,8 @@ class AutoTrader():
             scan_results    = {}
         elif self.instruments is not None:
             watchlist       = self.instruments.split(',') 
+        elif self.validation_file is not None:
+            raw_watchlist   = livetrade_history.Instrument.unique() # FOR OANDA
         else:
             watchlist       = config["WATCHLIST"]
         
@@ -132,9 +140,19 @@ class AutoTrader():
             if int(self.verbosity) > 0:
                 banner = pyfiglet.figlet_format("AutoBacktest")
                 print(banner)
+            
+            if self.validation_file is not None:
+                # Also get broker-specific utility functions
+                # TODO generalise per broker used
+                broker_utils = importlib.import_module('autotrader.brokers.oanda.utils') # FOR OANDA ONLY
                 
+                # Correct watchlist
+                if self.instruments is None:
+                    watchlist   = broker_utils.format_watchlist(raw_watchlist)
+            
         else:
-            utils           = importlib.import_module('autotrader.brokers.oanda.utils')
+            # TODO generalise per broker used
+            utils           = importlib.import_module('autotrader.brokers.oanda.utils') # FOR OANDA ONLY
             broker          = Oanda.Oanda(broker_config)
         
         if int(self.notify) > 0:
@@ -172,6 +190,21 @@ class AutoTrader():
             # Get price history
             if self.backtest is True:
                 # Running in backtest mode
+                
+                if self.validation_file is not None:
+                    # Extract instrument-specific trade history as trade summary and trade period
+                    formatted_instrument = instrument[:3] + "/" + instrument[-3:]
+                    raw_livetrade_summary = livetrade_history[livetrade_history.Instrument == formatted_instrument] # FOR OANDA
+                    from_date           = pd.to_datetime(raw_livetrade_summary.Date.values)[0]
+                    to_date             = pd.to_datetime(raw_livetrade_summary.Date.values)[-1]
+                    
+                    # Modify from date to improve backtest
+                    from_date = from_date - period*timedelta(seconds = self.granularity_to_seconds(interval))
+                    
+                    # Modify starting balance
+                    broker.portfolio_balance = raw_livetrade_summary.Balance.values[np.isfinite(raw_livetrade_summary.Balance.values)][0]
+                    
+                    
                 starting_balance    = broker.get_balance()
                 NAV     = []
                 balance = []
@@ -453,6 +486,15 @@ class AutoTrader():
             # Iteration complete
             if self.backtest is True:
                 trade_summary = utils.trade_summary(instrument, broker.closed_positions)
+                cancelled_summary = utils.cancelled_order_summary(instrument, broker.cancelled_orders)
+                
+                if self.validation_file is not None:
+                    livetrade_summary = broker_utils.trade_summary(raw_livetrade_summary,
+                                                                            data,
+                                                                            interval)
+                    final_balance_diff  = NAV[-1] - livetrade_summary.Balance.values[-1]
+                    filled_live_orders  = livetrade_summary[livetrade_summary.Transaction == 'ORDER_FILL']
+                    no_live_trades      = len(filled_live_orders)
             
             if self.show_plot is True:
                 # Plot results
@@ -462,22 +504,32 @@ class AutoTrader():
                               "({} candles).".format(len(data)),
                               "Check saved figure.")
                     else:
-                        # pf_df = utils.reconstruct_portfolio(starting_balance, 
-                        #                               trade_summary, 
-                        #                               data.index)
-                        # my_strat.create_backtest_chart(instrument, interval, 
-                        #                                trade_summary, pf_df)
                         backtest_dict = {}
                         backtest_dict['data']           = data
-                        backtest_dict['balance']        = balance
                         backtest_dict['NAV']            = NAV
                         backtest_dict['trade_summary']  = trade_summary
                         backtest_dict['indicators']     = my_strat.indicators
                         backtest_dict['pair']           = instrument
                         backtest_dict['interval']       = interval
-                        plot_backtest(backtest_dict)
-                else:
-                    my_strat.create_price_chart(instrument, interval)
+                        # plot_backtest(backtest_dict)
+                        ap = autoplot.AutoPlot()
+                        ap.data = data
+                        
+                        if self.validation_file is None:
+                            ap.plot_backtest(backtest_dict)
+                        else:
+                            ap.plot_validation_balance = self.plot_validation_balance
+                            ap.ohlc_height = 350
+                            ap.validate_backtest(livetrade_summary, 
+                                                 backtest_dict,
+                                                 cancelled_summary,
+                                                 instrument, 
+                                                 interval)
+                            
+                            
+                # Code below is deprecated
+                # else:
+                #     my_strat.create_price_chart(instrument, interval)
             
             
             ''' -------------------------------------------------------------- '''
@@ -627,6 +679,13 @@ class AutoTrader():
                 else:
                     print("There were no short trades.")
                 
+                if self.validation_file is not None:
+                    print("\n            Backtest Validation")
+                    print("-------------------------------------------")
+                    print("Difference between final portfolio balance between")
+                    print("live-trade account and backtest is ${}.".format(round(final_balance_diff, 2)))
+                    print("Number of live trades: {} trades.".format(no_live_trades))
+                
                 
             if self.log is True and self.backtest is True:
                 logger.write_backtest_log(instrument, config, trade_summary)
@@ -690,7 +749,25 @@ class AutoTrader():
         with open(file_path, "r") as f:
             return yaml.safe_load(f)
     
-    
+    def granularity_to_seconds(self, granularity):
+        '''Converts the interval to time in seconds'''
+        letter = granularity[0]
+        
+        if len(granularity) > 1:
+            number = float(granularity[1:])
+        else:
+            number = 1
+        
+        conversions = {'S': 1,
+                       'M': 60,
+                       'H': 60*60,
+                       'D': 60*60*24
+                       }
+        
+        my_int = conversions[letter] * number
+        
+        return my_int
+
     def print_usage(self):
         """ Print usage options. """
         banner = pyfiglet.figlet_format("AUTOTRADER")

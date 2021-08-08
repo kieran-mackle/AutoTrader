@@ -95,7 +95,7 @@ def update_data_with_candle(data, latest_candle):
     
     return new_data
 
-def last_period(current_time, granularity):
+def last_period(current_time, granularity, current_candle = False):
     ''' 
         Returns a datetime object corresponding to the last candle that closed,
         based on the current time and the granularity of the candle.
@@ -119,7 +119,10 @@ def last_period(current_time, granularity):
         number = 1
     
     current_period      = getattr(current_time, letter_to_unit[letter])
-    last_period         = number * np.floor(current_period/number) - number
+    if current_candle:
+        last_period         = number * np.floor(current_period/number)
+    else:
+        last_period         = number * np.floor(current_period/number) - number
     
     if letter == 'S':
         td = timedelta(microseconds = current_time.microsecond,
@@ -139,10 +142,8 @@ def last_period(current_time, granularity):
                        minutes = current_time.minute,
                        hours = current_time.hour,
                        days = current_time.day - last_period)
-    
-    
+        
     last_candle_closed = current_time - td
-    
     
     return last_candle_closed
 
@@ -174,7 +175,40 @@ def write_to_order_summary(order_details, filepath):
                                                           take_profit))
     f.close()
     
+
+def trade_summary(raw_livetrade_summary, ohlc_data, granularity):
+    ''' Constructs trade summary dataframe from Oanda trade history. '''
     
+    # Need to create a new coloumn with ohlc_data int index
+    # and reutrn new trade summary, after using last_period function
+    # Will also need to round the trade summary times to the nearest granularity
     
+    # Create ohlc_data int index
+    modified_data           = ohlc_data
+    modified_data['date']   = modified_data.index
+    modified_data           = modified_data.reset_index(drop = True)
+    modified_data['data_index'] = modified_data.index
     
+    # Round trade summary times to nearest candle
+    rounded_times           = [last_period(dt, 'M15', current_candle=True) \
+                               for dt in pd.to_datetime(raw_livetrade_summary.Date.values, utc=True)]
     
+    # Reset trade summary and add rounded times
+    raw_livetrade_summary   = raw_livetrade_summary.reset_index()
+    raw_livetrade_summary['Date'] = rounded_times
+    
+    # Merge to preserve data int index
+    livetrade_summary       = pd.merge(modified_data, raw_livetrade_summary, left_on='date', right_on='Date')
+    
+    return livetrade_summary
+
+
+def format_watchlist(raw_watchlist):
+    
+    watchlist = []
+    for instrument in raw_watchlist:
+        if str(instrument) != 'nan':
+            formatted_instrument = instrument[:3] + "_" + instrument[-3:]
+            watchlist.append(formatted_instrument)
+    
+    return watchlist

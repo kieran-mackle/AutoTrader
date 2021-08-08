@@ -3,7 +3,8 @@
 """
 Virtual broker.
 
-Note: portfolio balance will only change once a position is closed.
+TODO: 
+    - add flag to signal long positions only allowed (eg. no CFD)
     
 """
 

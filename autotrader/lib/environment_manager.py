@@ -11,8 +11,6 @@ def get_config(environment, global_config, feed):
         Returns the configuration dictionary based on the requested 
         environment.
         
-        Currently assumes Oanda trading.
-        
     '''
     
     if environment == 'real':

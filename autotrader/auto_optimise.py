@@ -11,6 +11,8 @@ Plot output as heatmap: parameter grid coloured by objective function
 
 Consider sample size, print as warning 
 
+TODO: move into autotrader.py somehow...
+
 
 """
 
@@ -146,6 +148,7 @@ class Optimise():
         opt_params = result[0]
         opt_value = result[1]
         
+        # TODO - use the below for heatmap plotting
         grid_points = result[2]
         grid_values = result[3]
         

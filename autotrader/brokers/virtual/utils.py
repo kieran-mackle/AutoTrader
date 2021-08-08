@@ -242,6 +242,34 @@ def trade_summary(pair, closed_positions_dict):
     
     return dataframe
 
+def cancelled_order_summary(pair, closed_positions_dict):
+    order_ID    = []
+    times_list  = []
+    order_price = []
+    size        = []
+    stop_price  = []
+    take_price  = []
+    
+    for order in closed_positions_dict:
+        if closed_positions_dict[order]['pair'] == pair:
+            order_ID.append(closed_positions_dict[order]['order_ID'])
+            times_list.append(closed_positions_dict[order]['order_time'])
+            order_price.append(closed_positions_dict[order]['order_price'])
+            size.append(closed_positions_dict[order]['size'])
+            stop_price.append(closed_positions_dict[order]['stop'])
+            take_price.append(closed_positions_dict[order]['take'])
+            
+    dataframe = pd.DataFrame({"Order_ID": order_ID, 
+                              "Order_price": order_price,
+                              "Size": size,
+                              "Stop_loss": stop_price, 
+                              "Take_profit": take_price})
+    dataframe.index = pd.to_datetime(times_list)
+    dataframe = dataframe.sort_index()
+    
+    return dataframe
+    
+
 def reconstruct_portfolio(initial_balance, trade_summary, time_index):
     a = trade_summary.Exit_time.values
     
