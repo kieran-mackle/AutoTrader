@@ -7,8 +7,9 @@ articles:
   show_excerpt: true
   show_readmore: true
   show_info: true
+key: blog-index
 ---
 
-Stay tuned! Blog posts coming soon.
+Stay tuned! Blog posts coming soon. 
 
 <!-- Looking for more posts? Go to the [Archive](blog/archive). -->
