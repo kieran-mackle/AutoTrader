@@ -114,6 +114,11 @@ venv.bak/
 .spyderproject
 .spyproject
 
+# Jekyll files
+_site/
+.jekyll-cache/
+Gemfile.lock
+
 # Rope project settings
 .ropeproject
 
@@ -138,3 +143,5 @@ Notes.txt
 *.txt
 *.out
 *.csv
+
+
