@@ -14,6 +14,7 @@ aims to make using it as easy as possible with detailed tutorials.
 - [Email notification system](https://kieran-mackle.github.io/AutoTrader/docs/emailing)
 
 ## Installation
+AutoTrader can be installed using pip:
 ```
 pip install autotrader
 ```
@@ -31,4 +32,4 @@ and answer these questions.
 [![MACD-backtest-demo](https://user-images.githubusercontent.com/60687606/128127659-bf81fdd2-c246-4cd1-b86d-ef624cac50a7.png)](https://kieran-mackle.github.io/AutoTrader/interactive-visualisation)
 
 ## License
-GNU General Public License v3.0
+AutoTrader is licensed under the [GNU General Public License v3.0](https://www.gnu.org/licenses/gpl-3.0.en.html).
