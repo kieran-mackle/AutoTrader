@@ -25,9 +25,10 @@ There is also a detailed [Quick Start Guide](https://kieran-mackle.github.io/Aut
 ## Demo Chart
 The chart below is produced by a backtest of a MACD strategy. Note that stop loss and take profit levels are shown for each trade taken. 
 This allows you to see how effective your exit strategy is - are you being stopped out too early by placing your stop losses too tight? 
-Are you missing out on otherwise profitable trades becuase your take profits are too far away? AutoTrader helps you visualise your strategy.
+Are you missing out on otherwise profitable trades becuase your take profits are too far away? AutoTrader helps you visualise your strategy
+and answer these questions.
 
-![MACD-backtest-demo](https://user-images.githubusercontent.com/60687606/128127659-bf81fdd2-c246-4cd1-b86d-ef624cac50a7.png)
+[![MACD-backtest-demo](https://user-images.githubusercontent.com/60687606/128127659-bf81fdd2-c246-4cd1-b86d-ef624cac50a7.png)](https://kieran-mackle.github.io/AutoTrader/interactive-visualisation)
 
 ## License
 GNU General Public License v3.0
