@@ -9,4 +9,6 @@ articles:
   show_info: true
 ---
 
-Looking for more posts? Go to the [Archive](blog/archive).
+Stay tuned! Blog posts coming soon.
+
+<!-- Looking for more posts? Go to the [Archive](blog/archive). -->
