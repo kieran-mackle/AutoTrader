@@ -4,13 +4,13 @@ A basic level of experience with Python is recommended for using AutoTrader, but
 aims to make using it as easy as possible with detailed tutorials.
 
 ## Features
-- [Backtesting](https://kieran-mackle.github.io/AutoTrader/tutorials/backtesting)
-- [Integrated data feeds](https://kieran-mackle.github.io/AutoTrader/tutorials/price-data)
-- [Interactive visualisation](https://kieran-mackle.github.io/AutoTrader/interactive-visualisation)
-- [Built-in parameter optimisation](https://kieran-mackle.github.io/AutoTrader/tutorials/optimisation)
+- [Backtesting](https://kieran-mackle.github.io/AutoTrader/tutorials/backtesting), with multiple order types supported (market order, limit orders, stop-limit orders, trailing stops, etc.)
+- [Integrated data feeds](https://kieran-mackle.github.io/AutoTrader/tutorials/price-data), such as Yahoo Finance (via [yfinance](https://pypi.org/project/yfinance/)) and Oanda v20 REST API
+- [Interactive visualisation](https://kieran-mackle.github.io/AutoTrader/interactive-visualisation) using [Bokeh](https://bokeh.org/)
+- [Built-in parameter optimisation](https://kieran-mackle.github.io/AutoTrader/tutorials/optimisation) using [scipy](https://docs.scipy.org/doc/scipy/reference/optimize.html)
 - [Library of custom indicators](https://kieran-mackle.github.io/AutoTrader/docs/indicators)
 - [Price streaming](https://kieran-mackle.github.io/AutoTrader/docs/autostream)
-- [Live trading](https://kieran-mackle.github.io/AutoTrader/supported-api)
+- [Live trading](https://kieran-mackle.github.io/AutoTrader/supported-api) through [Oanda v20 REST API](https://developer.oanda.com/rest-live-v20/introduction/)
 - [Email notification system](https://kieran-mackle.github.io/AutoTrader/docs/emailing)
 
 ## Installation
