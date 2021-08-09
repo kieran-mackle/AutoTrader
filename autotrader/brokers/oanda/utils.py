@@ -54,13 +54,26 @@ def get_pip_ratio(pair):
     return pip_value
 
 
-def get_size(pair, amount_risked, price, stop_price, HCF):
+def get_size(pair, amount_risked, price, stop_price, HCF, stop_distance = None):
     ''' Calculate position size based on account balance and risk profile. '''
-    pip_value           = get_pip_ratio(pair)
-    pip_stop_distance   = abs(price - stop_price) / pip_value
-    quote_risk          = amount_risked / HCF
-    price_per_pip       = quote_risk / pip_stop_distance    
-    units               = round(price_per_pip / pip_value)
+    if stop_price is None and stop_distance is None:
+        # No stop loss being used, instead risk portion of account
+        units               = amount_risked/(HCF*price)
+    else:
+        pip_value           = get_pip_ratio(pair)
+        
+        if stop_price is None:
+            pip_stop_distance = stop_distance
+        else:
+            pip_stop_distance = abs(price - stop_price) / pip_value
+        
+        
+        if pip_stop_distance == 0:
+            units           = 0
+        else:
+            quote_risk      = amount_risked / HCF
+            price_per_pip   = quote_risk / pip_stop_distance
+            units           = round(price_per_pip / pip_value)
     
     return units
 

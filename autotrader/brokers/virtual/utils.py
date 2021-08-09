@@ -52,13 +52,20 @@ def get_pip_ratio(pair):
     return pip_value
 
 
-def get_size(pair, amount_risked, price, stop_price, HCF):
+def get_size(pair, amount_risked, price, stop_price, HCF, stop_distance = None):
     ''' Calculate position size based on account balance and risk profile. '''
-    if np.isnan(stop_price):
+    if stop_price is None and stop_distance is None:
+        # No stop loss being used, instead risk portion of account
         units               = amount_risked/(HCF*price)
     else:
         pip_value           = get_pip_ratio(pair)
-        pip_stop_distance   = abs(price - stop_price) / pip_value
+        
+        if stop_price is None:
+            pip_stop_distance = stop_distance
+        else:
+            pip_stop_distance = abs(price - stop_price) / pip_value
+        
+        
         if pip_stop_distance == 0:
             units           = 0
         else:
@@ -230,19 +237,21 @@ def trade_summary(pair, closed_positions_dict):
                 trade_duration.append(closed_positions_dict[order]['exit_time'].timestamp() - 
                                       closed_positions_dict[order]['entry_time'].timestamp())
             
-    dataframe = pd.DataFrame({"Order_ID": order_ID, "Order_price": order_price,
+    dataframe = pd.DataFrame({"Order_ID": order_ID, 
+                              "Order_price": order_price,
+                              "Order_time": times_list,
                               "Entry_time": entry_time,
                               "Entry": entry_price, "Size": size,
                               "Stop_loss": stop_price, "Take_profit": take_price,
                               "Profit": profit, "Balance": portfolio_balance,
                               "Exit_time": exit_times, "Exit_price": exit_prices,
                               "Trade_duration": trade_duration})
-    dataframe.index = pd.to_datetime(times_list)
+    dataframe.index = pd.to_datetime(entry_time)
     dataframe = dataframe.sort_index()
     
     return dataframe
 
-def cancelled_order_summary(pair, closed_positions_dict):
+def cancelled_order_summary(pair, positions_dict):
     order_ID    = []
     times_list  = []
     order_price = []
@@ -250,14 +259,14 @@ def cancelled_order_summary(pair, closed_positions_dict):
     stop_price  = []
     take_price  = []
     
-    for order in closed_positions_dict:
-        if closed_positions_dict[order]['pair'] == pair:
-            order_ID.append(closed_positions_dict[order]['order_ID'])
-            times_list.append(closed_positions_dict[order]['order_time'])
-            order_price.append(closed_positions_dict[order]['order_price'])
-            size.append(closed_positions_dict[order]['size'])
-            stop_price.append(closed_positions_dict[order]['stop'])
-            take_price.append(closed_positions_dict[order]['take'])
+    for order in positions_dict:
+        if positions_dict[order]['pair'] == pair:
+            order_ID.append(positions_dict[order]['order_ID'])
+            times_list.append(positions_dict[order]['order_time'])
+            order_price.append(positions_dict[order]['order_price'])
+            size.append(positions_dict[order]['size'])
+            stop_price.append(positions_dict[order]['stop'])
+            take_price.append(positions_dict[order]['take'])
             
     dataframe = pd.DataFrame({"Order_ID": order_ID, 
                               "Order_price": order_price,
@@ -269,6 +278,40 @@ def cancelled_order_summary(pair, closed_positions_dict):
     
     return dataframe
     
+def open_order_summary(pair, positions_dict):
+    order_ID    = []
+    times_list  = []
+    order_price = []
+    size        = []
+    stop_price  = []
+    take_price  = []
+    entry_time  = []
+    entry_price = []
+    
+    for order in positions_dict:
+        if positions_dict[order]['pair'] == pair:
+            order_ID.append(positions_dict[order]['order_ID'])
+            times_list.append(positions_dict[order]['order_time'])
+            order_price.append(positions_dict[order]['order_price'])
+            size.append(positions_dict[order]['size'])
+            stop_price.append(positions_dict[order]['stop'])
+            take_price.append(positions_dict[order]['take'])
+            entry_time.append(positions_dict[order]['time_filled'])
+            entry_price.append(positions_dict[order]['entry_price'])
+            
+            
+    dataframe = pd.DataFrame({"Order_ID": order_ID, 
+                              "Order_price": order_price,
+                              "Order_time": times_list,
+                              "Size": size,
+                              "Stop_loss": stop_price, 
+                              "Take_profit": take_price,
+                              "Entry_time": entry_time,
+                              "Entry": entry_price})
+    dataframe.index = pd.to_datetime(entry_time)
+    dataframe = dataframe.sort_index()
+    
+    return dataframe
 
 def reconstruct_portfolio(initial_balance, trade_summary, time_index):
     a = trade_summary.Exit_time.values
