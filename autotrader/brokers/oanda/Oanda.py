@@ -50,8 +50,8 @@ class Oanda():
         return price
     
     
-    def place_order(self, order_details):
-        ''' Places a market order with a stop loss and take profit. '''
+    def old_place_order(self, order_details):
+        ''' DEPRECATED: Places a market order with a stop loss and take profit. '''
         
         # Extract order details
         pair            = order_details["instrument"]
@@ -78,44 +78,38 @@ class Oanda():
         
         return response 
     
-    def new_place_order(self, order_details):
+    def place_order(self, order_details):
         '''
         Parses order_details dict and handles order.
         '''
         
         if order_details["order_type"] == 'market':
-            self.place_market_order(order_details)
+            response = self.place_market_order(order_details)
         elif order_details["order_type"] == 'stop-limit':
-            self.place_stop_limit_order(order_details)
+            response = self.place_stop_limit_order(order_details)
         elif order_details["order_type"] == 'limit':
-            self.place_limit_order(order_details)
+            response = self.place_limit_order(order_details)
         else:
             print("Order type not recognised.")
             return
         
+        # Check response
+        output = self.check_response(response)
         
-        order_type  = order_details["order_type"]
-        pair        = order_details["instrument"]
-        size        = order_details["size"]
-        take_price  = order_details["take_profit"]
-        stop_type   = order_details["stop_type"]
-        related     = order_details["related_orders"]
-        stop_price  = order_details["stop_loss"]
-        stop_distance = order_details['stop_distance']
-        order_stop_price = order_details["order_stop_price"] if order_type == 'stop-limit' else None
-        order_limit_price = order_details["order_limit_price"] if 'order_limit_price' in order_details else None
+        return response 
+
         
     def place_market_order(self, order_details):
         
-        stop_loss_details = {"price": str(order_details["stop_loss"])}
-        take_profit_details = {"price": str(order_details["take_profit"])}
+        stop_loss_details = self.get_stop_loss_details(order_details)
+        take_profit_details = self.get_take_profit_details(order_details)
         
         response = self.api.order.market(accountID = self.ACCOUNT_ID,
-                              instrument = order_details["instrument"],
-                              units = order_details["size"],
-                              takeProfitOnFill = take_profit_details,
-                              stopLossOnFill = stop_loss_details,
-                              )
+                                         instrument = order_details["instrument"],
+                                         units = order_details["size"],
+                                         takeProfitOnFill = take_profit_details,
+                                         stopLossOnFill = stop_loss_details,
+                                         )
         return response
     
     def place_stop_limit_order(self, order_details):
@@ -123,22 +117,21 @@ class Oanda():
         Places MarketIfTouchedOrder with Oanda.
         https://developer.oanda.com/rest-live-v20/order-df/
         '''
+        stop_loss_details = self.get_stop_loss_details(order_details)
+        take_profit_details = self.get_take_profit_details(order_details)
         
-        
-        # Need to create take_profit_details and stop_loss_details dicts
-        stop_loss_details = {"price": str(order_details["stop_loss"])}
-        take_profit_details = {"price": str(order_details["take_profit"])}
-        # Use get_take_profit_details(order_details) and get_stop_loss_details(order_details)
+        # Check and correct order stop price
+        price = self.check_precision(order_details["instrument"], 
+                                     order_details["order_stop_price"])
         
         # Need to test cases when no stop/take is provided (as None type)
         response = self.api.order.market_if_touched(accountID   = self.ACCOUNT_ID,
                                                     instrument  = order_details["instrument"],
                                                     units       = order_details["size"],
-                                                    price       = str(order_details["order_stop_price"]),
+                                                    price       = str(price),
                                                     takeProfitOnFill = take_profit_details,
                                                     stopLossOnFill = stop_loss_details
                                                     )
-        
         return response
     
     def place_limit_order(self, order_details):
@@ -148,15 +141,27 @@ class Oanda():
         ''' Constructs stop loss details dictionary. '''
         # https://developer.oanda.com/rest-live-v20/order-df/#OrderType
         
-        stop_loss_details = {"price": str(order_details["stop_loss"])}
-        
+        if order_details["stop_type"] is not None:
+            price = self.check_precision(order_details["instrument"], 
+                                         order_details["stop_loss"])
+            
+            if order_details["stop_type"] == 'trailing':
+                # Trailing stop loss order
+                stop_loss_details = {"price": str(price),
+                                     "type": "TRAILING_STOP_LOSS"}
+            else:
+                stop_loss_details = {"price": str(price)}
+        else:
+            stop_loss_details = None
         
         return stop_loss_details
     
     def get_take_profit_details(self, order_details):
         ''' Constructs take profit details dictionary. '''
         if order_details["take_profit"] is not None:
-            take_profit_details = {"price": str(order_details["take_profit"])}
+            price = self.check_precision(order_details["instrument"], 
+                                         order_details["take_profit"])
+            take_profit_details = {"price": str(price)}
         else:
             take_profit_details = None
         
@@ -243,13 +248,20 @@ class Oanda():
         return precision
     
     
-    def check_precision(self, pair, original_stop, original_take):
-        ''' Modify stop/take based on pair for required ordering precision. ''' 
+    def old_check_precision(self, pair, original_stop, original_take):
+        ''' DEPRECATED - Modify stop/take based on pair for required ordering precision. ''' 
         N               = self.get_precision(pair)
         take_price      = round(original_take, N)
         stop_price      = round(original_stop, N)
         
         return stop_price, take_price
+    
+    def check_precision(self, pair, price):
+        ''' Modify a price based on required ordering precision for pair. ''' 
+        N               = self.get_precision(pair)
+        corrected_price = round(price, N)
+        
+        return corrected_price
         
     
     def check_response(self, response):
