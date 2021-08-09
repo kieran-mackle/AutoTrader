@@ -588,6 +588,7 @@ class AutoTrader():
                 # Cancelled orders (insufficient margin)
                 cancelled_orders    = broker.cancelled_orders
                 no_cancelled        = len(cancelled_orders)
+                no_open             = len(broker.open_positions)
                 
                 # Long trades
                 long_trades     = trade_summary[trade_summary.Size > 0]
@@ -662,8 +663,13 @@ class AutoTrader():
                     
                 else:
                     print("No trades taken.")
-                    
-                print("Cancelled orders:        {}".format(no_cancelled))
+                
+                
+                if no_open > 0:
+                    print("Orders still open:       {}".format(no_open))
+                if no_cancelled > 0:
+                    print("Cancelled orders:        {}".format(no_cancelled))
+                
                 
                 # Long trades
                 print("\n         Summary of long trades")
