@@ -487,6 +487,60 @@ def ha_candle_run(ha_data):
         
     return green_run, red_run
 
+def build_grid(grid_origin, grid_space, grid_levels, order_direction, order_type='stop-limit',
+               pip_value=0.0001, take_distance=None, stop_distance=None, stop_type='limit'):
+    '''
+    grid_origin: origin of grid, specified as a price
+    grid_space: spacing between grid levels, specified as pip distance
+    grid_levels: number of grid levels either side of origin
+    order_direction: the direction of each grid level order (1 for long, -1 for short)
+    order_type: the order type of each grid level order
+    '''
+    # TODO - generalise to accept grid space in price units as well
+    # TODO - could add a limit price buffer, then use it to move the limit price
+    # slightly away from the stop price
+    
+    # Calculate grid spacing in price units
+    grid_price_space = grid_space*pip_value
+    
+    # Generate order_limit_price list 
+    order_limit_prices = np.linspace(grid_origin - grid_levels*grid_price_space, 
+                                     grid_origin + grid_levels*grid_price_space, 
+                                     2*grid_levels + 1)
+    
+    # Construct nominal order
+    nominal_order = {}
+    nominal_order["order_type"]         = order_type
+    nominal_order["direction"]          = order_direction
+    nominal_order["stop_distance"]      = stop_distance
+    nominal_order["stop_type"]          = stop_type
+    nominal_order["take_distance"]      = take_distance
+    
+    # Build grid
+    grid = {}
+
+    for order, limit_price in enumerate(order_limit_prices):
+        grid[order] = nominal_order.copy()
+        grid[order]["order_stop_price"]  = order_limit_prices[order]
+        grid[order]["order_limit_price"] = order_limit_prices[order]
+        
+    
+    return grid
+
+def merge_grid_orders(grid_1, grid_2):
+    '''
+    Merges grid dictionaries into one and re-labels order numbers so each
+    order number is unique.
+    '''
+    # TODO - use **args/**kwargs to generalise how many grids are inputted
+    order_offset = len(grid_1)
+    grid = grid_1.copy()
+    
+    for order_no in grid_2:
+        grid[order_no + order_offset] = grid_2[order_no]
+    
+    return grid
+    
 
 # def TDI(data):
 #     rsiPeriod = input(11, minval = 1, title = "RSI Period")
