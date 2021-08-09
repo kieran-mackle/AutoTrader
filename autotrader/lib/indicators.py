@@ -487,8 +487,24 @@ def ha_candle_run(ha_data):
         
     return green_run, red_run
 
-def build_grid(grid_origin, grid_space, grid_levels, order_direction, order_type='stop-limit',
-               pip_value=0.0001, take_distance=None, stop_distance=None, stop_type='limit'):
+
+def build_grid_price_levels(grid_origin, grid_space, grid_levels, 
+                            grid_price_space=None, pip_value=0.0001):
+    
+    # Calculate grid spacing in price units
+    if grid_price_space is None:
+        grid_price_space = grid_space*pip_value
+    
+    # Generate order_limit_price list 
+    grid_price_levels = np.linspace(grid_origin - grid_levels*grid_price_space, 
+                                     grid_origin + grid_levels*grid_price_space, 
+                                     2*grid_levels + 1)
+    
+    return grid_price_levels
+
+def build_grid(grid_origin, grid_space, grid_levels, order_direction, 
+               order_type='stop-limit', grid_price_space=None, pip_value=0.0001, 
+               take_distance=None, stop_distance=None, stop_type=None):
     '''
     grid_origin: origin of grid, specified as a price
     grid_space: spacing between grid levels, specified as pip distance
@@ -496,12 +512,17 @@ def build_grid(grid_origin, grid_space, grid_levels, order_direction, order_type
     order_direction: the direction of each grid level order (1 for long, -1 for short)
     order_type: the order type of each grid level order
     '''
-    # TODO - generalise to accept grid space in price units as well
     # TODO - could add a limit price buffer, then use it to move the limit price
     # slightly away from the stop price
     
+    # Check if stop_distance was provided without a stop_type
+    if stop_distance is not None and stop_type is None:
+        # set stop_type to 'limit' by default
+        stop_type = 'limit'
+    
     # Calculate grid spacing in price units
-    grid_price_space = grid_space*pip_value
+    if grid_price_space is None:
+        grid_price_space = grid_space*pip_value
     
     # Generate order_limit_price list 
     order_limit_prices = np.linspace(grid_origin - grid_levels*grid_price_space, 
