@@ -9,9 +9,9 @@
      /_/   \_\___/  |_| \___/ |_| |_| \_\/_/   \_\____/|_____|_| \_\
     
 ---------------------------------------------------------------------------
-Kieran Mackle
-version 0.0.11
-
+     A Python-Based Development Platform For Automated Trading Systems
+                             Kieran Mackle
+                             Version 0.0.11
 """
 
 from getopt import getopt
@@ -340,13 +340,7 @@ class AutoTrader():
                     if data_ts != last_candle_closed.timestamp():
                         print("  Could not retrieve updated data. Manually adjusting.")
                         data = broker.update_data(instrument, interval, data)
-            
-            
-            # Adjust plot output to avoid excessive data visualisation
-            if self.show_plot is True:
-                if len(data) < 75000:
-                    params['view_window']   = len(data)
-                    params['show_fig']      = True
+                        
                 
             # Instantiate strategy for current instrument
             my_strat    = strategy(params, data, instrument)
@@ -370,112 +364,133 @@ class AutoTrader():
                 candle              = data.iloc[i]
                 
                 # Run strategy to get signals
+                # TODO - move this into order_processing method
                 signal_dict = my_strat.generate_signal(i, open_positions)
-                signal      = signal_dict["direction"]
+                if 0 not in signal_dict:
+                    # Single order signal, nest in dictionary to allow iteration
+                    run_iteration = signal_dict["direction"]
+                    signal_dict = {1: signal_dict}
+                    
+                # Begin iteration over signal_dict to extract each order
+                for order in signal_dict:
+                    order_signal_dict = signal_dict[order]
                 
-                if signal != 0:
-                    # Signal detected
-                    if int(self.verbosity) > 0 and self.backtest is False:
-                        print("  Signal detected at {}: {}@{}".format(data.index[i],
-                                                                      signal,
-                                                                      data.Close[i]
-                                                                      ))
+                    signal      = order_signal_dict["direction"]
                     
-                    # if signal_dict["order_type"] == 'close':
-                    #     # Exit signal detected
-                    #     continue
+                    # TODO: this if statement is almost redundant now, consider deleting
+                    if signal != 0:
+                        # Signal detected
+                        if int(self.verbosity) > 0 and self.backtest is False:
+                            print("  Signal detected at {}: {}@{}".format(data.index[i],
+                                                                          signal,
+                                                                          data.Close[i]
+                                                                          ))
                         
-                    # else:
-                    
-                    # Entry signal detected
-                    if self.backtest is True:
-                        datetime_stamp  = data.index[i]
-                        price_data      = broker.get_price(instrument, data, 
-                                                           quote_data, i)
-                    else:
-                        datetime_stamp  = datetime.now().strftime("%H:%M:%S")
-                        price_data      = broker.get_price(instrument)
-                    
-                    if signal < 0:
-                        price       = price_data['bid']
-                        HCF         = price_data['negativeHCF']
-                    else:
-                        price       = price_data['ask']
-                        HCF         = price_data['positiveHCF']
-                    
-                    # Get exit levels
-                    stop_price  = signal_dict["stop_loss"]
-                    stop_type   = signal_dict["stop_type"]
-                    take_price  = signal_dict["take_profit"]
-                    
-                    # Calculate risked amount
-                    amount_risked   = broker.get_balance() * risk_pc / 100
-                    
-                    # Calculate size
-                    if sizing == 'risk':
-                        size            = utils.get_size(instrument,
-                                                         amount_risked, 
-                                                         price, 
-                                                         stop_price, 
-                                                         HCF
-                                                         )
-                    else:
-                        size = sizing
-                    
-                    # Construct order dict
-                    order_details = {"order_time":      datetime_stamp,
-                                     "strategy":        my_strat.name,
-                                     "order_type":      signal_dict["order_type"],
-                                     "instrument":      instrument,
-                                     "size":            signal*size,
-                                     "price":           price,
-                                     "stop_loss":       stop_price,
-                                     "take_profit":     take_price,
-                                     "HCF":             HCF,
-                                     "stop_type":       stop_type,
-                                     "granularity":     interval,
-                                     "related_orders":  signal_dict["related_orders"]
-                                     }
-                    
-                    # Place order
-                    if self.backtest is True:
-                        broker.place_order(order_details)
-                            
-                    else:
-                        # Running in live-trade mode
-                        if self.scan is not None:
-                            scan_hit = {"size"  : size,
-                                        "entry" : price,
-                                        "stop"  : stop_price,
-                                        "take"  : take_price,
-                                        "signal": signal
-                                        }
-                            scan_results[instrument] = scan_hit
+                        # Entry signal detected, get price data
+                        if self.backtest is True:
+                            datetime_stamp  = data.index[i]
+                            price_data      = broker.get_price(instrument, data, 
+                                                               quote_data, i)
                         else:
-                            output = broker.place_order(order_details)
-                            
-                            # if int(self.verbosity) > 0:
-                            #     print("Order message:")
-                            #     print(output['Message'])
-                            
-                            # Send email
-                            if int(self.notify) > 0:
-                                utils.write_to_order_summary(order_details, 
-                                                             order_summary_fp)
+                            datetime_stamp  = datetime.now().strftime("%H:%M:%S")
+                            price_data      = broker.get_price(instrument)
+                        
+                        
+                        if signal < 0:
+                            order_price = price_data['bid']
+                            HCF         = price_data['negativeHCF']
+                        else:
+                            order_price = price_data['ask']
+                            HCF         = price_data['positiveHCF']
+                        
+                        # Define 'working_price' to calculate size and TP
+                        if order_signal_dict["order_type"] == 'limit' or order_signal_dict["order_type"] == 'stop-limit':
+                            working_price = order_signal_dict["order_limit_price"]
+                        else:
+                            working_price = order_price
+                        
+                        # Calculate exit levels
+                        stop_price = order_signal_dict['stop_loss'] if 'stop_loss' in order_signal_dict else None
+                        stop_distance = order_signal_dict['stop_distance'] if 'stop_distance' in order_signal_dict else None
+                        stop_type = order_signal_dict['stop_type'] if 'stop_type' in order_signal_dict else None
+                        
+                        if 'take_profit' not in order_signal_dict and \
+                            'take_distance' in order_signal_dict and \
+                            order_signal_dict['take_distance'] is not None:
+                            # Take profit distance specified
+                            pip_value   = utils.get_pip_ratio(instrument)
+                            take_profit = working_price + np.sign(signal)*order_signal_dict['take_distance']*pip_value
+                        else:
+                            # Take profit price specified, or no take profit specified at all
+                            take_profit = order_signal_dict["take_profit"] if 'take_profit' in order_signal_dict else None
+                        
+                        # Calculate risked amount
+                        amount_risked = broker.get_balance() * risk_pc / 100
+                        
+                        # Calculate size
+                        if 'size' in order_signal_dict:
+                            size = order_signal_dict['size']
+                        else:
+                            if sizing == 'risk':
+                                size            = utils.get_size(instrument,
+                                                                 amount_risked, 
+                                                                 working_price, 
+                                                                 stop_price, 
+                                                                 HCF,
+                                                                 stop_distance)
+                            else:
+                                size = sizing
+                        
+                        # Construct order dict by building on signal_dict
+                        order_details                   = order_signal_dict
+                        order_details["order_time"]     = datetime_stamp
+                        order_details["strategy"]       = my_strat.name
+                        order_details["instrument"]     = instrument
+                        order_details["size"]           = signal*size
+                        order_details["order_price"]    = order_price
+                        order_details["HCF"]            = HCF
+                        order_details["granularity"]    = interval
+                        order_details["stop_distance"]  = stop_distance
+                        order_details["stop_loss"]      = stop_price
+                        order_details["take_profit"]    = take_profit
+                        order_details["stop_type"]      = stop_type
+                        order_details["related_orders"] = order_signal_dict['related_orders'] if 'related_orders' in order_signal_dict else None
+                        
+                        # Place order
+                        if self.backtest is True:
+                            broker.place_order(order_details)
                                 
-                                if int(self.notify) > 1 and \
-                                    mailing_list is not None and \
-                                    host_email is not None:
-                                    emailing.send_order(order_details,
-                                                        output,
-                                                        mailing_list,
-                                                        host_email)
-            
-                else:
-                    # No signal detected
-                    if int(self.verbosity) > 0 and self.backtest is False:
-                        print("  No signal detected.\n")
-                   
+                        else:
+                            # Running in live-trade mode
+                            if self.scan is not None:
+                                scan_hit = {"size"  : size,
+                                            "entry" : order_price,
+                                            "stop"  : stop_price,
+                                            "take"  : take_profit,
+                                            "signal": signal
+                                            }
+                                scan_results[instrument] = scan_hit
+                            else:
+                                output = broker.place_order(order_details)
+                                
+                                # Send email
+                                if int(self.notify) > 0:
+                                    utils.write_to_order_summary(order_details, 
+                                                                 order_summary_fp)
+                                    
+                                    if int(self.notify) > 1 and \
+                                        mailing_list is not None and \
+                                        host_email is not None:
+                                        emailing.send_order(order_details,
+                                                            output,
+                                                            mailing_list,
+                                                            host_email)
+                
+                    else:
+                        # No signal detected
+                        if int(self.verbosity) > 0 and self.backtest is False:
+                            print("  No signal detected.\n")
+                    # End signal_dict iteration
                 
                 if self.backtest is True:
                     broker.update_positions(candle)
@@ -483,9 +498,10 @@ class AutoTrader():
                     balance.append(broker.portfolio_balance)
                     
                     
-            # Iteration complete
+            # End data iteration 
             if self.backtest is True:
                 trade_summary = utils.trade_summary(instrument, broker.closed_positions)
+                open_trade_summary = utils.open_order_summary(instrument, broker.open_positions)
                 cancelled_summary = utils.cancelled_order_summary(instrument, broker.cancelled_orders)
                 
                 if self.validation_file is not None:
@@ -508,10 +524,11 @@ class AutoTrader():
                         backtest_dict['data']           = data
                         backtest_dict['NAV']            = NAV
                         backtest_dict['trade_summary']  = trade_summary
-                        backtest_dict['indicators']     = my_strat.indicators
+                        backtest_dict['indicators']     = my_strat.indicators if hasattr(my_strat, 'indicators') else None
                         backtest_dict['pair']           = instrument
                         backtest_dict['interval']       = interval
-                        # plot_backtest(backtest_dict)
+                        backtest_dict['open_trades']    = open_trade_summary
+                        backtest_dict['cancelled_trades'] = cancelled_summary
                         ap = autoplot.AutoPlot()
                         ap.data = data
                         
@@ -526,11 +543,6 @@ class AutoTrader():
                                                  instrument, 
                                                  interval)
                             
-                            
-                # Code below is deprecated
-                # else:
-                #     my_strat.create_price_chart(instrument, interval)
-            
             
             ''' -------------------------------------------------------------- '''
             '''              Construct backtest results dictionary             '''
@@ -629,8 +641,9 @@ class AutoTrader():
                 print("-------------------------------------------")
                 print("Strategy: {}".format(my_strat.name))
                 print("Timeframe:               {}".format(interval))
-                print("Risk to reward ratio:    {}".format(params['RR']))
-                print("Profitable win rate:     {}%".format(round(100/(1+params['RR']), 1)))
+                if params is not None and 'RR' in params:
+                    print("Risk to reward ratio:    {}".format(params['RR']))
+                    print("Profitable win rate:     {}%".format(round(100/(1+params['RR']), 1)))
                 if no_trades > 0:
                     print("Backtest win rate:       {}%".format(round(win_rate, 1)))
                     

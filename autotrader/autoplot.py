@@ -17,7 +17,8 @@ from bokeh.plotting import figure, output_file, show
 from bokeh.models import (
     CustomJS,
     ColumnDataSource,
-    HoverTool
+    HoverTool,
+    CrosshairTool
 )
 from bokeh.layouts import gridplot
 from bokeh.transform import factor_cmap
@@ -30,7 +31,7 @@ class AutoPlot():
         self.max_indis_over     = 3
         self.max_indis_below    = 2
         self._modified_data     = None
-        self.fig_tools          = "pan,wheel_zoom,box_zoom,undo,redo,reset,save"
+        self.fig_tools          = "pan,wheel_zoom,box_zoom,undo,redo,reset,save,crosshair"
         self.ohlc_height        = 400
         self.ohlc_width         = 800
         self.total_height       = 1000
@@ -52,6 +53,8 @@ class AutoPlot():
         indicators      = backtest_dict['indicators']
         pair            = backtest_dict['pair']
         interval        = backtest_dict['interval']
+        open_trades     = backtest_dict['open_trades']
+        cancelled_trades = backtest_dict['cancelled_trades']
         
         # Preparation ----------------------------------- #
         output_file("candlestick.html",
@@ -74,9 +77,17 @@ class AutoPlot():
         
         # Overlay trades 
         self.plot_trade_history(trade_summary, candle_plot)
+        if len(cancelled_trades) > 0:
+            self.plot_partial_orders(cancelled_trades, candle_plot)
+        if len(open_trades) > 0:
+            self.plot_partial_orders(open_trades, candle_plot, cancelled_orders=False)
         
         # Plot indicators
-        bottom_figs = self.plot_indicators(indicators, candle_plot)
+        if indicators is not None:
+            bottom_figs             = self.plot_indicators(indicators, candle_plot)
+        else:
+            bottom_figs             = []
+        
         
         # Auto-scale y-axis of candlestick chart
         autoscale_args      = dict(y_range  = candle_plot.y_range, 
@@ -89,6 +100,8 @@ class AutoPlot():
         
         # Compile plots for final figure
         plots               = [top_fig, candle_plot] + bottom_figs
+        
+        linked_crosshair    = CrosshairTool(dimensions='both')
         
         titled  = 0
         t       = Title()
@@ -116,6 +129,7 @@ class AutoPlot():
                     plot.legend.label_text_font_size = '8pt'
                     plot.legend.click_policy        = "hide"
                 
+                plot.add_tools(linked_crosshair)
                 plot.min_border_left    = 0
                 plot.min_border_top     = 3
                 plot.min_border_bottom  = 6
@@ -133,7 +147,7 @@ class AutoPlot():
         show(fig)
     
     
-    def view_indicators(self, indicators):
+    def view_indicators(self, indicators=None):
         ''' Constructs indicator visualisation figure. '''
         # Preparation ----------------------------------- #
         output_file("candlestick.html",
@@ -155,7 +169,10 @@ class AutoPlot():
         candle_plot.title       = 'AutoTrader IndiView'
         
         # Plot indicators
-        bottom_figs             = self.plot_indicators(indicators, candle_plot)
+        if indicators is not None:
+            bottom_figs             = self.plot_indicators(indicators, candle_plot)
+        else:
+            bottom_figs             = []
         
         # Auto-scale y-axis of candlestick chart
         autoscale_args          = dict(y_range  = candle_plot.y_range, 
@@ -413,7 +430,8 @@ class AutoPlot():
         
         return
     
-    def plot_cancelled_orders(self, cancelled_order_summary, linked_fig):
+    def plot_partial_orders(self, cancelled_order_summary, linked_fig, 
+                            cancelled_orders=True):
         ts              = cancelled_order_summary
         ts['date']      = ts.index 
         ts              = ts.reset_index(drop = True)
@@ -421,38 +439,52 @@ class AutoPlot():
         # Compute x-range in integer index form
         if self._modified_data is None:
             self._reindex_data()
-        ts_xrange       = self._modified_data[self._modified_data.date.isin(cancelled_order_summary.index)].index
-        trade_summary   = ts.set_index(ts_xrange)
+        
+        trade_summary   = pd.merge(self.data, ts, left_on='date', right_on='date')
+
         
         longs           = trade_summary[trade_summary.Size > 0]
         shorts          = trade_summary[trade_summary.Size < 0]
         
-        # Cancelled long trades
+        if cancelled_orders:
+            long_legend_label = 'Cancelled long trades'
+            short_legend_label = 'Cancelled short trades'
+            fill_color = 'black'
+            price = 'Order_price'
+        else:
+            long_legend_label = 'Open long trades'
+            short_legend_label = 'Open short trades'
+            fill_color = 'white'
+            price = 'Entry'
+        
+        # Partial long trades
         if len(longs) > 0:
-            linked_fig.scatter(list(longs.index),
-                               list(longs.Order_price.values),
+            linked_fig.scatter(list(longs.data_index.values),
+                               list(longs[price].values),
                                marker = 'triangle',
                                size = 15,
-                               fill_color = 'black',
-                               legend_label = 'Cancelled long trades')
+                               fill_color = fill_color,
+                               legend_label = long_legend_label)
         
-        # Cancelled short trades
+        # Partial short trades
         if len(shorts) > 0:
-            linked_fig.scatter(list(shorts.index),
-                               list(shorts.Order_price.values),
+            linked_fig.scatter(list(shorts.data_index.values),
+                               list(shorts[price].values),
                                marker = 'inverted_triangle',
                                size = 15,
-                               fill_color = 'black',
-                               legend_label = 'Cancelled short trades')
+                               fill_color = fill_color,
+                               legend_label = short_legend_label)
             
-        linked_fig.scatter(list(trade_summary.index),
+        if None not in trade_summary.Stop_loss.values:
+            linked_fig.scatter(list(trade_summary.data_index.values),
                                 list(trade_summary.Stop_loss.values),
                                 marker = 'dash',
                                 size = 15,
                                 fill_color = 'black',
                                 legend_label = 'Stop loss')
-    
-        linked_fig.scatter(list(trade_summary.index),
+        
+        if None not in trade_summary.Take_profit.values:
+            linked_fig.scatter(list(trade_summary.data_index.values),
                                 list(trade_summary.Take_profit.values),
                                 marker = 'dash',
                                 size = 15,
@@ -469,12 +501,14 @@ class AutoPlot():
         # Compute x-range in integer index form
         if self._modified_data is None:
             self._reindex_data()
-        ts_xrange   = self._modified_data[self._modified_data.date.isin(trade_summary.index)].index
-        trade_summary = ts.set_index(ts_xrange)
+        # ts_xrange   = self._modified_data[self._modified_data.date.isin(trade_summary.index)].index
+        # trade_summary = ts.set_index(ts_xrange)
+        
         
         # Assign new 'data_index' column to capture index in trade summary merge
         self.data['data_index'] = self._modified_data.index
-        exit_summary = pd.merge(self.data, trade_summary, left_on='date', right_on='Exit_time')
+        trade_summary = pd.merge(self.data, ts, left_on='date', right_on='date')
+        exit_summary = pd.merge(self.data, ts, left_on='date', right_on='Exit_time')
         
         # Backtesting signals
         profitable_longs        = trade_summary[(trade_summary['Profit'] > 0) 
@@ -489,7 +523,7 @@ class AutoPlot():
         
         # Profitable long trades
         if len(profitable_longs) > 0:
-            linked_fig.scatter(list(profitable_longs.index),
+            linked_fig.scatter(list(profitable_longs.data_index.values),
                                list(profitable_longs.Entry.values),
                                marker = 'triangle',
                                size = 15,
@@ -498,7 +532,7 @@ class AutoPlot():
         
         # Profitable short trades
         if len(profitable_shorts) > 0:
-            linked_fig.scatter(list(profitable_shorts.index),
+            linked_fig.scatter(list(profitable_shorts.data_index.values),
                                list(profitable_shorts.Entry.values),
                                marker = 'inverted_triangle',
                                size = 15,
@@ -507,7 +541,7 @@ class AutoPlot():
         
         # Unprofitable long trades
         if len(unprofitable_longs) > 0:
-            linked_fig.scatter(list(unprofitable_longs.index),
+            linked_fig.scatter(list(unprofitable_longs.data_index.values),
                                list(unprofitable_longs.Entry.values),
                                marker = 'triangle',
                                size = 15,
@@ -516,7 +550,7 @@ class AutoPlot():
         
         # Unprofitable short trades
         if len(unprofitable_shorts) > 0:
-            linked_fig.scatter(list(unprofitable_shorts.index),
+            linked_fig.scatter(list(unprofitable_shorts.data_index.values),
                                list(unprofitable_shorts.Entry.values),
                                marker = 'inverted_triangle',
                                size = 15,
@@ -524,11 +558,10 @@ class AutoPlot():
                                legend_label = 'Unprofitable short trades')
         
         # Stop loss  levels
-        stop_losses = list(trade_summary.Stop_loss.values)
-        if np.isnan(stop_losses).any():
+        if None in trade_summary.Stop_loss.values:
             pass
         else:
-            linked_fig.scatter(list(trade_summary.index),
+            linked_fig.scatter(list(trade_summary.data_index.values),
                                 list(trade_summary.Stop_loss.values),
                                 marker = 'dash',
                                 size = 15,
@@ -536,11 +569,10 @@ class AutoPlot():
                                 legend_label = 'Stop loss')
         
         # Take profit levels
-        take_profits = list(trade_summary.Take_profit.values)
-        if np.isnan(take_profits).any():
+        if None in trade_summary.Take_profit.values:
             pass
         else:
-            linked_fig.scatter(list(trade_summary.index),
+            linked_fig.scatter(list(trade_summary.data_index.values),
                                 list(trade_summary.Take_profit.values),
                                 marker = 'dash',
                                 size = 15,
@@ -554,7 +586,7 @@ class AutoPlot():
                             size = 8,
                             fill_color = 'black',
                             legend_label = 'Position exit')
-    
+
     
     def plot_portfolio_history(self, NAV, linked_fig):
         ''' Plots NAV over trade period. '''
@@ -711,7 +743,7 @@ class AutoPlot():
         backtest_candle_plot.x_range = livetrade_candle_plot.x_range
         backtest_candle_plot.y_range = livetrade_candle_plot.y_range
         self.plot_trade_history(backtest_trade_summary, backtest_candle_plot)
-        self.plot_cancelled_orders(backtest_cancelled_summary, backtest_candle_plot)
+        self.plot_partial_orders(backtest_cancelled_summary, backtest_candle_plot)
         backtest_candle_plot.title  = "Backtest Trade History for " + \
             "{} ({} candles)".format(instrument, granularity)
         
