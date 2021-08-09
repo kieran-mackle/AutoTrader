@@ -77,7 +77,90 @@ class Oanda():
         output = self.check_response(response)
         
         return response 
+    
+    def new_place_order(self, order_details):
+        '''
+        Parses order_details dict and handles order.
+        '''
         
+        if order_details["order_type"] == 'market':
+            self.place_market_order(order_details)
+        elif order_details["order_type"] == 'stop-limit':
+            self.place_stop_limit_order(order_details)
+        elif order_details["order_type"] == 'limit':
+            self.place_limit_order(order_details)
+        else:
+            print("Order type not recognised.")
+            return
+        
+        
+        order_type  = order_details["order_type"]
+        pair        = order_details["instrument"]
+        size        = order_details["size"]
+        take_price  = order_details["take_profit"]
+        stop_type   = order_details["stop_type"]
+        related     = order_details["related_orders"]
+        stop_price  = order_details["stop_loss"]
+        stop_distance = order_details['stop_distance']
+        order_stop_price = order_details["order_stop_price"] if order_type == 'stop-limit' else None
+        order_limit_price = order_details["order_limit_price"] if 'order_limit_price' in order_details else None
+        
+    def place_market_order(self, order_details):
+        
+        stop_loss_details = {"price": str(order_details["stop_loss"])}
+        take_profit_details = {"price": str(order_details["take_profit"])}
+        
+        response = self.api.order.market(accountID = self.ACCOUNT_ID,
+                              instrument = order_details["instrument"],
+                              units = order_details["size"],
+                              takeProfitOnFill = take_profit_details,
+                              stopLossOnFill = stop_loss_details,
+                              )
+        return response
+    
+    def place_stop_limit_order(self, order_details):
+        '''
+        Places MarketIfTouchedOrder with Oanda.
+        https://developer.oanda.com/rest-live-v20/order-df/
+        '''
+        
+        
+        # Need to create take_profit_details and stop_loss_details dicts
+        stop_loss_details = {"price": str(order_details["stop_loss"])}
+        take_profit_details = {"price": str(order_details["take_profit"])}
+        # Use get_take_profit_details(order_details) and get_stop_loss_details(order_details)
+        
+        # Need to test cases when no stop/take is provided (as None type)
+        response = self.api.order.market_if_touched(accountID   = self.ACCOUNT_ID,
+                                                    instrument  = order_details["instrument"],
+                                                    units       = order_details["size"],
+                                                    price       = str(order_details["order_stop_price"]),
+                                                    takeProfitOnFill = take_profit_details,
+                                                    stopLossOnFill = stop_loss_details
+                                                    )
+        
+        return response
+    
+    def place_limit_order(self, order_details):
+        return
+
+    def get_stop_loss_details(self, order_details):
+        ''' Constructs stop loss details dictionary. '''
+        # https://developer.oanda.com/rest-live-v20/order-df/#OrderType
+        
+        stop_loss_details = {"price": str(order_details["stop_loss"])}
+        
+        
+        return stop_loss_details
+    
+    def get_take_profit_details(self, order_details):
+        ''' Constructs take profit details dictionary. '''
+        if order_details["take_profit"] is not None:
+            take_profit_details = {"price": str(order_details["take_profit"])}
+        else:
+            take_profit_details = None
+        
+        return take_profit_details
 
     def get_data(self, pair, period, interval):
         # print("Getting data for {}".format(pair))
