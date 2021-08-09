@@ -9,6 +9,7 @@ TODO:
 """
 
 from autotrader.brokers.virtual import utils
+import numpy as np
 
 class Broker():
     
@@ -36,22 +37,26 @@ class Broker():
             Place order with broker.
             
         '''
+        # TODO: use order_details dict to start new_position dict, instead of reassigning
+        # This will eliminate the need to reassign and name a lot of the below...
+        
         order_type  = order_details["order_type"]
         pair        = order_details["instrument"]
         size        = order_details["size"]
-        order_price = order_details["price"]
+        order_price = order_details["order_price"]
         time        = order_details["order_time"]
         take_price  = order_details["take_profit"]
         HCF         = order_details["HCF"]
         stop_type   = order_details["stop_type"]
         related     = order_details["related_orders"]
+        stop_price  = order_details["stop_loss"]
+        stop_distance = order_details['stop_distance']
+        order_stop_price = order_details["order_stop_price"] if order_type == 'stop-limit' else None
+        order_limit_price = order_details["order_limit_price"] if 'order_limit_price' in order_details else None
         
-        if 'stop_distance' not in order_details:
-            stop_distance   = None
-            stop_price      = order_details["stop_loss"]
-        else:
-            stop_distance   = order_details['stop_distance']
-            stop_price      = None
+        if stop_price is None and stop_distance is not None:
+            pip_value   = utils.get_pip_ratio(pair)
+            stop_price  = order_price - np.sign(size)*stop_distance*pip_value
         
         order_no = self.total_trades + 1
         
@@ -67,7 +72,9 @@ class Broker():
                         'HCF'       : HCF,
                         'distance'  : stop_distance,
                         'stop_type' : stop_type,
-                        'related'   : related
+                        'related'   : related,
+                        'order_stop_price': order_stop_price,
+                        'order_limit_price': order_limit_price
                         }
         self.pending_positions[order_no] = new_position
         
@@ -75,7 +82,7 @@ class Broker():
         self.total_trades += 1
     
     
-    def open_position(self, order_no, candle):
+    def open_position(self, order_no, candle, limit_price = None):
         ''' Opens position with broker. '''
         
         # Calculate margin requirements
@@ -94,9 +101,12 @@ class Broker():
         if margin_required < self.margin_available:
             # Fill order
             new_position = self.pending_positions[order_no]
-            new_position['time_filled']     = candle.name
-            new_position['entry_price']     = candle.Open + spread_cost
-            self.open_positions[order_no]   = new_position
+            new_position['time_filled'] = candle.name
+            if limit_price is None:
+                new_position['entry_price'] = candle.Open + spread_cost
+            else:
+                new_position['entry_price'] = limit_price + spread_cost
+            self.open_positions[order_no] = new_position
             
         else:
             self.cancelled_orders[order_no] = self.pending_positions[order_no]
@@ -114,17 +124,33 @@ class Broker():
         for order_no in self.pending_positions:
             if self.pending_positions[order_no]['order_time'] != candle.name:
                 if self.pending_positions[order_no]['type'] == 'market':
+                    # Market order type
                     self.open_position(order_no, candle)
                     opened_positions += 1
-                elif self.pending_positions[order_no]['type'] == 'limit':
-                    if self.open_positions[order_no]['size'] > 0:
-                        if candle.Low < self.open_positions[order_no]['order_price']:
-                            self.open_position(order_no, candle)
+                
+                elif self.pending_positions[order_no]['type'] == 'stop-limit':
+                    # Stop-limit order type
+                    # Check if order_stop_price has been reached yet
+                    
+                    if candle.Low < self.pending_positions[order_no]['order_stop_price'] < candle.High:
+                        # order_stop_price has been reached, change order type to 'limit'
+                        self.pending_positions[order_no]['type'] = 'limit'
+                    
+                # This is in a separate if statement, as stop-limit order may
+                # eventually be changed to limit orders
+                if self.pending_positions[order_no]['type'] == 'limit':
+                    # Limit order type
+                    if self.pending_positions[order_no]['size'] > 0:
+                        if candle.Low < self.pending_positions[order_no]['order_limit_price']:
+                            self.open_position(order_no, candle, 
+                                               self.pending_positions[order_no]['order_limit_price'])
                             opened_positions += 1
                     else:
-                        if candle.High > self.open_positions[order_no]['order_price']:
-                            self.open_position(order_no, candle)
+                        if candle.High > self.pending_positions[order_no]['order_limit_price']:
+                            self.open_position(order_no, candle, 
+                                               self.pending_positions[order_no]['order_limit_price'])
                             opened_positions += 1
+                            
                             
             if self.pending_positions[order_no]['type'] == 'close':
                 related_order = self.pending_positions[order_no]['related']
@@ -187,13 +213,15 @@ class Broker():
         unrealised_PL  = 0        # Un-leveraged value
         for order_no in open_position_orders:
             if self.open_positions[order_no]['size'] > 0:
-                if candle.Low < self.open_positions[order_no]['stop']:
+                if self.open_positions[order_no]['stop'] is not None and \
+                    candle.Low < self.open_positions[order_no]['stop']:
                     # Stop loss hit
                     self.close_position(order_no, 
                                         candle, 
                                         self.open_positions[order_no]['stop']
                                         )
-                elif candle.High > self.open_positions[order_no]['take']:
+                elif self.open_positions[order_no]['take'] is not None and \
+                    candle.High > self.open_positions[order_no]['take']:
                     # Take Profit hit
                     self.close_position(order_no, 
                                         candle, 
@@ -209,12 +237,14 @@ class Broker():
                     unrealised_PL += position_value
             
             else:
-                if candle.High > self.open_positions[order_no]['stop']:
+                if self.open_positions[order_no]['stop'] is not None and \
+                    candle.High > self.open_positions[order_no]['stop']:
                     self.close_position(order_no, 
                                         candle, 
                                         self.open_positions[order_no]['stop']
                                         )
-                elif candle.Low < self.open_positions[order_no]['take']:
+                elif self.open_positions[order_no]['take'] is not None and \
+                    candle.Low < self.open_positions[order_no]['take']:
                     self.close_position(order_no, 
                                         candle, 
                                         self.open_positions[order_no]['take']
