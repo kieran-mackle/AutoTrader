@@ -410,15 +410,21 @@ class AutoTrader():
                             working_price = order_price
                         
                         # Calculate exit levels
-                        stop_price = order_signal_dict['stop_loss'] if 'stop_loss' in order_signal_dict else None
+                        pip_value   = utils.get_pip_ratio(instrument)
                         stop_distance = order_signal_dict['stop_distance'] if 'stop_distance' in order_signal_dict else None
                         stop_type = order_signal_dict['stop_type'] if 'stop_type' in order_signal_dict else None
+                        
+                        if 'stop_loss' not in order_signal_dict and \
+                            'stop_distance' in order_signal_dict and \
+                            order_signal_dict['stop_distance'] is not None:
+                            stop_price = working_price - np.sign(signal)*stop_distance*pip_value
+                        else:
+                            stop_price = order_signal_dict['stop_loss'] if 'stop_loss' in order_signal_dict else None
                         
                         if 'take_profit' not in order_signal_dict and \
                             'take_distance' in order_signal_dict and \
                             order_signal_dict['take_distance'] is not None:
                             # Take profit distance specified
-                            pip_value   = utils.get_pip_ratio(instrument)
                             take_profit = working_price + np.sign(signal)*order_signal_dict['take_distance']*pip_value
                         else:
                             # Take profit price specified, or no take profit specified at all
