@@ -8,12 +8,11 @@ TODO:
     
 """
 
-from autotrader.brokers.virtual import utils
 import numpy as np
 
 class Broker():
     
-    def __init__(self, broker_config):
+    def __init__(self, broker_config, utils):
         self.leverage           = 1
         self.commission         = 0
         self.spread             = 0
@@ -30,6 +29,7 @@ class Broker():
         self.max_drawdown       = 0
         self.home_currency      = 'AUD'
         self.NAV                = 0
+        self.utils              = utils
     
     
     def place_order(self, order_details):
@@ -55,7 +55,7 @@ class Broker():
         order_limit_price = order_details["order_limit_price"] if 'order_limit_price' in order_details else None
         
         if stop_price is None and stop_distance is not None:
-            pip_value   = utils.get_pip_ratio(pair)
+            pip_value   = self.utils.get_pip_ratio(pair)
             stop_price  = order_price - np.sign(size)*stop_distance*pip_value
         
         order_no = self.total_trades + 1
@@ -87,7 +87,7 @@ class Broker():
         
         # Calculate margin requirements
         current_price   = candle.Open
-        pip_value       = utils.get_pip_ratio(self.pending_positions[order_no]['pair'])
+        pip_value       = self.utils.get_pip_ratio(self.pending_positions[order_no]['pair'])
         size            = self.pending_positions[order_no]['size']
         HCF             = self.pending_positions[order_no]['HCF']
         position_value  = abs(size) * current_price * HCF
@@ -186,7 +186,7 @@ class Broker():
                 # Trailing stop loss is enabled, check if price has moved SL
                 
                 if self.open_positions[order_no]['distance'] is not None:
-                    pip_value = utils.get_pip_ratio(self.open_positions[order_no]['pair'])
+                    pip_value = self.utils.get_pip_ratio(self.open_positions[order_no]['pair'])
                     pip_distance = self.open_positions[order_no]['distance']
                     distance = pip_distance*pip_value
                     

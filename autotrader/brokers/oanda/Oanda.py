@@ -13,7 +13,7 @@ import pandas as pd
 
 
 class Oanda():
-    def __init__(self, oanda_config):
+    def __init__(self, oanda_config, utils):
         # Create v20 context
         API             = oanda_config["API"]
         ACCESS_TOKEN    = oanda_config["ACCESS_TOKEN"]
@@ -32,7 +32,7 @@ class Oanda():
         
     
     def get_price(self, pair):
-        
+        ''' Returns current price (bid+ask) and home conversion factors.'''
         response = self.api.pricing.get(accountID = self.ACCOUNT_ID, 
                                    instruments = pair
                                    )
@@ -49,6 +49,12 @@ class Oanda():
     
         return price
     
+    def get_pending_orders(self, instrument=None):
+        ''' Get all pending orders in the account. '''
+        response = self.api.order.list_pending(accountID = self.ACCOUNT_ID, 
+                                          instrument=instrument)
+        
+        return response
     
     def old_place_order(self, order_details):
         ''' DEPRECATED: Places a market order with a stop loss and take profit. '''
@@ -193,10 +199,10 @@ class Oanda():
             
             response = self.api.position.get(accountID = self.ACCOUNT_ID, 
                                              instrument = pair)
-            no_positions = 1
+            # print(response.body['position'])
         else:
             response = self.api.position.list_open(accountID = self.ACCOUNT_ID)
-            no_positions = len(response.body['positions'])
+            # print(response.body['positions'][0])
         
         return response.body
     

@@ -117,8 +117,12 @@ class AutoTrader():
         strategy            = getattr(module, strat_name)
         
         if self.backtest is True:
-            utils           = importlib.import_module('autotrader.brokers.virtual.utils')
-            broker          = Broker(broker_config)
+            # TODO: generalise broker used 
+            # Could interanlly specify broker based on feed. Oanda feed -> oanda broker,
+            # Yahoo feed -> virtual broker. Doing this will generalise broker utils import
+            utils_module    = importlib.import_module('autotrader.brokers.virtual.utils')
+            utils           = utils_module.Utils()
+            broker          = Broker(broker_config, utils)
             
             from_date       = datetime.strptime(config['BACKTESTING']['FROM']+'+0000', '%d/%m/%Y%z')
             to_date         = datetime.strptime(config['BACKTESTING']['TO']+'+0000', '%d/%m/%Y%z')
@@ -152,8 +156,9 @@ class AutoTrader():
             
         else:
             # TODO generalise per broker used
-            utils           = importlib.import_module('autotrader.brokers.oanda.utils') # FOR OANDA ONLY
-            broker          = Oanda.Oanda(broker_config)
+            utils_module    = importlib.import_module('autotrader.brokers.oanda.utils') # FOR OANDA ONLY
+            utils           = utils_module.Utils()
+            broker          = Oanda.Oanda(broker_config, utils)
         
         if int(self.notify) > 0:
             
