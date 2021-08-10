@@ -14,7 +14,7 @@ import pandas as pd
 
 class Oanda():
     def __init__(self, oanda_config, utils):
-        # Create v20 context
+        ''' Create v20 context. '''
         API             = oanda_config["API"]
         ACCESS_TOKEN    = oanda_config["ACCESS_TOKEN"]
         port            = oanda_config["PORT"]
@@ -56,34 +56,6 @@ class Oanda():
         
         return response
     
-    def old_place_order(self, order_details):
-        ''' DEPRECATED: Places a market order with a stop loss and take profit. '''
-        
-        # Extract order details
-        pair            = order_details["instrument"]
-        stop_price      = order_details["stop_loss"]
-        take_price      = order_details["take_profit"]
-        size            = order_details["size"]
-        
-        # Check stop and take levels for precision requirements
-        stop_price, take_price = self.check_precision(pair,
-                                                      stop_price, 
-                                                      take_price
-                                                      )
-        
-        # Place order
-        response = self.api.order.market(accountID = self.ACCOUNT_ID,
-                              instrument = pair,
-                              units = size,
-                              takeProfitOnFill = {"price": str(take_price)},
-                              stopLossOnFill = {"price": str(stop_price)},
-                              )
-        
-        # Check response
-        output = self.check_response(response)
-        
-        return response 
-    
     def place_order(self, order_details):
         '''
         Parses order_details dict and handles order.
@@ -102,11 +74,10 @@ class Oanda():
         # Check response
         output = self.check_response(response)
         
-        return response 
-
+        return response
         
     def place_market_order(self, order_details):
-        
+        ''' Places market order. '''
         stop_loss_details = self.get_stop_loss_details(order_details)
         take_profit_details = self.get_take_profit_details(order_details)
         
@@ -141,6 +112,7 @@ class Oanda():
         return response
     
     def place_limit_order(self, order_details):
+        ''' (NOT YET IMPLEMENTED) PLaces limit order. '''
         return
 
     def get_stop_loss_details(self, order_details):
@@ -187,6 +159,7 @@ class Oanda():
     
     
     def get_balance(self):
+        ''' Returns account balance. '''
         response = self.api.account.get(accountID=self.ACCOUNT_ID)
         
         return response.body["account"].balance
@@ -208,7 +181,7 @@ class Oanda():
     
     
     def get_summary(self):
-        
+        ''' Returns account summary. '''
         # response = self.api.account.get(accountID=self.ACCOUNT_ID)
         response = self.api.account.summary(accountID=self.ACCOUNT_ID)
         # print(response.body['account'])
@@ -252,15 +225,7 @@ class Oanda():
         precision = response.body['instruments'][0].displayPrecision
         
         return precision
-    
-    
-    def old_check_precision(self, pair, original_stop, original_take):
-        ''' DEPRECATED - Modify stop/take based on pair for required ordering precision. ''' 
-        N               = self.get_precision(pair)
-        take_price      = round(original_take, N)
-        stop_price      = round(original_stop, N)
-        
-        return stop_price, take_price
+
     
     def check_precision(self, pair, price):
         ''' Modify a price based on required ordering precision for pair. ''' 
