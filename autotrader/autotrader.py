@@ -208,6 +208,7 @@ class AutoTrader():
                 starting_balance    = broker.get_balance()
                 NAV     = []
                 balance = []
+                margin  = []
                 
                 if self.data_file is not None:
                     custom_data_file        = self.data_file
@@ -502,6 +503,7 @@ class AutoTrader():
                     broker.update_positions(candle)
                     NAV.append(broker.NAV)
                     balance.append(broker.portfolio_balance)
+                    margin.append(broker.margin_available)
                     
                     
             # End data iteration 
@@ -529,6 +531,7 @@ class AutoTrader():
                         backtest_dict = {}
                         backtest_dict['data']           = data
                         backtest_dict['NAV']            = NAV
+                        backtest_dict['margin']         = margin
                         backtest_dict['trade_summary']  = trade_summary
                         backtest_dict['indicators']     = my_strat.indicators if hasattr(my_strat, 'indicators') else None
                         backtest_dict['pair']           = instrument
