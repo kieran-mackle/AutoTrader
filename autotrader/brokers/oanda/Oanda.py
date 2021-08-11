@@ -56,6 +56,20 @@ class Oanda():
         
         return response
     
+    def get_open_positions(self, pair = None):
+        ''' Gets the current positions open on the account. '''
+        
+        if pair is not None:
+            
+            response = self.api.position.get(accountID = self.ACCOUNT_ID, 
+                                             instrument = pair)
+            # print(response.body['position'])
+        else:
+            response = self.api.position.list_open(accountID = self.ACCOUNT_ID)
+            # print(response.body['positions'][0])
+        
+        return response.body
+    
     def place_order(self, order_details):
         '''
         Parses order_details dict and handles order.
@@ -163,21 +177,6 @@ class Oanda():
         response = self.api.account.get(accountID=self.ACCOUNT_ID)
         
         return response.body["account"].balance
-    
-    
-    def get_positions(self, pair = None):
-        ''' Gets the current positions open on the account. '''
-        
-        if pair is not None:
-            
-            response = self.api.position.get(accountID = self.ACCOUNT_ID, 
-                                             instrument = pair)
-            # print(response.body['position'])
-        else:
-            response = self.api.position.list_open(accountID = self.ACCOUNT_ID)
-            # print(response.body['positions'][0])
-        
-        return response.body
     
     
     def get_summary(self):
