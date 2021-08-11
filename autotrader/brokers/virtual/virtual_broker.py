@@ -318,19 +318,13 @@ class Broker():
         # Update maximum drawdown
         self.update_MDD()
     
+    def get_pending_orders(self, instrument = None):
+        ''' Returns pending orders. '''
+        return self.pending_positions
     
-    def get_positions(self, pair=None):
+    def get_open_positions(self, instrument=None):
         ''' Returns the open positions in the account. '''
-        # Note that trades which get closed on the same candle that they are 
-        # opened on will not be returned. 
-        if pair is not None:
-            open_positions = self.open_positions
-            current_positions = [v for v in open_positions.values() if pair in v.values()]
-            
-        else:
-            current_positions = self.open_positions
-            
-        return current_positions
+        return self.open_positions
     
     
     def add_funds(self, amount):
