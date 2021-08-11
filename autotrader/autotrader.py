@@ -371,6 +371,14 @@ class AutoTrader():
                 
                 # Run strategy to get signals
                 # TODO - move this into order_processing method
+                # TODO - input broker to strategy? or initiate strategy with 
+                # broker and broker utils? Will allow for more complex strategies...
+                    # being able to access the brokers methods from the strategy could 
+                    # be beneficial, but also increases danger, exposing the broker api
+                    # to the user. I could add a flag for advanced users to 
+                    # be able to get access. Would require a superclass with broker
+                    # and broker utils attribute. This would also preserve 
+                    # back compatibility
                 signal_dict = my_strat.generate_signal(i, open_positions)
                 if 0 not in signal_dict:
                     # Single order signal, nest in dictionary to allow iteration
