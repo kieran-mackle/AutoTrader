@@ -562,6 +562,34 @@ def merge_grid_orders(grid_1, grid_2):
     
     return grid
     
+def last_level_crossed(data, base):
+    ''' 
+    Returns a list containing the last grid level touched.
+    The grid levels are determined by the base input variable, 
+    which corresponds to the pip_space x pip_value.
+    '''
+    # base = 20*0.0001
+    
+    last_level_crossed = np.nan
+    levels_crossed = []
+    for i in range(len(data)):
+        high = data.High.values[i]
+        low = data.Low.values[i]
+        
+        upper_prices = []
+        lower_prices = []
+        
+        for price in [high, low]:    
+            upper_prices.append(base*np.ceil(price/base))
+            lower_prices.append(base*np.floor(price/base))
+        
+        if lower_prices[0] != lower_prices[1]:
+            # Candle has crossed a level
+            last_level_crossed = lower_prices[0]
+        
+        levels_crossed.append(last_level_crossed)
+    
+    return levels_crossed
 
 # def TDI(data):
 #     rsiPeriod = input(11, minval = 1, title = "RSI Period")
