@@ -383,7 +383,7 @@ class AutoTrader():
                     
                 # Begin iteration over signal_dict to extract each order
                 for order in signal_dict:
-                    order_signal_dict = signal_dict[order]
+                    order_signal_dict = signal_dict[order].copy()
                 
                     signal      = order_signal_dict["direction"]
                     
