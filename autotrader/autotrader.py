@@ -51,6 +51,7 @@ class AutoTrader():
         self.home_dir       = None
         self.validation_file = None
         self.plot_validation_balance = True
+        self.include_broker = False
     
     def run(self):
         if self.show_help is not None:
@@ -350,6 +351,10 @@ class AutoTrader():
                 
             # Instantiate strategy for current instrument
             my_strat    = strategy(params, data, instrument)
+            
+            if self.include_broker:
+                my_strat.broker = broker
+                my_strat.broker_utils = utils
             
             if int(self.verbosity) > 0:
                 print("\nAnalysing {}/{}".format(instrument[:3], instrument[-3:]),
