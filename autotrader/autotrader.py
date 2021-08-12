@@ -649,6 +649,9 @@ class AutoTrader():
                     backtest_results['short_trades']['max_short_loss']  = max_short_loss
                     backtest_results['short_trades']['short_wr']        = short_wr
                 
+                # Save results
+                self.backtest_results = backtest_results
+                
             
             ''' -------------------------------------------------------------- '''
             '''                     Print output to console                    '''
