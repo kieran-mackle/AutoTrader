@@ -299,7 +299,9 @@ class AutoTrader():
                 
             else:
                 # Running in livetrade mode
-                data                = broker.get_data(instrument, period, interval)
+                data        = getattr(get_data, feed.lower())(instrument,
+                                                             granularity = interval,
+                                                             count=period)
                 start_range         = len(data)-1
                 end_range           = len(data)
                 
@@ -316,7 +318,9 @@ class AutoTrader():
                               "({}/{}).".format(data.index[-1].minute, last_candle_closed.minute),
                               "Trying again...")
                         time.sleep(3) # wait 3 seconds...
-                        data    = broker.get_data(instrument, period, interval)
+                        data    = getattr(get_data, feed.lower())(instrument,
+                                            granularity = interval,
+                                            count=period)
                         data_ts = data.index[-1].to_pydatetime().timestamp()
                         count   += 1
                         if count == 3:
@@ -349,8 +353,10 @@ class AutoTrader():
                     
                     # if data is still misaligned, perform manual adjustment.
                     if data_ts != last_candle_closed.timestamp():
-                        print("  Could not retrieve updated data. Manually adjusting.")
-                        data = broker.update_data(instrument, interval, data)
+                        print("  Could not retrieve updated data. Aborting.")
+                        sys.exit(0)
+                        # print("  Could not retrieve updated data. Manually adjusting.")
+                        # data = broker.update_data(instrument, interval, data)
                         
                 
             # Instantiate strategy for current instrument
