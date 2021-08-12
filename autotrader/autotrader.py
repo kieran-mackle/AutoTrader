@@ -314,7 +314,7 @@ class AutoTrader():
                     # Time misalignment detected - attempt to correct
                     count = 0
                     while data_ts != last_candle_closed.timestamp():
-                        print("  Time misalginment detected",
+                        print("  Time misalginment detected at {}".format(datetime.now().strftime("%H:%M:%S")),
                               "({}/{}).".format(data.index[-1].minute, last_candle_closed.minute),
                               "Trying again...")
                         time.sleep(3) # wait 3 seconds...
