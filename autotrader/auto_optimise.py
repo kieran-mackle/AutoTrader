@@ -74,8 +74,8 @@ class Optimise():
         at.backtest         = True
         at.optimise         = True
         at.custom_config    = config_dict
-        
-        backtest_results    = at.run()
+        at.run()
+        backtest_results    = at.backtest_results
         
         try:
             objective           = -backtest_results['all_trades']['profit_pc']  - \
