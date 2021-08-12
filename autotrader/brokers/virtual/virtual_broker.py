@@ -29,6 +29,7 @@ class Broker():
         self.max_drawdown       = 0
         self.home_currency      = 'AUD'
         self.NAV                = 0
+        self.unrealised_PL      = 0
         self.utils              = utils
     
     
@@ -260,8 +261,11 @@ class Broker():
         # Update margin available
         self.update_margin(candle.Close)
         
+        # Update unrealised P/L
+        self.unrealised_PL = unrealised_PL
+        
         # Update open position value
-        self.NAV = self.portfolio_balance + unrealised_PL
+        self.NAV = self.portfolio_balance + self.unrealised_PL
         
     
     def close_position(self, order_no, candle, exit_price):
