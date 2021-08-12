@@ -114,8 +114,12 @@ class AutoTrader():
         else:
             watchlist       = config["WATCHLIST"]
         
-        module              = importlib.import_module('strategies.' + strat_module)
-        strategy            = getattr(module, strat_name)
+        strat_package_path  = os.path.join(home_dir, "strategies")
+        strat_module_path   = os.path.join(strat_package_path, strat_module) + '.py'
+        strat_spec          = importlib.util.spec_from_file_location(strat_module, strat_module_path)
+        strategy_module     = importlib.util.module_from_spec(strat_spec)
+        strat_spec.loader.exec_module(strategy_module)
+        strategy            = getattr(strategy_module, strat_name)
         
         if self.backtest is True:
             # TODO: generalise broker used 
