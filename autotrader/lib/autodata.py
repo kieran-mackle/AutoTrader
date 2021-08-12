@@ -195,11 +195,12 @@ class GetData():
         close_price, high_price, low_price, open_price = [], [], [], []
         
         for candle in candles:
-            times.append(candle.time)
-            close_price.append(float(candle.mid.c))
-            high_price.append(float(candle.mid.h))
-            low_price.append(float(candle.mid.l))
-            open_price.append(float(candle.mid.o))
+            if candle.complete:
+                times.append(candle.time)
+                close_price.append(float(candle.mid.c))
+                high_price.append(float(candle.mid.h))
+                low_price.append(float(candle.mid.l))
+                open_price.append(float(candle.mid.o))
         
         dataframe = pd.DataFrame({"Open": open_price, "High": high_price, "Low": low_price, "Close": close_price})
         dataframe.index = pd.to_datetime(times)
