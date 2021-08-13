@@ -112,7 +112,7 @@ class BrokerUtils:
         
         return my_int
     
-    def write_to_order_summary(order_details, filepath):
+    def write_to_order_summary(self, order_details, filepath):
         ''' Writes order details to summary file. '''
         
         # Check if file exists already, if not, create
