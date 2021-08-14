@@ -205,15 +205,15 @@ class BrokerUtils:
         trade_duration = []
         
         for order in closed_positions_dict:
-            if closed_positions_dict[order]['pair'] == pair:
+            if closed_positions_dict[order]['instrument'] == pair:
                 order_ID.append(closed_positions_dict[order]['order_ID'])
-                entry_time.append(closed_positions_dict[order]['entry_time'])
+                entry_time.append(closed_positions_dict[order]['time_filled'])
                 times_list.append(closed_positions_dict[order]['order_time'])
                 order_price.append(closed_positions_dict[order]['order_price'])
                 entry_price.append(closed_positions_dict[order]['entry_price'])
                 size.append(closed_positions_dict[order]['size'])
-                stop_price.append(closed_positions_dict[order]['stop_price'])
-                take_price.append(closed_positions_dict[order]['take_price'])
+                stop_price.append(closed_positions_dict[order]['stop_loss'])
+                take_price.append(closed_positions_dict[order]['take_profit'])
                 profit.append(closed_positions_dict[order]['profit'])
                 portfolio_balance.append(closed_positions_dict[order]['balance'])
                 exit_times.append(closed_positions_dict[order]['exit_time'])
@@ -226,7 +226,7 @@ class BrokerUtils:
                     trade_duration.append(exit_dt.timestamp() - entry_dt.timestamp())
                 else:
                     trade_duration.append(closed_positions_dict[order]['exit_time'].timestamp() - 
-                                          closed_positions_dict[order]['entry_time'].timestamp())
+                                          closed_positions_dict[order]['time_filled'].timestamp())
                 
         dataframe = pd.DataFrame({"Order_ID": order_ID, 
                                   "Order_price": order_price,
@@ -252,13 +252,13 @@ class BrokerUtils:
         take_price  = []
         
         for order in positions_dict:
-            if positions_dict[order]['pair'] == pair:
+            if positions_dict[order]['instrument'] == pair:
                 order_ID.append(positions_dict[order]['order_ID'])
                 times_list.append(positions_dict[order]['order_time'])
                 order_price.append(positions_dict[order]['order_price'])
                 size.append(positions_dict[order]['size'])
-                stop_price.append(positions_dict[order]['stop'])
-                take_price.append(positions_dict[order]['take'])
+                stop_price.append(positions_dict[order]['stop_loss'])
+                take_price.append(positions_dict[order]['take_profit'])
                 
         dataframe = pd.DataFrame({"Order_ID": order_ID, 
                                   "Order_price": order_price,
@@ -282,13 +282,13 @@ class BrokerUtils:
         entry_price = []
         
         for order in positions_dict:
-            if positions_dict[order]['pair'] == pair:
+            if positions_dict[order]['instrument'] == pair:
                 order_ID.append(positions_dict[order]['order_ID'])
                 times_list.append(positions_dict[order]['order_time'])
                 order_price.append(positions_dict[order]['order_price'])
                 size.append(positions_dict[order]['size'])
-                stop_price.append(positions_dict[order]['stop'])
-                take_price.append(positions_dict[order]['take'])
+                stop_price.append(positions_dict[order]['stop_loss'])
+                take_price.append(positions_dict[order]['take_profit'])
                 entry_time.append(positions_dict[order]['time_filled'])
                 entry_price.append(positions_dict[order]['entry_price'])
                 
