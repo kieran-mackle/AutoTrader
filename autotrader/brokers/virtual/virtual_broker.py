@@ -155,9 +155,10 @@ class Broker():
                             
             if self.pending_positions[order_no]['type'] == 'close':
                 related_order = self.pending_positions[order_no]['related']
-                self.close_position(related_order, 
+                self.close_position(self.pending_positions[order_no]['pair'],
                                     candle, 
-                                    candle.Close
+                                    candle.Close,
+                                    order_no = related_order
                                     )
                 opened_positions += 1 # To remove from pending orders
                 closing_orders.append(order_no)
@@ -217,17 +218,17 @@ class Broker():
                 if self.open_positions[order_no]['stop'] is not None and \
                     candle.Low < self.open_positions[order_no]['stop']:
                     # Stop loss hit
-                    self.close_position(order_no, 
+                    self.close_position(self.open_positions[order_no]['pair'], 
                                         candle, 
-                                        self.open_positions[order_no]['stop']
-                                        )
+                                        self.open_positions[order_no]['stop'],
+                                        order_no)
                 elif self.open_positions[order_no]['take'] is not None and \
                     candle.High > self.open_positions[order_no]['take']:
                     # Take Profit hit
-                    self.close_position(order_no, 
+                    self.close_position(self.open_positions[order_no]['pair'], 
                                         candle, 
-                                        self.open_positions[order_no]['take']
-                                        )
+                                        self.open_positions[order_no]['take'],
+                                        order_no)
                 else:
                     # Position is still open, update value of holding
                     size        = self.open_positions[order_no]['size']
@@ -240,16 +241,16 @@ class Broker():
             else:
                 if self.open_positions[order_no]['stop'] is not None and \
                     candle.High > self.open_positions[order_no]['stop']:
-                    self.close_position(order_no, 
+                    self.close_position(self.open_positions[order_no]['pair'], 
                                         candle, 
-                                        self.open_positions[order_no]['stop']
-                                        )
+                                        self.open_positions[order_no]['stop'],
+                                        order_no)
                 elif self.open_positions[order_no]['take'] is not None and \
                     candle.Low < self.open_positions[order_no]['take']:
-                    self.close_position(order_no, 
+                    self.close_position(self.open_positions[order_no]['pair'], 
                                         candle, 
-                                        self.open_positions[order_no]['take']
-                                        )
+                                        self.open_positions[order_no]['take'],
+                                        order_no)
                 else:
                     size        = self.open_positions[order_no]['size']
                     entry_price = self.open_positions[order_no]['entry_price']
@@ -266,9 +267,83 @@ class Broker():
         
         # Update open position value
         self.NAV = self.portfolio_balance + self.unrealised_PL
-        
     
-    def close_position(self, order_no, candle, exit_price):
+    
+    def close_position(self, instrument, candle, exit_price,
+                           order_no=None):
+        ''' Closes position. '''
+        if order_no is not None:
+            # single order specified to close
+            self.close_trade(order_no=order_no, 
+                             candle=candle, 
+                             exit_price=exit_price)
+        else:
+            # Close all positions for instrument
+            for order_no in self.open_positions.copy():
+                if self.open_positions[order_no]['pair'] == instrument:
+                    self.close_trade(order_no=order_no, 
+                                     candle=candle, 
+                                     exit_price=exit_price)
+    
+    
+    def close_trade(self, candle=None, exit_price=None,
+                           order_no=None):
+        ''' Closes trade by order number. '''
+        
+        # Remove position from self.open_positions and calculate profit
+        order_time  = self.open_positions[order_no]['order_time']
+        order_price = self.open_positions[order_no]['order_price']
+        order_type  = self.open_positions[order_no]['type']
+        pair        = self.open_positions[order_no]['pair']
+        entry_time  = self.open_positions[order_no]['time_filled']
+        entry_price = self.open_positions[order_no]['entry_price']
+        size        = self.open_positions[order_no]['size']
+        stop_price  = self.open_positions[order_no]['stop']
+        take_price  = self.open_positions[order_no]['take']
+        HCF         = self.open_positions[order_no]['HCF']
+        
+        exit_time   = candle.name
+        exit_price  = exit_price
+        
+        # Update portfolio with profit/loss
+        gross_PL    = size*(exit_price - entry_price)*HCF
+        open_trade_value    = abs(size)*entry_price*HCF
+        close_trade_value   = abs(size)*exit_price*HCF
+        commission  = (self.commission/100) * (open_trade_value + close_trade_value)
+        net_profit  = gross_PL - commission
+        
+        self.add_funds(net_profit)
+        if net_profit > 0:
+            self.profitable_trades += 1
+        
+        # Add trade to closed positions
+        closed_position = {'order_ID'       : order_no,
+                           'type'           : order_type,
+                           'pair'           : pair,
+                           'order_time'     : order_time,
+                           'order_price'    : order_price,
+                           'entry_time'     : entry_time, 
+                           'entry_price'    : entry_price,
+                           'stop_price'     : stop_price,
+                           'take_price'     : take_price,
+                           'exit_time'      : exit_time,
+                           'exit_price'     : exit_price,
+                           'size'           : size,
+                           'profit'         : net_profit,
+                           'balance'        : self.portfolio_balance
+                           }
+        
+        # Add to closed positions dictionary
+        self.closed_positions[order_no] = closed_position
+        
+        # Remove position from open positions
+        self.open_positions.pop(order_no, 0)
+        
+        # Update maximum drawdown
+        self.update_MDD()
+    
+    
+    def old_close_position(self, order_no, candle, exit_price):
         ''' Closes positions. '''
         # Remove position from self.open_positions and calculate profit
         order_time  = self.open_positions[order_no]['order_time']
@@ -321,6 +396,7 @@ class Broker():
         
         # Update maximum drawdown
         self.update_MDD()
+    
     
     def get_pending_orders(self, instrument = None):
         ''' Returns pending orders. '''
@@ -432,5 +508,4 @@ class Broker():
         
         
         self.NAV = 0
-        
-            
+    
