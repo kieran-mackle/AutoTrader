@@ -11,7 +11,7 @@
 ---------------------------------------------------------------------------
      A Python-Based Development Platform For Automated Trading Systems
                              Kieran Mackle
-                             Version 0.0.12
+                             Version 0.1.4
 """
 
 from getopt import getopt
