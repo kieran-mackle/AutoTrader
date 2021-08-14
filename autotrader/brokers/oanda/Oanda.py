@@ -188,29 +188,32 @@ class Oanda():
         return response
     
     
-    def close_position(self, pair):
+    def close_position(self, instrument, long_units=None, short_units=None,
+                       **dummy_inputs):
         ''' Closes all open positions on an instrument '''
         # Check if the position is long or short
-        position    = self.get_positions(pair)['position']
-        long_units  = position.long.units
-        short_units = position.short.units
+        position    = self.get_positions(instrument)['position']
+        if long_units is None:
+            long_units  = position.long.units
+        if short_units is None:
+            short_units = position.short.units
         
         if long_units > 0:
             response = self.api.position.close(accountID=self.ACCOUNT_ID, 
-                                               instrument=pair, 
+                                               instrument=instrument, 
                                                longUnits="ALL")
             # # Check response
             # output = self.check_response(response)
         
         elif short_units > 0: 
             response = self.api.position.close(accountID=self.ACCOUNT_ID, 
-                                               instrument=pair,
+                                               instrument=instrument,
                                                shortUnits="ALL")
             # # Check response
             # output = self.check_response(response)
         
         else:
-            print("There is no current position with {} to close.".format(pair))
+            print("There is no current position with {} to close.".format(instrument))
             response = None
         
         return response
