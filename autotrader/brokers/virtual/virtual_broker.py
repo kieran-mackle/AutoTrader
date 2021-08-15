@@ -379,3 +379,6 @@ class Broker():
         
         if MDD < self.max_drawdown:
             self.max_drawdown = MDD
+    
+    def get_NAV(self):
+        return self.NAV
