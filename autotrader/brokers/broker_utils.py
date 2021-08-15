@@ -127,7 +127,7 @@ class BrokerUtils:
         order_type          = order_details["order_type"]
         instrument          = order_details["instrument"]
         size                = order_details["size"]
-        trigger_price       = order_details["price"]
+        trigger_price       = order_details["order_price"]
         stop_loss           = order_details["stop_loss"]
         take_profit         = order_details["take_profit"]
         granularity         = order_details["granularity"]
