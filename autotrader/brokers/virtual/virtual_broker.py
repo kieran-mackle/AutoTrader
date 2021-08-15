@@ -296,6 +296,9 @@ class Broker():
         ''' Returns pending orders. '''
         return self.pending_positions
     
+    def cancel_pending_order(self, order_id):
+        self.pending_positions.pop(order_id, 0)
+    
     def get_open_positions(self, instrument=None):
         ''' Returns the open positions in the account. '''
         return self.open_positions

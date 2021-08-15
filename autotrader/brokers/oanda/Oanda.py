@@ -86,6 +86,10 @@ class Oanda():
             
         return pending_orders
     
+    def cancel_pending_order(self, order_id):
+        ''' Cancels pending order by ID. '''
+        self.api.order.cancel(accountID = self.ACCOUNT_ID, orderSpecifier=str(order_id))
+    
     def get_open_positions(self, pair = None):
         ''' Gets the current positions open on the account. '''
         
