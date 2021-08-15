@@ -37,18 +37,16 @@ def send_order(order_details, order_response, mailing_list, host_email):
     
     if stop_loss is not None:
         stop_pips = round(abs(price - stop_loss)*10**val, 1)
+        stop_loss = round(stop_loss, val+1)
     else:
         stop_pips = None
     
     if take_profit is not None:
         take_pips = round(abs(price - take_profit)*10**val, 1)
+        take_profit = round(take_profit, val+1)
     else:
         take_pips = None
         
-    # Round price levels
-    stop_loss       = round(stop_loss, val+1)
-    take_profit     = round(take_profit, val+1)
-    
     # Email configuration settings
     sender_email    = host_email['email']
     password        = host_email['password']
