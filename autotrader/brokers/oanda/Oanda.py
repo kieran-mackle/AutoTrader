@@ -10,6 +10,7 @@ import v20
 from autotrader.brokers.oanda import utils
 import datetime
 import pandas as pd
+import numpy as np
 
 
 class Oanda():
@@ -54,7 +55,36 @@ class Oanda():
         response = self.api.order.list_pending(accountID = self.ACCOUNT_ID, 
                                           instrument=instrument)
         
-        return response
+        oanda_pending_orders = response.body['orders']
+        pending_orders = {}
+        
+        for order in oanda_pending_orders:
+            if order.type != 'TAKE_PROFIT' and order.type != 'STOP_LOSS':
+                new_order = {}
+                new_order['order_ID']           = order.id
+                new_order['order_type']         = order.type
+                new_order['order_stop_price']   = order.price
+                new_order['order_limit_price']  = order.price
+                new_order['direction']          = np.sign(order.units)
+                new_order['order_time']         = order.createTime
+                new_order['strategy']           = None
+                new_order['instrument']         = order.instrument
+                new_order['size']               = order.units
+                new_order['order_price']        = order.price
+                new_order['granularity']        = None
+                new_order['take_profit']        = order.takeProfitOnFill.price
+                new_order['take_distance']      = None
+                new_order['stop_type']          = None
+                new_order['stop_distance']      = None
+                new_order['stop_loss']          = None
+                new_order['related_orders']     = None
+                
+                if instrument is not None and order.instrument == instrument:
+                    pending_orders[order.id] = new_order
+                elif instrument is None:
+                    pending_orders[order.id] = new_order
+            
+        return pending_orders
     
     def get_open_positions(self, pair = None):
         ''' Gets the current positions open on the account. '''
@@ -410,3 +440,8 @@ class Oanda():
             reduced_granularity = reduced_granularity[0] + '1'
         
         return reduced_granularity
+    
+    def get_NAV(self):
+        ''' Returns Net Asset Value of account. '''
+        response = self.api.account.get(accountID=self.ACCOUNT_ID)
+        return response.body["account"].NAV
