@@ -24,7 +24,7 @@ def send_order(order_details, order_response, mailing_list, host_email):
     
     pair            = order_details['instrument']
     size            = order_details['size']
-    price           = order_details['price']
+    price           = order_details['order_price']
     stop_loss       = order_details['stop_loss']
     take_profit     = order_details['take_profit']
     strategy_name   = order_details['strategy']
