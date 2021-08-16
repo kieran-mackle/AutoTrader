@@ -11,7 +11,7 @@
 ---------------------------------------------------------------------------
      A Python-Based Development Platform For Automated Trading Systems
                              Kieran Mackle
-                             Version 0.1.9
+                             Version 0.1.6
 """
 
 from getopt import getopt
@@ -52,7 +52,24 @@ class AutoTrader():
         self.validation_file = None
         self.plot_validation_balance = True
         self.include_broker = False
-    
+        
+        # New attributes
+        self.config         = None
+        self.broker         = None
+        self.broker_utils   = None
+        self.email_params   = None
+        self.strategy       = None
+        self.strategy_params = None
+        self.get_data       = None
+        
+        self.scan_results = {}
+        self.order_summary_fp = None
+        
+        # instrument specific things should be passed to a 'bot', eg
+        # price dataframes, etc... so that it can be handled individually,
+        # and then can compete against the same broker simultaneously
+        # also scan results and order_summary_fp?
+        
     def run(self):
         if self.show_help is not None:
             self.print_help(self.show_help)
@@ -67,24 +84,24 @@ class AutoTrader():
         ''' -------------------------------------------------------------- '''
         '''                         Load configuration                     '''
         ''' -------------------------------------------------------------- '''
-        if self.home_dir is not None:
-            home_dir            = self.home_dir
-        else:
-            home_dir            = os.getcwd()
-        price_data_path         = os.path.join(home_dir, 'price_data')
+        if self.home_dir is None:
+            self.home_dir       = os.getcwd()
+        
+        price_data_path         = os.path.join(self.home_dir, 'price_data')
         
         if self.optimise is True and self.backtest is True:
             config              = self.custom_config
         else:
             config_file         = self.config_file
-            config_file_path    = os.path.join(home_dir, 'config', config_file)
+            config_file_path    = os.path.join(self.home_dir, 'config', config_file)
             config              = self.read_yaml(config_file_path + '.yaml')
         
         if self.validation_file is not None:
             livetrade_history   = pd.read_csv(self.validation_file, index_col = 0)
-            livetrade_history   = livetrade_history.fillna(method='ffill')
+            self.livetrade_history = livetrade_history.fillna(method='ffill')
         
         # Read configuration file
+        self.config         = config
         interval            = config["STRATEGY"]["INTERVAL"]
         period              = config["STRATEGY"]["PERIOD"]
         params              = config["STRATEGY"]["PARAMETERS"]
@@ -94,277 +111,67 @@ class AutoTrader():
         strat_name          = config["STRATEGY"]["NAME"]
         environment         = config["ENVIRONMENT"]
         feed                = config["FEED"]
-        global_config       = self.read_yaml(home_dir + '/config' + '/GLOBAL.yaml')
+        
+        strategy_params                 = params
+        strategy_params['granularity']  = interval
+        strategy_params['risk_pc']      = risk_pc
+        strategy_params['sizing']       = sizing
+        strategy_params['period']       = period
+        self.strategy_params            = strategy_params
+        
+        global_config       = self.read_yaml(self.home_dir + '/config' + '/GLOBAL.yaml')
         broker_config       = environment_manager.get_config(environment,
                                                              global_config,
                                                              feed)
-        get_data            = autodata.GetData(broker_config)
+        self.get_data       = autodata.GetData(broker_config)
         
         if 'ACCOUNT_ID' in config:
             broker_config['ACCOUNT_ID'] = config['ACCOUNT_ID']
         
         # Get watchlist
         if self.scan is not None:
-            watchlist       = instrument_list.get_watchlist(self.scan)
-            scan_results    = {}
+            self.watchlist  = instrument_list.get_watchlist(self.scan)
+            self.scan_results = {}
+            
         elif self.instruments is not None:
-            watchlist       = self.instruments.split(',') 
+            self.watchlist  = self.instruments.split(',') 
         elif self.validation_file is not None:
-            raw_watchlist   = livetrade_history.Instrument.unique() # FOR OANDA
+            self.raw_watchlist = livetrade_history.Instrument.unique() # FOR OANDA
         else:
-            watchlist       = config["WATCHLIST"]
+            self.watchlist  = config["WATCHLIST"]
         
-        strat_package_path  = os.path.join(home_dir, "strategies")
+        strat_package_path  = os.path.join(self.home_dir, "strategies")
         strat_module_path   = os.path.join(strat_package_path, strat_module) + '.py'
         strat_spec          = importlib.util.spec_from_file_location(strat_module, strat_module_path)
         strategy_module     = importlib.util.module_from_spec(strat_spec)
         strat_spec.loader.exec_module(strategy_module)
         strategy            = getattr(strategy_module, strat_name)
         
-        if self.backtest is True:
-            # TODO: generalise broker used 
-            # Could interanlly specify broker based on feed. Oanda feed -> oanda broker,
-            # Yahoo feed -> virtual broker. Doing this will generalise broker utils import
-            utils_module    = importlib.import_module('autotrader.brokers.virtual.utils')
-            utils           = utils_module.Utils()
-            broker          = Broker(broker_config, utils)
-            
-            from_date       = datetime.strptime(config['BACKTESTING']['FROM']+'+0000', '%d/%m/%Y%z')
-            to_date         = datetime.strptime(config['BACKTESTING']['TO']+'+0000', '%d/%m/%Y%z')
-            
-            initial_deposit = config["BACKTESTING"]["initial_balance"]
-            spread          = config["BACKTESTING"]["spread"]
-            leverage        = config["BACKTESTING"]["leverage"]
-            commission      = config["BACKTESTING"]["commission"]
-            base_currency   = config["BACKTESTING"]["base_currency"]
-            
-            broker.add_funds(initial_deposit)
-            broker.fee      = spread
-            broker.leverage = leverage
-            broker.commission = commission
-            broker.spread   = spread
-            broker.base_currency = base_currency
-            get_data.base_currency = base_currency
-            
-            if int(self.verbosity) > 0:
-                banner = pyfiglet.figlet_format("AutoBacktest")
-                print(banner)
-            
-            if self.validation_file is not None:
-                # Also get broker-specific utility functions
-                # TODO generalise per broker used
-                broker_utils = importlib.import_module('autotrader.brokers.oanda.utils') # FOR OANDA ONLY
-                
-                # Correct watchlist
-                if self.instruments is None:
-                    watchlist   = broker_utils.format_watchlist(raw_watchlist)
-            
-        else:
-            # TODO generalise per broker used
-            utils_module    = importlib.import_module('autotrader.brokers.oanda.utils') # FOR OANDA ONLY
-            utils           = utils_module.Utils()
-            broker          = Oanda.Oanda(broker_config, utils)
+        self.assign_broker(broker_config, config)
         
-        if int(self.notify) > 0:
-            
-            host_email      = None
-            mailing_list    = None
-            
-            if 'EMAILING' in config:
-                # Look for host email and mailing list in strategy config
-                if "MAILING_LIST" in config["EMAILING"]:
-                    mailing_list    = config["EMAILING"]["MAILING_LIST"]
-                if "HOST_ACCOUNT" in config["EMAILING"]:
-                    host_email      = config["EMAILING"]["HOST_ACCOUNT"]
-            
-            if "EMAILING" in global_config:
-                # Look for host email and mailing list in strategy config, if it
-                # was not picked up in strategy config
-                if "MAILING_LIST" in global_config["EMAILING"] and mailing_list is None:
-                    mailing_list    = global_config["EMAILING"]["MAILING_LIST"]
-                if "HOST_ACCOUNT" in global_config["EMAILING"] and host_email is None:
-                    host_email      = global_config["EMAILING"]["HOST_ACCOUNT"]
-            
-            if host_email is None:
-                print("Warning: email host account not provided.")
-            if mailing_list is None:
-                print("Warning: no mailing list provided.")
-                
-            order_summary_fp = os.path.join(home_dir, 'logfiles/order_history.txt')
+        self.configure_emailing(config, global_config)
         
         
         ''' -------------------------------------------------------------- '''
         '''                 Analyse each instrument in watchlist           '''
         ''' -------------------------------------------------------------- '''
-        for instrument in watchlist:
+        for instrument in self.watchlist:
             # Get price history
-            if self.backtest is True:
-                # Running in backtest mode
-                
-                if self.validation_file is not None:
-                    # Extract instrument-specific trade history as trade summary and trade period
-                    formatted_instrument = instrument[:3] + "/" + instrument[-3:]
-                    raw_livetrade_summary = livetrade_history[livetrade_history.Instrument == formatted_instrument] # FOR OANDA
-                    from_date           = pd.to_datetime(raw_livetrade_summary.Date.values)[0]
-                    to_date             = pd.to_datetime(raw_livetrade_summary.Date.values)[-1]
-                    
-                    # Modify from date to improve backtest
-                    from_date = from_date - period*timedelta(seconds = self.granularity_to_seconds(interval))
-                    
-                    # Modify starting balance
-                    broker.portfolio_balance = raw_livetrade_summary.Balance.values[np.isfinite(raw_livetrade_summary.Balance.values)][0]
-                    
-                    
-                starting_balance    = broker.get_balance()
+            data, quote_data = self.retrieve_data(instrument, price_data_path, feed)
+            
+            if self.backtest:
+                starting_balance = self.broker.get_balance()
                 NAV     = []
                 balance = []
                 margin  = []
-                
-                if self.data_file is not None:
-                    custom_data_file        = self.data_file
-                    custom_data_filepath    = os.path.join(price_data_path,
-                                                           custom_data_file)
-                    if int(self.verbosity) > 1:
-                        print("Using data file specified ({}).".format(custom_data_file))
-                    data            = pd.read_csv(custom_data_filepath, 
-                                                  index_col = 0)
-                    data.index = pd.to_datetime(data.index)
-                    quote_data      = data
-                    
-                else:
-                    if int(self.verbosity) > 1:
-                        print("Downloading extended historical data for",
-                              "{}/{}.".format(instrument[:3],instrument[-3:]))
-                    
-                    if self.optimise is True:
-                        # Check if historical data already exists
-                        historical_data_name = 'hist_{0}{1}.csv'.format(interval, instrument)
-                        historical_quote_data_name = 'hist_{0}{1}_quote.csv'.format(interval, instrument)
-                        data_dir_path = os.path.join(home_dir, 'price_data')
-                        historical_data_file_path = os.path.join(home_dir, 
-                                                                 'price_data',
-                                                                 historical_data_name)
-                        historical_quote_data_file_path = os.path.join(home_dir, 
-                                                                 'price_data',
-                                                                 historical_quote_data_name)
-                        
-                        if not os.path.exists(historical_data_file_path):
-                            # Data file does not yet exist
-                            data        = getattr(get_data, feed.lower())(instrument,
-                                                             granularity = interval,
-                                                             start_time = from_date,
-                                                             end_time = to_date)
-                            quote_data  = getattr(get_data, feed.lower() + '_quote_data')(data,
-                                                                                          instrument,
-                                                                                          interval,
-                                                                                          from_date,
-                                                                                          to_date)
-                            data, quote_data    = utils.check_dataframes(data, quote_data)
-                            
-                            # Check if price_data folder exists
-                            if not os.path.exists(data_dir_path):
-                                # If price data directory doesn't exist, make it
-                                os.makedirs(data_dir_path)
-                                
-                            # Save data in file/s
-                            data.to_csv(historical_data_file_path)
-                            quote_data.to_csv(historical_quote_data_file_path)
-                            
-                        else:
-                            # Data file does exist, import it as dataframe
-                            data = pd.read_csv(historical_data_file_path, 
-                                               index_col = 0)
-                            quote_data = pd.read_csv(historical_quote_data_file_path, 
-                                                     index_col = 0)
-                            
-                    else:
-                        data        = getattr(get_data, feed.lower())(instrument,
-                                                             granularity = interval,
-                                                             start_time = from_date,
-                                                             end_time = to_date)
-                        quote_data  = getattr(get_data, feed.lower() + '_quote_data')(data,
-                                                                        instrument,
-                                                                        interval,
-                                                                        from_date,
-                                                                        to_date)
-                        
-                        data, quote_data    = utils.check_dataframes(data, quote_data)
-                    
-                    
-                    if int(self.verbosity) > 1:
-                        print("  Done.\n")
-                
-                start_range         = 0
-                end_range           = len(data)
-                
-            else:
-                # Running in livetrade mode
-                data        = getattr(get_data, feed.lower())(instrument,
-                                                             granularity = interval,
-                                                             count=period)
-                start_range         = len(data)-1
-                end_range           = len(data)
-                
-                # Check data time alignment
-                current_time        = datetime.now(tz=pytz.utc)
-                last_candle_closed  = utils.last_period(current_time, interval)
-                data_ts             = data.index[-1].to_pydatetime().timestamp()
-                
-                if data_ts != last_candle_closed.timestamp():
-                    # Time misalignment detected - attempt to correct
-                    count = 0
-                    while data_ts != last_candle_closed.timestamp():
-                        print("  Time misalginment detected at {}".format(datetime.now().strftime("%H:%M:%S")),
-                              "({}/{}).".format(data.index[-1].minute, last_candle_closed.minute),
-                              "Trying again...")
-                        time.sleep(3) # wait 3 seconds...
-                        data    = getattr(get_data, feed.lower())(instrument,
-                                            granularity = interval,
-                                            count=period)
-                        data_ts = data.index[-1].to_pydatetime().timestamp()
-                        count   += 1
-                        if count == 3:
-                            break
-                    
-                    if data_ts != last_candle_closed.timestamp():
-                        # Time misalignment still present - attempt to correct
-                        # Check price data directory to see if the stream has caught 
-                        # the latest candle
-                        price_data_filename = "{0}{1}.txt".format(interval, instrument)
-                        abs_price_path      = os.path.join(price_data_path, price_data_filename)
-                        
-                        if os.path.exists(abs_price_path):
-                            # Price data file matching instrument and granularity 
-                            # exists, check latest candle in file
-                            f                   = open(abs_price_path, "r")
-                            price_lines         = f.readlines()
-                            
-                            if len(price_lines) > 1:
-                                latest_candle       = price_lines[-1].split(',')
-                                latest_candle_time  = datetime.strptime(latest_candle[0],
-                                                                        '%Y-%m-%d %H:%M:%S')
-                                UTC_last_candle_in_file = latest_candle_time.replace(tzinfo=pytz.UTC)
-                                price_data_ts       = UTC_last_candle_in_file.timestamp()
-                                
-                                if price_data_ts == last_candle_closed.timestamp():
-                                    data    = utils.update_data_with_candle(data, latest_candle)
-                                    data_ts = data.index[-1].to_pydatetime().timestamp()
-                                    print("  Data updated using price stream.")
-                    
-                    # if data is still misaligned, perform manual adjustment.
-                    if data_ts != last_candle_closed.timestamp():
-                        print("  Could not retrieve updated data. Aborting.")
-                        sys.exit(0)
-                        # print("  Could not retrieve updated data. Manually adjusting.")
-                        # data = broker.update_data(instrument, interval, data)
-                        
-                
+            
             # Instantiate strategy for current instrument
-            my_strat    = strategy(params, data, instrument)
+            my_strat        = strategy(params, data, instrument)
+            self.strategy   = my_strat
             
             if self.include_broker:
-                my_strat.broker = broker
-                my_strat.broker_utils = utils
+                my_strat.broker = self.broker
+                my_strat.broker_utils = self.broker_utils
             
             if int(self.verbosity) > 0:
                 print("\nAnalysing {}/{}".format(instrument[:3], instrument[-3:]),
@@ -373,166 +180,47 @@ class AutoTrader():
                 print("Time: {}".format(datetime.now().strftime("%A, %B %d %Y, "+
                                                                   "%H:%M:%S")))
                 if self.backtest is True:
-                    print("From: ", from_date)
-                    print("To:   ", to_date)
+                    print("From: ", datetime.strptime(config['BACKTESTING']['FROM']+'+0000', '%d/%m/%Y%z'))
+                    print("To:   ", datetime.strptime(config['BACKTESTING']['TO']+'+0000', '%d/%m/%Y%z'))
             
             
             ''' -------------------------------------------------------------- '''
             '''                  Analyse price data using strategy             '''
             ''' -------------------------------------------------------------- '''
+            start_range, end_range = self.get_iteration_range(data)
+            
             for i in range(start_range, end_range):
-                open_positions      = broker.open_positions
+                open_positions      = self.broker.open_positions
                 candle              = data.iloc[i]
                 
                 # Run strategy to get signals
                 signal_dict = my_strat.generate_signal(i, open_positions)
                 if 0 not in signal_dict:
                     # Single order signal, nest in dictionary to allow iteration
-                    run_iteration = signal_dict["direction"]
                     signal_dict = {1: signal_dict}
                     
                 # Begin iteration over signal_dict to extract each order
                 for order in signal_dict:
                     order_signal_dict = signal_dict[order].copy()
-                
-                    signal      = order_signal_dict["direction"]
                     
-                    # TODO: this if statement is almost redundant now, consider deleting
-                    if signal != 0:
-                        # Signal detected
-                        if int(self.verbosity) > 0 and self.backtest is False:
-                            print("  Signal detected at {}: {}@{}".format(data.index[i],
-                                                                          signal,
-                                                                          data.Close[i]
-                                                                          ))
-                        
-                        # Entry signal detected, get price data
-                        if self.backtest is True:
-                            datetime_stamp  = data.index[i]
-                            price_data      = broker.get_price(instrument, data, 
-                                                               quote_data, i)
-                        else:
-                            datetime_stamp  = datetime.now().strftime("%H:%M:%S")
-                            price_data      = broker.get_price(instrument)
-                        
-                        
-                        if signal < 0:
-                            order_price = price_data['bid']
-                            HCF         = price_data['negativeHCF']
-                        else:
-                            order_price = price_data['ask']
-                            HCF         = price_data['positiveHCF']
-                        
-                        # Define 'working_price' to calculate size and TP
-                        if order_signal_dict["order_type"] == 'limit' or order_signal_dict["order_type"] == 'stop-limit':
-                            working_price = order_signal_dict["order_limit_price"]
-                        else:
-                            working_price = order_price
-                        
-                        # Calculate exit levels
-                        pip_value   = utils.get_pip_ratio(instrument)
-                        stop_distance = order_signal_dict['stop_distance'] if 'stop_distance' in order_signal_dict else None
-                        stop_type = order_signal_dict['stop_type'] if 'stop_type' in order_signal_dict else None
-                        
-                        if 'stop_loss' not in order_signal_dict and \
-                            'stop_distance' in order_signal_dict and \
-                            order_signal_dict['stop_distance'] is not None:
-                            stop_price = working_price - np.sign(signal)*stop_distance*pip_value
-                        else:
-                            stop_price = order_signal_dict['stop_loss'] if 'stop_loss' in order_signal_dict else None
-                        
-                        if 'take_profit' not in order_signal_dict and \
-                            'take_distance' in order_signal_dict and \
-                            order_signal_dict['take_distance'] is not None:
-                            # Take profit distance specified
-                            take_profit = working_price + np.sign(signal)*order_signal_dict['take_distance']*pip_value
-                        else:
-                            # Take profit price specified, or no take profit specified at all
-                            take_profit = order_signal_dict["take_profit"] if 'take_profit' in order_signal_dict else None
-                        
-                        # Calculate risked amount
-                        amount_risked = broker.get_balance() * risk_pc / 100
-                        
-                        # Calculate size
-                        if 'size' in order_signal_dict:
-                            size = order_signal_dict['size']
-                        else:
-                            if sizing == 'risk':
-                                size            = utils.get_size(instrument,
-                                                                 amount_risked, 
-                                                                 working_price, 
-                                                                 stop_price, 
-                                                                 HCF,
-                                                                 stop_distance)
-                            else:
-                                size = sizing
-                        
-                        # Construct order dict by building on signal_dict
-                        order_details                   = order_signal_dict
-                        order_details["order_time"]     = datetime_stamp
-                        order_details["strategy"]       = my_strat.name
-                        order_details["instrument"]     = instrument
-                        order_details["size"]           = signal*size
-                        order_details["order_price"]    = order_price
-                        order_details["HCF"]            = HCF
-                        order_details["granularity"]    = interval
-                        order_details["stop_distance"]  = stop_distance
-                        order_details["stop_loss"]      = stop_price
-                        order_details["take_profit"]    = take_profit
-                        order_details["stop_type"]      = stop_type
-                        order_details["related_orders"] = order_signal_dict['related_orders'] if 'related_orders' in order_signal_dict else None
-                        
-                        # Place order
-                        if self.backtest is True:
-                            broker.place_order(order_details)
-                                
-                        else:
-                            # Running in live-trade mode
-                            if self.scan is not None:
-                                scan_hit = {"size"  : size,
-                                            "entry" : order_price,
-                                            "stop"  : stop_price,
-                                            "take"  : take_profit,
-                                            "signal": signal
-                                            }
-                                scan_results[instrument] = scan_hit
-                            else:
-                                output = broker.place_order(order_details)
-                                
-                                # Send email
-                                if int(self.notify) > 0:
-                                    utils.write_to_order_summary(order_details, 
-                                                                 order_summary_fp)
-                                    
-                                    if int(self.notify) > 1 and \
-                                        mailing_list is not None and \
-                                        host_email is not None:
-                                        emailing.send_order(order_details,
-                                                            output,
-                                                            mailing_list,
-                                                            host_email)
-                
-                    else:
-                        # No signal detected
-                        if int(self.verbosity) > 0 and self.backtest is False:
-                            print("  No signal detected.\n")
-                    # End signal_dict iteration
+                    if order_signal_dict["direction"] != 0:
+                        self.process_signal(order_signal_dict, i, data, 
+                                            quote_data, instrument)
                 
                 if self.backtest is True:
-                    broker.update_positions(candle)
-                    NAV.append(broker.NAV)
-                    balance.append(broker.portfolio_balance)
-                    margin.append(broker.margin_available)
-                    
+                    self.broker.update_positions(candle)
+                    NAV.append(self.broker.NAV)
+                    balance.append(self.broker.portfolio_balance)
+                    margin.append(self.broker.margin_available)
                     
             # End data iteration 
             if self.backtest is True:
-                trade_summary = utils.trade_summary(instrument, broker.closed_positions)
-                open_trade_summary = utils.open_order_summary(instrument, broker.open_positions)
-                cancelled_summary = utils.cancelled_order_summary(instrument, broker.cancelled_orders)
+                trade_summary = self.broker_utils.trade_summary(instrument, self.broker.closed_positions)
+                open_trade_summary = self.broker_utils.open_order_summary(instrument, self.broker.open_positions)
+                cancelled_summary = self.broker_utils.cancelled_order_summary(instrument, self.broker.cancelled_orders)
                 
                 if self.validation_file is not None:
-                    livetrade_summary = broker_utils.trade_summary(raw_livetrade_summary,
+                    livetrade_summary = self.validation_utils.trade_summary(self.raw_livetrade_summary,
                                                                             data,
                                                                             interval)
                     final_balance_diff  = NAV[-1] - livetrade_summary.Balance.values[-1]
@@ -570,164 +258,20 @@ class AutoTrader():
                                                  cancelled_summary,
                                                  instrument, 
                                                  interval)
-                            
             
             ''' -------------------------------------------------------------- '''
             '''              Construct backtest results dictionary             '''
             ''' -------------------------------------------------------------- '''
             if self.backtest is True:
-                # initialise dictionary
-                backtest_results = {}
-                
-                # All trades
-                no_trades   = len(trade_summary)
-                backtest_results['no_trades'] = no_trades
-                if no_trades > 0:
-                    backtest_results['all_trades'] = {}
-                    profit_abs  = broker.portfolio_balance - starting_balance
-                    profit_pc   = 100*profit_abs / starting_balance
-                    MDD         = round(broker.max_drawdown, 1)
-                    wins        = trade_summary[trade_summary.Profit > 0]
-                    avg_win     = np.mean(wins.Profit)
-                    max_win     = np.max(wins.Profit)
-                    loss        = trade_summary[trade_summary.Profit < 0]
-                    avg_loss    = abs(np.mean(loss.Profit))
-                    max_loss    = abs(np.min(loss.Profit))
-                    win_rate    = 100*broker.profitable_trades/no_trades
-                    longest_win_streak, longest_lose_streak  = utils.get_streaks(trade_summary)
-                    avg_trade_duration = np.mean(trade_summary.Trade_duration.values)
-                    min_trade_duration = min(trade_summary.Trade_duration.values)
-                    max_trade_duration = max(trade_summary.Trade_duration.values)
-                    
-                    backtest_results['all_trades']['profit_abs']    = profit_abs
-                    backtest_results['all_trades']['profit_pc']     = profit_pc
-                    backtest_results['all_trades']['MDD']           = MDD
-                    backtest_results['all_trades']['avg_win']       = avg_win
-                    backtest_results['all_trades']['max_win']       = max_win
-                    backtest_results['all_trades']['avg_loss']      = avg_loss
-                    backtest_results['all_trades']['max_loss']      = max_loss
-                    backtest_results['all_trades']['win_rate']      = win_rate
-                    backtest_results['all_trades']['win_streak']    = longest_win_streak
-                    backtest_results['all_trades']['lose_streak']   = longest_lose_streak
-                    backtest_results['all_trades']['longest_trade'] = str(timedelta(seconds = int(max_trade_duration)))
-                    backtest_results['all_trades']['shortest_trade'] = str(timedelta(seconds = int(min_trade_duration)))
-                    backtest_results['all_trades']['avg_trade_duration'] = str(timedelta(seconds = int(avg_trade_duration)))
-                
-                # Cancelled orders (insufficient margin)
-                cancelled_orders    = broker.cancelled_orders
-                no_cancelled        = len(cancelled_orders)
-                no_open             = len(broker.open_positions)
-                
-                # Long trades
-                long_trades     = trade_summary[trade_summary.Size > 0]
-                no_long         = len(long_trades)
-                backtest_results['long_trades'] = {}
-                backtest_results['long_trades']['no_trades'] = no_long
-                if no_long > 0:
-                    long_wins       = long_trades[long_trades.Profit > 0]
-                    avg_long_win    = np.mean(long_wins.Profit)
-                    max_long_win    = np.max(long_wins.Profit)
-                    long_loss       = long_trades[long_trades.Profit < 0]
-                    avg_long_loss   = abs(np.mean(long_loss.Profit))
-                    max_long_loss   = abs(np.min(long_loss.Profit))
-                    long_wr         = 100*len(long_trades[long_trades.Profit > 0])/no_long
-                    
-                    backtest_results['long_trades']['avg_long_win']     = avg_long_win
-                    backtest_results['long_trades']['max_long_win']     = max_long_win 
-                    backtest_results['long_trades']['avg_long_loss']    = avg_long_loss
-                    backtest_results['long_trades']['max_long_loss']    = max_long_loss
-                    backtest_results['long_trades']['long_wr']          = long_wr
-                    
-                  
-                # Short trades
-                short_trades    = trade_summary[trade_summary.Size < 0]
-                no_short        = len(short_trades)
-                backtest_results['short_trades'] = {}
-                backtest_results['short_trades']['no_trades'] = no_short
-                if no_short > 0:
-                    short_wins      = short_trades[short_trades.Profit > 0]
-                    avg_short_win   = np.mean(short_wins.Profit)
-                    max_short_win   = np.max(short_wins.Profit)
-                    short_loss      = short_trades[short_trades.Profit < 0]
-                    avg_short_loss  = abs(np.mean(short_loss.Profit))
-                    max_short_loss  = abs(np.min(short_loss.Profit))
-                    short_wr        = 100*len(short_trades[short_trades.Profit > 0])/no_short
-                    
-                    backtest_results['short_trades']['avg_short_win']   = avg_short_win
-                    backtest_results['short_trades']['max_short_win']   = max_short_win
-                    backtest_results['short_trades']['avg_short_loss']  = avg_short_loss
-                    backtest_results['short_trades']['max_short_loss']  = max_short_loss
-                    backtest_results['short_trades']['short_wr']        = short_wr
-                
-                # Save results
-                self.backtest_results = backtest_results
-                
+                backtest_results = self.extract_backtest_results(trade_summary, 
+                                 self.broker, starting_balance, self.broker_utils)                
             
             ''' -------------------------------------------------------------- '''
             '''                     Print output to console                    '''
             ''' -------------------------------------------------------------- '''
             if int(self.verbosity) > 0 and self.backtest is True:
                 
-                print("\n-------------------------------------------")
-                print("            Backtest Results")
-                print("-------------------------------------------")
-                print("Strategy: {}".format(my_strat.name))
-                print("Timeframe:               {}".format(interval))
-                if params is not None and 'RR' in params:
-                    print("Risk to reward ratio:    {}".format(params['RR']))
-                    print("Profitable win rate:     {}%".format(round(100/(1+params['RR']), 1)))
-                if no_trades > 0:
-                    print("Backtest win rate:       {}%".format(round(win_rate, 1)))
-                    
-                    print("Total no. trades:        {}".format(broker.total_trades))
-                    print("Profit:                  ${} ({}%)".format(round(profit_abs, 3), 
-                                                      round(profit_pc, 1)))
-                    print("Maximum drawdown:        {}%".format(MDD))
-                    print("Max win:                 ${}".format(round(max_win, 2)))
-                    print("Average win:             ${}".format(round(avg_win, 2)))
-                    print("Max loss:                -${}".format(round(max_loss, 2)))
-                    print("Average loss:            -${}".format(round(avg_loss, 2)))
-                    print("Longest win streak:      {} trades".format(longest_win_streak))
-                    print("Longest losing streak:   {} trades".format(longest_lose_streak))
-                    print("Average trade duration   {}".format(backtest_results['all_trades']['avg_trade_duration']))
-                    
-                    
-                else:
-                    print("No trades taken.")
-                
-                
-                if no_open > 0:
-                    print("Orders still open:       {}".format(no_open))
-                if no_cancelled > 0:
-                    print("Cancelled orders:        {}".format(no_cancelled))
-                
-                
-                # Long trades
-                print("\n         Summary of long trades")
-                print("-------------------------------------------")
-                if no_long > 0:
-                    print("Number of long trades:   {}".format(no_long))
-                    print("Long win rate:           {}%".format(round(long_wr, 1)))
-                    print("Max win:                 ${}".format(round(max_long_win, 2)))
-                    print("Average win:             ${}".format(round(avg_long_win, 2)))
-                    print("Max loss:                -${}".format(round(max_long_loss, 2)))
-                    print("Average loss:            -${}".format(round(avg_long_loss, 2)))
-                else:
-                    print("There were no long trades.")
-                  
-                # Short trades
-                print("\n          Summary of short trades")
-                print("-------------------------------------------")
-                if no_short > 0:
-                    print("Number of short trades:  {}".format(no_short))
-                    print("short win rate:          {}%".format(round(short_wr, 1)))
-                    print("Max win:                 ${}".format(round(max_short_win, 2)))
-                    print("Average win:             ${}".format(round(avg_short_win, 2)))
-                    print("Max loss:                -${}".format(round(max_short_loss, 2)))
-                    print("Average loss:            -${}".format(round(avg_short_loss, 2)))
-                    
-                else:
-                    print("There were no short trades.")
+                self.print_backtest_results(backtest_results)
                 
                 if self.validation_file is not None:
                     print("\n            Backtest Validation")
@@ -736,10 +280,8 @@ class AutoTrader():
                     print("live-trade account and backtest is ${}.".format(round(final_balance_diff, 2)))
                     print("Number of live trades: {} trades.".format(no_live_trades))
                 
-                
             if self.log is True and self.backtest is True:
                 logger.write_backtest_log(instrument, config, trade_summary)
-        
         
         if self.scan is not None:
             # Construct scan details dict
@@ -751,47 +293,30 @@ class AutoTrader():
             # Report AutoScan results
             if int(self.verbosity) > 0 or \
                 int(self.notify) == 0:
-                if len(scan_results) == 0:
+                if len(self.scan_results) == 0:
                     print("No hits detected.")
                 else:
-                    print(scan_results)
+                    print(self.scan_results)
             
             if int(self.notify) >= 1:
                 # index = self.scan
-                if len(scan_results) > 0 and \
-                    mailing_list is not None and \
-                    host_email is not None:
+                if len(self.scan_results) > 0 and \
+                    self.email_params['mailing_list'] is not None and \
+                    self.email_params['host_email'] is not None:
                     # There was a scanner hit
-                    emailing.send_scan_results(scan_results, 
+                    emailing.send_scan_results(self.scan_results, 
                                                scan_details, 
-                                               mailing_list,
-                                               host_email)
+                                               self.email_params['mailing_list'],
+                                               self.email_params['host_email'])
                 elif int(self.verbosity) > 1 and \
-                    mailing_list is not None and \
-                    host_email is not None:
+                    self.email_params['mailing_list'] is not None and \
+                    self.email_params['host_email'] is not None:
                     # There was no scan hit, but verbostiy set > 1, so send email
                     # regardless.
-                    emailing.send_scan_results(scan_results, 
+                    emailing.send_scan_results(self.scan_results, 
                                                scan_details, 
-                                               mailing_list,
-                                               host_email)
-        
-            # if self.analyse is True and self.backtest is True:
-                # print("\nResults of Indicator Analysis:")
-                # print("-------------------------------")
-                # long_results, short_results = correlator.correlate_indicators(data, trade_summary)
-                # print("Long trades:")
-                # print(long_results)
-                # print("\nShort trades:")
-                # print(short_results)
-                # return data, trade_summary
-        
-        if self.optimise is True and self.backtest is True:
-            return backtest_results
-        
-        if self.backtest is True:
-            return trade_summary
-
+                                               self.email_params['mailing_list'],
+                                               self.email_params['host_email'])
 
 
     def read_yaml(self, file_path):
@@ -817,6 +342,569 @@ class AutoTrader():
         my_int = conversions[letter] * number
         
         return my_int
+
+
+    def process_signal(self, order_signal_dict, i, data, quote_data, 
+                       instrument):
+        '''
+            Process order_signal_dict and send orders to broker.
+        '''
+        signal = order_signal_dict["direction"]
+        
+        # Signal detected
+        if int(self.verbosity) > 0 and self.backtest is False:
+            print("  Signal detected at {}: {}@{}".format(data.index[i],
+                                                          signal,
+                                                          data.Close[i]
+                                                          ))
+        
+        # Entry signal detected, get price data
+        if self.backtest is True:
+            datetime_stamp  = data.index[i]
+            price_data      = self.broker.get_price(instrument, data, 
+                                               quote_data, i)
+        else:
+            datetime_stamp  = datetime.now().strftime("%H:%M:%S")
+            price_data      = self.broker.get_price(instrument)
+        
+        
+        if signal < 0:
+            order_price = price_data['bid']
+            HCF         = price_data['negativeHCF']
+        else:
+            order_price = price_data['ask']
+            HCF         = price_data['positiveHCF']
+        
+        # Define 'working_price' to calculate size and TP
+        if order_signal_dict["order_type"] == 'limit' or order_signal_dict["order_type"] == 'stop-limit':
+            working_price = order_signal_dict["order_limit_price"]
+        else:
+            working_price = order_price
+        
+        # Calculate exit levels
+        pip_value   = self.broker_utils.get_pip_ratio(instrument)
+        stop_distance = order_signal_dict['stop_distance'] if 'stop_distance' in order_signal_dict else None
+        stop_type = order_signal_dict['stop_type'] if 'stop_type' in order_signal_dict else None
+        
+        if 'stop_loss' not in order_signal_dict and \
+            'stop_distance' in order_signal_dict and \
+            order_signal_dict['stop_distance'] is not None:
+            stop_price = working_price - np.sign(signal)*stop_distance*pip_value
+        else:
+            stop_price = order_signal_dict['stop_loss'] if 'stop_loss' in order_signal_dict else None
+        
+        if 'take_profit' not in order_signal_dict and \
+            'take_distance' in order_signal_dict and \
+            order_signal_dict['take_distance'] is not None:
+            # Take profit distance specified
+            take_profit = working_price + np.sign(signal)*order_signal_dict['take_distance']*pip_value
+        else:
+            # Take profit price specified, or no take profit specified at all
+            take_profit = order_signal_dict["take_profit"] if 'take_profit' in order_signal_dict else None
+        
+        # Calculate risked amount
+        amount_risked = self.broker.get_balance() * self.strategy_params['risk_pc'] / 100
+        
+        # Calculate size
+        if 'size' in order_signal_dict:
+            size = order_signal_dict['size']
+        else:
+            if self.strategy_params['sizing'] == 'risk':
+                size            = self.broker_utils.get_size(instrument,
+                                                 amount_risked, 
+                                                 working_price, 
+                                                 stop_price, 
+                                                 HCF,
+                                                 stop_distance)
+            else:
+                size = self.strategy_params['sizing']
+        
+        # Construct order dict by building on signal_dict
+        order_details                   = order_signal_dict
+        order_details["order_time"]     = datetime_stamp
+        order_details["strategy"]       = self.strategy.name
+        order_details["instrument"]     = instrument
+        order_details["size"]           = signal*size
+        order_details["order_price"]    = order_price
+        order_details["HCF"]            = HCF
+        order_details["granularity"]    = self.strategy_params['granularity']
+        order_details["stop_distance"]  = stop_distance
+        order_details["stop_loss"]      = stop_price
+        order_details["take_profit"]    = take_profit
+        order_details["stop_type"]      = stop_type
+        order_details["related_orders"] = order_signal_dict['related_orders'] if 'related_orders' in order_signal_dict else None
+        
+        # Place order
+        if self.backtest is True:
+            self.broker.place_order(order_details)
+                
+        else:
+            # Running in live-trade mode
+            if self.scan is not None:
+                scan_hit = {"size"  : size,
+                            "entry" : order_price,
+                            "stop"  : stop_price,
+                            "take"  : take_profit,
+                            "signal": signal
+                            }
+                self.scan_results[instrument] = scan_hit
+            else:
+                output = self.broker.place_order(order_details)
+                
+                # Send email
+                if int(self.notify) > 0:
+                    self.broker_utils.write_to_order_summary(order_details, 
+                                                 self.order_summary_fp)
+                    
+                    if int(self.notify) > 1 and \
+                        self.email_params['mailing_list'] is not None and \
+                        self.email_params['host_email'] is not None:
+                        emailing.send_order(order_details,
+                                            output,
+                                            self.email_params['mailing_list'],
+                                            self.email_params['host_email'])
+
+
+    def retrieve_data(self, instrument, price_data_path, feed):
+    
+        interval    = self.strategy_params['granularity']
+        period      = self.strategy_params['period']
+        
+        if self.backtest is True:
+            # Running in backtest mode
+            
+            from_date       = datetime.strptime(self.config['BACKTESTING']['FROM']+'+0000', '%d/%m/%Y%z')
+            to_date         = datetime.strptime(self.config['BACKTESTING']['TO']+'+0000', '%d/%m/%Y%z')
+            
+            if self.validation_file is not None:
+                # Extract instrument-specific trade history as trade summary and trade period
+                livetrade_history = self.livetrade_history
+                formatted_instrument = instrument[:3] + "/" + instrument[-3:]
+                raw_livetrade_summary = livetrade_history[livetrade_history.Instrument == formatted_instrument] # FOR OANDA
+                from_date           = pd.to_datetime(raw_livetrade_summary.Date.values)[0]
+                to_date             = pd.to_datetime(raw_livetrade_summary.Date.values)[-1]
+                
+                self.raw_livetrade_summary = raw_livetrade_summary
+                
+                # Modify from date to improve backtest
+                from_date = from_date - period*timedelta(seconds = self.granularity_to_seconds(interval))
+                
+                # Modify starting balance
+                self.broker.portfolio_balance = raw_livetrade_summary.Balance.values[np.isfinite(raw_livetrade_summary.Balance.values)][0]
+                
+            if self.data_file is not None:
+                custom_data_file        = self.data_file
+                custom_data_filepath    = os.path.join(price_data_path,
+                                                       custom_data_file)
+                if int(self.verbosity) > 1:
+                    print("Using data file specified ({}).".format(custom_data_file))
+                data            = pd.read_csv(custom_data_filepath, 
+                                              index_col = 0)
+                data.index = pd.to_datetime(data.index)
+                quote_data      = data
+                
+            else:
+                if int(self.verbosity) > 1:
+                    print("Downloading extended historical data for",
+                          "{}/{}.".format(instrument[:3],instrument[-3:]))
+                
+                if self.optimise is True:
+                    # Check if historical data already exists
+                    historical_data_name = 'hist_{0}{1}.csv'.format(interval, instrument)
+                    historical_quote_data_name = 'hist_{0}{1}_quote.csv'.format(interval, instrument)
+                    data_dir_path = os.path.join(self.home_dir, 'price_data')
+                    historical_data_file_path = os.path.join(self.home_dir, 
+                                                             'price_data',
+                                                             historical_data_name)
+                    historical_quote_data_file_path = os.path.join(self.home_dir, 
+                                                             'price_data',
+                                                             historical_quote_data_name)
+                    
+                    if not os.path.exists(historical_data_file_path):
+                        # Data file does not yet exist
+                        data        = getattr(self.get_data, feed.lower())(instrument,
+                                                         granularity = interval,
+                                                         start_time = from_date,
+                                                         end_time = to_date)
+                        quote_data  = getattr(self.get_data, feed.lower() + '_quote_data')(data,
+                                                                                      instrument,
+                                                                                      interval,
+                                                                                      from_date,
+                                                                                      to_date)
+                        data, quote_data    = self.broker_utils.check_dataframes(data, quote_data)
+                        
+                        # Check if price_data folder exists
+                        if not os.path.exists(data_dir_path):
+                            # If price data directory doesn't exist, make it
+                            os.makedirs(data_dir_path)
+                            
+                        # Save data in file/s
+                        data.to_csv(historical_data_file_path)
+                        quote_data.to_csv(historical_quote_data_file_path)
+                        
+                    else:
+                        # Data file does exist, import it as dataframe
+                        data = pd.read_csv(historical_data_file_path, 
+                                           index_col = 0)
+                        quote_data = pd.read_csv(historical_quote_data_file_path, 
+                                                 index_col = 0)
+                        
+                else:
+                    data        = getattr(self.get_data, feed.lower())(instrument,
+                                                         granularity = interval,
+                                                         start_time = from_date,
+                                                         end_time = to_date)
+                    quote_data  = getattr(self.get_data, feed.lower() + '_quote_data')(data,
+                                                                    instrument,
+                                                                    interval,
+                                                                    from_date,
+                                                                    to_date)
+                    
+                    data, quote_data    = self.broker_utils.check_dataframes(data, quote_data)
+                
+                
+                if int(self.verbosity) > 1:
+                    print("  Done.\n")
+            
+        else:
+            # Running in livetrade mode
+            data        = getattr(self.get_data, feed.lower())(instrument,
+                                                         granularity = interval,
+                                                         count=period)
+            
+            data = self.verify_data_alignment(data, instrument, feed, period, price_data_path)
+        
+        return data, quote_data
+
+    def verify_data_alignment(self, data, instrument, feed, period, price_data_path):
+    
+        interval = self.strategy_params['granularity']
+        
+        # Check data time alignment
+        current_time        = datetime.now(tz=pytz.utc)
+        last_candle_closed  = self.broker_utils.last_period(current_time, interval)
+        data_ts             = data.index[-1].to_pydatetime().timestamp()
+        
+        if data_ts != last_candle_closed.timestamp():
+            # Time misalignment detected - attempt to correct
+            count = 0
+            while data_ts != last_candle_closed.timestamp():
+                print("  Time misalginment detected at {}".format(datetime.now().strftime("%H:%M:%S")),
+                      "({}/{}).".format(data.index[-1].minute, last_candle_closed.minute),
+                      "Trying again...")
+                time.sleep(3) # wait 3 seconds...
+                data    = getattr(self.get_data, feed.lower())(instrument,
+                                    granularity = interval,
+                                    count=period)
+                data_ts = data.index[-1].to_pydatetime().timestamp()
+                count   += 1
+                if count == 3:
+                    break
+            
+            if data_ts != last_candle_closed.timestamp():
+                # Time misalignment still present - attempt to correct
+                # Check price data directory to see if the stream has caught 
+                # the latest candle
+                price_data_filename = "{0}{1}.txt".format(interval, instrument)
+                abs_price_path      = os.path.join(price_data_path, price_data_filename)
+                
+                if os.path.exists(abs_price_path):
+                    # Price data file matching instrument and granularity 
+                    # exists, check latest candle in file
+                    f                   = open(abs_price_path, "r")
+                    price_lines         = f.readlines()
+                    
+                    if len(price_lines) > 1:
+                        latest_candle       = price_lines[-1].split(',')
+                        latest_candle_time  = datetime.strptime(latest_candle[0],
+                                                                '%Y-%m-%d %H:%M:%S')
+                        UTC_last_candle_in_file = latest_candle_time.replace(tzinfo=pytz.UTC)
+                        price_data_ts       = UTC_last_candle_in_file.timestamp()
+                        
+                        if price_data_ts == last_candle_closed.timestamp():
+                            data    = self.broker_utils.update_data_with_candle(data, latest_candle)
+                            data_ts = data.index[-1].to_pydatetime().timestamp()
+                            print("  Data updated using price stream.")
+            
+            # if data is still misaligned, perform manual adjustment.
+            if data_ts != last_candle_closed.timestamp():
+                print("  Could not retrieve updated data. Aborting.")
+                sys.exit(0)
+    
+    def assign_broker(self, broker_config, config):
+        if self.backtest is True:
+                # TODO: generalise broker used 
+                # Could interanlly specify broker based on feed. Oanda feed -> oanda broker,
+                # Yahoo feed -> virtual broker. Doing this will generalise broker utils import
+                utils_module    = importlib.import_module('autotrader.brokers.virtual.utils')
+                utils           = utils_module.Utils()
+                broker          = Broker(broker_config, utils)
+                
+                initial_deposit = config["BACKTESTING"]["initial_balance"]
+                spread          = config["BACKTESTING"]["spread"]
+                leverage        = config["BACKTESTING"]["leverage"]
+                commission      = config["BACKTESTING"]["commission"]
+                base_currency   = config["BACKTESTING"]["base_currency"]
+                
+                broker.add_funds(initial_deposit)
+                broker.fee      = spread
+                broker.leverage = leverage
+                broker.commission = commission
+                broker.spread   = spread
+                broker.base_currency = base_currency
+                self.get_data.base_currency = base_currency
+                
+                if int(self.verbosity) > 0:
+                    banner = pyfiglet.figlet_format("AutoBacktest")
+                    print(banner)
+                
+                if self.validation_file is not None:
+                    # Also get broker-specific utility functions
+                    # TODO generalise per broker used
+                    validation_utils = importlib.import_module('autotrader.brokers.oanda.utils') # FOR OANDA ONLY
+                    
+                    # Correct watchlist
+                    if self.instruments is None:
+                        # TODO - assign this as attribute to strat specific class
+                        self.watchlist = validation_utils.format_watchlist(self.raw_watchlist)
+                
+        else:
+            # TODO generalise per broker used
+            utils_module    = importlib.import_module('autotrader.brokers.oanda.utils') # FOR OANDA ONLY
+            utils           = utils_module.Utils()
+            broker          = Oanda.Oanda(broker_config, utils)
+        
+        # NEW
+        self.broker = broker
+        self.broker_utils = utils
+        # NEW
+    
+    
+    def configure_emailing(self, config, global_config):
+        if int(self.notify) > 0:
+            host_email      = None
+            mailing_list    = None
+            
+            if 'EMAILING' in config:
+                # Look for host email and mailing list in strategy config
+                if "MAILING_LIST" in config["EMAILING"]:
+                    mailing_list    = config["EMAILING"]["MAILING_LIST"]
+                if "HOST_ACCOUNT" in config["EMAILING"]:
+                    host_email      = config["EMAILING"]["HOST_ACCOUNT"]
+            
+            if "EMAILING" in global_config:
+                # Look for host email and mailing list in strategy config, if it
+                # was not picked up in strategy config
+                if "MAILING_LIST" in global_config["EMAILING"] and mailing_list is None:
+                    mailing_list    = global_config["EMAILING"]["MAILING_LIST"]
+                if "HOST_ACCOUNT" in global_config["EMAILING"] and host_email is None:
+                    host_email      = global_config["EMAILING"]["HOST_ACCOUNT"]
+            
+            if host_email is None:
+                print("Warning: email host account not provided.")
+            if mailing_list is None:
+                print("Warning: no mailing list provided.")
+                
+            order_summary_fp = os.path.join(self.home_dir, 'logfiles/order_history.txt')
+            
+            # NEW
+            email_params = {'mailing_list': mailing_list,
+                            'host_email': host_email}
+            self.email_params = email_params
+            self.order_summary_fp = order_summary_fp
+            # NEW
+    
+    
+    def get_iteration_range(self, data):
+        
+        if self.backtest:
+            start_range         = 0
+        else:
+            start_range         = len(data)-1
+        
+        end_range           = len(data)
+
+        return start_range, end_range
+
+    def extract_backtest_results(self, trade_summary, broker, starting_balance, 
+                                 utils):
+        backtest_results = {}
+        
+        # All trades
+        no_trades   = len(trade_summary)
+        backtest_results['no_trades'] = no_trades
+        if no_trades > 0:
+            backtest_results['all_trades'] = {}
+            profit_abs  = broker.portfolio_balance - starting_balance
+            profit_pc   = 100*profit_abs / starting_balance
+            MDD         = round(broker.max_drawdown, 1)
+            wins        = trade_summary[trade_summary.Profit > 0]
+            avg_win     = np.mean(wins.Profit)
+            max_win     = np.max(wins.Profit)
+            loss        = trade_summary[trade_summary.Profit < 0]
+            avg_loss    = abs(np.mean(loss.Profit))
+            max_loss    = abs(np.min(loss.Profit))
+            win_rate    = 100*broker.profitable_trades/no_trades
+            longest_win_streak, longest_lose_streak  = utils.get_streaks(trade_summary)
+            avg_trade_duration = np.mean(trade_summary.Trade_duration.values)
+            min_trade_duration = min(trade_summary.Trade_duration.values)
+            max_trade_duration = max(trade_summary.Trade_duration.values)
+            
+            backtest_results['all_trades']['profit_abs']    = profit_abs
+            backtest_results['all_trades']['profit_pc']     = profit_pc
+            backtest_results['all_trades']['MDD']           = MDD
+            backtest_results['all_trades']['avg_win']       = avg_win
+            backtest_results['all_trades']['max_win']       = max_win
+            backtest_results['all_trades']['avg_loss']      = avg_loss
+            backtest_results['all_trades']['max_loss']      = max_loss
+            backtest_results['all_trades']['win_rate']      = win_rate
+            backtest_results['all_trades']['win_streak']    = longest_win_streak
+            backtest_results['all_trades']['lose_streak']   = longest_lose_streak
+            backtest_results['all_trades']['longest_trade'] = str(timedelta(seconds = int(max_trade_duration)))
+            backtest_results['all_trades']['shortest_trade'] = str(timedelta(seconds = int(min_trade_duration)))
+            backtest_results['all_trades']['avg_trade_duration'] = str(timedelta(seconds = int(avg_trade_duration)))
+        
+        # Cancelled orders (insufficient margin)
+        cancelled_orders    = broker.cancelled_orders
+        backtest_results['no_open'] = len(broker.open_positions)
+        backtest_results['no_cancelled'] = len(cancelled_orders)
+        
+        # Long trades
+        long_trades     = trade_summary[trade_summary.Size > 0]
+        no_long         = len(long_trades)
+        backtest_results['long_trades'] = {}
+        backtest_results['long_trades']['no_trades'] = no_long
+        if no_long > 0:
+            long_wins       = long_trades[long_trades.Profit > 0]
+            avg_long_win    = np.mean(long_wins.Profit)
+            max_long_win    = np.max(long_wins.Profit)
+            long_loss       = long_trades[long_trades.Profit < 0]
+            avg_long_loss   = abs(np.mean(long_loss.Profit))
+            max_long_loss   = abs(np.min(long_loss.Profit))
+            long_wr         = 100*len(long_trades[long_trades.Profit > 0])/no_long
+            
+            backtest_results['long_trades']['avg_long_win']     = avg_long_win
+            backtest_results['long_trades']['max_long_win']     = max_long_win 
+            backtest_results['long_trades']['avg_long_loss']    = avg_long_loss
+            backtest_results['long_trades']['max_long_loss']    = max_long_loss
+            backtest_results['long_trades']['long_wr']          = long_wr
+            
+          
+        # Short trades
+        short_trades    = trade_summary[trade_summary.Size < 0]
+        no_short        = len(short_trades)
+        backtest_results['short_trades'] = {}
+        backtest_results['short_trades']['no_trades'] = no_short
+        if no_short > 0:
+            short_wins      = short_trades[short_trades.Profit > 0]
+            avg_short_win   = np.mean(short_wins.Profit)
+            max_short_win   = np.max(short_wins.Profit)
+            short_loss      = short_trades[short_trades.Profit < 0]
+            avg_short_loss  = abs(np.mean(short_loss.Profit))
+            max_short_loss  = abs(np.min(short_loss.Profit))
+            short_wr        = 100*len(short_trades[short_trades.Profit > 0])/no_short
+            
+            backtest_results['short_trades']['avg_short_win']   = avg_short_win
+            backtest_results['short_trades']['max_short_win']   = max_short_win
+            backtest_results['short_trades']['avg_short_loss']  = avg_short_loss
+            backtest_results['short_trades']['max_short_loss']  = max_short_loss
+            backtest_results['short_trades']['short_wr']        = short_wr
+        
+        # Save results
+        self.backtest_results = backtest_results
+        
+        return backtest_results
+    
+    def print_backtest_results(self, backtest_results):
+        params      = self.strategy_params
+        no_trades   = backtest_results['no_trades']
+        win_rate    = backtest_results['all_trades']['win_rate']
+        profit_abs  = backtest_results['all_trades']['profit_abs']
+        profit_pc   = backtest_results['all_trades']['profit_pc']
+        MDD         = backtest_results['all_trades']['MDD']
+        max_win     = backtest_results['all_trades']['max_win']
+        avg_win     = backtest_results['all_trades']['avg_win']
+        max_loss    = backtest_results['all_trades']['max_loss']
+        avg_loss    = backtest_results['all_trades']['avg_loss']
+        longest_win_streak = backtest_results['all_trades']['win_streak']
+        longest_lose_streak = backtest_results['all_trades']['lose_streak']
+        
+        print("\n-------------------------------------------")
+        print("            Backtest Results")
+        print("-------------------------------------------")
+        print("Strategy: {}".format(self.strategy.name))
+        print("Timeframe:               {}".format(params['granularity']))
+        if params is not None and 'RR' in params:
+            print("Risk to reward ratio:    {}".format(params['RR']))
+            print("Profitable win rate:     {}%".format(round(100/(1+params['RR']), 1)))
+        if no_trades > 0:
+            print("Backtest win rate:       {}%".format(round(win_rate, 1)))
+            
+            print("Total no. trades:        {}".format(self.broker.total_trades))
+            print("Profit:                  ${} ({}%)".format(round(profit_abs, 3), 
+                                              round(profit_pc, 1)))
+            print("Maximum drawdown:        {}%".format(MDD))
+            print("Max win:                 ${}".format(round(max_win, 2)))
+            print("Average win:             ${}".format(round(avg_win, 2)))
+            print("Max loss:                -${}".format(round(max_loss, 2)))
+            print("Average loss:            -${}".format(round(avg_loss, 2)))
+            print("Longest win streak:      {} trades".format(longest_win_streak))
+            print("Longest losing streak:   {} trades".format(longest_lose_streak))
+            print("Average trade duration   {}".format(backtest_results['all_trades']['avg_trade_duration']))
+            
+            
+        else:
+            print("No trades taken.")
+        
+        no_open = backtest_results['no_open']
+        no_cancelled = backtest_results['no_cancelled']
+        
+        if no_open > 0:
+            print("Orders still open:       {}".format(no_open))
+        if no_cancelled > 0:
+            print("Cancelled orders:        {}".format(no_cancelled))
+        
+        
+        # Long trades
+        no_long = backtest_results['long_trades']['no_trades']
+        print("\n         Summary of long trades")
+        print("-------------------------------------------")
+        if no_long > 0:
+            avg_long_win = backtest_results['long_trades']['avg_long_win']
+            max_long_win = backtest_results['long_trades']['max_long_win']
+            avg_long_loss = backtest_results['long_trades']['avg_long_loss']
+            max_long_loss = backtest_results['long_trades']['max_long_loss']
+            long_wr = backtest_results['long_trades']['long_wr']
+            
+            print("Number of long trades:   {}".format(no_long))
+            print("Long win rate:           {}%".format(round(long_wr, 1)))
+            print("Max win:                 ${}".format(round(max_long_win, 2)))
+            print("Average win:             ${}".format(round(avg_long_win, 2)))
+            print("Max loss:                -${}".format(round(max_long_loss, 2)))
+            print("Average loss:            -${}".format(round(avg_long_loss, 2)))
+        else:
+            print("There were no long trades.")
+          
+        # Short trades
+        no_short = backtest_results['short_trades']['no_trades']
+        print("\n          Summary of short trades")
+        print("-------------------------------------------")
+        if no_short > 0:
+            avg_short_win = backtest_results['short_trades']['avg_short_win']
+            max_short_win = backtest_results['short_trades']['max_short_win']
+            avg_short_loss = backtest_results['short_trades']['avg_short_loss']
+            max_short_loss = backtest_results['short_trades']['max_short_loss']
+            short_wr = backtest_results['short_trades']['short_wr']
+            
+            print("Number of short trades:  {}".format(no_short))
+            print("short win rate:          {}%".format(round(short_wr, 1)))
+            print("Max win:                 ${}".format(round(max_short_win, 2)))
+            print("Average win:             ${}".format(round(avg_short_win, 2)))
+            print("Max loss:                -${}".format(round(max_short_loss, 2)))
+            print("Average loss:            -${}".format(round(avg_short_loss, 2)))
+            
+        else:
+            print("There were no short trades.")
 
     def print_usage(self):
         """ Print usage options. """
@@ -851,7 +939,6 @@ class AutoTrader():
         print("  --optimise                         optimise strategy parameters [-o]")
         print("  --instruments                      specify specific instruments [-i]")
         print("  --data                             load custom price data file [-d]")
-        # print("\nComing soon:")
         print("")
         print("For more information, try using -h <Option>. For example, use ")
         print(" -h backtest or -h b for more information on the backtesting flag.\n")
@@ -1030,6 +1117,17 @@ class AutoTrader():
         
         if option != "general":
             print("\n\nFor general help, use -h general.\n")
+
+
+class AutoTraderBot:
+    def __init__(self):
+        self.strategy   = None
+        self.instrument = None
+        self.data       = None
+        self.quote_data = None
+        self.backtest_results = None
+
+
 
 
 short_options = "h:c:v:n:bplas:od:i:"
