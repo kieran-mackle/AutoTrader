@@ -152,6 +152,10 @@ class AutoPlot():
         # Preparation ----------------------------------- #
         output_file("candlestick.html",
                     title = "AutoTrader IndiView")
+        
+        if self._modified_data is None:
+            self._reindex_data()
+        
         self.data['date']       = self.data.index 
         self.data               = self.data.reset_index(drop = True)
         source                  = ColumnDataSource(self.data)
