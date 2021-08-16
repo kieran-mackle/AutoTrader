@@ -18,6 +18,12 @@ AutoTrader can be installed using pip:
 ```
 pip install autotrader
 ```
+### Updating
+AutoTrader can be updated by appending the `--upgrade` flag to the install command:
+```
+pip install autotrader --upgrade
+```
+
 ## Documentation
 AutoTrader is well documented on the [project website](https://kieran-mackle.github.io/AutoTrader/docs).
 
