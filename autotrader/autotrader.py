@@ -674,10 +674,8 @@ class AutoTrader():
             utils           = utils_module.Utils()
             broker          = Oanda.Oanda(broker_config, utils)
         
-        # NEW
         self.broker = broker
         self.broker_utils = utils
-        # NEW
     
     
     def configure_emailing(self, config, global_config):
@@ -707,12 +705,10 @@ class AutoTrader():
                 
             order_summary_fp = os.path.join(self.home_dir, 'logfiles/order_history.txt')
             
-            # NEW
             email_params = {'mailing_list': mailing_list,
                             'host_email': host_email}
             self.email_params = email_params
             self.order_summary_fp = order_summary_fp
-            # NEW
     
     
     def get_iteration_range(self, data):
