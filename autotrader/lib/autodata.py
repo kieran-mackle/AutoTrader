@@ -11,16 +11,35 @@ import yfinance as yf
 
 
 class GetData():
-    
-    def __init__(self, broker_config):
-        if broker_config['data_source'] == 'OANDA':
-            API                     = broker_config["API"]
-            ACCESS_TOKEN            = broker_config["ACCESS_TOKEN"]
-            port                    = broker_config["PORT"]
-            self.api                = v20.Context(hostname=API, 
-                                                  token=ACCESS_TOKEN, 
-                                                  port=port)
+    """
+    GetData class to retrieve price data.
+
+
+    Attributes
+    ----------
+    home_curreny : str
+        the home currency of the account (used for retrieving quote data)
+
+    Methods
+    -------
+    oanda(instrument, granularity, count=None, start_time=None, end_time=None):
+        Retrieves historical price data of a instrument from Oanda v20 API.
         
+    yahoo(self, instrument, granularity=None, start_time=None, end_time=None):
+        Retrieves historical price data from yahoo finance. 
+    
+    """
+    
+    def __init__(self, broker_config=None):
+        
+        if broker_config is not None:
+            if broker_config['data_source'] == 'OANDA':
+                API                     = broker_config["API"]
+                ACCESS_TOKEN            = broker_config["ACCESS_TOKEN"]
+                port                    = broker_config["PORT"]
+                self.api                = v20.Context(hostname=API, 
+                                                      token=ACCESS_TOKEN, 
+                                                      port=port)
         
         self.home_currency      = None
         
@@ -28,27 +47,33 @@ class GetData():
     def oanda(self, instrument, granularity, count=None, start_time=None, end_time=None):
         ''' 
         
-            Get historical price data of a instrument from Oanda v20 API.
+        Retrieves historical price data of a instrument from Oanda v20 API.
+        
+        
+            Parameters:
+                instrument (str): the instrument to fetch data for 
+                    
+                granularity (str): candlestick granularity (eg. "M15", "H4", "D")
+                
+                count (int): number of candles to fetch (maximum 5000)
+                
+                start_time (datetime object): data start time 
+                
+                end_time (datetime object): data end time 
             
-            instrument: the instrument to fetch data for (string)
-            
-            granularity: candlestick granularity (eg. "M15", "H4", "D")
-            
-            count: number of candles to fetch, maximum 5000
-            
-            start_time: data start time (datetime object)
-            
-            end_time: data end time (datetime object)
-            
-            If a candlestick count is provided, only one of start time or end
-            time should be provided. If neither is provided, the N most
-            recent candles will be provided.
+            Note:
+                If a candlestick count is provided, only one of start time or end
+                time should be provided. If neither is provided, the N most
+                recent candles will be provided.
             
             Examples:
-                data = get_data.oanda("EUR_USD", granularity="M15", start_time=fromdt, end_time=todt)
-                data = get_data.oanda("EUR_USD", granularity="M15", start_time=fromdt, count=2110)
-                data = get_data.oanda("EUR_USD", granularity="M15", end_time=todt, count=2110)
-                data = get_data.oanda("EUR_USD", granularity="M15", count=2110)
+                data = GetData.oanda("EUR_USD", granularity="M15", start_time=from_dt, end_time=to_dt)
+                
+                data = GetData.oanda("EUR_USD", granularity="M15", start_time=from_dt, count=2110)
+                
+                data = GetData.oanda("EUR_USD", granularity="M15", end_time=to_dt, count=2110)
+                
+                data = GetData.oanda("EUR_USD", granularity="M15", count=2110)
         
         '''
         # what if I wanted to request 25,000 candles, rather than specifying 
@@ -229,21 +254,25 @@ class GetData():
     
     def yahoo(self, instrument, granularity=None, start_time=None, end_time=None):
         '''
-            Get historical price data from yahoo finance. 
+            Retrieves historical price data from yahoo finance. 
             
-            Parameters:
-                ticker(s): list of tickers to download
-                
-                start_string: start time
-                
-                end_string: end_time
-                
-                granularity: candlestick granularity
-                    valid intervals: 1m, 2m, 5m, 15m, 30m, 60m, 
-                                     90m, 1h, 1d, 5d, 1wk, 1mo.
-                    note that intraday data cannot extend past 60 days.
+                Parameters:
+                    instrument (str, list): list of tickers to download
                     
-            pip install yfinance --upgrade --no-cache-dir
+                    start_string (str): start time as YYYY-MM-DD string or _datetime. 
+                    
+                    end_string (str): end_time as YYYY-MM-DD string or _datetime. 
+                    
+                    granularity (str): candlestick granularity
+                        valid intervals: 
+                            1m, 2m, 5m, 15m, 30m, 60m, 90m, 1h, 1d, 5d, 1wk, 1mo.
+                
+                Notes:
+                    1. If you are encountering a JSON error when using the yahoo
+                       finance API, try updating by running:
+                           pip install yfinance --upgrade --no-cache-dir
+                    2. Intraday data cannot exceed 60 days.
+        
         '''
         
         data = yf.download(tickers  = instrument, 
