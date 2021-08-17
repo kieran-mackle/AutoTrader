@@ -236,7 +236,9 @@ class AutoPlot():
                      'Supertrend'  : 'over',
                      'Swings'      : 'over',
                      'Engulfing'   : 'below',
-                     'Crossover'   : 'below'}
+                     'Crossover'   : 'below',
+                     'over'        : 'over',
+                     'below'       : 'below'}
         
         # Plot indicators
         indis_over              = 0
