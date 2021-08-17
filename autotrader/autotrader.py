@@ -1194,21 +1194,8 @@ class AutoTraderBot:
         signal = order_signal_dict["direction"]
         
         # Entry signal detected, get price data
-        # TODO - generalise get_price method in each broker (ie. add dummy vars
-        # to oanda broker method)
-        
-        if self.backtest is True:
-            # datetime_stamp  = data.index[i]
-            price_data      = self.broker.get_price(instrument, data, 
-                                               quote_data, i)
-        else:
-            # datetime_stamp  = datetime.now().strftime("%H:%M:%S")
-            price_data      = self.broker.get_price(instrument)
-        
-        
+        price_data      = self.broker.get_price(instrument, data, quote_data, i)
         datetime_stamp  = data.index[i]
-        
-        
         
         if signal < 0:
             order_price = price_data['bid']
