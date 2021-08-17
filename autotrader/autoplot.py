@@ -105,7 +105,7 @@ class AutoPlot():
         
         titled  = 0
         t       = Title()
-        t.text  = "Backtest chart for {}/{} ({} candles)".format(pair[:3], pair[-3:], interval)
+        t.text  = "Backtest chart for {} ({} candles)".format(pair, interval)
         for plot in plots:
             if plot is not None:
                 plot.xaxis.major_label_overrides = {
@@ -147,11 +147,15 @@ class AutoPlot():
         show(fig)
     
     
-    def view_indicators(self, indicators=None):
+    def view_indicators(self, indicators=None, instrument=None):
         ''' Constructs indicator visualisation figure. '''
         # Preparation ----------------------------------- #
+        if instrument is not None:
+            title_string = "AutoTrader IndiView - {}".format(instrument)
+        else:
+            title_string = "AutoTrader IndiView"
         output_file("candlestick.html",
-                    title = "AutoTrader IndiView")
+                    title = title_string)
         
         if self._modified_data is None:
             self._reindex_data()
@@ -170,7 +174,7 @@ class AutoPlot():
         # Plotting ------------------------------------- #
         # Create main candlestick plot
         candle_plot             = self.plot_candles(source)
-        candle_plot.title       = 'AutoTrader IndiView'
+        candle_plot.title       = title_string
         
         # Plot indicators
         if indicators is not None:
