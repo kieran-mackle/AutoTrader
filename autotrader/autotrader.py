@@ -198,35 +198,15 @@ class AutoTrader():
         start_range, end_range = self.get_iteration_range(data)
         
         for i in range(start_range, end_range):
-            # open_positions      = self.broker.open_positions
-            # candle              = data.iloc[i]
             
-            # # Run strategy to get signals
-            # signal_dict = my_strat.generate_signal(i, open_positions)
-            # if 0 not in signal_dict:
-            #     # Single order signal, nest in dictionary to allow iteration
-            #     signal_dict = {1: signal_dict}
-                
+            # Update bot with latest data to generate signal
             for bot in bots_deployed:
-                signal_dict = bot.update(i)
-            # TODO - this currently will not work for multiple instruments, ie.
-            # multiple bots, unless you indent the code below so that it runs
-            # for each iteration in the loop above. Instead, process signals
-            # from within the bot update.
-            
-            
-            # Begin iteration over signal_dict to extract each order
-            for order in signal_dict:
-                order_signal_dict = signal_dict[order].copy()
+                bot.update(i)
                 
-                if order_signal_dict["direction"] != 0:
-                    self.process_signal(order_signal_dict, i, data, 
-                                        quote_data, instrument)
-            
-            
-                
+            # If backtesting, update virtual broker with latest data
             if self.backtest:
                 bot.update_backtest(i)
+            
             
             if self.backtest is True:
                 # This code block will have to be removed, meaning that 
@@ -365,127 +345,6 @@ class AutoTrader():
         my_int = conversions[letter] * number
         
         return my_int
-
-
-    def process_signal(self, order_signal_dict, i, data, quote_data, 
-                       instrument):
-        '''
-            Process order_signal_dict and send orders to broker.
-        '''
-        signal = order_signal_dict["direction"]
-        
-        # Signal detected
-        if int(self.verbosity) > 0 and self.backtest is False:
-            print("  Signal detected at {}: {}@{}".format(data.index[i],
-                                                          signal,
-                                                          data.Close[i]
-                                                          ))
-        
-        # Entry signal detected, get price data
-        if self.backtest is True:
-            datetime_stamp  = data.index[i]
-            price_data      = self.broker.get_price(instrument, data, 
-                                               quote_data, i)
-        else:
-            datetime_stamp  = datetime.now().strftime("%H:%M:%S")
-            price_data      = self.broker.get_price(instrument)
-        
-        
-        if signal < 0:
-            order_price = price_data['bid']
-            HCF         = price_data['negativeHCF']
-        else:
-            order_price = price_data['ask']
-            HCF         = price_data['positiveHCF']
-        
-        # Define 'working_price' to calculate size and TP
-        if order_signal_dict["order_type"] == 'limit' or order_signal_dict["order_type"] == 'stop-limit':
-            working_price = order_signal_dict["order_limit_price"]
-        else:
-            working_price = order_price
-        
-        # Calculate exit levels
-        pip_value   = self.broker_utils.get_pip_ratio(instrument)
-        stop_distance = order_signal_dict['stop_distance'] if 'stop_distance' in order_signal_dict else None
-        stop_type = order_signal_dict['stop_type'] if 'stop_type' in order_signal_dict else None
-        
-        if 'stop_loss' not in order_signal_dict and \
-            'stop_distance' in order_signal_dict and \
-            order_signal_dict['stop_distance'] is not None:
-            stop_price = working_price - np.sign(signal)*stop_distance*pip_value
-        else:
-            stop_price = order_signal_dict['stop_loss'] if 'stop_loss' in order_signal_dict else None
-        
-        if 'take_profit' not in order_signal_dict and \
-            'take_distance' in order_signal_dict and \
-            order_signal_dict['take_distance'] is not None:
-            # Take profit distance specified
-            take_profit = working_price + np.sign(signal)*order_signal_dict['take_distance']*pip_value
-        else:
-            # Take profit price specified, or no take profit specified at all
-            take_profit = order_signal_dict["take_profit"] if 'take_profit' in order_signal_dict else None
-        
-        # Calculate risked amount
-        amount_risked = self.broker.get_balance() * self.strategy_params['risk_pc'] / 100
-        
-        # Calculate size
-        if 'size' in order_signal_dict:
-            size = order_signal_dict['size']
-        else:
-            if self.strategy_params['sizing'] == 'risk':
-                size            = self.broker_utils.get_size(instrument,
-                                                 amount_risked, 
-                                                 working_price, 
-                                                 stop_price, 
-                                                 HCF,
-                                                 stop_distance)
-            else:
-                size = self.strategy_params['sizing']
-        
-        # Construct order dict by building on signal_dict
-        order_details                   = order_signal_dict
-        order_details["order_time"]     = datetime_stamp
-        order_details["strategy"]       = self.strategy.name
-        order_details["instrument"]     = instrument
-        order_details["size"]           = signal*size
-        order_details["order_price"]    = order_price
-        order_details["HCF"]            = HCF
-        order_details["granularity"]    = self.strategy_params['granularity']
-        order_details["stop_distance"]  = stop_distance
-        order_details["stop_loss"]      = stop_price
-        order_details["take_profit"]    = take_profit
-        order_details["stop_type"]      = stop_type
-        order_details["related_orders"] = order_signal_dict['related_orders'] if 'related_orders' in order_signal_dict else None
-        
-        # Place order
-        if self.backtest is True:
-            self.broker.place_order(order_details)
-                
-        else:
-            # Running in live-trade mode
-            if self.scan is not None:
-                scan_hit = {"size"  : size,
-                            "entry" : order_price,
-                            "stop"  : stop_price,
-                            "take"  : take_profit,
-                            "signal": signal
-                            }
-                self.scan_results[instrument] = scan_hit
-            else:
-                output = self.broker.place_order(order_details)
-                
-                # Send email
-                if int(self.notify) > 0:
-                    self.broker_utils.write_to_order_summary(order_details, 
-                                                 self.order_summary_fp)
-                    
-                    if int(self.notify) > 1 and \
-                        self.email_params['mailing_list'] is not None and \
-                        self.email_params['host_email'] is not None:
-                        emailing.send_order(order_details,
-                                            output,
-                                            self.email_params['mailing_list'],
-                                            self.email_params['host_email'])
 
 
     def retrieve_data(self, instrument, price_data_path, feed):
@@ -1156,12 +1015,20 @@ class AutoTraderBot:
         self.data       = data
         self.quote_data = None
         self.backtest_results = None
+        self.latest_orders = []
         # self.strategy_params
         # self.scan_results
         # self.scan
         # self.broker_utils
+        # self.email_params
     
     def update(self, i):
+        '''
+        Update strategy with latest data and generate latest signal.
+        '''
+        
+        # First clear self.latest_orders
+        self.latest_orders = []
         
         open_positions      = self.broker.open_positions
         
@@ -1173,18 +1040,70 @@ class AutoTraderBot:
             signal_dict = {1: signal_dict}
             
         # Begin iteration over signal_dict to extract each order
-        # for order in signal_dict:
-        #     order_signal_dict = signal_dict[order].copy()
+        for order in signal_dict:
+            order_signal_dict = signal_dict[order].copy()
             
-        #     if order_signal_dict["direction"] != 0:
-        #         self.process_signal(order_signal_dict, i, self.data, 
-        #                             self.quote_data, self.instrument)
+            if order_signal_dict["direction"] != 0:
+                self.process_signal(order_signal_dict, i, self.data, 
+                                    self.quote_data, self.instrument)
         
-        return signal_dict
+        # Check for orders placed and/or scan hits
+        if int(self.notify) > 0:
+            
+            for order_details in self.latest_orders:
+                self.broker_utils.write_to_order_summary(order_details, 
+                                                         self.order_summary_fp)
+            
+            if int(self.notify) > 1 and \
+                self.email_params['mailing_list'] is not None and \
+                self.email_params['host_email'] is not None:
+                    for order_details in self.latest_orders:
+                        emailing.send_order(order_details,
+                                            self.email_params['mailing_list'],
+                                            self.email_params['host_email'])
+            
+            
+            # TODO - add scan emailing - code below is not checked yet
+            # if self.scan is not None:
+            # # Construct scan details dict
+            # scan_details    = {'index'      : self.scan,
+            #                    'strategy'   : my_strat.name,
+            #                    'timeframe'  : interval
+            #                    }
+            
+            # # Report AutoScan results
+            # if int(self.verbosity) > 0 or \
+            #     int(self.notify) == 0:
+            #     if len(self.scan_results) == 0:
+            #         print("No hits detected.")
+            #     else:
+            #         print(self.scan_results)
+            
+            # if int(self.notify) >= 1:
+            #     # index = self.scan
+            #     if len(self.scan_results) > 0 and \
+            #         self.email_params['mailing_list'] is not None and \
+            #         self.email_params['host_email'] is not None:
+            #         # There was a scanner hit
+            #         emailing.send_scan_results(self.scan_results, 
+            #                                    scan_details, 
+            #                                    self.email_params['mailing_list'],
+            #                                    self.email_params['host_email'])
+            #     elif int(self.verbosity) > 1 and \
+            #         self.email_params['mailing_list'] is not None and \
+            #         self.email_params['host_email'] is not None:
+            #         # There was no scan hit, but verbostiy set > 1, so send email
+            #         # regardless.
+            #         emailing.send_scan_results(self.scan_results, 
+            #                                    scan_details, 
+            #                                    self.email_params['mailing_list'],
+            #                                    self.email_params['host_email'])
+                    
     
     def update_backtest(self, i):
         candle = self.data.iloc[i]
         self.broker.update_positions(candle)
+    
     
     def process_signal(self, order_signal_dict, i, data, quote_data, 
                        instrument):
@@ -1263,62 +1182,21 @@ class AutoTraderBot:
         order_details["take_profit"]    = take_profit
         order_details["stop_type"]      = stop_type
         order_details["related_orders"] = order_signal_dict['related_orders'] if 'related_orders' in order_signal_dict else None
-        
-        
-        
-        # TODO - code below
-        
-        # Check are we in scan mode? If yes, record scan result. If no, 
-        # place order with broker (whatever broker is active)
-        # Depending on verbosity, send email - but dont send the email
-        # in here, that is too time consuming. Instead, save the information 
-        # somewhere else, then email after.
-        
+
         # Place order
-        
-        
-        self.broker.place_order(order_details)
-        
         if self.scan is not None:
             scan_hit = {"size"  : size,
-                            "entry" : order_price,
-                            "stop"  : stop_price,
-                            "take"  : take_profit,
-                            "signal": signal
-                            }
+                        "entry" : order_price,
+                        "stop"  : stop_price,
+                        "take"  : take_profit,
+                        "signal": signal
+                        }
             self.scan_results[instrument] = scan_hit
-        ###################################################
-        
-        
-        # Place order
-        if self.backtest is True:
-            self.broker.place_order(order_details)
-                
+            
         else:
-            # Running in live-trade mode
-            if self.scan is not None:
-                scan_hit = {"size"  : size,
-                            "entry" : order_price,
-                            "stop"  : stop_price,
-                            "take"  : take_profit,
-                            "signal": signal
-                            }
-                self.scan_results[instrument] = scan_hit
-            else:
-                output = self.broker.place_order(order_details)
-                
-                # Send email
-                if int(self.notify) > 0:
-                    self.broker_utils.write_to_order_summary(order_details, 
-                                                 self.order_summary_fp)
-                    
-                    if int(self.notify) > 1 and \
-                        self.email_params['mailing_list'] is not None and \
-                        self.email_params['host_email'] is not None:
-                        emailing.send_order(order_details,
-                                            output,
-                                            self.email_params['mailing_list'],
-                                            self.email_params['host_email'])
+            self.broker.place_order(order_details)
+            self.latest_orders.append(order_details)
+
 
 
 
