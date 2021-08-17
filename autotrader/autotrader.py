@@ -175,7 +175,7 @@ class AutoTrader():
                 my_strat.broker_utils = self.broker_utils
             
             # Create new bot for each instrument in watchlist
-            bot = AutoTraderBot(self.broker, my_strat, instrument, data)
+            bot = AutoTraderBot(self.broker, my_strat, instrument, data, self)
             
             if self.backtest:
                 bot.quote_data = quote_data
@@ -199,7 +199,7 @@ class AutoTrader():
         
         for i in range(start_range, end_range):
             
-            # Update bot with latest data to generate signal
+            # Update each bot with latest data to generate signal
             for bot in bots_deployed:
                 bot.update(i)
                 
@@ -207,16 +207,20 @@ class AutoTrader():
             if self.backtest:
                 bot.update_backtest(i)
             
-            
+            # TODO - see below
             if self.backtest is True:
                 # This code block will have to be removed, meaning that 
                 # this information must be tracked by the virtual broker.
                 NAV.append(self.broker.NAV)
                 balance.append(self.broker.portfolio_balance)
                 margin.append(self.broker.margin_available)
-                
-        # End data iteration 
+        
+        
+        # Data iteration complete
+        
         if self.backtest is True:
+            # TODO - trade summary won't work if backtest was run on multiple instruments
+            # Have to think about how to display backtest results in this case.
             trade_summary = self.broker_utils.trade_summary(instrument, self.broker.closed_positions)
             open_trade_summary = self.broker_utils.open_order_summary(instrument, self.broker.open_positions)
             cancelled_summary = self.broker_utils.cancelled_order_summary(instrument, self.broker.cancelled_orders)
@@ -1008,7 +1012,7 @@ class AutoTraderBot:
     
     '''
     
-    def __init__(self, broker, strategy, instrument, data):
+    def __init__(self, broker, strategy, instrument, data, autotrader_attributes):
         self.broker     = broker
         self.strategy   = strategy
         self.instrument = instrument
@@ -1016,11 +1020,14 @@ class AutoTraderBot:
         self.quote_data = None
         self.backtest_results = None
         self.latest_orders = []
-        # self.strategy_params
+        
+        # Inherit user options from autotrader
+        self.strategy_params = autotrader_attributes.strategy_params
         # self.scan_results
-        # self.scan
-        # self.broker_utils
+        self.scan = autotrader_attributes.scan
+        self.broker_utils = autotrader_attributes.broker_utils
         # self.email_params
+        self.notify     = autotrader_attributes.notify
     
     def update(self, i):
         '''
