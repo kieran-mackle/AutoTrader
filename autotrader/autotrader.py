@@ -186,6 +186,8 @@ class AutoTrader():
             
             self.bots_deployed.append(bot)
             
+            # TODO: This will have to move somewhere else, or else it will 
+            # print for every instrument
             if int(self.verbosity) > 0:
                 print("\nAnalysing {}/{}".format(instrument[:3], instrument[-3:]),
                       "on {} timeframe using {}.".format(interval,
@@ -199,7 +201,7 @@ class AutoTrader():
         ''' -------------------------------------------------------------- '''
         '''                  Analyse price data using strategy             '''
         ''' -------------------------------------------------------------- '''
-        # Note - this is called using data from the last instrument in the 
+        # TODO / Note - this is called using data from the last instrument in the 
         # watchlist
         start_range, end_range = self.get_iteration_range(data)
         
@@ -1022,6 +1024,10 @@ class AutoTraderBot:
         # First clear self.latest_orders
         self.latest_orders = []
         
+        # TODO - make this a function call - wont work for live trade currently!
+        # can make it retrieve instrument specific positions, which is important
+        # because the bot is instrument specific, but the strategy should be 
+        # independent of instrument - ie. should know what the instrument is
         open_positions      = self.broker.open_positions
         
         # Run strategy to get signals
@@ -1038,6 +1044,7 @@ class AutoTraderBot:
             if order_signal_dict["direction"] != 0:
                 self.process_signal(order_signal_dict, i, self.data, 
                                     self.quote_data, self.instrument)
+        
         
         # Check for orders placed and/or scan hits
         if int(self.notify) > 0:
