@@ -157,10 +157,7 @@ class AutoTrader():
         ''' -------------------------------------------------------------- '''
         for instrument in self.watchlist:
             # Get price history
-            if self.backtest:
-                data, quote_data = self.retrieve_data(instrument, price_data_path, feed)
-            else:
-                data = self.retrieve_data(instrument, price_data_path, feed)
+            data, quote_data = self.retrieve_data(instrument, price_data_path, feed)
             
             if self.backtest:
                 starting_balance = self.broker.get_balance()
@@ -579,7 +576,7 @@ class AutoTrader():
             
             data = self.verify_data_alignment(data, instrument, feed, period, price_data_path)
         
-            return data
+            return data, None
 
     def verify_data_alignment(self, data, instrument, feed, period, price_data_path):
     
@@ -640,10 +637,8 @@ class AutoTrader():
     
     def assign_broker(self, broker_config, config):
         if self.backtest is True:
-                # TODO: generalise broker used 
-                # Could interanlly specify broker based on feed. Oanda feed -> oanda broker,
-                # Yahoo feed -> virtual broker. Doing this will generalise broker utils import
                 utils_module    = importlib.import_module('autotrader.brokers.virtual.utils')
+                
                 utils           = utils_module.Utils()
                 broker          = Broker(broker_config, utils)
                 
@@ -667,8 +662,7 @@ class AutoTrader():
                 
                 if self.validation_file is not None:
                     # Also get broker-specific utility functions
-                    # TODO generalise per broker used
-                    validation_utils = importlib.import_module('autotrader.brokers.oanda.utils') # FOR OANDA ONLY
+                    validation_utils = importlib.import_module('autotrader.brokers.{}.utils'.format(config['FEED'].lower())) # FOR OANDA ONLY
                     
                     # Correct watchlist
                     if self.instruments is None:
@@ -676,8 +670,7 @@ class AutoTrader():
                         self.watchlist = validation_utils.format_watchlist(self.raw_watchlist)
                 
         else:
-            # TODO generalise per broker used
-            utils_module    = importlib.import_module('autotrader.brokers.oanda.utils') # FOR OANDA ONLY
+            utils_module    = importlib.import_module('autotrader.brokers.{}.utils'.format(config['FEED'].lower()))
             utils           = utils_module.Utils()
             broker          = Oanda.Oanda(broker_config, utils)
         
