@@ -157,7 +157,10 @@ class AutoTrader():
         ''' -------------------------------------------------------------- '''
         for instrument in self.watchlist:
             # Get price history
-            data, quote_data = self.retrieve_data(instrument, price_data_path, feed)
+            if self.backtest:
+                data, quote_data = self.retrieve_data(instrument, price_data_path, feed)
+            else:
+                data = self.retrieve_data(instrument, price_data_path, feed)
             
             if self.backtest:
                 starting_balance = self.broker.get_balance()
@@ -501,7 +504,7 @@ class AutoTrader():
                 data            = pd.read_csv(custom_data_filepath, 
                                               index_col = 0)
                 data.index = pd.to_datetime(data.index)
-                quote_data      = data
+                quote_data = data
                 
             else:
                 if int(self.verbosity) > 1:
@@ -566,15 +569,17 @@ class AutoTrader():
                 if int(self.verbosity) > 1:
                     print("  Done.\n")
             
+            return data, quote_data
+            
         else:
             # Running in livetrade mode
-            data        = getattr(self.get_data, feed.lower())(instrument,
+            data = getattr(self.get_data, feed.lower())(instrument,
                                                          granularity = interval,
                                                          count=period)
             
             data = self.verify_data_alignment(data, instrument, feed, period, price_data_path)
         
-        return data, quote_data
+            return data
 
     def verify_data_alignment(self, data, instrument, feed, period, price_data_path):
     
@@ -630,6 +635,8 @@ class AutoTrader():
             if data_ts != last_candle_closed.timestamp():
                 print("  Could not retrieve updated data. Aborting.")
                 sys.exit(0)
+        
+        return data
     
     def assign_broker(self, broker_config, config):
         if self.backtest is True:
