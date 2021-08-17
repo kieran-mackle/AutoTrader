@@ -10,6 +10,45 @@ TODO:
 import numpy as np
 
 class Broker():
+    """
+    Virtual broker to simulate trading environment.
+
+
+    Attributes
+    ----------
+    broker_config : dict
+        the broker configuration dictionary
+    
+    leverage : int
+        the leverage on the account (default 1)
+    
+    commission : int
+        the brokers commission as a percentage (default 0)
+        
+    spread : int
+        the bid/ask spread (default 0)
+    
+    utils : class
+        the broker utilities class
+    
+    home_curreny : str
+        the home currency of the account (used for retrieving quote data)
+
+
+    Methods
+    -------
+    place_order(order_details):
+        Places an order with the virtual broker.
+    
+    open_position(order_no, candle, limit_price = None):
+        Opens an order to enter the market as a trade. 
+    
+    update_positions(candle):
+        Updates orders and open positions based on current candle. 
+
+    
+    
+    """
     
     def __init__(self, broker_config, utils):
         self.leverage           = 1
