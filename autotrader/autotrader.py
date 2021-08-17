@@ -18,6 +18,7 @@ This code is in development. TODO items include:
       trading in parallel
     - re-establishment of emailing in bot functions
     - verification of other dependent functions: optimisation, etc.
+    - re-integrate validation plotting
 
 """
 
@@ -230,6 +231,10 @@ class AutoTrader():
                     ap = autoplot.AutoPlot()
                     ap.data = bot.data
                     ap.plot_backtest(bot.backtest_summary)
+                    
+                    # TODO - re-integrate validation plotting
+        
+        
         
         if self.backtest is True:
             # TODO - trade summary won't work if backtest was run on multiple instruments
@@ -305,46 +310,6 @@ class AutoTrader():
                         print("Difference between final portfolio balance between")
                         print("live-trade account and backtest is ${}.".format(round(final_balance_diff, 2)))
                         print("Number of live trades: {} trades.".format(no_live_trades))
-            
-            
-        ##### CODE BELOW HAS MOVED TO BOT
-        # if self.log is True and self.backtest is True:
-        #     logger.write_backtest_log(instrument, config, trade_summary)
-        
-        # if self.scan is not None:
-        #     # Construct scan details dict
-        #     scan_details    = {'index'      : self.scan,
-        #                        'strategy'   : my_strat.name,
-        #                        'timeframe'  : interval
-        #                        }
-            
-        #     # Report AutoScan results
-        #     if int(self.verbosity) > 0 or \
-        #         int(self.notify) == 0:
-        #         if len(self.scan_results) == 0:
-        #             print("No hits detected.")
-        #         else:
-        #             print(self.scan_results)
-            
-        #     if int(self.notify) >= 1:
-        #         # index = self.scan
-        #         if len(self.scan_results) > 0 and \
-        #             self.email_params['mailing_list'] is not None and \
-        #             self.email_params['host_email'] is not None:
-        #             # There was a scanner hit
-        #             emailing.send_scan_results(self.scan_results, 
-        #                                        scan_details, 
-        #                                        self.email_params['mailing_list'],
-        #                                        self.email_params['host_email'])
-        #         elif int(self.verbosity) > 1 and \
-        #             self.email_params['mailing_list'] is not None and \
-        #             self.email_params['host_email'] is not None:
-        #             # There was no scan hit, but verbostiy set > 1, so send email
-        #             # regardless.
-        #             emailing.send_scan_results(self.scan_results, 
-        #                                        scan_details, 
-        #                                        self.email_params['mailing_list'],
-        #                                        self.email_params['host_email'])
 
 
     def read_yaml(self, file_path):
