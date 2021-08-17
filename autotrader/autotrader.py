@@ -209,6 +209,11 @@ class AutoTrader():
                 
             for bot in bots_deployed:
                 signal_dict = bot.update(i)
+            # TODO - this currently will not work for multiple instruments, ie.
+            # multiple bots, unless you indent the code below so that it runs
+            # for each iteration in the loop above. Instead, process signals
+            # from within the bot update.
+            
             
             # Begin iteration over signal_dict to extract each order
             for order in signal_dict:
