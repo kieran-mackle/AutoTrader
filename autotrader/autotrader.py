@@ -195,6 +195,8 @@ class AutoTrader():
         ''' -------------------------------------------------------------- '''
         '''                  Analyse price data using strategy             '''
         ''' -------------------------------------------------------------- '''
+        # Note - this is called using data from the last instrument in the 
+        # watchlist
         start_range, end_range = self.get_iteration_range(data)
         
         for i in range(start_range, end_range):
@@ -203,27 +205,37 @@ class AutoTrader():
             for bot in bots_deployed:
                 bot.update(i)
                 
-            # If backtesting, update virtual broker with latest data
-            if self.backtest:
-                bot.update_backtest(i)
+                # If backtesting, update virtual broker with latest data
+                # TODO - will need to move to a time-based method, in case 
+                # data does not share the exact index-time points
+                if self.backtest:
+                    bot.update_backtest(i)
             
-            # TODO - see below
             if self.backtest is True:
-                # This code block will have to be removed, meaning that 
-                # this information must be tracked by the virtual broker.
                 NAV.append(self.broker.NAV)
                 balance.append(self.broker.portfolio_balance)
                 margin.append(self.broker.margin_available)
         
         
         # Data iteration complete
+        if self.backtest is True:
+            for bot in bots_deployed:
+                bot.create_backtest_summary(NAV, margin)
+        
+            if self.show_plot:
+                for bot in bots_deployed:
+                    ap = autoplot.AutoPlot()
+                    ap.data = bot.data
+                    ap.plot_backtest(bot.backtest_summary)
         
         if self.backtest is True:
             # TODO - trade summary won't work if backtest was run on multiple instruments
             # Have to think about how to display backtest results in this case.
-            trade_summary = self.broker_utils.trade_summary(instrument, self.broker.closed_positions)
-            open_trade_summary = self.broker_utils.open_order_summary(instrument, self.broker.open_positions)
-            cancelled_summary = self.broker_utils.cancelled_order_summary(instrument, self.broker.cancelled_orders)
+            # Could potentially calculate an average RR, and use that along
+            # with the win rate, to create a pseudo-balance chart, per instrument
+            # trade_summary = self.broker_utils.trade_summary(instrument, self.broker.closed_positions)
+            # open_trade_summary = self.broker_utils.open_order_summary(instrument, self.broker.open_positions)
+            # cancelled_summary = self.broker_utils.cancelled_order_summary(instrument, self.broker.cancelled_orders)
             
             if self.validation_file is not None:
                 livetrade_summary = self.validation_utils.trade_summary(self.raw_livetrade_summary,
@@ -233,37 +245,37 @@ class AutoTrader():
                 filled_live_orders  = livetrade_summary[livetrade_summary.Transaction == 'ORDER_FILL']
                 no_live_trades      = len(filled_live_orders)
             
-        if self.show_plot is True:
-            # Plot results
-            if self.backtest is True:
-                if len(data) > 75000:
-                    print("There is too much data to be plotted",
-                          "({} candles).".format(len(data)),
-                          "Check saved figure.")
-                else:
-                    backtest_dict = {}
-                    backtest_dict['data']           = data
-                    backtest_dict['NAV']            = NAV
-                    backtest_dict['margin']         = margin
-                    backtest_dict['trade_summary']  = trade_summary
-                    backtest_dict['indicators']     = my_strat.indicators if hasattr(my_strat, 'indicators') else None
-                    backtest_dict['pair']           = instrument
-                    backtest_dict['interval']       = interval
-                    backtest_dict['open_trades']    = open_trade_summary
-                    backtest_dict['cancelled_trades'] = cancelled_summary
-                    ap = autoplot.AutoPlot()
-                    ap.data = data
+        # if self.show_plot is True:
+        #     # Plot results
+        #     if self.backtest is True:
+        #         if len(data) > 75000:
+        #             print("There is too much data to be plotted",
+        #                   "({} candles).".format(len(data)),
+        #                   "Check saved figure.")
+        #         else:
+        #             backtest_dict = {}
+        #             backtest_dict['data']           = data
+        #             backtest_dict['NAV']            = NAV
+        #             backtest_dict['margin']         = margin
+        #             backtest_dict['trade_summary']  = trade_summary
+        #             backtest_dict['indicators']     = my_strat.indicators if hasattr(my_strat, 'indicators') else None
+        #             backtest_dict['pair']           = instrument
+        #             backtest_dict['interval']       = interval
+        #             backtest_dict['open_trades']    = open_trade_summary
+        #             backtest_dict['cancelled_trades'] = cancelled_summary
+        #             ap = autoplot.AutoPlot()
+        #             ap.data = data
                     
-                    if self.validation_file is None:
-                        ap.plot_backtest(backtest_dict)
-                    else:
-                        ap.plot_validation_balance = self.plot_validation_balance
-                        ap.ohlc_height = 350
-                        ap.validate_backtest(livetrade_summary, 
-                                             backtest_dict,
-                                             cancelled_summary,
-                                             instrument, 
-                                             interval)
+        #             if self.validation_file is None:
+        #                 ap.plot_backtest(backtest_dict)
+        #             else:
+        #                 ap.plot_validation_balance = self.plot_validation_balance
+        #                 ap.ohlc_height = 350
+        #                 ap.validate_backtest(livetrade_summary, 
+        #                                      backtest_dict,
+        #                                      cancelled_summary,
+        #                                      instrument, 
+        #                                      interval)
         
         ''' -------------------------------------------------------------- '''
         '''              Construct backtest results dictionary             '''
@@ -1004,12 +1016,6 @@ class AutoTrader():
 class AutoTraderBot:
     '''
     AutoTrader Bot.
-    
-    Currently a placeholder for future workflow.
-    
-    Signall processing can move in here, to allow bots to place orders 
-    individually.
-    
     '''
     
     def __init__(self, broker, strategy, instrument, data, autotrader_attributes):
@@ -1028,6 +1034,7 @@ class AutoTraderBot:
         self.broker_utils = autotrader_attributes.broker_utils
         # self.email_params
         self.notify     = autotrader_attributes.notify
+        self.validation_file = autotrader_attributes.validation_file
     
     def update(self, i):
         '''
@@ -1204,7 +1211,31 @@ class AutoTraderBot:
             self.broker.place_order(order_details)
             self.latest_orders.append(order_details)
 
-
+    def create_backtest_summary(self, NAV, margin):
+        trade_summary = self.broker_utils.trade_summary(self.instrument, self.broker.closed_positions)
+        open_trade_summary = self.broker_utils.open_order_summary(self.instrument, self.broker.open_positions)
+        cancelled_summary = self.broker_utils.cancelled_order_summary(self.instrument, self.broker.cancelled_orders)
+        
+        if self.validation_file is not None:
+            livetrade_summary = self.validation_utils.trade_summary(self.raw_livetrade_summary,
+                                                                    self.data,
+                                                                    self.strategy_params['granularity'])
+            # final_balance_diff  = NAV[-1] - livetrade_summary.Balance.values[-1]
+            # filled_live_orders  = livetrade_summary[livetrade_summary.Transaction == 'ORDER_FILL']
+            # no_live_trades      = len(filled_live_orders)
+        
+        backtest_dict = {}
+        backtest_dict['data']           = self.data
+        backtest_dict['NAV']            = NAV
+        backtest_dict['margin']         = margin
+        backtest_dict['trade_summary']  = trade_summary
+        backtest_dict['indicators']     = self.strategy.indicators if hasattr(self.strategy, 'indicators') else None
+        backtest_dict['pair']           = self.instrument
+        backtest_dict['interval']       = self.strategy_params['granularity']
+        backtest_dict['open_trades']    = open_trade_summary
+        backtest_dict['cancelled_trades'] = cancelled_summary
+        
+        self.backtest_summary = backtest_dict
 
 
 
