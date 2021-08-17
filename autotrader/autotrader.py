@@ -12,6 +12,13 @@
      A Python-Based Development Platform For Automated Trading Systems
                              Kieran Mackle
                              Version 0.1.6
+                             
+This code is in development. TODO items include:
+    - verification of virtual broker capabilities for multiple instruments
+      trading in parallel
+    - re-establishment of emailing in bot functions
+    - verification of other dependent functions: optimisation, etc.
+
 """
 
 from getopt import getopt
@@ -229,6 +236,13 @@ class AutoTrader():
             # Have to think about how to display backtest results in this case.
             # Could potentially calculate an average RR, and use that along
             # with the win rate, to create a pseudo-balance chart, per instrument
+            # I actually think the summaries below will not be an issue, as they
+            # account for instrument, but plotting backtest portfolio performance remains.
+            # Could plot all price charts plus the one portfolio summary?
+            # Or just leave plotting of individual results as a post-routine for
+            # the user, unless only a single instrument was backtested.
+            # (backtest results accessible in self.deployed_bots)
+            
             # trade_summary = self.broker_utils.trade_summary(instrument, self.broker.closed_positions)
             # open_trade_summary = self.broker_utils.open_order_summary(instrument, self.broker.open_positions)
             # cancelled_summary = self.broker_utils.cancelled_order_summary(instrument, self.broker.cancelled_orders)
