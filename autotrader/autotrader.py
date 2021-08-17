@@ -1151,7 +1151,6 @@ class AutoTraderBot:
         self.data       = data
         self.quote_data = None
         self.backtest_results = None
-        # self.backtest = False
         # self.strategy_params
         # self.scan_results
         # self.scan
@@ -1190,13 +1189,20 @@ class AutoTraderBot:
         signal = order_signal_dict["direction"]
         
         # Entry signal detected, get price data
+        # TODO - generalise get_price method in each broker (ie. add dummy vars
+        # to oanda broker method)
+        
         if self.backtest is True:
-            datetime_stamp  = data.index[i]
+            # datetime_stamp  = data.index[i]
             price_data      = self.broker.get_price(instrument, data, 
                                                quote_data, i)
         else:
-            datetime_stamp  = datetime.now().strftime("%H:%M:%S")
+            # datetime_stamp  = datetime.now().strftime("%H:%M:%S")
             price_data      = self.broker.get_price(instrument)
+        
+        
+        datetime_stamp  = data.index[i]
+        
         
         
         if signal < 0:
@@ -1205,6 +1211,7 @@ class AutoTraderBot:
         else:
             order_price = price_data['ask']
             HCF         = price_data['positiveHCF']
+        
         
         # Define 'working_price' to calculate size and TP
         if order_signal_dict["order_type"] == 'limit' or order_signal_dict["order_type"] == 'stop-limit':
@@ -1264,6 +1271,32 @@ class AutoTraderBot:
         order_details["take_profit"]    = take_profit
         order_details["stop_type"]      = stop_type
         order_details["related_orders"] = order_signal_dict['related_orders'] if 'related_orders' in order_signal_dict else None
+        
+        
+        
+        # TODO - code below
+        
+        # Check are we in scan mode? If yes, record scan result. If no, 
+        # place order with broker (whatever broker is active)
+        # Depending on verbosity, send email - but dont send the email
+        # in here, that is too time consuming. Instead, save the information 
+        # somewhere else, then email after.
+        
+        # Place order
+        
+        
+        self.broker.place_order(order_details)
+        
+        if self.scan is not None:
+            scan_hit = {"size"  : size,
+                            "entry" : order_price,
+                            "stop"  : stop_price,
+                            "take"  : take_profit,
+                            "signal": signal
+                            }
+            self.scan_results[instrument] = scan_hit
+        ###################################################
+        
         
         # Place order
         if self.backtest is True:
