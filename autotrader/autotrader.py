@@ -61,14 +61,10 @@ class AutoTrader():
         self.strategy       = None
         self.strategy_params = None
         self.get_data       = None
+        self.bots_deployed       = []
         
         self.scan_results = {}
         self.order_summary_fp = None
-        
-        # instrument specific things should be passed to a 'bot', eg
-        # price dataframes, etc... so that it can be handled individually,
-        # and then can compete against the same broker simultaneously
-        # also scan results and order_summary_fp?
         
     def run(self):
         if self.show_help is not None:
@@ -160,7 +156,7 @@ class AutoTrader():
         ''' -------------------------------------------------------------- '''
         '''                 Analyse each instrument in watchlist           '''
         ''' -------------------------------------------------------------- '''
-        bots_deployed = []
+        
         
         for instrument in self.watchlist:
             # Get price history
@@ -180,7 +176,7 @@ class AutoTrader():
             if self.backtest:
                 bot.quote_data = quote_data
             
-            bots_deployed.append(bot)
+            self.bots_deployed.append(bot)
             
             if int(self.verbosity) > 0:
                 print("\nAnalysing {}/{}".format(instrument[:3], instrument[-3:]),
@@ -202,7 +198,7 @@ class AutoTrader():
         for i in range(start_range, end_range):
             
             # Update each bot with latest data to generate signal
-            for bot in bots_deployed:
+            for bot in self.bots_deployed:
                 bot.update(i)
                 
                 # If backtesting, update virtual broker with latest data
@@ -219,11 +215,11 @@ class AutoTrader():
         
         # Data iteration complete
         if self.backtest is True:
-            for bot in bots_deployed:
+            for bot in self.bots_deployed:
                 bot.create_backtest_summary(NAV, margin)
         
             if self.show_plot:
-                for bot in bots_deployed:
+                for bot in self.bots_deployed:
                     ap = autoplot.AutoPlot()
                     ap.data = bot.data
                     ap.plot_backtest(bot.backtest_summary)
@@ -281,61 +277,60 @@ class AutoTrader():
         '''              Construct backtest results dictionary             '''
         ''' -------------------------------------------------------------- '''
         if self.backtest is True:
-            backtest_results = self.extract_backtest_results(trade_summary, 
-                             self.broker, starting_balance, self.broker_utils)                
+            for bot in self.bots_deployed:
+                trade_summary = bot.backtest_summary['trade_summary']
+                backtest_results = self.extract_backtest_results(trade_summary, 
+                             self.broker, starting_balance, self.broker_utils)    
+                
+                if int(self.verbosity) > 0:
+                    self.print_backtest_results(backtest_results)
+                    
+                    if self.validation_file is not None:
+                        print("\n            Backtest Validation")
+                        print("-------------------------------------------")
+                        print("Difference between final portfolio balance between")
+                        print("live-trade account and backtest is ${}.".format(round(final_balance_diff, 2)))
+                        print("Number of live trades: {} trades.".format(no_live_trades))
             
-        ''' -------------------------------------------------------------- '''
-        '''                     Print output to console                    '''
-        ''' -------------------------------------------------------------- '''
-        if int(self.verbosity) > 0 and self.backtest is True:
             
-            self.print_backtest_results(backtest_results)
-            
-            if self.validation_file is not None:
-                print("\n            Backtest Validation")
-                print("-------------------------------------------")
-                print("Difference between final portfolio balance between")
-                print("live-trade account and backtest is ${}.".format(round(final_balance_diff, 2)))
-                print("Number of live trades: {} trades.".format(no_live_trades))
-            
-        if self.log is True and self.backtest is True:
-            logger.write_backtest_log(instrument, config, trade_summary)
+        ##### CODE BELOW HAS MOVED TO BOT
+        # if self.log is True and self.backtest is True:
+        #     logger.write_backtest_log(instrument, config, trade_summary)
         
-        
-        if self.scan is not None:
-            # Construct scan details dict
-            scan_details    = {'index'      : self.scan,
-                               'strategy'   : my_strat.name,
-                               'timeframe'  : interval
-                               }
+        # if self.scan is not None:
+        #     # Construct scan details dict
+        #     scan_details    = {'index'      : self.scan,
+        #                        'strategy'   : my_strat.name,
+        #                        'timeframe'  : interval
+        #                        }
             
-            # Report AutoScan results
-            if int(self.verbosity) > 0 or \
-                int(self.notify) == 0:
-                if len(self.scan_results) == 0:
-                    print("No hits detected.")
-                else:
-                    print(self.scan_results)
+        #     # Report AutoScan results
+        #     if int(self.verbosity) > 0 or \
+        #         int(self.notify) == 0:
+        #         if len(self.scan_results) == 0:
+        #             print("No hits detected.")
+        #         else:
+        #             print(self.scan_results)
             
-            if int(self.notify) >= 1:
-                # index = self.scan
-                if len(self.scan_results) > 0 and \
-                    self.email_params['mailing_list'] is not None and \
-                    self.email_params['host_email'] is not None:
-                    # There was a scanner hit
-                    emailing.send_scan_results(self.scan_results, 
-                                               scan_details, 
-                                               self.email_params['mailing_list'],
-                                               self.email_params['host_email'])
-                elif int(self.verbosity) > 1 and \
-                    self.email_params['mailing_list'] is not None and \
-                    self.email_params['host_email'] is not None:
-                    # There was no scan hit, but verbostiy set > 1, so send email
-                    # regardless.
-                    emailing.send_scan_results(self.scan_results, 
-                                               scan_details, 
-                                               self.email_params['mailing_list'],
-                                               self.email_params['host_email'])
+        #     if int(self.notify) >= 1:
+        #         # index = self.scan
+        #         if len(self.scan_results) > 0 and \
+        #             self.email_params['mailing_list'] is not None and \
+        #             self.email_params['host_email'] is not None:
+        #             # There was a scanner hit
+        #             emailing.send_scan_results(self.scan_results, 
+        #                                        scan_details, 
+        #                                        self.email_params['mailing_list'],
+        #                                        self.email_params['host_email'])
+        #         elif int(self.verbosity) > 1 and \
+        #             self.email_params['mailing_list'] is not None and \
+        #             self.email_params['host_email'] is not None:
+        #             # There was no scan hit, but verbostiy set > 1, so send email
+        #             # regardless.
+        #             emailing.send_scan_results(self.scan_results, 
+        #                                        scan_details, 
+        #                                        self.email_params['mailing_list'],
+        #                                        self.email_params['host_email'])
 
 
     def read_yaml(self, file_path):
@@ -622,6 +617,10 @@ class AutoTrader():
 
     def extract_backtest_results(self, trade_summary, broker, starting_balance, 
                                  utils):
+        
+        '''
+        Analyses backtest summary to extract key statistics.
+        '''
         backtest_results = {}
         
         # All trades
