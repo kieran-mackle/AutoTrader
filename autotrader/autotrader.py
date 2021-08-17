@@ -151,19 +151,20 @@ class AutoTrader():
         
         self.configure_emailing(config, global_config)
         
+        if self.backtest:
+            starting_balance = self.broker.get_balance()
+            NAV     = []
+            balance = []
+            margin  = []
         
         ''' -------------------------------------------------------------- '''
         '''                 Analyse each instrument in watchlist           '''
         ''' -------------------------------------------------------------- '''
+        bots_deployed = []
+        
         for instrument in self.watchlist:
             # Get price history
             data, quote_data = self.retrieve_data(instrument, price_data_path, feed)
-            
-            if self.backtest:
-                starting_balance = self.broker.get_balance()
-                NAV     = []
-                balance = []
-                margin  = []
             
             # Instantiate strategy for current instrument
             my_strat        = strategy(params, data, instrument)
@@ -172,6 +173,14 @@ class AutoTrader():
             if self.include_broker:
                 my_strat.broker = self.broker
                 my_strat.broker_utils = self.broker_utils
+            
+            # Create new bot for each instrument in watchlist
+            bot = AutoTraderBot(self.broker, my_strat, instrument, data)
+            
+            if self.backtest:
+                bot.quote_data = quote_data
+            
+            bots_deployed.append(bot)
             
             if int(self.verbosity) > 0:
                 print("\nAnalysing {}/{}".format(instrument[:3], instrument[-3:]),
@@ -183,105 +192,114 @@ class AutoTrader():
                     print("From: ", datetime.strptime(config['BACKTESTING']['FROM']+'+0000', '%d/%m/%Y%z'))
                     print("To:   ", datetime.strptime(config['BACKTESTING']['TO']+'+0000', '%d/%m/%Y%z'))
             
+        ''' -------------------------------------------------------------- '''
+        '''                  Analyse price data using strategy             '''
+        ''' -------------------------------------------------------------- '''
+        start_range, end_range = self.get_iteration_range(data)
+        
+        for i in range(start_range, end_range):
+            # open_positions      = self.broker.open_positions
+            # candle              = data.iloc[i]
             
-            ''' -------------------------------------------------------------- '''
-            '''                  Analyse price data using strategy             '''
-            ''' -------------------------------------------------------------- '''
-            start_range, end_range = self.get_iteration_range(data)
+            # # Run strategy to get signals
+            # signal_dict = my_strat.generate_signal(i, open_positions)
+            # if 0 not in signal_dict:
+            #     # Single order signal, nest in dictionary to allow iteration
+            #     signal_dict = {1: signal_dict}
+                
+            for bot in bots_deployed:
+                signal_dict = bot.update(i)
             
-            for i in range(start_range, end_range):
-                open_positions      = self.broker.open_positions
-                candle              = data.iloc[i]
+            # Begin iteration over signal_dict to extract each order
+            for order in signal_dict:
+                order_signal_dict = signal_dict[order].copy()
                 
-                # Run strategy to get signals
-                signal_dict = my_strat.generate_signal(i, open_positions)
-                if 0 not in signal_dict:
-                    # Single order signal, nest in dictionary to allow iteration
-                    signal_dict = {1: signal_dict}
-                    
-                # Begin iteration over signal_dict to extract each order
-                for order in signal_dict:
-                    order_signal_dict = signal_dict[order].copy()
-                    
-                    if order_signal_dict["direction"] != 0:
-                        self.process_signal(order_signal_dict, i, data, 
-                                            quote_data, instrument)
+                if order_signal_dict["direction"] != 0:
+                    self.process_signal(order_signal_dict, i, data, 
+                                        quote_data, instrument)
+            
+            
                 
-                if self.backtest is True:
-                    self.broker.update_positions(candle)
-                    NAV.append(self.broker.NAV)
-                    balance.append(self.broker.portfolio_balance)
-                    margin.append(self.broker.margin_available)
-                    
-            # End data iteration 
+            if self.backtest:
+                bot.update_backtest(i)
+            
             if self.backtest is True:
-                trade_summary = self.broker_utils.trade_summary(instrument, self.broker.closed_positions)
-                open_trade_summary = self.broker_utils.open_order_summary(instrument, self.broker.open_positions)
-                cancelled_summary = self.broker_utils.cancelled_order_summary(instrument, self.broker.cancelled_orders)
+                # This code block will have to be removed, meaning that 
+                # this information must be tracked by the virtual broker.
+                NAV.append(self.broker.NAV)
+                balance.append(self.broker.portfolio_balance)
+                margin.append(self.broker.margin_available)
                 
-                if self.validation_file is not None:
-                    livetrade_summary = self.validation_utils.trade_summary(self.raw_livetrade_summary,
-                                                                            data,
-                                                                            interval)
-                    final_balance_diff  = NAV[-1] - livetrade_summary.Balance.values[-1]
-                    filled_live_orders  = livetrade_summary[livetrade_summary.Transaction == 'ORDER_FILL']
-                    no_live_trades      = len(filled_live_orders)
+        # End data iteration 
+        if self.backtest is True:
+            trade_summary = self.broker_utils.trade_summary(instrument, self.broker.closed_positions)
+            open_trade_summary = self.broker_utils.open_order_summary(instrument, self.broker.open_positions)
+            cancelled_summary = self.broker_utils.cancelled_order_summary(instrument, self.broker.cancelled_orders)
             
-            if self.show_plot is True:
-                # Plot results
-                if self.backtest is True:
-                    if len(data) > 75000:
-                        print("There is too much data to be plotted",
-                              "({} candles).".format(len(data)),
-                              "Check saved figure.")
+            if self.validation_file is not None:
+                livetrade_summary = self.validation_utils.trade_summary(self.raw_livetrade_summary,
+                                                                        data,
+                                                                        interval)
+                final_balance_diff  = NAV[-1] - livetrade_summary.Balance.values[-1]
+                filled_live_orders  = livetrade_summary[livetrade_summary.Transaction == 'ORDER_FILL']
+                no_live_trades      = len(filled_live_orders)
+            
+        if self.show_plot is True:
+            # Plot results
+            if self.backtest is True:
+                if len(data) > 75000:
+                    print("There is too much data to be plotted",
+                          "({} candles).".format(len(data)),
+                          "Check saved figure.")
+                else:
+                    backtest_dict = {}
+                    backtest_dict['data']           = data
+                    backtest_dict['NAV']            = NAV
+                    backtest_dict['margin']         = margin
+                    backtest_dict['trade_summary']  = trade_summary
+                    backtest_dict['indicators']     = my_strat.indicators if hasattr(my_strat, 'indicators') else None
+                    backtest_dict['pair']           = instrument
+                    backtest_dict['interval']       = interval
+                    backtest_dict['open_trades']    = open_trade_summary
+                    backtest_dict['cancelled_trades'] = cancelled_summary
+                    ap = autoplot.AutoPlot()
+                    ap.data = data
+                    
+                    if self.validation_file is None:
+                        ap.plot_backtest(backtest_dict)
                     else:
-                        backtest_dict = {}
-                        backtest_dict['data']           = data
-                        backtest_dict['NAV']            = NAV
-                        backtest_dict['margin']         = margin
-                        backtest_dict['trade_summary']  = trade_summary
-                        backtest_dict['indicators']     = my_strat.indicators if hasattr(my_strat, 'indicators') else None
-                        backtest_dict['pair']           = instrument
-                        backtest_dict['interval']       = interval
-                        backtest_dict['open_trades']    = open_trade_summary
-                        backtest_dict['cancelled_trades'] = cancelled_summary
-                        ap = autoplot.AutoPlot()
-                        ap.data = data
-                        
-                        if self.validation_file is None:
-                            ap.plot_backtest(backtest_dict)
-                        else:
-                            ap.plot_validation_balance = self.plot_validation_balance
-                            ap.ohlc_height = 350
-                            ap.validate_backtest(livetrade_summary, 
-                                                 backtest_dict,
-                                                 cancelled_summary,
-                                                 instrument, 
-                                                 interval)
+                        ap.plot_validation_balance = self.plot_validation_balance
+                        ap.ohlc_height = 350
+                        ap.validate_backtest(livetrade_summary, 
+                                             backtest_dict,
+                                             cancelled_summary,
+                                             instrument, 
+                                             interval)
+        
+        ''' -------------------------------------------------------------- '''
+        '''              Construct backtest results dictionary             '''
+        ''' -------------------------------------------------------------- '''
+        if self.backtest is True:
+            backtest_results = self.extract_backtest_results(trade_summary, 
+                             self.broker, starting_balance, self.broker_utils)                
             
-            ''' -------------------------------------------------------------- '''
-            '''              Construct backtest results dictionary             '''
-            ''' -------------------------------------------------------------- '''
-            if self.backtest is True:
-                backtest_results = self.extract_backtest_results(trade_summary, 
-                                 self.broker, starting_balance, self.broker_utils)                
+        ''' -------------------------------------------------------------- '''
+        '''                     Print output to console                    '''
+        ''' -------------------------------------------------------------- '''
+        if int(self.verbosity) > 0 and self.backtest is True:
             
-            ''' -------------------------------------------------------------- '''
-            '''                     Print output to console                    '''
-            ''' -------------------------------------------------------------- '''
-            if int(self.verbosity) > 0 and self.backtest is True:
-                
-                self.print_backtest_results(backtest_results)
-                
-                if self.validation_file is not None:
-                    print("\n            Backtest Validation")
-                    print("-------------------------------------------")
-                    print("Difference between final portfolio balance between")
-                    print("live-trade account and backtest is ${}.".format(round(final_balance_diff, 2)))
-                    print("Number of live trades: {} trades.".format(no_live_trades))
-                
-            if self.log is True and self.backtest is True:
-                logger.write_backtest_log(instrument, config, trade_summary)
+            self.print_backtest_results(backtest_results)
+            
+            if self.validation_file is not None:
+                print("\n            Backtest Validation")
+                print("-------------------------------------------")
+                print("Difference between final portfolio balance between")
+                print("live-trade account and backtest is ${}.".format(round(final_balance_diff, 2)))
+                print("Number of live trades: {} trades.".format(no_live_trades))
+            
+        if self.log is True and self.backtest is True:
+            logger.write_backtest_log(instrument, config, trade_summary)
+        
         
         if self.scan is not None:
             # Construct scan details dict
@@ -1116,12 +1134,166 @@ class AutoTrader():
 
 
 class AutoTraderBot:
-    def __init__(self):
-        self.strategy   = None
-        self.instrument = None
-        self.data       = None
+    '''
+    AutoTrader Bot.
+    
+    Currently a placeholder for future workflow.
+    
+    Signall processing can move in here, to allow bots to place orders 
+    individually.
+    
+    '''
+    
+    def __init__(self, broker, strategy, instrument, data):
+        self.broker     = broker
+        self.strategy   = strategy
+        self.instrument = instrument
+        self.data       = data
         self.quote_data = None
         self.backtest_results = None
+        # self.backtest = False
+        # self.strategy_params
+        # self.scan_results
+        # self.scan
+        # self.broker_utils
+    
+    def update(self, i):
+        
+        open_positions      = self.broker.open_positions
+        
+        # Run strategy to get signals
+        signal_dict = self.strategy.generate_signal(i, open_positions)
+        
+        if 0 not in signal_dict:
+            # Single order signal, nest in dictionary to allow iteration
+            signal_dict = {1: signal_dict}
+            
+        # Begin iteration over signal_dict to extract each order
+        # for order in signal_dict:
+        #     order_signal_dict = signal_dict[order].copy()
+            
+        #     if order_signal_dict["direction"] != 0:
+        #         self.process_signal(order_signal_dict, i, self.data, 
+        #                             self.quote_data, self.instrument)
+        
+        return signal_dict
+    
+    def update_backtest(self, i):
+        candle = self.data.iloc[i]
+        self.broker.update_positions(candle)
+    
+    def process_signal(self, order_signal_dict, i, data, quote_data, 
+                       instrument):
+        '''
+            Process order_signal_dict and send orders to broker.
+        '''
+        signal = order_signal_dict["direction"]
+        
+        # Entry signal detected, get price data
+        if self.backtest is True:
+            datetime_stamp  = data.index[i]
+            price_data      = self.broker.get_price(instrument, data, 
+                                               quote_data, i)
+        else:
+            datetime_stamp  = datetime.now().strftime("%H:%M:%S")
+            price_data      = self.broker.get_price(instrument)
+        
+        
+        if signal < 0:
+            order_price = price_data['bid']
+            HCF         = price_data['negativeHCF']
+        else:
+            order_price = price_data['ask']
+            HCF         = price_data['positiveHCF']
+        
+        # Define 'working_price' to calculate size and TP
+        if order_signal_dict["order_type"] == 'limit' or order_signal_dict["order_type"] == 'stop-limit':
+            working_price = order_signal_dict["order_limit_price"]
+        else:
+            working_price = order_price
+        
+        # Calculate exit levels
+        pip_value   = self.broker_utils.get_pip_ratio(instrument)
+        stop_distance = order_signal_dict['stop_distance'] if 'stop_distance' in order_signal_dict else None
+        stop_type = order_signal_dict['stop_type'] if 'stop_type' in order_signal_dict else None
+        
+        if 'stop_loss' not in order_signal_dict and \
+            'stop_distance' in order_signal_dict and \
+            order_signal_dict['stop_distance'] is not None:
+            stop_price = working_price - np.sign(signal)*stop_distance*pip_value
+        else:
+            stop_price = order_signal_dict['stop_loss'] if 'stop_loss' in order_signal_dict else None
+        
+        if 'take_profit' not in order_signal_dict and \
+            'take_distance' in order_signal_dict and \
+            order_signal_dict['take_distance'] is not None:
+            # Take profit distance specified
+            take_profit = working_price + np.sign(signal)*order_signal_dict['take_distance']*pip_value
+        else:
+            # Take profit price specified, or no take profit specified at all
+            take_profit = order_signal_dict["take_profit"] if 'take_profit' in order_signal_dict else None
+        
+        # Calculate risked amount
+        amount_risked = self.broker.get_balance() * self.strategy_params['risk_pc'] / 100
+        
+        # Calculate size
+        if 'size' in order_signal_dict:
+            size = order_signal_dict['size']
+        else:
+            if self.strategy_params['sizing'] == 'risk':
+                size            = self.broker_utils.get_size(instrument,
+                                                 amount_risked, 
+                                                 working_price, 
+                                                 stop_price, 
+                                                 HCF,
+                                                 stop_distance)
+            else:
+                size = self.strategy_params['sizing']
+        
+        # Construct order dict by building on signal_dict
+        order_details                   = order_signal_dict
+        order_details["order_time"]     = datetime_stamp
+        order_details["strategy"]       = self.strategy.name
+        order_details["instrument"]     = instrument
+        order_details["size"]           = signal*size
+        order_details["order_price"]    = order_price
+        order_details["HCF"]            = HCF
+        order_details["granularity"]    = self.strategy_params['granularity']
+        order_details["stop_distance"]  = stop_distance
+        order_details["stop_loss"]      = stop_price
+        order_details["take_profit"]    = take_profit
+        order_details["stop_type"]      = stop_type
+        order_details["related_orders"] = order_signal_dict['related_orders'] if 'related_orders' in order_signal_dict else None
+        
+        # Place order
+        if self.backtest is True:
+            self.broker.place_order(order_details)
+                
+        else:
+            # Running in live-trade mode
+            if self.scan is not None:
+                scan_hit = {"size"  : size,
+                            "entry" : order_price,
+                            "stop"  : stop_price,
+                            "take"  : take_profit,
+                            "signal": signal
+                            }
+                self.scan_results[instrument] = scan_hit
+            else:
+                output = self.broker.place_order(order_details)
+                
+                # Send email
+                if int(self.notify) > 0:
+                    self.broker_utils.write_to_order_summary(order_details, 
+                                                 self.order_summary_fp)
+                    
+                    if int(self.notify) > 1 and \
+                        self.email_params['mailing_list'] is not None and \
+                        self.email_params['host_email'] is not None:
+                        emailing.send_order(order_details,
+                                            output,
+                                            self.email_params['mailing_list'],
+                                            self.email_params['host_email'])
 
 
 
