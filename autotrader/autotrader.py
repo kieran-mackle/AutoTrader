@@ -157,10 +157,22 @@ class AutoTrader():
             balance = []
             margin  = []
         
+        if int(self.verbosity) > 0:
+            if self.backtest is True:
+                print("Begining new backtest.")
+                print("  From: ", datetime.strptime(self.config['BACKTESTING']['FROM']+'+0000', '%d/%m/%Y%z'))
+                print("  To:   ", datetime.strptime(self.config['BACKTESTING']['TO']+'+0000', '%d/%m/%Y%z'))
+            elif self.scan is not None:
+                print("AutoScan:")
+                print("Time: {}".format(datetime.now().strftime("%A, %B %d %Y, "+
+                                                                  "%H:%M:%S")))
+            else:
+                print("AutoTrader Livetrade:")
+                print("Time: {}".format(datetime.now().strftime("%A, %B %d %Y, "+
+                                                                  "%H:%M:%S")))
         ''' -------------------------------------------------------------- '''
-        '''                 Analyse each instrument in watchlist           '''
+        '''    Assign strategy to bot for each instrument in watchlist     '''
         ''' -------------------------------------------------------------- '''
-        
         for instrument in self.watchlist:
             # Get price history
             data, quote_data = self.retrieve_data(instrument, price_data_path, feed)
@@ -181,23 +193,10 @@ class AutoTrader():
             
             self.bots_deployed.append(bot)
             
-            # TODO: This will have to move somewhere else, or else it will 
-            # print for every instrument consecutively
-            if int(self.verbosity) > 0:
-                print("\nAnalysing {}/{}".format(instrument[:3], instrument[-3:]),
-                      "on {} timeframe using {}.".format(interval,
-                                                            my_strat.name))
-                print("Time: {}".format(datetime.now().strftime("%A, %B %d %Y, "+
-                                                                  "%H:%M:%S")))
-                if self.backtest is True:
-                    print("From: ", datetime.strptime(config['BACKTESTING']['FROM']+'+0000', '%d/%m/%Y%z'))
-                    print("To:   ", datetime.strptime(config['BACKTESTING']['TO']+'+0000', '%d/%m/%Y%z'))
-            
+
         ''' -------------------------------------------------------------- '''
         '''                  Analyse price data using strategy             '''
         ''' -------------------------------------------------------------- '''
-        # Note - this is called using data from the last instrument in the 
-        # watchlist
         start_range, end_range = self.get_iteration_range(data)
         
         for i in range(start_range, end_range):
@@ -244,7 +243,7 @@ class AutoTrader():
                 
                 else:
                     # Backtest run with multiple bots
-                    print("Create backtest plots from bots individually.")
+                    print("\nCreate backtest plots from bots individually.")
                     # TODO - create plot_backtest method, and
                     # plot portfolio balance history (assets and equity), 
                     # plus whatever other information could be useful, eg. bot 
@@ -336,8 +335,7 @@ class AutoTrader():
                 
             else:
                 if int(self.verbosity) > 1:
-                    print("Downloading extended historical data for",
-                          "{}/{}.".format(instrument[:3],instrument[-3:]))
+                    print("\nDownloading OHLC price data for {}.".format(instrument))
                 
                 if self.optimise is True:
                     # Check if historical data already exists
@@ -971,6 +969,12 @@ class AutoTraderBot:
         self.email_params       = autotrader_attributes.email_params
         self.notify             = autotrader_attributes.notify
         self.validation_file    = autotrader_attributes.validation_file
+        self.verbosity          = autotrader_attributes.verbosity
+        
+        if int(self.verbosity) > 0:
+                print("AutoTraderBot assigned to analyse {}".format(instrument),
+                      "on {} timeframe using {}.".format(self.strategy_params['granularity'],
+                                                         self.strategy.name))
     
     
     def update(self, i):
