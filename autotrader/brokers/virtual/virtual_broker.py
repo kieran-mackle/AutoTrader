@@ -131,11 +131,7 @@ class Broker():
         ''' 
             Updates orders and open positions based on current candle. 
         '''
-        
-        # TODO - iterate through a copy of self.pending_positions and others,
-        # so that the orders can be popped directly from the real dict without
-        # affecting iteration
-        
+
         # Tally for positions opened this update
         opened_positions = 0
         
@@ -185,7 +181,11 @@ class Broker():
                     closing_orders.append(order_no)
         
         
-        # TODO - implement if self.pending_positions[order_no]['instrument'] == instrument: below
+                
+        # TODO - iterate through a copy of self.pending_positions and others,
+        # so that the orders can be popped directly from the real dict without
+        # affecting iteration
+        
         
         # Remove position from pending positions
         if opened_positions > 0:
@@ -201,83 +201,87 @@ class Broker():
             for order_no in closing_orders:
                 self.pending_positions.pop(order_no, 0)
         
+        
+        
         # Update trailing stops
         # For other methods, move the stop update to an external function
         # Can this be moved into the loop below?
         for order_no in self.open_positions:
-            if self.open_positions[order_no]['stop_type'] == 'trailing_stop':
-                # Trailing stop loss is enabled, check if price has moved SL
-                
-                if self.open_positions[order_no]['stop_distance'] is not None:
-                    pip_value = self.utils.get_pip_ratio(self.open_positions[order_no]['instrument'])
-                    pip_distance = self.open_positions[order_no]['stop_distance']
-                    distance = pip_distance*pip_value
+            if self.open_positions[order_no]['instrument'] == instrument:
+                if self.open_positions[order_no]['stop_type'] == 'trailing_stop':
+                    # Trailing stop loss is enabled, check if price has moved SL
                     
-                else:
-                    distance = abs(self.open_positions[order_no]['entry_price'] - \
-                                   self.open_positions[order_no]['stop_loss'])
-                
-
-                if self.open_positions[order_no]['size'] > 0:
-                    # long position, stop loss only moves up
-                    new_stop = candle.High - distance
-                    if new_stop > self.open_positions[order_no]['stop_loss']:
-                        self.open_positions[order_no]['stop_loss'] = new_stop
+                    if self.open_positions[order_no]['stop_distance'] is not None:
+                        pip_value = self.utils.get_pip_ratio(self.open_positions[order_no]['instrument'])
+                        pip_distance = self.open_positions[order_no]['stop_distance']
+                        distance = pip_distance*pip_value
+                        
+                    else:
+                        distance = abs(self.open_positions[order_no]['entry_price'] - \
+                                       self.open_positions[order_no]['stop_loss'])
                     
-                else:
-                    # short position, stop loss only moves down
-                    new_stop = candle.Low + distance
-                    if new_stop < self.open_positions[order_no]['stop_loss']:
-                        self.open_positions[order_no]['stop_loss'] = new_stop
+    
+                    if self.open_positions[order_no]['size'] > 0:
+                        # long position, stop loss only moves up
+                        new_stop = candle.High - distance
+                        if new_stop > self.open_positions[order_no]['stop_loss']:
+                            self.open_positions[order_no]['stop_loss'] = new_stop
+                        
+                    else:
+                        # short position, stop loss only moves down
+                        new_stop = candle.Low + distance
+                        if new_stop < self.open_positions[order_no]['stop_loss']:
+                            self.open_positions[order_no]['stop_loss'] = new_stop
         
         # Update self.open_positions
         open_position_orders = list(self.open_positions.keys())
         unrealised_PL  = 0        # Un-leveraged value
         for order_no in open_position_orders:
-            if self.open_positions[order_no]['size'] > 0:
-                if self.open_positions[order_no]['stop_loss'] is not None and \
-                    candle.Low < self.open_positions[order_no]['stop_loss']:
-                    # Stop loss hit
-                    self.close_position(self.open_positions[order_no]['instrument'], 
-                                        candle, 
-                                        self.open_positions[order_no]['stop_loss'],
-                                        order_no)
-                elif self.open_positions[order_no]['take_profit'] is not None and \
-                    candle.High > self.open_positions[order_no]['take_profit']:
-                    # Take Profit hit
-                    self.close_position(self.open_positions[order_no]['instrument'], 
-                                        candle, 
-                                        self.open_positions[order_no]['take_profit'],
-                                        order_no)
+            if self.open_positions[order_no]['instrument'] == instrument:
+                if self.open_positions[order_no]['size'] > 0:
+                    if self.open_positions[order_no]['stop_loss'] is not None and \
+                        candle.Low < self.open_positions[order_no]['stop_loss']:
+                        # Stop loss hit
+                        self.close_position(self.open_positions[order_no]['instrument'], 
+                                            candle, 
+                                            self.open_positions[order_no]['stop_loss'],
+                                            order_no)
+                    elif self.open_positions[order_no]['take_profit'] is not None and \
+                        candle.High > self.open_positions[order_no]['take_profit']:
+                        # Take Profit hit
+                        self.close_position(self.open_positions[order_no]['instrument'], 
+                                            candle, 
+                                            self.open_positions[order_no]['take_profit'],
+                                            order_no)
+                    else:
+                        # Position is still open, update value of holding
+                        size        = self.open_positions[order_no]['size']
+                        entry_price = self.open_positions[order_no]['entry_price']
+                        price       = candle.Close
+                        HCF         = self.open_positions[order_no]['HCF']
+                        position_value = size*(price - entry_price)*HCF
+                        unrealised_PL += position_value
+                
                 else:
-                    # Position is still open, update value of holding
-                    size        = self.open_positions[order_no]['size']
-                    entry_price = self.open_positions[order_no]['entry_price']
-                    price       = candle.Close
-                    HCF         = self.open_positions[order_no]['HCF']
-                    position_value = size*(price - entry_price)*HCF
-                    unrealised_PL += position_value
-            
-            else:
-                if self.open_positions[order_no]['stop_loss'] is not None and \
-                    candle.High > self.open_positions[order_no]['stop_loss']:
-                    self.close_position(self.open_positions[order_no]['instrument'], 
-                                        candle, 
-                                        self.open_positions[order_no]['stop_loss'],
-                                        order_no)
-                elif self.open_positions[order_no]['take_profit'] is not None and \
-                    candle.Low < self.open_positions[order_no]['take_profit']:
-                    self.close_position(self.open_positions[order_no]['instrument'], 
-                                        candle, 
-                                        self.open_positions[order_no]['take_profit'],
-                                        order_no)
-                else:
-                    size        = self.open_positions[order_no]['size']
-                    entry_price = self.open_positions[order_no]['entry_price']
-                    price       = candle.Close
-                    HCF         = self.open_positions[order_no]['HCF']
-                    position_value = size*(price - entry_price)*HCF
-                    unrealised_PL += position_value
+                    if self.open_positions[order_no]['stop_loss'] is not None and \
+                        candle.High > self.open_positions[order_no]['stop_loss']:
+                        self.close_position(self.open_positions[order_no]['instrument'], 
+                                            candle, 
+                                            self.open_positions[order_no]['stop_loss'],
+                                            order_no)
+                    elif self.open_positions[order_no]['take_profit'] is not None and \
+                        candle.Low < self.open_positions[order_no]['take_profit']:
+                        self.close_position(self.open_positions[order_no]['instrument'], 
+                                            candle, 
+                                            self.open_positions[order_no]['take_profit'],
+                                            order_no)
+                    else:
+                        size        = self.open_positions[order_no]['size']
+                        entry_price = self.open_positions[order_no]['entry_price']
+                        price       = candle.Close
+                        HCF         = self.open_positions[order_no]['HCF']
+                        position_value = size*(price - entry_price)*HCF
+                        unrealised_PL += position_value
         
         # Update margin available
         self.update_margin(candle.Close)
