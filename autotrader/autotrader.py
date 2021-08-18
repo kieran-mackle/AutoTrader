@@ -15,7 +15,6 @@
                              
 This code is in development. TODO items include:
     - verification of other dependent functions: optimisation, etc.
-    - re-integrate validation plotting 
 
 """
 
@@ -183,7 +182,7 @@ class AutoTrader():
             self.bots_deployed.append(bot)
             
             # TODO: This will have to move somewhere else, or else it will 
-            # print for every instrument
+            # print for every instrument consecutively
             if int(self.verbosity) > 0:
                 print("\nAnalysing {}/{}".format(instrument[:3], instrument[-3:]),
                       "on {} timeframe using {}.".format(interval,
@@ -216,38 +215,32 @@ class AutoTrader():
                 balance.append(self.broker.portfolio_balance)
                 margin.append(self.broker.margin_available)
         
-        
+        ''' -------------------------------------------------------------- '''
+        '''                     Backtest Post-Processing                   '''
+        ''' -------------------------------------------------------------- '''
         # Data iteration complete - proceed to post-processing
         if self.backtest is True:
             # Create backtest summary for each bot 
             for bot in self.bots_deployed:
-                bot.create_backtest_summary(NAV, margin)
-            
-            if self.validation_file is not None:
-                # TODO - make this bot specific
-                livetrade_summary = self.validation_utils.trade_summary(self.raw_livetrade_summary,
-                                                                        data,
-                                                                        interval)
-                final_balance_diff  = NAV[-1] - livetrade_summary.Balance.values[-1]
-                filled_live_orders  = livetrade_summary[livetrade_summary.Transaction == 'ORDER_FILL']
-                no_live_trades      = len(filled_live_orders)
-            
+                bot.create_backtest_summary(NAV, margin)            
             
             if self.show_plot:
                 if len(self.bots_deployed) == 1:
                     # Only one bot was deployed, proceed to plotting
+                    bot = self.bots_deployed[0]
                     ap = autoplot.AutoPlot()
-                    ap.data = self.bots_deployed[0].data
+                    ap.data = bot.data
+                    
                     if self.validation_file is None:
-                        ap.plot_backtest(self.bots_deployed[0].backtest_summary)
+                        ap.plot_backtest(bot.backtest_summary)
                     else:
-                        ap.plot_validation_balance = self.plot_validation_balance
+                        ap.plot_validation_balance = self.plot_validation_balance # User option flag
                         ap.ohlc_height = 350
-                        # ap.validate_backtest(livetrade_summary, 
-                        #                      self.bots_deployed[0].backtest_summary,
-                        #                      cancelled_summary,
-                        #                      self.bots_deployed[0].instrument, 
-                        #                      interval)
+                        ap.validate_backtest(bot.livetrade_results['summary'], 
+                                             bot.backtest_summary,
+                                             bot.backtest_summary['cancelled_trades'],
+                                             bot.instrument, 
+                                             bot.strategy_params['granularity'])
                 
                 else:
                     # Backtest run with multiple bots
@@ -258,25 +251,24 @@ class AutoTrader():
                     # resource usage over period, highlighting which were most 
                     # active etc.
                 
-
-        ''' -------------------------------------------------------------- '''
-        '''              Construct backtest results dictionary             '''
-        ''' -------------------------------------------------------------- '''
-        if self.backtest is True:
-            for bot in self.bots_deployed:
-                trade_summary = bot.backtest_summary['trade_summary']
-                backtest_results = self.extract_backtest_results(trade_summary, 
-                             self.broker, starting_balance, self.broker_utils)    
-                
-                if int(self.verbosity) > 0:
+            if int(self.verbosity) > 0:
+                if len(self.bots_deployed) == 1:
+                    bot = self.bots_deployed[0]
+                    trade_summary = bot.backtest_summary['trade_summary']
+                    backtest_results = self.extract_backtest_results(trade_summary, 
+                             self.broker, starting_balance, self.broker_utils) 
                     self.print_backtest_results(backtest_results)
                     
                     if self.validation_file is not None:
+                        final_balance_diff = bot.livetrade_results['final_balance_difference']
+                        no_live_trades = bot.livetrade_results['no_live_trades']
+                        
                         print("\n            Backtest Validation")
                         print("-------------------------------------------")
                         print("Difference between final portfolio balance between")
                         print("live-trade account and backtest is ${}.".format(round(final_balance_diff, 2)))
                         print("Number of live trades: {} trades.".format(no_live_trades))
+
 
 
     def read_yaml(self, file_path):
@@ -501,11 +493,10 @@ class AutoTrader():
                 
                 if self.validation_file is not None:
                     # Also get broker-specific utility functions
-                    validation_utils = importlib.import_module('autotrader.brokers.{}.utils'.format(config['FEED'].lower())) # FOR OANDA ONLY
+                    validation_utils = importlib.import_module('autotrader.brokers.{}.utils'.format(config['FEED'].lower()))
                     
                     # Correct watchlist
                     if self.instruments is None:
-                        # TODO - assign this as attribute to strat specific class
                         self.watchlist = validation_utils.format_watchlist(self.raw_watchlist)
                 
         else:
@@ -990,12 +981,7 @@ class AutoTraderBot:
         # First clear self.latest_orders
         self.latest_orders = []
         
-        # TODO - make this a function call - wont work for live trade currently!
-        # can make it retrieve instrument specific positions, which is important
-        # because the bot is instrument specific, but the strategy should be 
-        # independent of instrument - ie. should know what the instrument is
-        open_positions      = self.broker.open_positions
-        # open_positions      = self.broker.get_open_positions()
+        open_positions      = self.broker.get_open_positions(self.instrument)
         
         # Run strategy to get signals
         signal_dict = self.strategy.generate_signal(i, open_positions)
@@ -1174,10 +1160,13 @@ class AutoTraderBot:
             livetrade_summary = self.validation_utils.trade_summary(self.raw_livetrade_summary,
                                                                     self.data,
                                                                     self.strategy_params['granularity'])
-            # final_balance_diff  = NAV[-1] - livetrade_summary.Balance.values[-1]
-            # filled_live_orders  = livetrade_summary[livetrade_summary.Transaction == 'ORDER_FILL']
-            # no_live_trades      = len(filled_live_orders)
-        
+            final_balance_diff  = NAV[-1] - livetrade_summary.Balance.values[-1]
+            filled_live_orders  = livetrade_summary[livetrade_summary.Transaction == 'ORDER_FILL']
+            no_live_trades      = len(filled_live_orders)
+            self.livetrade_results = {'summary': livetrade_summary,
+                                      'final_balance_difference': final_balance_diff,
+                                      'no_live_trades': no_live_trades}
+            
         backtest_dict = {}
         backtest_dict['data']           = self.data
         backtest_dict['NAV']            = NAV
