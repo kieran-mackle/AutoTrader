@@ -1101,7 +1101,7 @@ class AutoTraderBot:
     
     def update_backtest(self, i):
         candle = self.data.iloc[i]
-        self.broker.update_positions(candle)
+        self.broker.update_positions(candle, self.instrument)
     
     
     def process_signal(self, order_signal_dict, i, data, quote_data, 

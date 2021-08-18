@@ -127,56 +127,66 @@ class Broker():
             self.cancelled_orders[order_no] = self.pending_positions[order_no]
     
     
-    def update_positions(self, candle):
+    def update_positions(self, candle, instrument):
         ''' 
             Updates orders and open positions based on current candle. 
         '''
+        
+        # TODO - iterate through a copy of self.pending_positions and others,
+        # so that the orders can be popped directly from the real dict without
+        # affecting iteration
+        
         # Tally for positions opened this update
         opened_positions = 0
         
         # Update pending positions
         closing_orders = []
         for order_no in self.pending_positions:
-            if self.pending_positions[order_no]['order_time'] != candle.name:
-                if self.pending_positions[order_no]['order_type'] == 'market':
-                    # Market order type
-                    self.open_position(order_no, candle)
-                    opened_positions += 1
-                
-                elif self.pending_positions[order_no]['order_type'] == 'stop-limit':
-                    # Stop-limit order type
-                    # Check if order_stop_price has been reached yet
+            # Filter orders by instrument type since candle is instrument specific            
+            if self.pending_positions[order_no]['instrument'] == instrument:
+                if self.pending_positions[order_no]['order_time'] != candle.name:
+                    if self.pending_positions[order_no]['order_type'] == 'market':
+                        # Market order type
+                        self.open_position(order_no, candle)
+                        opened_positions += 1
                     
-                    if candle.Low < self.pending_positions[order_no]['order_stop_price'] < candle.High:
-                        # order_stop_price has been reached, change order type to 'limit'
-                        self.pending_positions[order_no]['order_type'] = 'limit'
-                    
-                # This is in a separate if statement, as stop-limit order may
-                # eventually be changed to limit orders
-                if self.pending_positions[order_no]['order_type'] == 'limit':
-                    # Limit order type
-                    if self.pending_positions[order_no]['size'] > 0:
-                        if candle.Low < self.pending_positions[order_no]['order_limit_price']:
-                            self.open_position(order_no, candle, 
-                                               self.pending_positions[order_no]['order_limit_price'])
-                            opened_positions += 1
-                    else:
-                        if candle.High > self.pending_positions[order_no]['order_limit_price']:
-                            self.open_position(order_no, candle, 
-                                               self.pending_positions[order_no]['order_limit_price'])
-                            opened_positions += 1
-                            
-                            
-            if self.pending_positions[order_no]['order_type'] == 'close':
-                related_order = self.pending_positions[order_no]['related_orders']
-                self.close_position(self.pending_positions[order_no]['instrument'],
-                                    candle, 
-                                    candle.Close,
-                                    order_no = related_order
-                                    )
-                opened_positions += 1 # To remove from pending orders
-                closing_orders.append(order_no)
-                    
+                    elif self.pending_positions[order_no]['order_type'] == 'stop-limit':
+                        # Stop-limit order type
+                        # Check if order_stop_price has been reached yet
+                        
+                        if candle.Low < self.pending_positions[order_no]['order_stop_price'] < candle.High:
+                            # order_stop_price has been reached, change order type to 'limit'
+                            self.pending_positions[order_no]['order_type'] = 'limit'
+                        
+                    # This is in a separate if statement, as stop-limit order may
+                    # eventually be changed to limit orders
+                    if self.pending_positions[order_no]['order_type'] == 'limit':
+                        # Limit order type
+                        if self.pending_positions[order_no]['size'] > 0:
+                            if candle.Low < self.pending_positions[order_no]['order_limit_price']:
+                                self.open_position(order_no, candle, 
+                                                   self.pending_positions[order_no]['order_limit_price'])
+                                opened_positions += 1
+                        else:
+                            if candle.High > self.pending_positions[order_no]['order_limit_price']:
+                                self.open_position(order_no, candle, 
+                                                   self.pending_positions[order_no]['order_limit_price'])
+                                opened_positions += 1
+                                
+                                
+                if self.pending_positions[order_no]['order_type'] == 'close':
+                    related_order = self.pending_positions[order_no]['related_orders']
+                    self.close_position(self.pending_positions[order_no]['instrument'],
+                                        candle, 
+                                        candle.Close,
+                                        order_no = related_order
+                                        )
+                    opened_positions += 1 # To remove from pending orders
+                    closing_orders.append(order_no)
+        
+        
+        # TODO - implement if self.pending_positions[order_no]['instrument'] == instrument: below
+        
         # Remove position from pending positions
         if opened_positions > 0:
             # For orders that were opened
