@@ -162,7 +162,6 @@ class AutoTrader():
         '''                 Analyse each instrument in watchlist           '''
         ''' -------------------------------------------------------------- '''
         
-        
         for instrument in self.watchlist:
             # Get price history
             data, quote_data = self.retrieve_data(instrument, price_data_path, feed)
@@ -198,7 +197,7 @@ class AutoTrader():
         ''' -------------------------------------------------------------- '''
         '''                  Analyse price data using strategy             '''
         ''' -------------------------------------------------------------- '''
-        # TODO / Note - this is called using data from the last instrument in the 
+        # Note - this is called using data from the last instrument in the 
         # watchlist
         start_range, end_range = self.get_iteration_range(data)
         
@@ -209,8 +208,6 @@ class AutoTrader():
                 bot.update(i)
                 
                 # If backtesting, update virtual broker with latest data
-                # TODO - will need to move to a time-based method, in case 
-                # data does not share the exact index-time points
                 if self.backtest:
                     bot.update_backtest(i)
             
@@ -220,46 +217,14 @@ class AutoTrader():
                 margin.append(self.broker.margin_available)
         
         
-        # Data iteration complete - proceed to post
+        # Data iteration complete - proceed to post-processing
         if self.backtest is True:
             # Create backtest summary for each bot 
             for bot in self.bots_deployed:
                 bot.create_backtest_summary(NAV, margin)
-                
-            if self.show_plot:
-                
-                # If len(bots_deployed) == 1: plot backtest as usual
-                # else, plot portfolio balance history (assets and equity), 
-                # plus whatever other information could be useful, eg. bot 
-                # resource usage over period, highlighting which were most 
-                # active etc.
-                
-                for bot in self.bots_deployed:
-                    ap = autoplot.AutoPlot()
-                    ap.data = bot.data
-                    ap.plot_backtest(bot.backtest_summary)
-                    
-                    # TODO - re-integrate validation plotting
-        
-        
-        
-        if self.backtest is True:
-            # TODO - trade summary won't work if backtest was run on multiple instruments
-            # Have to think about how to display backtest results in this case.
-            # Could potentially calculate an average RR, and use that along
-            # with the win rate, to create a pseudo-balance chart, per instrument
-            # I actually think the summaries below will not be an issue, as they
-            # account for instrument, but plotting backtest portfolio performance remains.
-            # Could plot all price charts plus the one portfolio summary?
-            # Or just leave plotting of individual results as a post-routine for
-            # the user, unless only a single instrument was backtested.
-            # (backtest results accessible in self.deployed_bots)
-            
-            # trade_summary = self.broker_utils.trade_summary(instrument, self.broker.closed_positions)
-            # open_trade_summary = self.broker_utils.open_order_summary(instrument, self.broker.open_positions)
-            # cancelled_summary = self.broker_utils.cancelled_order_summary(instrument, self.broker.cancelled_orders)
             
             if self.validation_file is not None:
+                # TODO - make this bot specific
                 livetrade_summary = self.validation_utils.trade_summary(self.raw_livetrade_summary,
                                                                         data,
                                                                         interval)
@@ -267,38 +232,33 @@ class AutoTrader():
                 filled_live_orders  = livetrade_summary[livetrade_summary.Transaction == 'ORDER_FILL']
                 no_live_trades      = len(filled_live_orders)
             
-        # if self.show_plot is True:
-        #     # Plot results
-        #     if self.backtest is True:
-        #         if len(data) > 75000:
-        #             print("There is too much data to be plotted",
-        #                   "({} candles).".format(len(data)),
-        #                   "Check saved figure.")
-        #         else:
-        #             backtest_dict = {}
-        #             backtest_dict['data']           = data
-        #             backtest_dict['NAV']            = NAV
-        #             backtest_dict['margin']         = margin
-        #             backtest_dict['trade_summary']  = trade_summary
-        #             backtest_dict['indicators']     = my_strat.indicators if hasattr(my_strat, 'indicators') else None
-        #             backtest_dict['pair']           = instrument
-        #             backtest_dict['interval']       = interval
-        #             backtest_dict['open_trades']    = open_trade_summary
-        #             backtest_dict['cancelled_trades'] = cancelled_summary
-        #             ap = autoplot.AutoPlot()
-        #             ap.data = data
-                    
-        #             if self.validation_file is None:
-        #                 ap.plot_backtest(backtest_dict)
-        #             else:
-        #                 ap.plot_validation_balance = self.plot_validation_balance
-        #                 ap.ohlc_height = 350
-        #                 ap.validate_backtest(livetrade_summary, 
-        #                                      backtest_dict,
-        #                                      cancelled_summary,
-        #                                      instrument, 
-        #                                      interval)
-        
+            
+            if self.show_plot:
+                if len(self.bots_deployed) == 1:
+                    # Only one bot was deployed, proceed to plotting
+                    ap = autoplot.AutoPlot()
+                    ap.data = self.bots_deployed[0].data
+                    if self.validation_file is None:
+                        ap.plot_backtest(self.bots_deployed[0].backtest_summary)
+                    else:
+                        ap.plot_validation_balance = self.plot_validation_balance
+                        ap.ohlc_height = 350
+                        # ap.validate_backtest(livetrade_summary, 
+                        #                      self.bots_deployed[0].backtest_summary,
+                        #                      cancelled_summary,
+                        #                      self.bots_deployed[0].instrument, 
+                        #                      interval)
+                
+                else:
+                    # Backtest run with multiple bots
+                    print("Create backtest plots from bots individually.")
+                    # TODO - create plot_backtest method, and
+                    # plot portfolio balance history (assets and equity), 
+                    # plus whatever other information could be useful, eg. bot 
+                    # resource usage over period, highlighting which were most 
+                    # active etc.
+                
+
         ''' -------------------------------------------------------------- '''
         '''              Construct backtest results dictionary             '''
         ''' -------------------------------------------------------------- '''
