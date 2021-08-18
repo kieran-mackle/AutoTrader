@@ -347,7 +347,17 @@ class Broker():
     
     def get_open_positions(self, instrument=None):
         ''' Returns the open positions in the account. '''
-        return self.open_positions
+        
+        open_positions = {}
+        
+        if instrument is not None:
+            for order_no in self.open_positions:
+                if self.open_positions[order_no]['instrument'] == instrument:
+                    open_positions[order_no] = self.open_positions[order_no]
+        else:
+            open_positions = self.open_positions.copy()
+        
+        return open_positions
     
     
     def add_funds(self, amount):
