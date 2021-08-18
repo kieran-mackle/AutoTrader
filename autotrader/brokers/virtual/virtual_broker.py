@@ -180,13 +180,7 @@ class Broker():
                     opened_positions += 1 # To remove from pending orders
                     closing_orders.append(order_no)
         
-        
                 
-        # TODO - iterate through a copy of self.pending_positions and others,
-        # so that the orders can be popped directly from the real dict without
-        # affecting iteration
-        
-        
         # Remove position from pending positions
         if opened_positions > 0:
             # For orders that were opened
@@ -200,7 +194,6 @@ class Broker():
             # For close orders
             for order_no in closing_orders:
                 self.pending_positions.pop(order_no, 0)
-        
         
         
         # Update trailing stops
