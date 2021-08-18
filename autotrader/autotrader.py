@@ -14,11 +14,9 @@
                              Version 0.1.6
                              
 This code is in development. TODO items include:
-    - verification of virtual broker capabilities for multiple instruments
-      trading in parallel
     - re-establishment of emailing in bot functions
     - verification of other dependent functions: optimisation, etc.
-    - re-integrate validation plotting
+    - re-integrate validation plotting 
 
 """
 
@@ -223,12 +221,20 @@ class AutoTrader():
                 margin.append(self.broker.margin_available)
         
         
-        # Data iteration complete
+        # Data iteration complete - proceed to post
         if self.backtest is True:
+            # Create backtest summary for each bot 
             for bot in self.bots_deployed:
                 bot.create_backtest_summary(NAV, margin)
-        
+                
             if self.show_plot:
+                
+                # If len(bots_deployed) == 1: plot backtest as usual
+                # else, plot portfolio balance history (assets and equity), 
+                # plus whatever other information could be useful, eg. bot 
+                # resource usage over period, highlighting which were most 
+                # active etc.
+                
                 for bot in self.bots_deployed:
                     ap = autoplot.AutoPlot()
                     ap.data = bot.data
