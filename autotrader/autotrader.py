@@ -14,7 +14,6 @@
                              Version 0.1.6
                              
 This code is in development. TODO items include:
-    - re-establishment of emailing in bot functions
     - verification of other dependent functions: optimisation, etc.
     - re-integrate validation plotting 
 
@@ -1014,13 +1013,14 @@ class AutoTraderBot:
         self.latest_orders = []
         
         # Inherit user options from autotrader
-        self.strategy_params = autotrader_attributes.strategy_params
-        # self.scan_results
-        self.scan = autotrader_attributes.scan
-        self.broker_utils = autotrader_attributes.broker_utils
-        # self.email_params
-        self.notify     = autotrader_attributes.notify
-        self.validation_file = autotrader_attributes.validation_file
+        self.strategy_params    = autotrader_attributes.strategy_params
+        self.scan               = autotrader_attributes.scan
+        self.scan_results       = {}
+        self.broker_utils       = autotrader_attributes.broker_utils
+        self.email_params       = autotrader_attributes.email_params
+        self.notify             = autotrader_attributes.notify
+        self.validation_file    = autotrader_attributes.validation_file
+    
     
     def update(self, i):
         '''
@@ -1035,6 +1035,7 @@ class AutoTraderBot:
         # because the bot is instrument specific, but the strategy should be 
         # independent of instrument - ie. should know what the instrument is
         open_positions      = self.broker.open_positions
+        # open_positions      = self.broker.get_open_positions()
         
         # Run strategy to get signals
         signal_dict = self.strategy.generate_signal(i, open_positions)
@@ -1051,7 +1052,6 @@ class AutoTraderBot:
                 self.process_signal(order_signal_dict, i, self.data, 
                                     self.quote_data, self.instrument)
         
-        
         # Check for orders placed and/or scan hits
         if int(self.notify) > 0:
             
@@ -1067,42 +1067,42 @@ class AutoTraderBot:
                                             self.email_params['mailing_list'],
                                             self.email_params['host_email'])
             
+        # Check scan results
+        if self.scan is not None:
+            # Construct scan details dict
+            scan_details    = {'index'      : self.scan,
+                               'strategy'   : self.strategy.name,
+                               'timeframe'  : self.strategy_params['granularity']
+                                }
             
-            # TODO - add scan emailing - code below is not checked yet
-            # if self.scan is not None:
-            # # Construct scan details dict
-            # scan_details    = {'index'      : self.scan,
-            #                    'strategy'   : my_strat.name,
-            #                    'timeframe'  : interval
-            #                    }
+            # Report AutoScan results
+            # Scan reporting with no emailing requested.
+            if int(self.verbosity) > 0 or \
+                int(self.notify) == 0:
+                if len(self.scan_results) == 0:
+                    print("No hits detected.")
+                else:
+                    print(self.scan_results)
             
-            # # Report AutoScan results
-            # if int(self.verbosity) > 0 or \
-            #     int(self.notify) == 0:
-            #     if len(self.scan_results) == 0:
-            #         print("No hits detected.")
-            #     else:
-            #         print(self.scan_results)
-            
-            # if int(self.notify) >= 1:
-            #     # index = self.scan
-            #     if len(self.scan_results) > 0 and \
-            #         self.email_params['mailing_list'] is not None and \
-            #         self.email_params['host_email'] is not None:
-            #         # There was a scanner hit
-            #         emailing.send_scan_results(self.scan_results, 
-            #                                    scan_details, 
-            #                                    self.email_params['mailing_list'],
-            #                                    self.email_params['host_email'])
-            #     elif int(self.verbosity) > 1 and \
-            #         self.email_params['mailing_list'] is not None and \
-            #         self.email_params['host_email'] is not None:
-            #         # There was no scan hit, but verbostiy set > 1, so send email
-            #         # regardless.
-            #         emailing.send_scan_results(self.scan_results, 
-            #                                    scan_details, 
-            #                                    self.email_params['mailing_list'],
-            #                                    self.email_params['host_email'])
+            if int(self.notify) > 0:
+                # Emailing requested
+                if len(self.scan_results) > 0 and \
+                    self.email_params['mailing_list'] is not None and \
+                    self.email_params['host_email'] is not None:
+                    # There was a scanner hit and email information is provided
+                    emailing.send_scan_results(self.scan_results, 
+                                                scan_details, 
+                                                self.email_params['mailing_list'],
+                                                self.email_params['host_email'])
+                elif int(self.notify) > 1 and \
+                    self.email_params['mailing_list'] is not None and \
+                    self.email_params['host_email'] is not None:
+                    # There was no scan hit, but notify set > 1, so send email
+                    # regardless.
+                    emailing.send_scan_results(self.scan_results, 
+                                                scan_details, 
+                                                self.email_params['mailing_list'],
+                                                self.email_params['host_email'])
                     
     
     def update_backtest(self, i):
@@ -1189,7 +1189,13 @@ class AutoTraderBot:
         order_details["related_orders"] = order_signal_dict['related_orders'] if 'related_orders' in order_signal_dict else None
 
         # Place order
-        if self.scan is not None:
+        if self.scan is None:
+            # Bot is trading
+            self.broker.place_order(order_details)
+            self.latest_orders.append(order_details)
+            
+        else:
+            # Bot is scanning
             scan_hit = {"size"  : size,
                         "entry" : order_price,
                         "stop"  : stop_price,
@@ -1198,9 +1204,6 @@ class AutoTraderBot:
                         }
             self.scan_results[instrument] = scan_hit
             
-        else:
-            self.broker.place_order(order_details)
-            self.latest_orders.append(order_details)
 
     def create_backtest_summary(self, NAV, margin):
         trade_summary = self.broker_utils.trade_summary(self.instrument, self.broker.closed_positions)
