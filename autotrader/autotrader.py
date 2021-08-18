@@ -162,6 +162,7 @@ class AutoTrader():
                 print("Begining new backtest.")
                 print("  From: ", datetime.strptime(self.config['BACKTESTING']['FROM']+'+0000', '%d/%m/%Y%z'))
                 print("  To:   ", datetime.strptime(self.config['BACKTESTING']['TO']+'+0000', '%d/%m/%Y%z'))
+                print("  Instruments: ", self.watchlist)
             elif self.scan is not None:
                 print("AutoScan:")
                 print("Time: {}".format(datetime.now().strftime("%A, %B %d %Y, "+
@@ -170,6 +171,7 @@ class AutoTrader():
                 print("AutoTrader Livetrade:")
                 print("Time: {}".format(datetime.now().strftime("%A, %B %d %Y, "+
                                                                   "%H:%M:%S")))
+                
         ''' -------------------------------------------------------------- '''
         '''    Assign strategy to bot for each instrument in watchlist     '''
         ''' -------------------------------------------------------------- '''
@@ -223,6 +225,29 @@ class AutoTrader():
             for bot in self.bots_deployed:
                 bot.create_backtest_summary(NAV, margin)            
             
+            if int(self.verbosity) > 0:
+                print("\nBacktest complete.")
+                if len(self.bots_deployed) == 1:
+                    bot = self.bots_deployed[0]
+                    trade_summary = bot.backtest_summary['trade_summary']
+                    backtest_results = self.extract_backtest_results(trade_summary, 
+                             self.broker, starting_balance, self.broker_utils) 
+                    self.print_backtest_results(backtest_results)
+                    
+                    if self.validation_file is not None:
+                        final_balance_diff = bot.livetrade_results['final_balance_difference']
+                        no_live_trades = bot.livetrade_results['no_live_trades']
+                        
+                        print("\n            Backtest Validation")
+                        print("-------------------------------------------")
+                        print("Difference between final portfolio balance between")
+                        print("live-trade account and backtest is ${}.".format(round(final_balance_diff, 2)))
+                        print("Number of live trades: {} trades.".format(no_live_trades))
+                else:
+                    # TODO
+                    print("Results for multiple-instrument backtests coming soon!")
+                    print("In the meantime, check AutoTrader.bots_deployed.")
+            
             if self.show_plot:
                 if len(self.bots_deployed) == 1:
                     # Only one bot was deployed, proceed to plotting
@@ -243,31 +268,12 @@ class AutoTrader():
                 
                 else:
                     # Backtest run with multiple bots
-                    print("\nCreate backtest plots from bots individually.")
+                    print("Multiple-instrument backtest plots coming soon!.")
                     # TODO - create plot_backtest method, and
                     # plot portfolio balance history (assets and equity), 
                     # plus whatever other information could be useful, eg. bot 
                     # resource usage over period, highlighting which were most 
                     # active etc.
-                
-            if int(self.verbosity) > 0:
-                if len(self.bots_deployed) == 1:
-                    bot = self.bots_deployed[0]
-                    trade_summary = bot.backtest_summary['trade_summary']
-                    backtest_results = self.extract_backtest_results(trade_summary, 
-                             self.broker, starting_balance, self.broker_utils) 
-                    self.print_backtest_results(backtest_results)
-                    
-                    if self.validation_file is not None:
-                        final_balance_diff = bot.livetrade_results['final_balance_difference']
-                        no_live_trades = bot.livetrade_results['no_live_trades']
-                        
-                        print("\n            Backtest Validation")
-                        print("-------------------------------------------")
-                        print("Difference between final portfolio balance between")
-                        print("live-trade account and backtest is ${}.".format(round(final_balance_diff, 2)))
-                        print("Number of live trades: {} trades.".format(no_live_trades))
-
 
 
     def read_yaml(self, file_path):
