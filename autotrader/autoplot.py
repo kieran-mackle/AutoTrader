@@ -618,8 +618,7 @@ class AutoPlot():
         return fig
     
     
-    def validate_backtest(self, livetrade_summary, backtest_dict,
-                          backtest_cancelled_summary, instrument, granularity):
+    def validate_backtest(self, livetrade_summary, backtest_dict):
         """
             Code below takes oanda csv history and plots it.
             
@@ -632,7 +631,10 @@ class AutoPlot():
             
         """
         backtest_trade_summary  = backtest_dict['trade_summary']
+        backtest_cancelled_summary = backtest_dict['cancelled_trades']
         backtest_NAV            = backtest_dict['NAV']
+        instrument              = backtest_dict['pair']
+        granularity             = backtest_dict['interval']
         
         # Preparation ----------------------------------- #
         output_file("candlestick.html",

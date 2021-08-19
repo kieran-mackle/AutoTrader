@@ -32,7 +32,7 @@ import pandas as pd
 from autotrader.emailing import emailing
 from autotrader.brokers.oanda import Oanda
 from autotrader.brokers.virtual.virtual_broker import Broker
-from autotrader.lib import logger, instrument_list, environment_manager, autodata
+from autotrader.lib import instrument_list, environment_manager, autodata
 from autotrader import autoplot
 
 
@@ -247,6 +247,8 @@ class AutoTrader():
                     # TODO
                     print("Results for multiple-instrument backtests coming soon!")
                     print("In the meantime, check AutoTrader.bots_deployed.")
+                    self.multibot_backtest_analysis()
+                    self.print_multibot_backtest_results()
             
             if self.show_plot:
                 if len(self.bots_deployed) == 1:
@@ -260,11 +262,8 @@ class AutoTrader():
                     else:
                         ap.plot_validation_balance = self.plot_validation_balance # User option flag
                         ap.ohlc_height = 350
-                        ap.validate_backtest(bot.livetrade_results['summary'], 
-                                             bot.backtest_summary,
-                                             bot.backtest_summary['cancelled_trades'],
-                                             bot.instrument, 
-                                             bot.strategy_params['granularity'])
+                        ap.validate_backtest(bot.livetrade_results['summary'],
+                                             bot.backtest_summary)
                 
                 else:
                     # Backtest run with multiple bots
@@ -275,6 +274,35 @@ class AutoTrader():
                     # resource usage over period, highlighting which were most 
                     # active etc.
 
+    
+    def multibot_backtest_analysis(self, bots=None):
+        '''
+        Analyses backtest results of multiple bots to create an overall 
+        performance summary.
+        
+            Parameters:
+                bots (list): a list of AutoTrader bots to analyse.
+        '''
+        
+        if bots is None:
+            bots = self.bots_deployed
+        
+        for bot in bots:
+            print()
+        
+        
+        return
+    
+    def print_multibot_backtest_results(self, backtest_results=None):
+        '''
+        Prints to console the backtest results of a multi-bot backtest.
+        
+            Parameters:
+                backtest_results (dict): dictionary containing backtest results.
+        '''
+        
+        
+        return
 
     def read_yaml(self, file_path):
         '''Function to read and extract contents from .yaml file.'''
