@@ -51,7 +51,7 @@ class AutoPlot():
         NAV             = backtest_dict['NAV']
         trade_summary   = backtest_dict['trade_summary']
         indicators      = backtest_dict['indicators']
-        pair            = backtest_dict['pair']
+        pair            = backtest_dict['instrument']
         interval        = backtest_dict['interval']
         open_trades     = backtest_dict['open_trades']
         cancelled_trades = backtest_dict['cancelled_trades']
