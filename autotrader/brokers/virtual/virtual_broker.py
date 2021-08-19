@@ -359,6 +359,20 @@ class Broker():
         
         return open_positions
     
+    def get_cancelled_orders(self, instrument = None):
+        ''' Returns cancelled orders. '''
+        
+        cancelled_orders = {}
+        
+        if instrument is not None:
+            for order_no in self.cancelled_orders:
+                if self.cancelled_orders[order_no]['instrument'] == instrument:
+                    cancelled_orders[order_no] = self.cancelled_orders[order_no]
+        else:
+            cancelled_orders = self.cancelled_orders.copy()
+        
+        return cancelled_orders
+    
     
     def add_funds(self, amount):
         ''' Add's funds to brokerage account. '''
