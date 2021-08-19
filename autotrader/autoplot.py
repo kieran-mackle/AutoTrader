@@ -21,7 +21,9 @@ from bokeh.models import (
     CrosshairTool
 )
 from bokeh.layouts import gridplot
-from bokeh.transform import factor_cmap
+from bokeh.transform import factor_cmap, cumsum
+from bokeh.palettes import Category20c
+from math import pi
 
 
 class AutoPlot():
@@ -145,6 +147,101 @@ class AutoPlot():
                                        )
         fig.sizing_mode     = 'stretch_width'
         show(fig)
+    
+    
+    def plot_multibot_backtest(self, multibot_backtest_results, NAV):
+        ''' Creates multi-bot backtest figure. '''
+        
+        # Preparation ----------------------------------- #
+        output_file("candlestick.html",
+                    title = "AutoTrader Multi-Bot Backtest Results")
+        
+        # if self._modified_data is None:
+        #     self._reindex_data()
+        # source                  = ColumnDataSource(self._modified_data)
+        # source.add((self._modified_data.Close >= self._modified_data.Open).values.astype(np.uint8).astype(str),
+        #            'change')
+        
+        # TODO - Load JavaScript code for auto-scaling - use for NAV
+        # with open(os.path.join(os.path.dirname(__file__), 'lib/autoscale.js'),
+        #           encoding = 'utf-8') as _f:
+        #     autoscale_code      = _f.read()
+        
+        # Plotting ------------------------------------- #
+        data = pd.Series(multibot_backtest_results.no_trades).reset_index(name='value').rename(columns={'index':'instrument'})
+        data['angle'] = data['value']/data['value'].sum() * 2*pi
+        if len(multibot_backtest_results) < 3:
+            data['color'] = Category20c[3][0:len(multibot_backtest_results)]
+        else:
+            data['color'] = Category20c[len(multibot_backtest_results)]
+
+        p = figure(plot_height=350, 
+                   title = "Trade distribution", 
+                   toolbar_location = None,
+                   tools = "hover", 
+                   tooltips="@instrument: @value",
+                   x_range=(-0.5, 1.0))
+        
+        p.wedge(x=0, y=1, radius=0.4,
+                start_angle=cumsum('angle', include_zero=True), end_angle=cumsum('angle'),
+                line_color="white", fill_color='color', legend_field='instrument', source=data)
+        
+        p.axis.axis_label=None
+        p.axis.visible=False
+        p.grid.grid_line_color = None
+        
+        show(p)
+        
+        # # Above plots
+        # top_fig             = self.plot_portfolio_history(NAV, bot_PL_plot)
+        
+        # # Compile plots for final figure
+        # plots               = [top_fig, candle_plot] + bottom_figs
+        
+        # linked_crosshair    = CrosshairTool(dimensions='both')
+        
+        # titled  = 0
+        # t       = Title()
+        # t.text  = "Multi-Bot Backtest Results"
+        # for plot in plots:
+        #     if plot is not None:
+        #         plot.xaxis.major_label_overrides = {
+        #             i: date.strftime('%b %d') for i, date in enumerate(pd.to_datetime(self._modified_data["date"]))
+        #         }
+        #         plot.xaxis.bounds   = (0, self._modified_data.index[-1])
+        #         plot.sizing_mode    = 'stretch_width'
+                
+        #         if titled == 0:
+        #             plot.title = t
+        #             titled = 1
+                
+        #         if plot.legend:
+        #             plot.legend.visible             = True
+        #             plot.legend.location            = 'top_left'
+        #             plot.legend.border_line_width   = 1
+        #             plot.legend.border_line_color   = '#333333'
+        #             plot.legend.padding             = 5
+        #             plot.legend.spacing             = 0
+        #             plot.legend.margin              = 0
+        #             plot.legend.label_text_font_size = '8pt'
+        #             plot.legend.click_policy        = "hide"
+                
+        #         plot.add_tools(linked_crosshair)
+        #         plot.min_border_left    = 0
+        #         plot.min_border_top     = 3
+        #         plot.min_border_bottom  = 6
+        #         plot.min_border_right   = 10
+        #         plot.outline_line_color = 'black'
+    
+        # # Construct final figure
+        # fig                 = gridplot(plots, 
+        #                                ncols            = 1, 
+        #                                toolbar_location = 'right',
+        #                                toolbar_options  = dict(logo = None), 
+        #                                merge_tools      = True
+        #                                )
+        # fig.sizing_mode     = 'stretch_width'
+        # show(fig)
     
     
     def view_indicators(self, indicators=None, instrument=None):

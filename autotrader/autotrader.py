@@ -247,11 +247,9 @@ class AutoTrader():
                         print("Number of live trades: {} trades.".format(no_live_trades))
                 else:
                     # TODO
-                    print("Results for multiple-instrument backtests coming soon!")
-                    print("In the meantime, check AutoTrader.bots_deployed.")
-                    mbr = self.multibot_backtest_analysis()
-                    print(mbr)
-                    # self.print_multibot_backtest_results()
+                    print("Results for multiple-instrument backtests have been")
+                    print("written to AutoTrader.multibot_backtest_results.")
+                    self.multibot_backtest_results = self.multibot_backtest_analysis()
             
             if self.show_plot:
                 if len(self.bots_deployed) == 1:
@@ -271,6 +269,9 @@ class AutoTrader():
                 else:
                     # Backtest run with multiple bots
                     print("Multiple-instrument backtest plots coming soon!")
+                    ap = autoplot.AutoPlot()
+                    ap.plot_multibot_backtest(self.multibot_backtest_results, 
+                                              NAV)
                     # TODO - create plot_backtest method, and
                     # plot portfolio balance history (assets and equity), 
                     # plus whatever other information could be useful, eg. bot 
@@ -323,8 +324,6 @@ class AutoTrader():
                                                        'no_long': no_long,
                                                        'no_short': no_short},
                                                  index=instruments)
-        
-        self.multibot_backtest_results = multibot_backtest_results
         
         return multibot_backtest_results
         
