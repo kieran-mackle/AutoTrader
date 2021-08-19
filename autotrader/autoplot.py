@@ -168,6 +168,22 @@ class AutoPlot():
         #     autoscale_code      = _f.read()
         
         # Plotting ------------------------------------- #
+        # # Account Balance
+        # fig = figure(plot_width     = 800,
+        #              plot_height    = 150,
+        #              title          = None,
+        #              tools          = self.fig_tools,
+        #              active_drag    = 'pan',
+        #              active_scroll  = 'wheel_zoom',
+        #              x_range        = linked_fig.x_range)
+        
+        # # Add glyphs
+        # fig.line(self._modified_data.index, 
+        #          NAV, 
+        #          line_color         = 'black',
+        #          legend_label       = 'Backtest Net Asset Value')
+        
+        # Pie chart of trades per bot
         data = pd.Series(multibot_backtest_results.no_trades).reset_index(name='value').rename(columns={'index':'instrument'})
         data['angle'] = data['value']/data['value'].sum() * 2*pi
         if len(multibot_backtest_results) < 3:
@@ -191,6 +207,9 @@ class AutoPlot():
         p.grid.grid_line_color = None
         
         show(p)
+        
+        # Bar plot for avg/max win/loss
+        
         
         # # Above plots
         # top_fig             = self.plot_portfolio_history(NAV, bot_PL_plot)
