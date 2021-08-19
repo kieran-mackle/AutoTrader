@@ -290,6 +290,12 @@ class AutoTrader():
         instruments = []
         win_rate    = []
         no_trades   = []
+        avg_win     = []
+        max_win     = []
+        avg_loss    = []
+        max_loss    = []
+        no_long     = []
+        no_short    = []
         
         if bots is None:
             bots = self.bots_deployed
@@ -300,13 +306,29 @@ class AutoTrader():
             instruments.append(bot.instrument)
             win_rate.append(backtest_results['all_trades']['win_rate'])
             no_trades.append(backtest_results['no_trades'])
+            avg_win.append(backtest_results['all_trades']['avg_win'])
+            max_win.append(backtest_results['all_trades']['max_win'])
+            avg_loss.append(backtest_results['all_trades']['avg_loss'])
+            max_loss.append(backtest_results['all_trades']['max_loss'])
+            no_long.append(backtest_results['long_trades']['no_trades'])
+            no_short.append(backtest_results['short_trades']['no_trades'])
+            
         
         multibot_backtest_results = pd.DataFrame(data={'win_rate': win_rate,
-                                                       'no_trades': no_trades},
+                                                       'no_trades': no_trades,
+                                                       'avg_win': avg_win,
+                                                       'max_win': max_win,
+                                                       'avg_loss': avg_loss,
+                                                       'max_loss': max_loss,
+                                                       'no_long': no_long,
+                                                       'no_short': no_short},
                                                  index=instruments)
+        
+        self.multibot_backtest_results = multibot_backtest_results
         
         return multibot_backtest_results
         
+    
     def analyse_backtest(self, backtest_summary):
         '''
         Analyses backtest summary to extract key statistics.
