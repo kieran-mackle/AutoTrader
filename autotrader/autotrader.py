@@ -199,8 +199,10 @@ class AutoTrader():
         ''' -------------------------------------------------------------- '''
         '''                  Analyse price data using strategy             '''
         ''' -------------------------------------------------------------- '''
-        start_range, end_range = self.get_iteration_range(data)
+        if int(self.verbosity) > 0 and self.backtest:
+            print("\nTrading...")
         
+        start_range, end_range = self.get_iteration_range(data)
         for i in range(start_range, end_range):
             
             # Update each bot with latest data to generate signal
@@ -247,8 +249,9 @@ class AutoTrader():
                     # TODO
                     print("Results for multiple-instrument backtests coming soon!")
                     print("In the meantime, check AutoTrader.bots_deployed.")
-                    self.multibot_backtest_analysis()
-                    self.print_multibot_backtest_results()
+                    mbr = self.multibot_backtest_analysis()
+                    print(mbr)
+                    # self.print_multibot_backtest_results()
             
             if self.show_plot:
                 if len(self.bots_deployed) == 1:
@@ -267,7 +270,7 @@ class AutoTrader():
                 
                 else:
                     # Backtest run with multiple bots
-                    print("Multiple-instrument backtest plots coming soon!.")
+                    print("Multiple-instrument backtest plots coming soon!")
                     # TODO - create plot_backtest method, and
                     # plot portfolio balance history (assets and equity), 
                     # plus whatever other information could be useful, eg. bot 
@@ -284,25 +287,116 @@ class AutoTrader():
                 bots (list): a list of AutoTrader bots to analyse.
         '''
         
-        # Create dict like {'No. Trades': [], 'Win Rate (%)': [], ...}
-        # Where the values in each list correspond to a bot
-        # index will then be an ordered list of the bots 
-        
         instruments = []
-        win_rate = []
-        no_trades = []
-        
+        win_rate    = []
+        no_trades   = []
         
         if bots is None:
             bots = self.bots_deployed
         
         for bot in bots:
-            print()
+            backtest_results = self.analyse_backtest(bot.backtest_summary)
             
+            instruments.append(bot.instrument)
+            win_rate.append(backtest_results['all_trades']['win_rate'])
+            no_trades.append(backtest_results['no_trades'])
         
+        multibot_backtest_results = pd.DataFrame(data={'win_rate': win_rate,
+                                                       'no_trades': no_trades},
+                                                 index=instruments)
         
+        return multibot_backtest_results
         
-        return
+    def analyse_backtest(self, backtest_summary):
+        '''
+        Analyses backtest summary to extract key statistics.
+        
+            Parameters:
+                backtest_summary (dict): summary of backtest performance of bot.
+        '''
+        
+        trade_summary   = backtest_summary['trade_summary']
+        instrument      = backtest_summary['instrument']
+        
+        backtest_results = {}
+        
+        # All trades
+        no_trades   = len(trade_summary)
+        backtest_results['no_trades'] = no_trades
+        if no_trades > 0:
+            backtest_results['all_trades'] = {}
+            wins        = trade_summary[trade_summary.Profit > 0]
+            avg_win     = np.mean(wins.Profit)
+            max_win     = np.max(wins.Profit)
+            loss        = trade_summary[trade_summary.Profit < 0]
+            avg_loss    = abs(np.mean(loss.Profit))
+            max_loss    = abs(np.min(loss.Profit))
+            win_rate    = 100*len(wins)/no_trades
+            longest_win_streak, longest_lose_streak  = self.broker_utils.get_streaks(trade_summary)
+            avg_trade_duration = np.mean(trade_summary.Trade_duration.values)
+            min_trade_duration = min(trade_summary.Trade_duration.values)
+            max_trade_duration = max(trade_summary.Trade_duration.values)
+            
+            backtest_results['all_trades']['avg_win']       = avg_win
+            backtest_results['all_trades']['max_win']       = max_win
+            backtest_results['all_trades']['avg_loss']      = avg_loss
+            backtest_results['all_trades']['max_loss']      = max_loss
+            backtest_results['all_trades']['win_rate']      = win_rate
+            backtest_results['all_trades']['win_streak']    = longest_win_streak
+            backtest_results['all_trades']['lose_streak']   = longest_lose_streak
+            backtest_results['all_trades']['longest_trade'] = str(timedelta(seconds = int(max_trade_duration)))
+            backtest_results['all_trades']['shortest_trade'] = str(timedelta(seconds = int(min_trade_duration)))
+            backtest_results['all_trades']['avg_trade_duration'] = str(timedelta(seconds = int(avg_trade_duration)))
+        
+        # Cancelled and open orders
+        cancelled_orders = self.broker.get_cancelled_orders(instrument)
+        open_trades      = self.broker.get_open_positions(instrument)
+        backtest_results['no_open'] = len(open_trades)
+        backtest_results['no_cancelled'] = len(cancelled_orders)
+        
+        # Long trades
+        long_trades     = trade_summary[trade_summary.Size > 0]
+        no_long         = len(long_trades)
+        backtest_results['long_trades'] = {}
+        backtest_results['long_trades']['no_trades'] = no_long
+        if no_long > 0:
+            long_wins       = long_trades[long_trades.Profit > 0]
+            avg_long_win    = np.mean(long_wins.Profit)
+            max_long_win    = np.max(long_wins.Profit)
+            long_loss       = long_trades[long_trades.Profit < 0]
+            avg_long_loss   = abs(np.mean(long_loss.Profit))
+            max_long_loss   = abs(np.min(long_loss.Profit))
+            long_wr         = 100*len(long_trades[long_trades.Profit > 0])/no_long
+            
+            backtest_results['long_trades']['avg_long_win']     = avg_long_win
+            backtest_results['long_trades']['max_long_win']     = max_long_win 
+            backtest_results['long_trades']['avg_long_loss']    = avg_long_loss
+            backtest_results['long_trades']['max_long_loss']    = max_long_loss
+            backtest_results['long_trades']['long_wr']          = long_wr
+            
+          
+        # Short trades
+        short_trades    = trade_summary[trade_summary.Size < 0]
+        no_short        = len(short_trades)
+        backtest_results['short_trades'] = {}
+        backtest_results['short_trades']['no_trades'] = no_short
+        if no_short > 0:
+            short_wins      = short_trades[short_trades.Profit > 0]
+            avg_short_win   = np.mean(short_wins.Profit)
+            max_short_win   = np.max(short_wins.Profit)
+            short_loss      = short_trades[short_trades.Profit < 0]
+            avg_short_loss  = abs(np.mean(short_loss.Profit))
+            max_short_loss  = abs(np.min(short_loss.Profit))
+            short_wr        = 100*len(short_trades[short_trades.Profit > 0])/no_short
+            
+            backtest_results['short_trades']['avg_short_win']   = avg_short_win
+            backtest_results['short_trades']['max_short_win']   = max_short_win
+            backtest_results['short_trades']['avg_short_loss']  = avg_short_loss
+            backtest_results['short_trades']['max_short_loss']  = max_short_loss
+            backtest_results['short_trades']['short_wr']        = short_wr
+        
+        return backtest_results
+        
     
     def print_multibot_backtest_results(self, backtest_results=None):
         '''
@@ -595,9 +689,9 @@ class AutoTrader():
 
         return start_range, end_range
 
+
     def extract_backtest_results(self, trade_summary, broker, starting_balance, 
                                  utils):
-        
         '''
         Analyses backtest summary to extract key statistics.
         '''
@@ -1003,7 +1097,6 @@ class AutoTraderBot:
         self.instrument = instrument
         self.data       = data
         self.quote_data = None
-        self.backtest_results = None
         self.latest_orders = []
         
         # Inherit user options from autotrader
@@ -1222,7 +1315,7 @@ class AutoTraderBot:
         backtest_dict['margin']         = margin
         backtest_dict['trade_summary']  = trade_summary
         backtest_dict['indicators']     = self.strategy.indicators if hasattr(self.strategy, 'indicators') else None
-        backtest_dict['pair']           = self.instrument
+        backtest_dict['instrument']     = self.instrument
         backtest_dict['interval']       = self.strategy_params['granularity']
         backtest_dict['open_trades']    = open_trade_summary
         backtest_dict['cancelled_trades'] = cancelled_summary
