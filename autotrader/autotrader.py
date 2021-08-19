@@ -284,11 +284,22 @@ class AutoTrader():
                 bots (list): a list of AutoTrader bots to analyse.
         '''
         
+        # Create dict like {'No. Trades': [], 'Win Rate (%)': [], ...}
+        # Where the values in each list correspond to a bot
+        # index will then be an ordered list of the bots 
+        
+        instruments = []
+        win_rate = []
+        no_trades = []
+        
+        
         if bots is None:
             bots = self.bots_deployed
         
         for bot in bots:
             print()
+            
+        
         
         
         return
