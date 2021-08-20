@@ -20,7 +20,7 @@ from bokeh.models import (
     HoverTool,
     CrosshairTool
 )
-from bokeh.layouts import gridplot
+from bokeh.layouts import gridplot, layout
 from bokeh.transform import factor_cmap, cumsum
 from bokeh.palettes import Category20c, GnBu3, OrRd3
 from math import pi
@@ -156,60 +156,79 @@ class AutoPlot():
         output_file("candlestick.html",
                     title = "AutoTrader Multi-Bot Backtest Results")
         
-        # if self._modified_data is None:
-        #     self._reindex_data()
+        if self._modified_data is None:
+            self._reindex_data()
         # source                  = ColumnDataSource(self._modified_data)
         # source.add((self._modified_data.Close >= self._modified_data.Open).values.astype(np.uint8).astype(str),
-        #            'change')
+        #             'change')
         
         # TODO - Load JavaScript code for auto-scaling - use for NAV
         # with open(os.path.join(os.path.dirname(__file__), 'lib/autoscale.js'),
         #           encoding = 'utf-8') as _f:
         #     autoscale_code      = _f.read()
         
-        # Plotting ------------------------------------- #
-        # # Account Balance
-        # fig = figure(plot_width     = 800,
-        #              plot_height    = 150,
-        #              title          = None,
-        #              tools          = self.fig_tools,
-        #              active_drag    = 'pan',
-        #              active_scroll  = 'wheel_zoom',
-        #              x_range        = linked_fig.x_range)
+        # ----------------------- Account Balance -------------------------- #
+        navfig = figure(plot_width = 800,
+                        plot_height = 150,
+                        title = None,
+                        active_drag = 'pan',
+                        active_scroll = 'wheel_zoom')
         
-        # # Add glyphs
-        # fig.line(self._modified_data.index, 
-        #          NAV, 
-        #          line_color         = 'black',
-        #          legend_label       = 'Backtest Net Asset Value')
+        # Add glyphs
+        navfig.line(self._modified_data.index, 
+                    NAV, 
+                    line_color = 'black',
+                    legend_label = 'Backtest Net Asset Value')
         
-        # Pie chart of trades per bot
-        # data = pd.Series(multibot_backtest_results.no_trades).reset_index(name='value').rename(columns={'index':'instrument'})
-        # data['angle'] = data['value']/data['value'].sum() * 2*pi
-        # if len(multibot_backtest_results) < 3:
-        #     data['color'] = Category20c[3][0:len(multibot_backtest_results)]
-        # else:
-        #     data['color'] = Category20c[len(multibot_backtest_results)]
-
-        # p = figure(plot_height=350, 
-        #            title = "Trade distribution", 
-        #            toolbar_location = None,
-        #            tools = "hover", 
-        #            tooltips="@instrument: @value",
-        #            x_range=(-0.5, 1.0))
+        navfig.xaxis.major_label_overrides = {
+                    i: date.strftime('%b %d') for i, date in enumerate(pd.to_datetime(self._modified_data["date"]))
+                }
+        navfig.xaxis.bounds = (0, self._modified_data.index[-1])
+        navfig.sizing_mode = 'stretch_width'
+        navfig.legend.location = 'top_left'
+        navfig.legend.border_line_width   = 1
+        navfig.legend.border_line_color   = '#333333'
+        navfig.legend.padding             = 5
+        navfig.legend.spacing             = 0
+        navfig.legend.margin              = 0
+        navfig.legend.label_text_font_size = '8pt'
         
-        # p.wedge(x=0, y=1, radius=0.4,
-        #         start_angle=cumsum('angle', include_zero=True), end_angle=cumsum('angle'),
-        #         line_color="white", fill_color='color', legend_field='instrument', source=data)
         
-        # p.axis.axis_label=None
-        # p.axis.visible=False
-        # p.grid.grid_line_color = None
-        
-        # show(p)
-        
-        # Bar plot for avg/max win/loss
+        # ----------------------- Win rate bar chart ----------------------- #
         instruments = multibot_backtest_results.index.values
+        winrate = figure(x_range = instruments,
+                         title = "Bot win rate (%)",
+                         toolbar_location = None)
+        
+        winrate.vbar(x = instruments, 
+                     top = multibot_backtest_results.win_rate.values,
+                     width = 0.9)
+        
+        
+        # ----------------- Pie chart of trades per bot --------------------- #
+        pie_data = pd.Series(multibot_backtest_results.no_trades).reset_index(name='value').rename(columns={'index':'instrument'})
+        pie_data['angle'] = pie_data['value']/pie_data['value'].sum() * 2*pi
+        if len(multibot_backtest_results) < 3:
+            pie_data['color'] = Category20c[3][0:len(multibot_backtest_results)]
+        else:
+            pie_data['color'] = Category20c[len(multibot_backtest_results)]
+
+        pie = figure(title = "Trade distribution", 
+                     toolbar_location = None,
+                     tools = "hover", 
+                     tooltips="@instrument: @value",
+                     x_range=(-0.5, 1.0))
+        
+        pie.wedge(x=0, y=1, radius=0.4,
+                start_angle=cumsum('angle', include_zero=True), end_angle=cumsum('angle'),
+                line_color="white", fill_color='color', legend_field='instrument', source=pie_data)
+        
+        pie.axis.axis_label=None
+        pie.axis.visible=False
+        pie.grid.grid_line_color = None
+        pie.sizing_mode = 'stretch_width'
+        
+        # --------------- Bar plot for avg/max win/loss -------------------- #
         win_metrics = ['Average Win', 'Max. Win']
         lose_metrics = ['Average Loss', 'Max. Loss']
         
@@ -226,13 +245,12 @@ class AutoPlot():
                 'Max. Loss': multibot_backtest_results.avg_loss.values - 
                              multibot_backtest_results.max_loss.values}
         
-        p = figure(x_range=instruments,
-                   plot_height=350,
+        plbars = figure(x_range=instruments,
                    y_range=(abs_max_loss, abs_max_win),
                    title="Win/Loss breakdown",
                    toolbar_location=None)
 
-        p.vbar_stack(win_metrics,
+        plbars.vbar_stack(win_metrics,
                      x='instruments',
                      width = 0.9,
                      color = ('#008000', '#FFFFFF'),
@@ -240,7 +258,7 @@ class AutoPlot():
                      source = ColumnDataSource(wins),
                      legend_label = ["%s" % x for x in win_metrics])
 
-        p.vbar_stack(lose_metrics,
+        plbars.vbar_stack(lose_metrics,
                      x = 'instruments',
                      width = 0.9,
                      color = ('#ff0000' , '#FFFFFF'),
@@ -249,15 +267,20 @@ class AutoPlot():
                      legend_label = ["%s" % x for x in lose_metrics])
 
         
-        p.x_range.range_padding = 0.1
-        p.ygrid.grid_line_color = None
-        p.legend.location = "bottom_center"
-        p.axis.minor_tick_line_color = None
-        p.outline_line_color = None
+        plbars.x_range.range_padding = 0.1
+        plbars.ygrid.grid_line_color = None
+        plbars.legend.location = "bottom_center"
+        plbars.axis.minor_tick_line_color = None
+        plbars.outline_line_color = None
+        plbars.sizing_mode = 'stretch_width'
+    
+        # Construct final figure        
+        final_fig = layout([  
+                               [navfig],
+                            [winrate, pie, plbars]
+                        ])
         
-        show(p)
-        
-        
+        show(final_fig)
         
         # # Above plots
         # top_fig             = self.plot_portfolio_history(NAV, bot_PL_plot)

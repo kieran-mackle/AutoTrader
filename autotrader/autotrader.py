@@ -270,6 +270,7 @@ class AutoTrader():
                     # Backtest run with multiple bots
                     print("Multiple-instrument backtest plots coming soon!")
                     ap = autoplot.AutoPlot()
+                    ap.data = data
                     ap.plot_multibot_backtest(self.multibot_backtest_results, 
                                               NAV)
                     # TODO - create plot_backtest method, and
