@@ -22,7 +22,7 @@ from bokeh.models import (
 )
 from bokeh.layouts import gridplot
 from bokeh.transform import factor_cmap, cumsum
-from bokeh.palettes import Category20c
+from bokeh.palettes import Category20c, GnBu3, OrRd3
 from math import pi
 
 
@@ -184,31 +184,79 @@ class AutoPlot():
         #          legend_label       = 'Backtest Net Asset Value')
         
         # Pie chart of trades per bot
-        data = pd.Series(multibot_backtest_results.no_trades).reset_index(name='value').rename(columns={'index':'instrument'})
-        data['angle'] = data['value']/data['value'].sum() * 2*pi
-        if len(multibot_backtest_results) < 3:
-            data['color'] = Category20c[3][0:len(multibot_backtest_results)]
-        else:
-            data['color'] = Category20c[len(multibot_backtest_results)]
+        # data = pd.Series(multibot_backtest_results.no_trades).reset_index(name='value').rename(columns={'index':'instrument'})
+        # data['angle'] = data['value']/data['value'].sum() * 2*pi
+        # if len(multibot_backtest_results) < 3:
+        #     data['color'] = Category20c[3][0:len(multibot_backtest_results)]
+        # else:
+        #     data['color'] = Category20c[len(multibot_backtest_results)]
 
-        p = figure(plot_height=350, 
-                   title = "Trade distribution", 
-                   toolbar_location = None,
-                   tools = "hover", 
-                   tooltips="@instrument: @value",
-                   x_range=(-0.5, 1.0))
+        # p = figure(plot_height=350, 
+        #            title = "Trade distribution", 
+        #            toolbar_location = None,
+        #            tools = "hover", 
+        #            tooltips="@instrument: @value",
+        #            x_range=(-0.5, 1.0))
         
-        p.wedge(x=0, y=1, radius=0.4,
-                start_angle=cumsum('angle', include_zero=True), end_angle=cumsum('angle'),
-                line_color="white", fill_color='color', legend_field='instrument', source=data)
+        # p.wedge(x=0, y=1, radius=0.4,
+        #         start_angle=cumsum('angle', include_zero=True), end_angle=cumsum('angle'),
+        #         line_color="white", fill_color='color', legend_field='instrument', source=data)
         
-        p.axis.axis_label=None
-        p.axis.visible=False
-        p.grid.grid_line_color = None
+        # p.axis.axis_label=None
+        # p.axis.visible=False
+        # p.grid.grid_line_color = None
+        
+        # show(p)
+        
+        # Bar plot for avg/max win/loss
+        instruments = multibot_backtest_results.index.values
+        win_metrics = ['Average Win', 'Max. Win']
+        lose_metrics = ['Average Loss', 'Max. Loss']
+        
+        abs_max_loss = -1.2*max(multibot_backtest_results.max_loss)
+        abs_max_win = 1.2*max(multibot_backtest_results.max_win)
+        
+        wins = {'instruments': instruments,
+                'Average Win': multibot_backtest_results.avg_win.values,
+                'Max. Win': multibot_backtest_results.max_win.values - 
+                            multibot_backtest_results.avg_win.values}
+        
+        loss = {'instruments': instruments,
+                'Average Loss': -multibot_backtest_results.avg_loss.values,
+                'Max. Loss': multibot_backtest_results.avg_loss.values - 
+                             multibot_backtest_results.max_loss.values}
+        
+        p = figure(x_range=instruments,
+                   plot_height=350,
+                   y_range=(abs_max_loss, abs_max_win),
+                   title="Win/Loss breakdown",
+                   toolbar_location=None)
+
+        p.vbar_stack(win_metrics,
+                     x='instruments',
+                     width = 0.9,
+                     color = ('#008000', '#FFFFFF'),
+                     line_color='black',
+                     source = ColumnDataSource(wins),
+                     legend_label = ["%s" % x for x in win_metrics])
+
+        p.vbar_stack(lose_metrics,
+                     x = 'instruments',
+                     width = 0.9,
+                     color = ('#ff0000' , '#FFFFFF'),
+                     line_color='black',
+                     source = ColumnDataSource(loss),
+                     legend_label = ["%s" % x for x in lose_metrics])
+
+        
+        p.x_range.range_padding = 0.1
+        p.ygrid.grid_line_color = None
+        p.legend.location = "bottom_center"
+        p.axis.minor_tick_line_color = None
+        p.outline_line_color = None
         
         show(p)
         
-        # Bar plot for avg/max win/loss
         
         
         # # Above plots
