@@ -196,13 +196,19 @@ class AutoPlot():
         
         # ----------------------- Win rate bar chart ----------------------- #
         instruments = multibot_backtest_results.index.values
+        MBR = ColumnDataSource(multibot_backtest_results)
         winrate = figure(x_range = instruments,
                          title = "Bot win rate (%)",
-                         toolbar_location = None)
+                         toolbar_location = None,
+                         tools = 'hover',
+                         tooltips = "@index: @win_rate%")
         
-        winrate.vbar(x = instruments, 
-                     top = multibot_backtest_results.win_rate.values,
-                     width = 0.9)
+        winrate.vbar(x = 'index', 
+                     top = 'win_rate',
+                     width = 0.9,
+                     source = MBR)
+        
+        winrate.sizing_mode = 'stretch_width'
         
         
         # ----------------- Pie chart of trades per bot --------------------- #
@@ -235,27 +241,35 @@ class AutoPlot():
         abs_max_loss = -1.2*max(multibot_backtest_results.max_loss)
         abs_max_win = 1.2*max(multibot_backtest_results.max_win)
         
-        wins = {'instruments': instruments,
+        pldata = {'instruments': instruments,
                 'Average Win': multibot_backtest_results.avg_win.values,
                 'Max. Win': multibot_backtest_results.max_win.values - 
-                            multibot_backtest_results.avg_win.values}
-        
-        loss = {'instruments': instruments,
+                            multibot_backtest_results.avg_win.values,
                 'Average Loss': -multibot_backtest_results.avg_loss.values,
                 'Max. Loss': multibot_backtest_results.avg_loss.values - 
                              multibot_backtest_results.max_loss.values}
         
+        TOOLTIPS = [
+                    ("Instrument:", "@instruments"),
+                    ("Max win", "@{Max. Win}"),
+                    ("Avg. win", "@{Average Win}"),
+                    ("Max Loss", "@{Max. Loss}"),
+                    ("Avg. loss", "@{Average Loss}"),
+                    ]
+        
         plbars = figure(x_range=instruments,
                    y_range=(abs_max_loss, abs_max_win),
                    title="Win/Loss breakdown",
-                   toolbar_location=None)
+                   toolbar_location=None,
+                   tools = "hover",
+                   tooltips = TOOLTIPS)
 
         plbars.vbar_stack(win_metrics,
                      x='instruments',
                      width = 0.9,
                      color = ('#008000', '#FFFFFF'),
                      line_color='black',
-                     source = ColumnDataSource(wins),
+                     source = ColumnDataSource(pldata),
                      legend_label = ["%s" % x for x in win_metrics])
 
         plbars.vbar_stack(lose_metrics,
@@ -263,9 +277,8 @@ class AutoPlot():
                      width = 0.9,
                      color = ('#ff0000' , '#FFFFFF'),
                      line_color='black',
-                     source = ColumnDataSource(loss),
+                     source = ColumnDataSource(pldata),
                      legend_label = ["%s" % x for x in lose_metrics])
-
         
         plbars.x_range.range_padding = 0.1
         plbars.ygrid.grid_line_color = None
