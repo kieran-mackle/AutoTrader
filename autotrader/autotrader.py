@@ -268,11 +268,18 @@ class AutoTrader():
                 
                 else:
                     # Backtest run with multiple bots
-                    print("Multiple-instrument backtest plots coming soon!")
+                    cpl_dict = {}
+                    for bot in self.bots_deployed:
+                        profit_df = pd.merge(bot.data, 
+                                 bot.backtest_summary['trade_summary']['Profit'], 
+                                 left_index=True, right_index=True).Profit.cumsum()
+                        cpl_dict[bot.instrument] = profit_df
+                    
                     ap = autoplot.AutoPlot()
                     ap.data = data
                     ap.plot_multibot_backtest(self.multibot_backtest_results, 
-                                              NAV)
+                                              NAV,
+                                              cpl_dict)
                     # TODO - create plot_backtest method, and
                     # plot portfolio balance history (assets and equity), 
                     # plus whatever other information could be useful, eg. bot 

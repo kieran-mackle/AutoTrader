@@ -22,7 +22,7 @@ from bokeh.models import (
 )
 from bokeh.layouts import gridplot, layout
 from bokeh.transform import factor_cmap, cumsum
-from bokeh.palettes import Category20c, GnBu3, OrRd3
+from bokeh.palettes import Category20c, GnBu3, OrRd3, Category20
 from math import pi
 
 
@@ -149,8 +149,17 @@ class AutoPlot():
         show(fig)
     
     
-    def plot_multibot_backtest(self, multibot_backtest_results, NAV):
-        ''' Creates multi-bot backtest figure. '''
+    def plot_multibot_backtest(self, multibot_backtest_results, NAV, cpl_dict):
+        ''' 
+        Creates multi-bot backtest figure. 
+        
+            Parameters:
+                multibot_backtest_results (df): dataframe of bot backtest results.
+                
+                NAV (list): Net asset value.
+                
+                cpl_dict (dict): cumulative PL of each bot.
+        '''
         
         # Preparation ----------------------------------- #
         output_file("candlestick.html",
@@ -166,6 +175,8 @@ class AutoPlot():
         # with open(os.path.join(os.path.dirname(__file__), 'lib/autoscale.js'),
         #           encoding = 'utf-8') as _f:
         #     autoscale_code      = _f.read()
+        
+        linked_crosshair    = CrosshairTool(dimensions='both')
         
         # ----------------------- Account Balance -------------------------- #
         navfig = figure(plot_width = 800,
@@ -192,7 +203,7 @@ class AutoPlot():
         navfig.legend.spacing             = 0
         navfig.legend.margin              = 0
         navfig.legend.label_text_font_size = '8pt'
-        
+        navfig.add_tools(linked_crosshair)
         
         # ----------------------- Win rate bar chart ----------------------- #
         instruments = multibot_backtest_results.index.values
@@ -287,65 +298,49 @@ class AutoPlot():
         plbars.outline_line_color = None
         plbars.sizing_mode = 'stretch_width'
     
-        # Construct final figure        
+    
+        # --------------------- Cumulative PL ------------------------------ #
+        cplfig = figure(plot_width = navfig.plot_width,
+                        plot_height = 150,
+                        title = None,
+                        active_drag = 'pan',
+                        active_scroll = 'wheel_zoom',
+                        x_range = navfig.x_range)
+        
+        self.data['data_index'] = self.data.reset_index(drop=True).index
+        
+        
+        for ix, instrument in enumerate(cpl_dict):
+            cpldata = cpl_dict[instrument].copy().to_frame()
+            cpldata['date'] = cpldata.index
+            cpldata         = cpldata.reset_index(drop = True)
+            
+            cpldata = pd.merge(self.data, cpldata, left_on='date', right_on='date')
+            
+            cplfig.line(cpldata.data_index.values,
+                        cpldata.Profit.values,
+                        legend_label = "{}".format(instrument),
+                        line_color = Category20[10][ix])
+        
+        cplfig.legend.location = 'top_left'
+        cplfig.legend.border_line_width   = 1
+        cplfig.legend.border_line_color   = '#333333'
+        cplfig.legend.padding             = 5
+        cplfig.legend.spacing             = 0
+        cplfig.legend.margin              = 0
+        cplfig.legend.label_text_font_size = '8pt'
+        cplfig.sizing_mode = 'stretch_width'
+        cplfig.add_tools(linked_crosshair)
+        
+        # -------------------- Construct final figure ---------------------- #     
         final_fig = layout([  
-                               [navfig],
-                            [winrate, pie, plbars]
+                                   [navfig],
+                            [winrate, pie, plbars],
+                                   [cplfig]
                         ])
         
         show(final_fig)
         
-        # # Above plots
-        # top_fig             = self.plot_portfolio_history(NAV, bot_PL_plot)
-        
-        # # Compile plots for final figure
-        # plots               = [top_fig, candle_plot] + bottom_figs
-        
-        # linked_crosshair    = CrosshairTool(dimensions='both')
-        
-        # titled  = 0
-        # t       = Title()
-        # t.text  = "Multi-Bot Backtest Results"
-        # for plot in plots:
-        #     if plot is not None:
-        #         plot.xaxis.major_label_overrides = {
-        #             i: date.strftime('%b %d') for i, date in enumerate(pd.to_datetime(self._modified_data["date"]))
-        #         }
-        #         plot.xaxis.bounds   = (0, self._modified_data.index[-1])
-        #         plot.sizing_mode    = 'stretch_width'
-                
-        #         if titled == 0:
-        #             plot.title = t
-        #             titled = 1
-                
-        #         if plot.legend:
-        #             plot.legend.visible             = True
-        #             plot.legend.location            = 'top_left'
-        #             plot.legend.border_line_width   = 1
-        #             plot.legend.border_line_color   = '#333333'
-        #             plot.legend.padding             = 5
-        #             plot.legend.spacing             = 0
-        #             plot.legend.margin              = 0
-        #             plot.legend.label_text_font_size = '8pt'
-        #             plot.legend.click_policy        = "hide"
-                
-        #         plot.add_tools(linked_crosshair)
-        #         plot.min_border_left    = 0
-        #         plot.min_border_top     = 3
-        #         plot.min_border_bottom  = 6
-        #         plot.min_border_right   = 10
-        #         plot.outline_line_color = 'black'
-    
-        # # Construct final figure
-        # fig                 = gridplot(plots, 
-        #                                ncols            = 1, 
-        #                                toolbar_location = 'right',
-        #                                toolbar_options  = dict(logo = None), 
-        #                                merge_tools      = True
-        #                                )
-        # fig.sizing_mode     = 'stretch_width'
-        # show(fig)
-    
     
     def view_indicators(self, indicators=None, instrument=None):
         ''' Constructs indicator visualisation figure. '''
