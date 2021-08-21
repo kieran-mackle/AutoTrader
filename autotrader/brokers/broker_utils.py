@@ -221,7 +221,7 @@ class BrokerUtils:
                 if type(closed_positions_dict[order]['exit_time']) == str:
                     exit_dt     = datetime.strptime(closed_positions_dict[order]['exit_time'],
                                                     "%Y-%m-%d %H:%M:%S%z")
-                    entry_dt    = datetime.strptime(closed_positions_dict[order]['entry_time'],
+                    entry_dt    = datetime.strptime(closed_positions_dict[order]['time_filled'],
                                                     "%Y-%m-%d %H:%M:%S%z")
                     trade_duration.append(exit_dt.timestamp() - entry_dt.timestamp())
                 else:

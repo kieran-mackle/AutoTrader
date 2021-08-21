@@ -13,9 +13,6 @@
                              Kieran Mackle
                              Version 0.1.6
                              
-This code is in development. TODO items include:
-    - verification of other dependent functions: optimisation, etc.
-
 """
 
 from getopt import getopt
@@ -355,6 +352,8 @@ class AutoTrader():
         trade_summary   = backtest_summary['trade_summary']
         instrument      = backtest_summary['instrument']
         
+        cpl             = trade_summary.Profit.cumsum()
+        
         backtest_results = {}
         
         # All trades
@@ -384,7 +383,8 @@ class AutoTrader():
             backtest_results['all_trades']['longest_trade'] = str(timedelta(seconds = int(max_trade_duration)))
             backtest_results['all_trades']['shortest_trade'] = str(timedelta(seconds = int(min_trade_duration)))
             backtest_results['all_trades']['avg_trade_duration'] = str(timedelta(seconds = int(avg_trade_duration)))
-        
+            backtest_results['all_trades']['net_pl']        = cpl.values[-1]
+            
         # Cancelled and open orders
         cancelled_orders = self.broker.get_cancelled_orders(instrument)
         open_trades      = self.broker.get_open_positions(instrument)
