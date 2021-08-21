@@ -1,1 +1,1 @@
-global-include *.js
+include autotrader/lib/autoscale.js
