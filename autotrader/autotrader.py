@@ -456,8 +456,9 @@ class AutoTrader():
         print(backtest_results[['win_rate']])
         print("\nMaximum/Average Win/Loss breakdown ($):")
         print(backtest_results[["max_win", "max_loss", "avg_win", "avg_loss"]])
-        print("Average Risk-Reward Ratio (avg win/avg loss):")
+        print("\nAverage Risk-Reward Ratio (avg win/avg loss):")
         print(round(backtest_results.avg_win / backtest_results.avg_loss,1))
+        print("")
         
 
     def read_yaml(self, file_path):
