@@ -246,7 +246,6 @@ class AutoTrader():
                         print("live-trade account and backtest is ${}.".format(round(final_balance_diff, 2)))
                         print("Number of live trades: {} trades.".format(no_live_trades))
                 else:
-                    # TODO - printed results
                     self.multibot_backtest_results = self.multibot_backtest_analysis()
                     self.print_multibot_backtest_results(self.multibot_backtest_results)
                     
@@ -286,8 +285,6 @@ class AutoTrader():
                              bot.backtest_summary['trade_summary']['Profit'], 
                              left_index=True, right_index=True).Profit.cumsum()
         
-        # TODO - add flag to hide NAV/show cumulative PL instead 
-        # just check if len(self.bots_deployed) > 1, then flag ap internally
         if validation_file is None:
             ap.plot_backtest(bot.backtest_summary, cumulative_PL=profit_df)
             
@@ -446,7 +443,21 @@ class AutoTrader():
                 backtest_results (dict): dictionary containing backtest results.
         '''
         
-        print("Multibot backtest analysis coming soon!")
+        print("\n---------------------------------------------------")
+        print("         MultiBot Backtest Results")
+        print("---------------------------------------------------")
+        print("Instruments traded: ", backtest_results.index.values)
+        print("Total no trades:    ", backtest_results.no_trades.sum())
+        print("Short trades:       ", backtest_results.no_short.sum(),
+              "({}%)".format(round(100*backtest_results.no_short.sum()/backtest_results.no_trades.sum(),2)))
+        print("Long trades:        ", backtest_results.no_long.sum(),
+              "({}%)".format(round(100*backtest_results.no_long.sum()/backtest_results.no_trades.sum(),2)))
+        print("\nInstrument win rates (%):")
+        print(backtest_results[['win_rate']])
+        print("\nMaximum/Average Win/Loss breakdown ($):")
+        print(backtest_results[["max_win", "max_loss", "avg_win", "avg_loss"]])
+        print("Average Risk-Reward Ratio (avg win/avg loss):")
+        print(round(backtest_results.avg_win / backtest_results.avg_loss,1))
         
 
     def read_yaml(self, file_path):
