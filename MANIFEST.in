@@ -1,1 +1,1 @@
-recursive-include autotrader *.js
+include *.js
