@@ -212,7 +212,8 @@ class AutoPlot():
                          title = "Bot win rate (%)",
                          toolbar_location = None,
                          tools = 'hover',
-                         tooltips = "@index: @win_rate%")
+                         tooltips = "@index: @win_rate%",
+                         plot_height = 250)
         
         winrate.vbar(x = 'index', 
                      top = 'win_rate',
@@ -234,16 +235,29 @@ class AutoPlot():
                      toolbar_location = None,
                      tools = "hover", 
                      tooltips="@instrument: @value",
-                     x_range=(-0.5, 1.0))
+                     x_range=(-1, 1),
+                     y_range=(0.0, 2.0),
+                     plot_height = 250)
         
-        pie.wedge(x=0, y=1, radius=0.4,
-                start_angle=cumsum('angle', include_zero=True), end_angle=cumsum('angle'),
-                line_color="white", fill_color='color', legend_field='instrument', source=pie_data)
+        pie.wedge(x=0, y=1, radius=0.3,
+                  start_angle=cumsum('angle', include_zero=True), 
+                  end_angle=cumsum('angle'),
+                  line_color="white", 
+                  fill_color='color',
+                  legend_field='instrument',
+                  source=pie_data)
         
         pie.axis.axis_label=None
         pie.axis.visible=False
         pie.grid.grid_line_color = None
         pie.sizing_mode = 'stretch_width'
+        pie.legend.location = "top_left"
+        pie.legend.border_line_width   = 1
+        pie.legend.border_line_color   = '#333333'
+        pie.legend.padding             = 5
+        pie.legend.spacing             = 0
+        pie.legend.margin              = 0
+        pie.legend.label_text_font_size = '8pt'
         
         # --------------- Bar plot for avg/max win/loss -------------------- #
         win_metrics = ['Average Win', 'Max. Win']
@@ -269,11 +283,12 @@ class AutoPlot():
                     ]
         
         plbars = figure(x_range=instruments,
-                   y_range=(abs_max_loss, abs_max_win),
-                   title="Win/Loss breakdown",
-                   toolbar_location=None,
-                   tools = "hover",
-                   tooltips = TOOLTIPS)
+                        y_range=(abs_max_loss, abs_max_win),
+                        title="Win/Loss breakdown",
+                        toolbar_location=None,
+                        tools = "hover",
+                        tooltips = TOOLTIPS,
+                        plot_height = 250)
 
         plbars.vbar_stack(win_metrics,
                      x='instruments',
@@ -294,6 +309,12 @@ class AutoPlot():
         plbars.x_range.range_padding = 0.1
         plbars.ygrid.grid_line_color = None
         plbars.legend.location = "bottom_center"
+        plbars.legend.border_line_width   = 1
+        plbars.legend.border_line_color   = '#333333'
+        plbars.legend.padding             = 5
+        plbars.legend.spacing             = 0
+        plbars.legend.margin              = 0
+        plbars.legend.label_text_font_size = '8pt'
         plbars.axis.minor_tick_line_color = None
         plbars.outline_line_color = None
         plbars.sizing_mode = 'stretch_width'
@@ -332,13 +353,18 @@ class AutoPlot():
         cplfig.sizing_mode = 'stretch_width'
         cplfig.add_tools(linked_crosshair)
         
+        cplfig.xaxis.major_label_overrides = {
+                    i: date.strftime('%b %d') for i, date in enumerate(pd.to_datetime(self._modified_data["date"]))
+                }
+        cplfig.xaxis.bounds   = (0, self._modified_data.index[-1])
+        
         # -------------------- Construct final figure ---------------------- #     
         final_fig = layout([  
                                    [navfig],
                             [winrate, pie, plbars],
                                    [cplfig]
                         ])
-        
+        final_fig.sizing_mode = 'scale_width'
         show(final_fig)
         
     
