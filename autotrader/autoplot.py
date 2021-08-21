@@ -48,7 +48,7 @@ class AutoPlot():
         modified_data           = modified_data.reset_index(drop = True)
         self._modified_data     = modified_data
     
-    def plot_backtest(self, backtest_dict):
+    def plot_backtest(self, backtest_dict, cumulative_PL=None):
         ''' Creates backtest figure. '''
         NAV             = backtest_dict['NAV']
         trade_summary   = backtest_dict['trade_summary']
@@ -98,7 +98,11 @@ class AutoPlot():
                                                          code = autoscale_code))
         
         # Above plots
-        top_fig             = self.plot_portfolio_history(NAV, candle_plot)
+        # TODO - plot cumulativePL with NAV
+        if cumulative_PL is None:
+            top_fig         = self.plot_portfolio_history(NAV, candle_plot)
+        else:
+            top_fig         = self.plot_cumulative_pl(cumulative_PL, candle_plot)
         
         # Compile plots for final figure
         plots               = [top_fig, candle_plot] + bottom_figs
@@ -830,6 +834,31 @@ class AutoPlot():
                             fill_color = 'black',
                             legend_label = 'Position exit')
 
+    
+    def plot_cumulative_pl(self, cumulative_PL, linked_fig):
+        ''' Plots cumulative PL of bot. '''
+        cpldata = cumulative_PL.to_frame()
+        cpldata['date'] = cpldata.index
+        cpldata = cpldata.reset_index(drop = True)
+        cpldata = pd.merge(self.data, cpldata, left_on='date', right_on='date')
+        
+        # Initialise figure
+        fig = figure(plot_width     = linked_fig.plot_width,
+                      plot_height    = 150,
+                      title          = None,
+                      tools          = self.fig_tools,
+                      active_drag    = 'pan',
+                      active_scroll  = 'wheel_zoom',
+                      x_range        = linked_fig.x_range)
+        
+        # Add glyphs
+        fig.step(cpldata.data_index.values,
+                 cpldata.Profit.values,
+                 line_color         = 'black',
+                 legend_label       = 'Cumulative P/L')
+    
+        return fig
+    
     
     def plot_portfolio_history(self, NAV, linked_fig):
         ''' Plots NAV over trade period. '''

@@ -246,11 +246,13 @@ class AutoTrader():
                         print("live-trade account and backtest is ${}.".format(round(final_balance_diff, 2)))
                         print("Number of live trades: {} trades.".format(no_live_trades))
                 else:
-                    # TODO
+                    # TODO - printed results
+                    self.multibot_backtest_results = self.multibot_backtest_analysis()
+                    self.print_multibot_backtest_results(self.multibot_backtest_results)
+                    
                     print("Results for multiple-instrument backtests have been")
                     print("written to AutoTrader.multibot_backtest_results.")
                     print("Individual bot results can be found in AutoTrader.bots_deployed.")
-                    self.multibot_backtest_results = self.multibot_backtest_analysis()
             
             if self.show_plot:
                 if len(self.bots_deployed) == 1:
@@ -280,11 +282,14 @@ class AutoTrader():
     def plot_backtest(self, bot=None, validation_file=None):
         ap = autoplot.AutoPlot()
         ap.data = bot.data
+        profit_df = pd.merge(bot.data, 
+                             bot.backtest_summary['trade_summary']['Profit'], 
+                             left_index=True, right_index=True).Profit.cumsum()
         
         # TODO - add flag to hide NAV/show cumulative PL instead 
         # just check if len(self.bots_deployed) > 1, then flag ap internally
         if validation_file is None:
-            ap.plot_backtest(bot.backtest_summary)
+            ap.plot_backtest(bot.backtest_summary, cumulative_PL=profit_df)
             
         else:
             ap.plot_validation_balance = self.plot_validation_balance # User option flag
@@ -441,8 +446,8 @@ class AutoTrader():
                 backtest_results (dict): dictionary containing backtest results.
         '''
         
+        print("Multibot backtest analysis coming soon!")
         
-        return
 
     def read_yaml(self, file_path):
         '''Function to read and extract contents from .yaml file.'''
