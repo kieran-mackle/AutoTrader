@@ -249,22 +249,17 @@ class AutoTrader():
                     # TODO
                     print("Results for multiple-instrument backtests have been")
                     print("written to AutoTrader.multibot_backtest_results.")
+                    print("Individual bot results can be found in AutoTrader.bots_deployed.")
                     self.multibot_backtest_results = self.multibot_backtest_analysis()
             
             if self.show_plot:
                 if len(self.bots_deployed) == 1:
-                    # Only one bot was deployed, proceed to plotting
-                    bot = self.bots_deployed[0]
-                    ap = autoplot.AutoPlot()
-                    ap.data = bot.data
-                    
                     if self.validation_file is None:
-                        ap.plot_backtest(bot.backtest_summary)
+                        # ap.plot_backtest(bot.backtest_summary)
+                        self.plot_backtest(bot=self.bots_deployed[0])
                     else:
-                        ap.plot_validation_balance = self.plot_validation_balance # User option flag
-                        ap.ohlc_height = 350
-                        ap.validate_backtest(bot.livetrade_results['summary'],
-                                             bot.backtest_summary)
+                        self.plot_backtest(bot=self.bots_deployed[0], 
+                                           validation_file=self.validation_file)
                 
                 else:
                     # Backtest run with multiple bots
@@ -280,12 +275,23 @@ class AutoTrader():
                     ap.plot_multibot_backtest(self.multibot_backtest_results, 
                                               NAV,
                                               cpl_dict)
-                    # TODO - create plot_backtest method, and
-                    # plot portfolio balance history (assets and equity), 
-                    # plus whatever other information could be useful, eg. bot 
-                    # resource usage over period, highlighting which were most 
-                    # active etc.
 
+    
+    def plot_backtest(self, bot=None, validation_file=None):
+        ap = autoplot.AutoPlot()
+        ap.data = bot.data
+        
+        # TODO - add flag to hide NAV/show cumulative PL instead 
+        # just check if len(self.bots_deployed) > 1, then flag ap internally
+        if validation_file is None:
+            ap.plot_backtest(bot.backtest_summary)
+            
+        else:
+            ap.plot_validation_balance = self.plot_validation_balance # User option flag
+            ap.ohlc_height = 350
+            ap.validate_backtest(bot.livetrade_results['summary'],
+                                 bot.backtest_summary)
+                
     
     def multibot_backtest_analysis(self, bots=None):
         '''
