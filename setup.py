@@ -29,5 +29,6 @@ setuptools.setup(
         "PyYAML",
         "bokeh >= 2.3.1",
         ],
-    include_package_data=True
+    setup_requires=['setuptools_scm'],
+    include_package_data=True,
 )
