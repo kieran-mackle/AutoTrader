@@ -17,7 +17,7 @@ import os
 
 
 
-def send_order(order_details, order_response, mailing_list, host_email):
+def send_order(order_details, mailing_list, host_email):
     '''
     Send order summary from oanda.
     '''

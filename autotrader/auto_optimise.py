@@ -5,15 +5,17 @@
 AuotOptimise
 -------------
 
-Want to use a walk-forward optimisation approach. 
+TODO:
+    Walk-forward optimisation approach. 
+    
+    Plot output as heatmap: parameter grid coloured by objective function.
+    
+    Consider sample size, print as warning.
 
-Plot output as heatmap: parameter grid coloured by objective function
-
-Consider sample size, print as warning 
-
-TODO: move into autotrader.py somehow...
-
-
+    Check that opt_params are even in strategy params.
+    
+    Add different objective functions.
+    
 """
 
 from autotrader.autotrader import AutoTrader
@@ -74,14 +76,23 @@ class Optimise():
         at.backtest         = True
         at.optimise         = True
         at.custom_config    = config_dict
+        at.include_broker   = True
         at.run()
-        backtest_results    = at.backtest_results
+        bots                = at.bots_deployed
+        
+        if len(bots) > 1:
+            print("Error: please optimise one instrument at a time.")
+            print("Exiting.")
+            sys.exit(0)
+        else:
+            bot = bots[0]
+            
+        backtest_results    = at.analyse_backtest(bot.backtest_summary)
         
         try:
-            objective           = -backtest_results['all_trades']['profit_pc']  - \
-                                  backtest_results['all_trades']['MDD']
+            objective           = -backtest_results['all_trades']['net_pl']
         except:
-            objective           = 100
+            objective           = 1000
                               
         print("Parameters/objective:", params, "/", objective)
         

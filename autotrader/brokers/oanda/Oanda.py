@@ -32,7 +32,7 @@ class Oanda():
         self.open_positions     = {}
         
     
-    def get_price(self, pair):
+    def get_price(self, pair, **dummy_inputs):
         ''' Returns current price (bid+ask) and home conversion factors.'''
         response = self.api.pricing.get(accountID = self.ACCOUNT_ID, 
                                    instruments = pair
@@ -226,7 +226,7 @@ class Oanda():
                        **dummy_inputs):
         ''' Closes all open positions on an instrument '''
         # Check if the position is long or short
-        position    = self.get_positions(instrument)['position']
+        position    = self.get_open_positions(instrument)['position']
         if long_units is None:
             long_units  = position.long.units
         if short_units is None:

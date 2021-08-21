@@ -20,8 +20,10 @@ from bokeh.models import (
     HoverTool,
     CrosshairTool
 )
-from bokeh.layouts import gridplot
-from bokeh.transform import factor_cmap
+from bokeh.layouts import gridplot, layout
+from bokeh.transform import factor_cmap, cumsum
+from bokeh.palettes import Category20c, GnBu3, OrRd3, Category20
+from math import pi
 
 
 class AutoPlot():
@@ -46,12 +48,12 @@ class AutoPlot():
         modified_data           = modified_data.reset_index(drop = True)
         self._modified_data     = modified_data
     
-    def plot_backtest(self, backtest_dict):
+    def plot_backtest(self, backtest_dict, cumulative_PL=None):
         ''' Creates backtest figure. '''
         NAV             = backtest_dict['NAV']
         trade_summary   = backtest_dict['trade_summary']
         indicators      = backtest_dict['indicators']
-        pair            = backtest_dict['pair']
+        pair            = backtest_dict['instrument']
         interval        = backtest_dict['interval']
         open_trades     = backtest_dict['open_trades']
         cancelled_trades = backtest_dict['cancelled_trades']
@@ -96,7 +98,9 @@ class AutoPlot():
                                                          code = autoscale_code))
         
         # Above plots
-        top_fig             = self.plot_portfolio_history(NAV, candle_plot)
+        top_fig         = self.plot_portfolio_history(NAV, candle_plot)
+        if cumulative_PL is not None:
+            self.plot_cumulative_pl(cumulative_PL, top_fig, NAV[0])
         
         # Compile plots for final figure
         plots               = [top_fig, candle_plot] + bottom_figs
@@ -146,6 +150,237 @@ class AutoPlot():
         fig.sizing_mode     = 'stretch_width'
         show(fig)
     
+    
+    def plot_multibot_backtest(self, multibot_backtest_results, NAV, cpl_dict):
+        ''' 
+        Creates multi-bot backtest figure. 
+        
+            Parameters:
+                multibot_backtest_results (df): dataframe of bot backtest results.
+                
+                NAV (list): Net asset value.
+                
+                cpl_dict (dict): cumulative PL of each bot.
+        '''
+        
+        # Preparation ----------------------------------- #
+        output_file("candlestick.html",
+                    title = "AutoTrader Multi-Bot Backtest Results")
+        
+        if self._modified_data is None:
+            self._reindex_data()
+        # source                  = ColumnDataSource(self._modified_data)
+        # source.add((self._modified_data.Close >= self._modified_data.Open).values.astype(np.uint8).astype(str),
+        #             'change')
+        
+        # TODO - Load JavaScript code for auto-scaling - use for NAV
+        # with open(os.path.join(os.path.dirname(__file__), 'lib/autoscale.js'),
+        #           encoding = 'utf-8') as _f:
+        #     autoscale_code      = _f.read()
+        
+        linked_crosshair    = CrosshairTool(dimensions='both')
+        if len(multibot_backtest_results) < 3:
+            multibot_backtest_results['color'] = Category20c[3][0:len(multibot_backtest_results)]
+        else:
+            multibot_backtest_results['color'] = Category20c[len(multibot_backtest_results)]
+            
+        MBR = ColumnDataSource(multibot_backtest_results)
+        
+        # ----------------------- Account Balance -------------------------- #
+        navfig = figure(plot_width = 800,
+                        plot_height = 150,
+                        title = None,
+                        active_drag = 'pan',
+                        active_scroll = 'wheel_zoom')
+        
+        # Add glyphs
+        navfig.line(self._modified_data.index, 
+                    NAV, 
+                    line_color = 'black',
+                    legend_label = 'Backtest Net Asset Value')
+        
+        navfig.xaxis.major_label_overrides = {
+                    i: date.strftime('%b %d') for i, date in enumerate(pd.to_datetime(self._modified_data["date"]))
+                }
+        navfig.xaxis.bounds = (0, self._modified_data.index[-1])
+        navfig.sizing_mode = 'stretch_width'
+        navfig.legend.location = 'top_left'
+        navfig.legend.border_line_width   = 1
+        navfig.legend.border_line_color   = '#333333'
+        navfig.legend.padding             = 5
+        navfig.legend.spacing             = 0
+        navfig.legend.margin              = 0
+        navfig.legend.label_text_font_size = '8pt'
+        navfig.add_tools(linked_crosshair)
+        
+        # ----------------------- Win rate bar chart ----------------------- #
+        instruments = multibot_backtest_results.index.values
+        
+        winrate = figure(x_range = instruments,
+                         title = "Bot win rate (%)",
+                         toolbar_location = None,
+                         tools = 'hover',
+                         tooltips = "@index: @win_rate%",
+                         plot_height = 250)
+        
+        winrate.vbar(x = 'index', 
+                     top = 'win_rate',
+                     width = 0.9,
+                     color = 'color',
+                     source = MBR)
+        
+        winrate.sizing_mode = 'stretch_width'
+        
+        
+        # ----------------- Pie chart of trades per bot --------------------- #
+        pie_data = pd.Series(multibot_backtest_results.no_trades).reset_index(name='value').rename(columns={'index':'instrument'})
+        pie_data['angle'] = pie_data['value']/pie_data['value'].sum() * 2*pi
+        if len(multibot_backtest_results) < 3:
+            pie_data['color'] = Category20c[3][0:len(multibot_backtest_results)]
+        else:
+            pie_data['color'] = Category20c[len(multibot_backtest_results)]
+
+        pie = figure(title = "Trade distribution", 
+                     toolbar_location = None,
+                     tools = "hover", 
+                     tooltips="@instrument: @value",
+                     x_range=(-1, 1),
+                     y_range=(0.0, 2.0),
+                     plot_height = 250)
+        
+        pie.wedge(x=0, y=1, radius=0.3,
+                  start_angle=cumsum('angle', include_zero=True), 
+                  end_angle=cumsum('angle'),
+                  line_color="white", 
+                  fill_color='color',
+                  legend_field='instrument',
+                  source=pie_data)
+        
+        pie.axis.axis_label=None
+        pie.axis.visible=False
+        pie.grid.grid_line_color = None
+        pie.sizing_mode = 'stretch_width'
+        pie.legend.location = "top_left"
+        pie.legend.border_line_width   = 1
+        pie.legend.border_line_color   = '#333333'
+        pie.legend.padding             = 5
+        pie.legend.spacing             = 0
+        pie.legend.margin              = 0
+        pie.legend.label_text_font_size = '8pt'
+        
+        # --------------- Bar plot for avg/max win/loss -------------------- #
+        win_metrics = ['Average Win', 'Max. Win']
+        lose_metrics = ['Average Loss', 'Max. Loss']
+        
+        abs_max_loss = -1.2*max(multibot_backtest_results.max_loss)
+        abs_max_win = 1.2*max(multibot_backtest_results.max_win)
+        
+        pldata = {'instruments': instruments,
+                'Average Win': multibot_backtest_results.avg_win.values,
+                'Max. Win': multibot_backtest_results.max_win.values - 
+                            multibot_backtest_results.avg_win.values,
+                'Average Loss': -multibot_backtest_results.avg_loss.values,
+                'Max. Loss': multibot_backtest_results.avg_loss.values - 
+                             multibot_backtest_results.max_loss.values}
+        
+        TOOLTIPS = [
+                    ("Instrument:", "@instruments"),
+                    ("Max win", "@{Max. Win}"),
+                    ("Avg. win", "@{Average Win}"),
+                    ("Max Loss", "@{Max. Loss}"),
+                    ("Avg. loss", "@{Average Loss}"),
+                    ]
+        
+        plbars = figure(x_range=instruments,
+                        y_range=(abs_max_loss, abs_max_win),
+                        title="Win/Loss breakdown",
+                        toolbar_location=None,
+                        tools = "hover",
+                        tooltips = TOOLTIPS,
+                        plot_height = 250)
+
+        plbars.vbar_stack(win_metrics,
+                     x='instruments',
+                     width = 0.9,
+                     color = ('#008000', '#FFFFFF'),
+                     line_color='black',
+                     source = ColumnDataSource(pldata),
+                     legend_label = ["%s" % x for x in win_metrics])
+
+        plbars.vbar_stack(lose_metrics,
+                     x = 'instruments',
+                     width = 0.9,
+                     color = ('#ff0000' , '#FFFFFF'),
+                     line_color='black',
+                     source = ColumnDataSource(pldata),
+                     legend_label = ["%s" % x for x in lose_metrics])
+        
+        plbars.x_range.range_padding = 0.1
+        plbars.ygrid.grid_line_color = None
+        plbars.legend.location = "bottom_center"
+        plbars.legend.border_line_width   = 1
+        plbars.legend.border_line_color   = '#333333'
+        plbars.legend.padding             = 5
+        plbars.legend.spacing             = 0
+        plbars.legend.margin              = 0
+        plbars.legend.label_text_font_size = '8pt'
+        plbars.axis.minor_tick_line_color = None
+        plbars.outline_line_color = None
+        plbars.sizing_mode = 'stretch_width'
+    
+    
+        # --------------------- Cumulative PL ------------------------------ #
+        cplfig = figure(plot_width = navfig.plot_width,
+                        plot_height = 150,
+                        title = None,
+                        active_drag = 'pan',
+                        active_scroll = 'wheel_zoom',
+                        x_range = navfig.x_range)
+        
+        self.data['data_index'] = self.data.reset_index(drop=True).index
+        
+        if len(multibot_backtest_results) < 3:
+            colors = Category20c[3][0:len(multibot_backtest_results)]
+        else:
+            colors = Category20c[len(multibot_backtest_results)]
+        
+        
+        for ix, instrument in enumerate(cpl_dict):
+            cpldata = cpl_dict[instrument].copy().to_frame()
+            cpldata['date'] = cpldata.index
+            cpldata         = cpldata.reset_index(drop = True)
+            
+            cpldata = pd.merge(self.data, cpldata, left_on='date', right_on='date')
+            
+            cplfig.line(cpldata.data_index.values,
+                        cpldata.Profit.values,
+                        legend_label = "{}".format(instrument),
+                        line_color = colors[ix])
+        
+        cplfig.legend.location = 'top_left'
+        cplfig.legend.border_line_width   = 1
+        cplfig.legend.border_line_color   = '#333333'
+        cplfig.legend.padding             = 5
+        cplfig.legend.spacing             = 0
+        cplfig.legend.margin              = 0
+        cplfig.legend.label_text_font_size = '8pt'
+        cplfig.sizing_mode = 'stretch_width'
+        cplfig.add_tools(linked_crosshair)
+        
+        cplfig.xaxis.major_label_overrides = {
+                    i: date.strftime('%b %d') for i, date in enumerate(pd.to_datetime(self._modified_data["date"]))
+                }
+        cplfig.xaxis.bounds   = (0, self._modified_data.index[-1])
+        
+        # -------------------- Construct final figure ---------------------- #     
+        final_fig = layout([  
+                                   [navfig],
+                            [winrate, pie, plbars],
+                                   [cplfig]
+                        ])
+        final_fig.sizing_mode = 'scale_width'
+        show(final_fig)
+        
     
     def view_indicators(self, indicators=None, instrument=None):
         ''' Constructs indicator visualisation figure. '''
@@ -598,6 +833,31 @@ class AutoPlot():
                             legend_label = 'Position exit')
 
     
+    def plot_cumulative_pl(self, cumulative_PL, linked_fig, offset=0):
+        ''' Plots cumulative PL of bot. '''
+        cpldata = cumulative_PL.to_frame()
+        cpldata['date'] = cpldata.index
+        cpldata = cpldata.reset_index(drop = True)
+        cpldata = pd.merge(self.data, cpldata, left_on='date', right_on='date')
+        
+        # # Initialise figure
+        # fig = figure(plot_width     = linked_fig.plot_width,
+        #               plot_height    = 150,
+        #               title          = None,
+        #               tools          = self.fig_tools,
+        #               active_drag    = 'pan',
+        #               active_scroll  = 'wheel_zoom',
+        #               x_range        = linked_fig.x_range)
+        
+        # Add glyphs
+        linked_fig.step(cpldata.data_index.values,
+                 cpldata.Profit.values + offset,
+                 line_color         = 'blue',
+                 legend_label       = 'Cumulative P/L')
+    
+        # return fig
+    
+    
     def plot_portfolio_history(self, NAV, linked_fig):
         ''' Plots NAV over trade period. '''
         # Initialise figure
@@ -618,8 +878,7 @@ class AutoPlot():
         return fig
     
     
-    def validate_backtest(self, livetrade_summary, backtest_dict,
-                          backtest_cancelled_summary, instrument, granularity):
+    def validate_backtest(self, livetrade_summary, backtest_dict):
         """
             Code below takes oanda csv history and plots it.
             
@@ -632,7 +891,10 @@ class AutoPlot():
             
         """
         backtest_trade_summary  = backtest_dict['trade_summary']
+        backtest_cancelled_summary = backtest_dict['cancelled_trades']
         backtest_NAV            = backtest_dict['NAV']
+        instrument              = backtest_dict['pair']
+        granularity             = backtest_dict['interval']
         
         # Preparation ----------------------------------- #
         output_file("candlestick.html",
@@ -758,7 +1020,6 @@ class AutoPlot():
             "{} ({} candles)".format(instrument, granularity)
         
         ''' Plot portfolio balances '''
-        # TODO - reconstruct livetrade balance from trades taken?
         if self.plot_validation_balance:
             top_fig = self.plot_portfolio_history(backtest_NAV, backtest_candle_plot)
             top_fig.line(list(livetrade_summary.data_index.values), 
