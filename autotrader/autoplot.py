@@ -177,6 +177,12 @@ class AutoPlot():
         #     autoscale_code      = _f.read()
         
         linked_crosshair    = CrosshairTool(dimensions='both')
+        if len(multibot_backtest_results) < 3:
+            multibot_backtest_results['color'] = Category20c[3][0:len(multibot_backtest_results)]
+        else:
+            multibot_backtest_results['color'] = Category20c[len(multibot_backtest_results)]
+            
+        MBR = ColumnDataSource(multibot_backtest_results)
         
         # ----------------------- Account Balance -------------------------- #
         navfig = figure(plot_width = 800,
@@ -207,7 +213,7 @@ class AutoPlot():
         
         # ----------------------- Win rate bar chart ----------------------- #
         instruments = multibot_backtest_results.index.values
-        MBR = ColumnDataSource(multibot_backtest_results)
+        
         winrate = figure(x_range = instruments,
                          title = "Bot win rate (%)",
                          toolbar_location = None,
@@ -218,6 +224,7 @@ class AutoPlot():
         winrate.vbar(x = 'index', 
                      top = 'win_rate',
                      width = 0.9,
+                     color = 'color',
                      source = MBR)
         
         winrate.sizing_mode = 'stretch_width'
@@ -330,6 +337,11 @@ class AutoPlot():
         
         self.data['data_index'] = self.data.reset_index(drop=True).index
         
+        if len(multibot_backtest_results) < 3:
+            colors = Category20c[3][0:len(multibot_backtest_results)]
+        else:
+            colors = Category20c[len(multibot_backtest_results)]
+        
         
         for ix, instrument in enumerate(cpl_dict):
             cpldata = cpl_dict[instrument].copy().to_frame()
@@ -341,7 +353,7 @@ class AutoPlot():
             cplfig.line(cpldata.data_index.values,
                         cpldata.Profit.values,
                         legend_label = "{}".format(instrument),
-                        line_color = Category20[10][ix])
+                        line_color = colors[ix])
         
         cplfig.legend.location = 'top_left'
         cplfig.legend.border_line_width   = 1
