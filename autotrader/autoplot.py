@@ -1020,7 +1020,6 @@ class AutoPlot():
             "{} ({} candles)".format(instrument, granularity)
         
         ''' Plot portfolio balances '''
-        # TODO - reconstruct livetrade balance from trades taken?
         if self.plot_validation_balance:
             top_fig = self.plot_portfolio_history(backtest_NAV, backtest_candle_plot)
             top_fig.line(list(livetrade_summary.data_index.values), 
