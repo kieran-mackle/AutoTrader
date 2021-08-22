@@ -165,7 +165,8 @@ class AutoTrader():
                 print("Time: {}".format(datetime.now().strftime("%A, %B %d %Y, "+
                                                                   "%H:%M:%S")))
             else:
-                print("AutoTrader Livetrade:")
+                print("AutoTrader Livetrade")
+                print("--------------------")
                 print("Time: {}".format(datetime.now().strftime("%A, %B %d %Y, "+
                                                                   "%H:%M:%S")))
                 
@@ -1160,6 +1161,7 @@ class AutoTraderBot:
         self.notify             = autotrader_attributes.notify
         self.validation_file    = autotrader_attributes.validation_file
         self.verbosity          = autotrader_attributes.verbosity
+        self.order_summary_fp   = autotrader_attributes.order_summary_fp
         
         if int(self.verbosity) > 0:
                 print("AutoTraderBot assigned to analyse {}".format(instrument),
@@ -1192,6 +1194,12 @@ class AutoTraderBot:
                 self.process_signal(order_signal_dict, i, self.data, 
                                     self.quote_data, self.instrument)
         
+        if int(self.verbosity) > 1:
+            if len(self.latest_orders) > 0:
+                print("Order placed.")
+            else:
+                print("No signal detected.")
+        
         # Check for orders placed and/or scan hits
         if int(self.notify) > 0:
             
@@ -1202,10 +1210,16 @@ class AutoTraderBot:
             if int(self.notify) > 1 and \
                 self.email_params['mailing_list'] is not None and \
                 self.email_params['host_email'] is not None:
+                    if int(self.verbosity) > 0:
+                            print("Sending email...")
+                            
                     for order_details in self.latest_orders:
                         emailing.send_order(order_details,
                                             self.email_params['mailing_list'],
                                             self.email_params['host_email'])
+                        
+                    if int(self.verbosity) > 0:
+                            print("  Done.")
             
         # Check scan results
         if self.scan is not None:
@@ -1258,7 +1272,10 @@ class AutoTraderBot:
         signal = order_signal_dict["direction"]
         
         # Entry signal detected, get price data
-        price_data      = self.broker.get_price(instrument, data, quote_data, i)
+        price_data      = self.broker.get_price(instrument=instrument, 
+                                                data=data, 
+                                                conversion_data=quote_data, 
+                                                i=i)
         datetime_stamp  = data.index[i]
         
         if signal < 0:
