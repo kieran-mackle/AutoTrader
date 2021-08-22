@@ -340,7 +340,17 @@ class Broker():
     
     def get_pending_orders(self, instrument = None):
         ''' Returns pending orders. '''
-        return self.pending_positions
+        
+        pending_orders = {}
+        
+        if instrument is not None:
+            for order_no in self.pending_positions:
+                if self.pending_positions[order_no]['instrument'] == instrument:
+                    pending_orders[order_no] = self.pending_positions[order_no]
+        else:
+            pending_orders = self.pending_positions.copy()
+        
+        return pending_orders
     
     def cancel_pending_order(self, order_id):
         self.pending_positions.pop(order_id, 0)
