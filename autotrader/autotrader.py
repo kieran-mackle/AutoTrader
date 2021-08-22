@@ -1162,6 +1162,7 @@ class AutoTraderBot:
         self.validation_file    = autotrader_attributes.validation_file
         self.verbosity          = autotrader_attributes.verbosity
         self.order_summary_fp   = autotrader_attributes.order_summary_fp
+        self.backtest_mode      = autotrader_attributes.backtest
         
         if int(self.verbosity) > 0:
                 print("AutoTraderBot assigned to analyse {}".format(instrument),
@@ -1197,11 +1198,12 @@ class AutoTraderBot:
         if int(self.verbosity) > 1:
             if len(self.latest_orders) > 0:
                 print("Order placed.")
+                # TODO - give order specifics...
             else:
                 print("No signal detected.")
         
         # Check for orders placed and/or scan hits
-        if int(self.notify) > 0:
+        if int(self.notify) > 0 and self.backtest_mode is False:
             
             for order_details in self.latest_orders:
                 self.broker_utils.write_to_order_summary(order_details, 
@@ -1210,15 +1212,15 @@ class AutoTraderBot:
             if int(self.notify) > 1 and \
                 self.email_params['mailing_list'] is not None and \
                 self.email_params['host_email'] is not None:
-                    if int(self.verbosity) > 0:
-                            print("Sending email...")
+                    if int(self.verbosity) > 0 and len(self.latest_orders) > 0:
+                            print("Sending emails ...")
                             
                     for order_details in self.latest_orders:
                         emailing.send_order(order_details,
                                             self.email_params['mailing_list'],
                                             self.email_params['host_email'])
                         
-                    if int(self.verbosity) > 0:
+                    if int(self.verbosity) > 0 and len(self.latest_orders) > 0:
                             print("  Done.")
             
         # Check scan results
