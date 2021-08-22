@@ -32,10 +32,10 @@ class Oanda():
         self.open_positions     = {}
         
     
-    def get_price(self, pair, **dummy_inputs):
+    def get_price(self, instrument, **dummy_inputs):
         ''' Returns current price (bid+ask) and home conversion factors.'''
         response = self.api.pricing.get(accountID = self.ACCOUNT_ID, 
-                                   instruments = pair
+                                   instruments = instrument
                                    )
         ask = response.body["prices"][0].closeoutAsk
         bid = response.body["prices"][0].closeoutBid
