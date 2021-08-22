@@ -862,19 +862,30 @@ class AutoPlot():
         ''' Plots NAV over trade period. '''
         # Initialise figure
         fig = figure(plot_width     = linked_fig.plot_width,
-                      plot_height    = 150,
-                      title          = None,
-                      tools          = self.fig_tools,
-                      active_drag    = 'pan',
-                      active_scroll  = 'wheel_zoom',
-                      x_range        = linked_fig.x_range)
+                     plot_height    = 150,
+                     title          = None,
+                     tools          = self.fig_tools,
+                     active_drag    = 'pan',
+                     active_scroll  = 'wheel_zoom',
+                     x_range        = linked_fig.x_range)
         
         # Add glyphs
-        fig.line(self._modified_data.index, 
-                 NAV, 
+        source = ColumnDataSource(self.data)
+        source.add(NAV, 'NAV')
+        fig.line('data_index', 
+                 'NAV', 
                  line_color         = 'black',
-                 legend_label       = 'Backtest Net Asset Value')
+                 legend_label       = 'Backtest Net Asset Value',
+                 source             = source)
     
+        
+        # tooltips       = "NAV: $@NAV" ,
+        fig_hovertool = HoverTool(tooltips = "NAV: $@{NAV}{%0.2f}", 
+                                  formatters={'@{NAV}' : 'printf'},
+                                  mode = 'vline')
+        
+        fig.add_tools(fig_hovertool)
+        
         return fig
     
     
