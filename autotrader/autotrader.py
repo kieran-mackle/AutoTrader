@@ -1221,7 +1221,7 @@ class AutoTraderBot:
                                             self.email_params['host_email'])
                         
                     if int(self.verbosity) > 0 and len(self.latest_orders) > 0:
-                            print("  Done.")
+                            print("  Done.\n")
             
         # Check scan results
         if self.scan is not None:
