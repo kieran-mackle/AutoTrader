@@ -663,8 +663,8 @@ class AutoPlot():
                     legend_label = 'Down trend support')
         
     def plot_swings(self, swings, linked_fig):
-        # reset index 
-        swings                  = swings.reset_index(drop = True)
+        # Merge index to base data time
+        swings = pd.merge(self.data, swings, left_on='date', right_index=True)
         
         linked_fig.scatter(list(swings.index),
                             list(swings.Last.values),
@@ -673,7 +673,6 @@ class AutoPlot():
                             fill_color = 'black',
                             legend_label = 'Last Swing Price Level')
         
-        return
     
     def plot_partial_orders(self, cancelled_order_summary, linked_fig, 
                             cancelled_orders=True):
