@@ -11,7 +11,7 @@
 ---------------------------------------------------------------------------
      A Python-Based Development Platform For Automated Trading Systems
                              Kieran Mackle
-                             Version 0.2.4
+                             Version 0.2.7
                              
 """
 
@@ -34,6 +34,30 @@ from autotrader import autoplot
 
 
 class AutoTrader():
+    """
+    AutoTrader: A Python-Based Development Platform For Automated Trading Systems.
+
+    Attributes
+    ----------
+    config_file : str
+        The strategy configuration file.
+    
+    verbosity : int
+        The code verbosity.
+    
+    notify : int
+         The emailing verbosity of the code.
+    
+
+    Methods
+    -------
+    run():
+        Runs AutoTrader.
+    
+    plot_backtest(bot=None, validation_file=None):
+        Plots backtest results of an AutoTrader Bot.
+    
+    """
     
     def __init__(self):
         self.config_file    = None
@@ -54,7 +78,6 @@ class AutoTrader():
         self.plot_validation_balance = True
         self.include_broker = False
         
-        # New attributes
         self.config         = None
         self.broker         = None
         self.broker_utils   = None
@@ -78,6 +101,11 @@ class AutoTrader():
             self.main()
     
     def main(self):
+        '''
+        Main run file of autotrader.py. This method is called internally 
+        from the "run" method.
+        '''
+        
         ''' -------------------------------------------------------------- '''
         '''                         Load configuration                     '''
         ''' -------------------------------------------------------------- '''
@@ -277,6 +305,14 @@ class AutoTrader():
 
     
     def plot_backtest(self, bot=None, validation_file=None):
+        '''
+        Plots backtest results of an AutoTrader Bot.
+            
+            Parameters:
+                bot (class): AutoTrader bot class containing backtest results.
+                
+                validation_file (str): filepath of backtest validation file.
+        '''
         ap = autoplot.AutoPlot()
         ap.data = bot.data
         profit_df = pd.merge(bot.data, 
