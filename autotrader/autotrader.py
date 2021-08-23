@@ -454,10 +454,10 @@ class AutoTrader():
         print("Long trades:        ", backtest_results.no_long.sum(),
               "({}%)".format(round(100*backtest_results.no_long.sum()/backtest_results.no_trades.sum(),2)))
         print("\nInstrument win rates (%):")
-        print(backtest_results[['win_rate']])
+        print(backtest_results[['win_rate', 'no_trades']])
         print("\nMaximum/Average Win/Loss breakdown ($):")
         print(backtest_results[["max_win", "max_loss", "avg_win", "avg_loss"]])
-        print("\nAverage Risk-Reward Ratio (avg win/avg loss):")
+        print("\nAverage Reward to Risk Ratio:")
         print(round(backtest_results.avg_win / backtest_results.avg_loss,1))
         print("")
         
@@ -1197,9 +1197,10 @@ class AutoTraderBot:
         
         if int(self.verbosity) > 1:
             if len(self.latest_orders) > 0:
-                print("Order placed.")
-                # TODO - give order specifics...
-            else:
+                for order in self.latest_orders:
+                    order_string = "{}: {} {} order of {} units placed at {}.".format(order['order_time'], order['instrument'], order['order_type'], order['size'], order['order_price'])
+                    print(order_string)
+            elif int(self.verbosity) > 2:
                 print("No signal detected.")
         
         # Check for orders placed and/or scan hits
