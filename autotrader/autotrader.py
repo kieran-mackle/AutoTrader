@@ -15,7 +15,6 @@
                              
 """
 
-from getopt import getopt
 from datetime import datetime, timedelta
 import sys
 import os
