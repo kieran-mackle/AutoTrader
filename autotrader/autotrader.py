@@ -254,48 +254,12 @@ class AutoTrader():
         ''' -------------------------------------------------------------- '''
         '''    Assign strategy to bot for each instrument in watchlist     '''
         ''' -------------------------------------------------------------- '''
-        # There will be a bot assigned for every unique strategy/instrument pair
-        # One strategy trading 4 instruments -> 4 bots
-        # Two strategies trading 4 instruments each -> 8 bots
-        # Will need to make a dict similar to
-        # {'Simple_macd': ['EUR_USD'],
-        #  'EMA_cross': ['EUR_USD', 'GBP_NZD']}
-        # Maybe also include strat config in the dict for each
-        # {'Simple_macd': {'instruments': ['EUR_USD'],
-        #                  'config': strat_config},
-        #  'EMA_cross': {'instruments': ['EUR_USD', 'GBP_NZD'],
-        #                'config': strat_config}
-        # }
-        # then
-        
         for strategy in self.strategies:
             for instrument in self.strategies[strategy]['WATCHLIST']:
                 bot = AutoTraderBot(instrument, self.strategies[strategy],
                                     self.broker, self)
                 self.bots_deployed.append(bot)
         
-        
-        # for instrument in self.watchlist:
-            # Get price history
-            # data, quote_data = self.retrieve_data(instrument, price_data_path, feed)
-            
-            # Instantiate strategy for current instrument
-            # my_strat        = strategy(params, data, instrument)
-            # self.strategy   = my_strat
-            
-            # if self.include_broker:
-            #     my_strat.broker = self.broker
-            #     my_strat.broker_utils = self.broker_utils
-            
-            # Create new bot for each instrument in watchlist
-            # bot = AutoTraderBot(self.broker, my_strat, instrument, data, self)
-            
-            # if self.backtest:
-            #     bot.quote_data = quote_data
-            
-            # self.bots_deployed.append(bot)
-            
-
         ''' -------------------------------------------------------------- '''
         '''                  Analyse price data using strategy             '''
         ''' -------------------------------------------------------------- '''
@@ -379,6 +343,13 @@ class AutoTrader():
                                               NAV,
                                               cpl_dict)
 
+    def remove_strategies(self):
+        '''
+        Removes all strategies saved in autotrader instance.
+        '''
+        
+        self.strategies = {}
+        
     
     def add_strategy(self, strategy_filename=None, 
                      strategy_dict=None):
@@ -928,6 +899,7 @@ class AutoTrader():
         else:
             print("There were no short trades.")
 
+
     def optimise(self, opt_params, bounds, Ns=4):
         '''
         Optimisation configuration.
@@ -941,59 +913,56 @@ class AutoTrader():
                 
         '''
         
+        if type(bounds) == str:
+            full_tuple = literal_eval(bounds)
+            bounds = [(x[0], x[-1]) for x in full_tuple]
+
+        if type(opt_params) == str:
+            opt_params = opt_params.split(',')
+        
         self.optimise_mode = True
         self.opt_params = opt_params
         self.bounds = bounds
         self.Ns = Ns
         
-        
-
     def run_optimise(self):
         '''
         Runs optimisation of strategy parameters.
         '''
         
-        # self.config_file    = None
-        # self.verbosity      = 1
-        # self.show_help      = None
-        # self.log            = False
-        # self.home_dir       = None
-        # self.opt_params     = None
-        # self.bounds         = None
-        # self.Ns             = 4
-        self.objective      = 'profit + MDD'
+        # Modify verbosity for optimisation
+        verbosity = self.verbosity
+        self.verbosity = 0
         
+        self.objective      = 'profit + MDD'
         
         ''' --------------------------------------------------------------- '''
         '''                          Unpack user options                    '''
         ''' --------------------------------------------------------------- '''
-        config_file_path    = os.path.join(self.home_dir, 'config', self.config_file)
-        config_dict         = read_yaml(config_file_path + '.yaml')
-        verbosity           = self.verbosity
         
+        # Look in self.strategies for config
+        if len(self.strategies) > 1:
+            print("Error: please optimise one strategy at a time.")
+            print("Exiting.")
+            sys.exit(0)
+        else:
+            config_dict = self.strategies[list(self.strategies.keys())[0]]
+                
         ''' --------------------------------------------------------------- '''
         '''                      Define optimisation inputs                 '''
         ''' --------------------------------------------------------------- '''
-        # TODO - move this into optimise config?
-        if type(bounds) == str:
-            full_tuple = literal_eval(bounds)
-            bounds = [(x[0], x[-1]) for x in full_tuple]
-        
-
-        if type(opt_params) == str:
-            opt_params = opt_params.split(',')
-        
-            
-        my_args     = (config_dict, opt_params, verbosity)
+        # TODO - dont need to load config dict at all, just access it in helper
+        # function from self.strategies
+        my_args     = (config_dict, self.opt_params, self.verbosity)
         
         ''' --------------------------------------------------------------- '''
         '''                             Run Optimiser                       '''
         ''' --------------------------------------------------------------- '''
         start = timeit.default_timer()
         result = brute(func         = self.optimisation_helper_function, 
-                       ranges       = bounds, 
+                       ranges       = self.bounds, 
                        args         = my_args, 
-                       Ns           = Ns,
+                       Ns           = self.Ns,
                        full_output  = True)
         stop = timeit.default_timer()
         
@@ -1020,7 +989,6 @@ class AutoTrader():
         # grid_points = result[2]
         # grid_values = result[3]
         
-        
         ''' --------------------------------------------------------------- '''
         '''                           Print output                          '''
         ''' --------------------------------------------------------------- '''
@@ -1030,6 +998,9 @@ class AutoTrader():
         print(opt_params)
         print("Objective:")
         print(opt_value)
+        
+        # Reset verbosity
+        self.verbosity = verbosity
     
     
     def optimisation_helper_function(self, params, config_dict, opt_params, verbosity):
@@ -1051,20 +1022,14 @@ class AutoTrader():
         ''' ------------------------------------------------------------------ '''
         '''           Run AutoTrader and evaluate objective function           '''
         ''' ------------------------------------------------------------------ '''
-        # at                  = AutoTrader()
-        # at.backtest         = True
-        # at.optimise         = True
-        self.custom_config    = config_dict
-        # at.include_broker   = True
-        self.run()  # or self.main()
-        bots                = self.bots_deployed
+        # TODO - reset bot profit, it being added I think for each run
         
-        if len(bots) > 1:
-            print("Error: please optimise one instrument at a time.")
-            print("Exiting.")
-            sys.exit(0)
-        else:
-            bot = bots[0]
+        self.remove_strategies()
+        self.add_strategy(strategy_dict = config_dict)
+        self.main()
+        
+        bot = self.bots_deployed[0]
+        
             
         backtest_results    = self.analyse_backtest(bot.backtest_summary)
         
