@@ -18,7 +18,6 @@ from datetime import datetime, timedelta
 # import sys
 import os
 import pyfiglet
-import yaml
 import importlib
 # import time
 # import pytz
@@ -63,20 +62,23 @@ class AutoTrader():
         
         # TODO - how many of these can be cleaned up?
         
+        # Runtime options
+        self.backtest       = False
+        self.scan           = None
+        self.optimise       = False
+        self.notify         = 0
         
-        self.config_file    = None
+        
+        # self.config_file    = None
         self.custom_config  = None
         self.verbosity      = 0
         self.show_help      = None
-        self.notify         = 0
-        self.backtest       = False
         self.show_plot      = False
         self.log            = False
-        self.analyse        = False
-        self.scan           = None
-        self.optimise       = False
-        self.data_file      = None
-        self.instruments    = None
+        # self.analyse        = False
+        
+        
+        # self.instruments    = None
         self.home_dir       = None
         self.validation_file = None
         self.plot_validation_balance = True
@@ -88,13 +90,10 @@ class AutoTrader():
         
         self.strategies     = {}
         
-        self.config         = None
+        # self.config         = None
         self.broker         = None
         self.broker_utils   = None
         self.email_params   = None
-        # self.strategy       = None
-        # self.strategy_params = None
-        # self.get_data       = None
         self.bots_deployed  = []
         
         self.scan_results = {}
@@ -103,6 +102,7 @@ class AutoTrader():
         # Backtesting Parameters
         self.data_start = None
         self.data_end   = None
+        self.data_file  = None
         self.backtest_initial_balance = None
         self.backtest_spread = None
         self.backtest_commission = None
@@ -118,10 +118,7 @@ class AutoTrader():
         if self.show_help is not None:
             printout.option_help(self.show_help)
         
-        if self.config_file is None and self.backtest is False:
-            printout.usage()
-        else:
-            self.main()
+        self.main()
     
     def usage(self):
         '''
@@ -227,7 +224,7 @@ class AutoTrader():
         if int(self.verbosity) > 0:
             if self.backtest is True:
                 print("Begining new backtest.")
-                # TODO - can the following be reintroduced?
+                # TODO - can the following be reintroduced? Also in self.print_backtest_results
                 # print("  From: ", datetime.strptime(self.config['BACKTESTING']['FROM']+'+0000', '%d/%m/%Y%z'))
                 # print("  To:   ", datetime.strptime(self.config['BACKTESTING']['TO']+'+0000', '%d/%m/%Y%z'))
                 # print("  Instruments: ", self.watchlist)
@@ -824,7 +821,7 @@ class AutoTrader():
         return backtest_results
     
     def print_backtest_results(self, backtest_results):
-        params      = self.strategy_params
+        # params      = self.strategy_params
         no_trades   = backtest_results['no_trades']
         win_rate    = backtest_results['all_trades']['win_rate']
         profit_abs  = backtest_results['all_trades']['profit_abs']
@@ -840,11 +837,15 @@ class AutoTrader():
         print("\n-------------------------------------------")
         print("            Backtest Results")
         print("-------------------------------------------")
-        print("Strategy: {}".format(self.strategy.name))
-        print("Timeframe:               {}".format(params['granularity']))
-        if params is not None and 'RR' in params:
-            print("Risk to reward ratio:    {}".format(params['RR']))
-            print("Profitable win rate:     {}%".format(round(100/(1+params['RR']), 1)))
+        # TODO - these are all strategy specific. Maybe if only one strategy
+        # is used (ie len(self.strategies) = 1), that can be used. Otherwise,
+        # not sure. However, the granularity has to be the same ... until 
+        # time indexing becomes a thing
+        # print("Strategy: {}".format(self.strategy.name))
+        # print("Timeframe:               {}".format(params['granularity']))
+        # if params is not None and 'RR' in params:
+        #     print("Risk to reward ratio:    {}".format(params['RR']))
+        #     print("Profitable win rate:     {}%".format(round(100/(1+params['RR']), 1)))
         if no_trades > 0:
             print("Backtest win rate:       {}%".format(round(win_rate, 1)))
             

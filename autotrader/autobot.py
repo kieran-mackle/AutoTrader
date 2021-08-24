@@ -56,6 +56,9 @@ class AutoTraderBot():
         self.base_currency      = autotrader_attributes.backtest_base_currency
         self.environment        = autotrader_attributes.environment
         self.feed               = autotrader_attributes.feed
+        self.data_file          = autotrader_attributes.data_file
+        self.optimise           = autotrader_attributes.optimise
+        self.include_broker     = autotrader_attributes.include_broker
         
         self.instrument = instrument
         self.broker     = broker
@@ -135,8 +138,8 @@ class AutoTraderBot():
             # Running in backtest mode
             self.get_data.base_currency = self.base_currency
             
-            from_date       = datetime.strptime(self.config['BACKTESTING']['FROM']+'+0000', '%d/%m/%Y%z')
-            to_date         = datetime.strptime(self.config['BACKTESTING']['TO']+'+0000', '%d/%m/%Y%z')
+            from_date       = self.data_start #datetime.strptime(self.config['BACKTESTING']['FROM']+'+0000', '%d/%m/%Y%z')
+            to_date         = self.data_end #datetime.strptime(self.config['BACKTESTING']['TO']+'+0000', '%d/%m/%Y%z')
             
             if self.validation_file is not None:
                 # Extract instrument-specific trade history as trade summary and trade period
