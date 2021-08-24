@@ -50,7 +50,7 @@ class AutoTraderBot():
         self.validation_file    = autotrader_attributes.validation_file
         self.verbosity          = autotrader_attributes.verbosity
         self.order_summary_fp   = autotrader_attributes.order_summary_fp
-        self.backtest_mode      = autotrader_attributes.backtest
+        self.backtest_mode      = autotrader_attributes.backtest_mode
         self.data_start         = autotrader_attributes.data_start
         self.data_end           = autotrader_attributes.data_end
         self.base_currency      = autotrader_attributes.backtest_base_currency

@@ -101,7 +101,7 @@ class AutoTrader():
         self.order_summary_fp = None
         
         # Backtesting Parameters
-        self.backtest   = False
+        self.backtest_mode = False
         self.data_start = None
         self.data_end   = None
         self.data_file  = None
@@ -160,7 +160,7 @@ class AutoTrader():
         
         
         # TODO - make sure optimisation still works
-        # if self.optimise is True and self.backtest is True:
+        # if self.optimise is True and self.backtest_mode is True:
         #     config              = self.custom_config
         # else:
         #     config_file         = self.config_file
@@ -228,14 +228,14 @@ class AutoTrader():
         self.assign_broker(broker_config)
         self.configure_emailing(global_config)
         
-        if self.backtest:
+        if self.backtest_mode:
             starting_balance = self.broker.get_balance()
             NAV     = []
             balance = []
             margin  = []
         
         if int(self.verbosity) > 0:
-            if self.backtest is True:
+            if self.backtest_mode is True:
                 print("Begining new backtest.")
                 # TODO - can the following be reintroduced? Also in self.print_backtest_results
                 # print("  From: ", datetime.strptime(self.config['BACKTESTING']['FROM']+'+0000', '%d/%m/%Y%z'))
@@ -263,7 +263,7 @@ class AutoTrader():
         ''' -------------------------------------------------------------- '''
         '''                  Analyse price data using strategy             '''
         ''' -------------------------------------------------------------- '''
-        if int(self.verbosity) > 0 and self.backtest:
+        if int(self.verbosity) > 0 and self.backtest_mode:
             print("\nTrading...")
         
         # TODO - add check that data ranges are consistent across bots
@@ -276,10 +276,10 @@ class AutoTrader():
                 bot.update(i)
                 
                 # If backtesting, update virtual broker with latest data
-                if self.backtest:
+                if self.backtest_mode:
                     bot.update_backtest(i)
             
-            if self.backtest is True:
+            if self.backtest_mode is True:
                 NAV.append(self.broker.NAV)
                 balance.append(self.broker.portfolio_balance)
                 margin.append(self.broker.margin_available)
@@ -288,7 +288,7 @@ class AutoTrader():
         '''                     Backtest Post-Processing                   '''
         ''' -------------------------------------------------------------- '''
         # Data iteration complete - proceed to post-processing
-        if self.backtest is True:
+        if self.backtest_mode is True:
             # Create backtest summary for each bot 
             for bot in self.bots_deployed:
                 bot.create_backtest_summary(NAV, margin)            
@@ -412,6 +412,7 @@ class AutoTrader():
             end_dt      = datetime.strptime(end + '+0000', '%d/%m/%Y%z')
         
         # Assign attributes
+        self.backtest_mode = True
         self.data_start = start_dt
         self.data_end   = end_dt
         self.backtest_initial_balance = initial_balance
@@ -637,7 +638,7 @@ class AutoTrader():
 
     
     def assign_broker(self, broker_config):
-        if self.backtest is True:
+        if self.backtest_mode is True:
                 utils_module    = importlib.import_module('autotrader.brokers.virtual.utils')
                 
                 utils           = utils_module.Utils()
