@@ -374,9 +374,9 @@ class AutoTrader():
         self.strategies[name] = new_strategy    
     
     
-    def configure_backtest(self, start=None, end=None, initial_balance=1000,
-                           spread=0, commission=0, leverage=1, base_currency='AUD',
-                           start_dt=None, end_dt=None):
+    def backtest(self, start=None, end=None, initial_balance=1000, spread=0, 
+                 commission=0, leverage=1, base_currency='AUD', start_dt=None, 
+                 end_dt=None):
         '''
         Configures settings for backtesting.
         
