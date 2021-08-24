@@ -12,17 +12,16 @@
      A Python-Based Development Platform For Automated Trading Systems
                              Kieran Mackle
                              Version 0.2.7
-                             
 """
 
 from datetime import datetime, timedelta
-import sys
+# import sys
 import os
 import pyfiglet
 import yaml
 import importlib
-import time
-import pytz
+# import time
+# import pytz
 import numpy as np
 import pandas as pd
 from autotrader.brokers.oanda import Oanda
@@ -59,6 +58,11 @@ class AutoTrader():
     """
     
     def __init__(self):
+        
+        
+        # TODO - how many of these can be cleaned up?
+        
+        
         self.config_file    = None
         self.custom_config  = None
         self.verbosity      = 0
@@ -76,6 +80,12 @@ class AutoTrader():
         self.validation_file = None
         self.plot_validation_balance = True
         self.include_broker = False
+        
+        self.environment    = 'demo'
+        self.feed           = 'yahoo'
+        self.account_id     = None
+        
+        self.strategies     = {}
         
         self.config         = None
         self.broker         = None
@@ -135,12 +145,13 @@ class AutoTrader():
         if self.home_dir is None:
             self.home_dir       = os.getcwd()
         
-        if self.optimise is True and self.backtest is True:
-            config              = self.custom_config
-        else:
-            config_file         = self.config_file
-            config_file_path    = os.path.join(self.home_dir, 'config', config_file)
-            config              = self.read_yaml(config_file_path + '.yaml')
+        # TODO - make sure optimisation still works
+        # if self.optimise is True and self.backtest is True:
+        #     config              = self.custom_config
+        # else:
+        #     config_file         = self.config_file
+        #     config_file_path    = os.path.join(self.home_dir, 'config', config_file)
+        #     config              = self.read_yaml(config_file_path + '.yaml')
         
         if self.validation_file is not None:
             livetrade_history   = pd.read_csv(self.validation_file, index_col = 0)
@@ -165,27 +176,33 @@ class AutoTrader():
         # strategy_params['period']       = period
         # self.strategy_params            = strategy_params
         
-        global_config       = self.read_yaml(self.home_dir + '/config' + '/GLOBAL.yaml')
-        broker_config       = environment_manager.get_config(environment,
-                                                             global_config,
-                                                             feed)
+        # Construct broker config
+        global_config_fp = os.path.join(self.home_dir, 'config', 'GLOBAL.yaml')
+        if os.path.isfile(global_config_fp):
+            global_config = self.read_yaml(global_config_fp)
+        else:
+            global_config = None
+        broker_config = environment_manager.get_config(self.environment,
+                                                       global_config,
+                                                       self.feed)
         # self.get_data       = autodata.GetData(broker_config)
         
-        if 'ACCOUNT_ID' in config:
+        if self.account_id is not None:
             # Overwrite default account in global config
-            broker_config['ACCOUNT_ID'] = config['ACCOUNT_ID']
+            broker_config['ACCOUNT_ID'] = self.account_id
         
         # Get watchlist
-        if self.scan is not None:
-            self.watchlist  = instrument_list.get_watchlist(self.scan)
-            self.scan_results = {}
+        # TODO - validate scanning again !
+        # if self.scan is not None:
+        #     self.watchlist  = instrument_list.get_watchlist(self.scan)
+        #     self.scan_results = {}
             
-        elif self.instruments is not None:
-            self.watchlist  = self.instruments.split(',') 
-        elif self.validation_file is not None:
-            self.raw_watchlist = livetrade_history.Instrument.unique() # FOR OANDA
-        else:
-            self.watchlist  = config["WATCHLIST"]
+        # elif self.instruments is not None:
+        #     self.watchlist  = self.instruments.split(',') 
+        # elif self.validation_file is not None:
+        #     self.raw_watchlist = livetrade_history.Instrument.unique() # FOR OANDA
+        # else:
+        #     self.watchlist  = config["WATCHLIST"]
         
         # strat_package_path  = os.path.join(self.home_dir, "strategies")
         # strat_module_path   = os.path.join(strat_package_path, strat_module) + '.py'
@@ -194,9 +211,8 @@ class AutoTrader():
         # strat_spec.loader.exec_module(strategy_module)
         # strategy            = getattr(strategy_module, strat_name)
         
-        self.assign_broker(broker_config, config)
-        
-        self.configure_emailing(config, global_config)
+        self.assign_broker(broker_config)
+        self.configure_emailing(global_config)
         
         if self.backtest:
             starting_balance = self.broker.get_balance()
@@ -236,10 +252,12 @@ class AutoTrader():
         #                'config': strat_config}
         # }
         # then
-        # for strategy in strategy_dict:
-        #     for instrument in strategy_dict[strategy][instruments]:
-        #         bot = AutoTraderBot(instrument, strategy_dict[strategy]['config'],
-        #                             self.broker, self)
+        
+        for strategy in self.strategies:
+            for instrument in self.strategies[strategy]['WATCHLIST']:
+                bot = AutoTraderBot(instrument, self.strategies[strategy],
+                                    self.broker, self)
+                self.bots_deployed.append(bot)
         
         
         # for instrument in self.watchlist:
@@ -269,7 +287,9 @@ class AutoTrader():
         if int(self.verbosity) > 0 and self.backtest:
             print("\nTrading...")
         
-        start_range, end_range = self.get_iteration_range(data)
+        # TODO - add check that data ranges are consistent across bots
+        # For now, assume correct and use first bot.
+        start_range, end_range = self.bots_deployed[0].get_iteration_range()
         for i in range(start_range, end_range):
             
             # Update each bot with latest data to generate signal
@@ -344,6 +364,28 @@ class AutoTrader():
                                               NAV,
                                               cpl_dict)
 
+    
+    def add_strategy(self, strategy_filename=None, 
+                     strategy_dict=None):
+        '''
+        Adds a strategy to AutoTrader. 
+        
+            Parameters:
+                strategy_filename (str): prefix of yaml strategy
+                configuration file, located in home_dir/config.
+                
+                strategy_dict (dict): alternative to strategy_filename,
+                the strategy dictionary can be passed directly.
+        '''
+        
+        if strategy_dict is None:
+            config_file_path = os.path.join(self.home_dir, 'config', strategy_filename)
+            new_strategy = self.read_yaml(config_file_path + '.yaml')
+        else:
+            new_strategy = strategy_dict
+        
+        name = new_strategy['STRATEGY']['MODULE']
+        self.strategies[name] = new_strategy    
     
     
     def configure_backtest(self, start=None, end=None, initial_balance=1000,
@@ -613,18 +655,18 @@ class AutoTrader():
 
 
     
-    def assign_broker(self, broker_config, config):
+    def assign_broker(self, broker_config):
         if self.backtest is True:
                 utils_module    = importlib.import_module('autotrader.brokers.virtual.utils')
                 
                 utils           = utils_module.Utils()
                 broker          = Broker(broker_config, utils)
                 
-                initial_deposit = config["BACKTESTING"]["initial_balance"]
-                spread          = config["BACKTESTING"]["spread"]
-                leverage        = config["BACKTESTING"]["leverage"]
-                commission      = config["BACKTESTING"]["commission"]
-                base_currency   = config["BACKTESTING"]["base_currency"]
+                initial_deposit = self.backtest_initial_balance
+                spread          = self.backtest_spread
+                leverage        = self.backtest_leverage
+                commission      = self.backtest_commission
+                base_currency   = self.backtest_base_currency
                 
                 broker.add_funds(initial_deposit)
                 broker.fee      = spread
@@ -640,14 +682,14 @@ class AutoTrader():
                 
                 if self.validation_file is not None:
                     # Also get broker-specific utility functions
-                    validation_utils = importlib.import_module('autotrader.brokers.{}.utils'.format(config['FEED'].lower()))
+                    validation_utils = importlib.import_module('autotrader.brokers.{}.utils'.format(self.feed.lower()))
                     
                     # Correct watchlist
                     if self.instruments is None:
                         self.watchlist = validation_utils.format_watchlist(self.raw_watchlist)
                 
         else:
-            utils_module    = importlib.import_module('autotrader.brokers.{}.utils'.format(config['FEED'].lower()))
+            utils_module    = importlib.import_module('autotrader.brokers.{}.utils'.format(self.feed.lower()))
             utils           = utils_module.Utils()
             broker          = Oanda.Oanda(broker_config, utils)
         
@@ -655,17 +697,18 @@ class AutoTrader():
         self.broker_utils = utils
     
     
-    def configure_emailing(self, config, global_config):
+    def configure_emailing(self, global_config):
         if int(self.notify) > 0:
             host_email      = None
             mailing_list    = None
             
-            if 'EMAILING' in config:
-                # Look for host email and mailing list in strategy config
-                if "MAILING_LIST" in config["EMAILING"]:
-                    mailing_list    = config["EMAILING"]["MAILING_LIST"]
-                if "HOST_ACCOUNT" in config["EMAILING"]:
-                    host_email      = config["EMAILING"]["HOST_ACCOUNT"]
+            # TODO - what if no email provided?
+            # if 'EMAILING' in config:
+            #     # Look for host email and mailing list in strategy config
+            #     if "MAILING_LIST" in config["EMAILING"]:
+            #         mailing_list    = config["EMAILING"]["MAILING_LIST"]
+            #     if "HOST_ACCOUNT" in config["EMAILING"]:
+            #         host_email      = config["EMAILING"]["HOST_ACCOUNT"]
             
             if "EMAILING" in global_config:
                 # Look for host email and mailing list in strategy config, if it
@@ -686,18 +729,6 @@ class AutoTrader():
                             'host_email': host_email}
             self.email_params = email_params
             self.order_summary_fp = order_summary_fp
-    
-    
-    def get_iteration_range(self, data):
-        
-        if self.backtest:
-            start_range         = 0
-        else:
-            start_range         = len(data)-1
-        
-        end_range           = len(data)
-
-        return start_range, end_range
 
 
     def extract_backtest_results(self, trade_summary, broker, starting_balance, 
