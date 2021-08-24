@@ -81,7 +81,6 @@ class AutoTrader():
         
         # self.instruments    = None
         self.home_dir       = None
-        self.validation_file = None
         self.plot_validation_balance = True
         self.include_broker = False
         
@@ -110,9 +109,15 @@ class AutoTrader():
         self.backtest_commission = None
         self.backtest_leverage = None
         self.backtest_base_currency = None
+        self.validation_file = None # TODO - rename to backtest_validation_file
         
         # Optimisation Parameters
-        self.optimise_mode  = False
+        self.optimisation_config = None
+        self.optimise_mode = False
+        self.opt_params = None
+        self.bounds = None
+        self.Ns = None
+        
         
         # Make adjustments
         if self.home_dir is None:
@@ -254,11 +259,27 @@ class AutoTrader():
         ''' -------------------------------------------------------------- '''
         '''    Assign strategy to bot for each instrument in watchlist     '''
         ''' -------------------------------------------------------------- '''
+        
+        # TODO - in case of optimisation, do not want to deploy a new bot
+        # every single time. instead, just want to update the existing bot's
+        # config parameters and proceed.
+        
+            
+        # if len(self.bots_deployed) == 0:
+        #     # Deploy bots
         for strategy in self.strategies:
             for instrument in self.strategies[strategy]['WATCHLIST']:
                 bot = AutoTraderBot(instrument, self.strategies[strategy],
                                     self.broker, self)
                 self.bots_deployed.append(bot)
+        
+        # if self.optimise_mode:
+        #     # Modify strategy params of bot deployed for bt optimisation
+        #     bot = self.bots_deployed[0]
+            
+        #     bot.reset_backtest(self.optimisation_config)
+            
+            
         
         ''' -------------------------------------------------------------- '''
         '''                  Analyse price data using strategy             '''
@@ -343,7 +364,7 @@ class AutoTrader():
                                               NAV,
                                               cpl_dict)
 
-    def remove_strategies(self):
+    def clear_strategies(self):
         '''
         Removes all strategies saved in autotrader instance.
         '''
@@ -926,6 +947,7 @@ class AutoTrader():
         self.bounds = bounds
         self.Ns = Ns
         
+        
     def run_optimise(self):
         '''
         Runs optimisation of strategy parameters.
@@ -934,6 +956,7 @@ class AutoTrader():
         # Modify verbosity for optimisation
         verbosity = self.verbosity
         self.verbosity = 0
+        self.show_plot = False
         
         self.objective      = 'profit + MDD'
         
@@ -1023,9 +1046,10 @@ class AutoTrader():
         ''' ------------------------------------------------------------------ '''
         '''           Run AutoTrader and evaluate objective function           '''
         ''' ------------------------------------------------------------------ '''
-        # TODO - reset bot profit, it being added I think for each run
-        
-        self.remove_strategies()
+        # TODO - reset bot profit, its being added I think for each run
+        # self.optimisation_config = config_dict
+        # More likely it's the broker not being reset...
+        self.clear_strategies()
         self.add_strategy(strategy_dict = config_dict)
         self.main()
         

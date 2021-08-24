@@ -57,7 +57,7 @@ class AutoTraderBot():
         self.environment        = autotrader_attributes.environment
         self.feed               = autotrader_attributes.feed
         self.data_file          = autotrader_attributes.data_file
-        self.optimise           = autotrader_attributes.optimise
+        self.optimise_mode      = autotrader_attributes.optimise_mode
         self.include_broker     = autotrader_attributes.include_broker
         
         self.instrument = instrument
@@ -172,7 +172,7 @@ class AutoTraderBot():
                 if int(self.verbosity) > 1:
                     print("\nDownloading OHLC price data for {}.".format(instrument))
                 
-                if self.optimise is True:
+                if self.optimise_mode is True:
                     # Check if historical data already exists
                     historical_data_name = 'hist_{0}{1}.csv'.format(interval, instrument)
                     historical_quote_data_name = 'hist_{0}{1}_quote.csv'.format(interval, instrument)
@@ -550,3 +550,11 @@ class AutoTraderBot():
 
         return start_range, end_range
     
+    def reset_backtest_history(self, strategy_config):
+        '''
+        Clears backtest results of bot to allow for backtest re-run. This 
+        method is primarily intended to accelerate strategy optimisation.
+        '''
+        
+        
+        return
