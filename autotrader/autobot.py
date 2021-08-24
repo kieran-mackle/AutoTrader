@@ -1,8 +1,17 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from autotrader.emailing import emailing
+import sys
+import os
+import importlib
+import time
+import pytz
+import pandas as pd
 import numpy as np
+from datetime import datetime, timedelta
+from autotrader.emailing import emailing
+from autotrader.lib import autodata
+
 
 class AutoTraderBot():
     '''
@@ -27,13 +36,62 @@ class AutoTraderBot():
     
     '''
     
-    def __init__(self, broker, strategy, instrument, data, autotrader_attributes):
-        self.broker     = broker
-        self.strategy   = strategy
+    def __init__(self, instrument, strategy_config, broker, autotrader_attributes):
         self.instrument = instrument
+        self.broker     = broker
+        
+        
+        # New from autotrader.py ------------------------------------- #
+        interval            = config["STRATEGY"]["INTERVAL"]
+        period              = config["STRATEGY"]["PERIOD"]
+        params              = config["STRATEGY"]["PARAMETERS"]
+        risk_pc             = config["STRATEGY"]["RISK_PC"]
+        sizing              = config["STRATEGY"]["SIZING"]
+        strat_module        = config["STRATEGY"]["MODULE"]
+        strat_name          = config["STRATEGY"]["NAME"]
+        environment         = config["ENVIRONMENT"]
+        feed                = config["FEED"]
+        
+        strategy_params                 = params
+        strategy_params['granularity']  = interval
+        strategy_params['risk_pc']      = risk_pc
+        strategy_params['sizing']       = sizing
+        strategy_params['period']       = period
+        self.strategy_params            = strategy_params
+        
+        strat_package_path  = os.path.join(self.home_dir, "strategies")
+        strat_module_path   = os.path.join(strat_package_path, strat_module) + '.py'
+        strat_spec          = importlib.util.spec_from_file_location(strat_module, strat_module_path)
+        strategy_module     = importlib.util.module_from_spec(strat_spec)
+        strat_spec.loader.exec_module(strategy_module)
+        strategy            = getattr(strategy_module, strat_name)
+        
+        
+        data, quote_data = self.retrieve_data(instrument, price_data_path, feed)
+        
+        my_strat        = strategy(params, data, instrument)
+        
+        # TODO - instead of this logic, instantiate my_strat above with 
+        # broker as well. This will mean you have to change the format of 
+        # the strategy __init__, but has the benefit of immediate access to 
+        # broker. Maybe not, but have a think.
+        if self.include_broker:
+                my_strat.broker = self.broker
+                my_strat.broker_utils = self.broker_utils
+                
+        # -------------------------------------------------------------- #
+        
+        
+        
+        
+        self.strategy   = strategy
         self.data       = data
         self.quote_data = None
+        
+        
         self.latest_orders = []
+        
+        
         
         # Inherit user options from autotrader
         self.strategy_params    = autotrader_attributes.strategy_params
@@ -51,6 +109,177 @@ class AutoTraderBot():
                 print("AutoTraderBot assigned to analyse {}".format(instrument),
                       "on {} timeframe using {}.".format(self.strategy_params['granularity'],
                                                          self.strategy.name))
+    
+    
+    def retrieve_data(self, instrument, price_data_path, feed):
+    
+        interval    = self.strategy_params['granularity']
+        period      = self.strategy_params['period']
+        
+        if self.backtest is True:
+            # Running in backtest mode
+            
+            from_date       = datetime.strptime(self.config['BACKTESTING']['FROM']+'+0000', '%d/%m/%Y%z')
+            to_date         = datetime.strptime(self.config['BACKTESTING']['TO']+'+0000', '%d/%m/%Y%z')
+            
+            if self.validation_file is not None:
+                # Extract instrument-specific trade history as trade summary and trade period
+                livetrade_history = self.livetrade_history
+                formatted_instrument = instrument[:3] + "/" + instrument[-3:]
+                raw_livetrade_summary = livetrade_history[livetrade_history.Instrument == formatted_instrument] # FOR OANDA
+                from_date           = pd.to_datetime(raw_livetrade_summary.Date.values)[0]
+                to_date             = pd.to_datetime(raw_livetrade_summary.Date.values)[-1]
+                
+                self.raw_livetrade_summary = raw_livetrade_summary
+                
+                # Modify from date to improve backtest
+                from_date = from_date - period*timedelta(seconds = self.granularity_to_seconds(interval))
+                
+                # Modify starting balance
+                self.broker.portfolio_balance = raw_livetrade_summary.Balance.values[np.isfinite(raw_livetrade_summary.Balance.values)][0]
+                
+            if self.data_file is not None:
+                custom_data_file        = self.data_file
+                custom_data_filepath    = os.path.join(price_data_path,
+                                                       custom_data_file)
+                if int(self.verbosity) > 1:
+                    print("Using data file specified ({}).".format(custom_data_file))
+                data            = pd.read_csv(custom_data_filepath, 
+                                              index_col = 0)
+                data.index = pd.to_datetime(data.index)
+                quote_data = data
+                
+            else:
+                if int(self.verbosity) > 1:
+                    print("\nDownloading OHLC price data for {}.".format(instrument))
+                
+                if self.optimise is True:
+                    # Check if historical data already exists
+                    historical_data_name = 'hist_{0}{1}.csv'.format(interval, instrument)
+                    historical_quote_data_name = 'hist_{0}{1}_quote.csv'.format(interval, instrument)
+                    data_dir_path = os.path.join(self.home_dir, 'price_data')
+                    historical_data_file_path = os.path.join(self.home_dir, 
+                                                             'price_data',
+                                                             historical_data_name)
+                    historical_quote_data_file_path = os.path.join(self.home_dir, 
+                                                             'price_data',
+                                                             historical_quote_data_name)
+                    
+                    if not os.path.exists(historical_data_file_path):
+                        # Data file does not yet exist
+                        data        = getattr(self.get_data, feed.lower())(instrument,
+                                                         granularity = interval,
+                                                         start_time = from_date,
+                                                         end_time = to_date)
+                        quote_data  = getattr(self.get_data, feed.lower() + '_quote_data')(data,
+                                                                                      instrument,
+                                                                                      interval,
+                                                                                      from_date,
+                                                                                      to_date)
+                        data, quote_data    = self.broker_utils.check_dataframes(data, quote_data)
+                        
+                        # Check if price_data folder exists
+                        if not os.path.exists(data_dir_path):
+                            # If price data directory doesn't exist, make it
+                            os.makedirs(data_dir_path)
+                            
+                        # Save data in file/s
+                        data.to_csv(historical_data_file_path)
+                        quote_data.to_csv(historical_quote_data_file_path)
+                        
+                    else:
+                        # Data file does exist, import it as dataframe
+                        data = pd.read_csv(historical_data_file_path, 
+                                           index_col = 0)
+                        quote_data = pd.read_csv(historical_quote_data_file_path, 
+                                                 index_col = 0)
+                        
+                else:
+                    data        = getattr(self.get_data, feed.lower())(instrument,
+                                                         granularity = interval,
+                                                         start_time = from_date,
+                                                         end_time = to_date)
+                    quote_data  = getattr(self.get_data, feed.lower() + '_quote_data')(data,
+                                                                    instrument,
+                                                                    interval,
+                                                                    from_date,
+                                                                    to_date)
+                    
+                    data, quote_data    = self.broker_utils.check_dataframes(data, quote_data)
+                
+                
+                if int(self.verbosity) > 1:
+                    print("  Done.\n")
+            
+            return data, quote_data
+            
+        else:
+            # Running in livetrade mode
+            data = getattr(self.get_data, feed.lower())(instrument,
+                                                         granularity = interval,
+                                                         count=period)
+            
+            data = self.verify_data_alignment(data, instrument, feed, period, price_data_path)
+        
+            return data, None
+
+
+    def verify_data_alignment(self, data, instrument, feed, period, price_data_path):
+    
+        interval = self.strategy_params['granularity']
+        
+        # Check data time alignment
+        current_time        = datetime.now(tz=pytz.utc)
+        last_candle_closed  = self.broker_utils.last_period(current_time, interval)
+        data_ts             = data.index[-1].to_pydatetime().timestamp()
+        
+        if data_ts != last_candle_closed.timestamp():
+            # Time misalignment detected - attempt to correct
+            count = 0
+            while data_ts != last_candle_closed.timestamp():
+                print("  Time misalginment detected at {}".format(datetime.now().strftime("%H:%M:%S")),
+                      "({}/{}).".format(data.index[-1].minute, last_candle_closed.minute),
+                      "Trying again...")
+                time.sleep(3) # wait 3 seconds...
+                data    = getattr(self.get_data, feed.lower())(instrument,
+                                    granularity = interval,
+                                    count=period)
+                data_ts = data.index[-1].to_pydatetime().timestamp()
+                count   += 1
+                if count == 3:
+                    break
+            
+            if data_ts != last_candle_closed.timestamp():
+                # Time misalignment still present - attempt to correct
+                # Check price data directory to see if the stream has caught 
+                # the latest candle
+                price_data_filename = "{0}{1}.txt".format(interval, instrument)
+                abs_price_path      = os.path.join(price_data_path, price_data_filename)
+                
+                if os.path.exists(abs_price_path):
+                    # Price data file matching instrument and granularity 
+                    # exists, check latest candle in file
+                    f                   = open(abs_price_path, "r")
+                    price_lines         = f.readlines()
+                    
+                    if len(price_lines) > 1:
+                        latest_candle       = price_lines[-1].split(',')
+                        latest_candle_time  = datetime.strptime(latest_candle[0],
+                                                                '%Y-%m-%d %H:%M:%S')
+                        UTC_last_candle_in_file = latest_candle_time.replace(tzinfo=pytz.UTC)
+                        price_data_ts       = UTC_last_candle_in_file.timestamp()
+                        
+                        if price_data_ts == last_candle_closed.timestamp():
+                            data    = self.broker_utils.update_data_with_candle(data, latest_candle)
+                            data_ts = data.index[-1].to_pydatetime().timestamp()
+                            print("  Data updated using price stream.")
+            
+            # if data is still misaligned, perform manual adjustment.
+            if data_ts != last_candle_closed.timestamp():
+                print("  Could not retrieve updated data. Aborting.")
+                sys.exit(0)
+        
+        return data
     
     
     def update(self, i):

@@ -89,6 +89,16 @@ class AutoTrader():
         self.scan_results = {}
         self.order_summary_fp = None
         
+        # Backtesting Parameters
+        self.data_start = None
+        self.data_end   = None
+        self.backtest_initial_balance = None
+        self.backtest_spread = None
+        self.backtest_commission = None
+        self.backtest_leverage = None
+        self.backtest_base_currency = None
+        
+        
     def run(self):
         if self.show_help is not None:
             printout.option_help(self.show_help)
@@ -139,23 +149,23 @@ class AutoTrader():
             self.livetrade_history = livetrade_history.fillna(method='ffill')
         
         # Read configuration file
-        self.config         = config
-        interval            = config["STRATEGY"]["INTERVAL"]
-        period              = config["STRATEGY"]["PERIOD"]
-        params              = config["STRATEGY"]["PARAMETERS"]
-        risk_pc             = config["STRATEGY"]["RISK_PC"]
-        sizing              = config["STRATEGY"]["SIZING"]
-        strat_module        = config["STRATEGY"]["MODULE"]
-        strat_name          = config["STRATEGY"]["NAME"]
-        environment         = config["ENVIRONMENT"]
-        feed                = config["FEED"]
+        # self.config         = config
+        # interval            = config["STRATEGY"]["INTERVAL"]
+        # period              = config["STRATEGY"]["PERIOD"]
+        # params              = config["STRATEGY"]["PARAMETERS"]
+        # risk_pc             = config["STRATEGY"]["RISK_PC"]
+        # sizing              = config["STRATEGY"]["SIZING"]
+        # strat_module        = config["STRATEGY"]["MODULE"]
+        # strat_name          = config["STRATEGY"]["NAME"]
+        # environment         = config["ENVIRONMENT"]
+        # feed                = config["FEED"]
         
-        strategy_params                 = params
-        strategy_params['granularity']  = interval
-        strategy_params['risk_pc']      = risk_pc
-        strategy_params['sizing']       = sizing
-        strategy_params['period']       = period
-        self.strategy_params            = strategy_params
+        # strategy_params                 = params
+        # strategy_params['granularity']  = interval
+        # strategy_params['risk_pc']      = risk_pc
+        # strategy_params['sizing']       = sizing
+        # strategy_params['period']       = period
+        # self.strategy_params            = strategy_params
         
         global_config       = self.read_yaml(self.home_dir + '/config' + '/GLOBAL.yaml')
         broker_config       = environment_manager.get_config(environment,
@@ -178,12 +188,12 @@ class AutoTrader():
         else:
             self.watchlist  = config["WATCHLIST"]
         
-        strat_package_path  = os.path.join(self.home_dir, "strategies")
-        strat_module_path   = os.path.join(strat_package_path, strat_module) + '.py'
-        strat_spec          = importlib.util.spec_from_file_location(strat_module, strat_module_path)
-        strategy_module     = importlib.util.module_from_spec(strat_spec)
-        strat_spec.loader.exec_module(strategy_module)
-        strategy            = getattr(strategy_module, strat_name)
+        # strat_package_path  = os.path.join(self.home_dir, "strategies")
+        # strat_module_path   = os.path.join(strat_package_path, strat_module) + '.py'
+        # strat_spec          = importlib.util.spec_from_file_location(strat_module, strat_module_path)
+        # strategy_module     = importlib.util.module_from_spec(strat_spec)
+        # strat_spec.loader.exec_module(strategy_module)
+        # strategy            = getattr(strategy_module, strat_name)
         
         self.assign_broker(broker_config, config)
         
@@ -214,25 +224,29 @@ class AutoTrader():
         ''' -------------------------------------------------------------- '''
         '''    Assign strategy to bot for each instrument in watchlist     '''
         ''' -------------------------------------------------------------- '''
-        for instrument in self.watchlist:
+        # There will be a bot assigned for every unique strategy/instrument pair
+        # One strategy trading 4 instruments -> 4 bots
+        # Two strategies trading 4 instruments each -> 8 bots
+        
+        # for instrument in self.watchlist:
             # Get price history
-            data, quote_data = self.retrieve_data(instrument, price_data_path, feed)
+            # data, quote_data = self.retrieve_data(instrument, price_data_path, feed)
             
             # Instantiate strategy for current instrument
-            my_strat        = strategy(params, data, instrument)
-            self.strategy   = my_strat
+            # my_strat        = strategy(params, data, instrument)
+            # self.strategy   = my_strat
             
-            if self.include_broker:
-                my_strat.broker = self.broker
-                my_strat.broker_utils = self.broker_utils
+            # if self.include_broker:
+            #     my_strat.broker = self.broker
+            #     my_strat.broker_utils = self.broker_utils
             
             # Create new bot for each instrument in watchlist
-            bot = AutoTraderBot(self.broker, my_strat, instrument, data, self)
+            # bot = AutoTraderBot(self.broker, my_strat, instrument, data, self)
             
-            if self.backtest:
-                bot.quote_data = quote_data
+            # if self.backtest:
+            #     bot.quote_data = quote_data
             
-            self.bots_deployed.append(bot)
+            # self.bots_deployed.append(bot)
             
 
         ''' -------------------------------------------------------------- '''
@@ -316,6 +330,54 @@ class AutoTrader():
                                               NAV,
                                               cpl_dict)
 
+    
+    
+    def configure_backtest(self, start=None, end=None, initial_balance=1000,
+                           spread=0, commission=0, leverage=1, base_currency='AUD',
+                           start_dt=None, end_dt=None):
+        '''
+        Configures settings for backtesting.
+        
+            Parameters:
+                start (str): start date for backtesting, in format d/m/yyyy.
+                
+                end (str): end date for backtesting, in format d/m/yyyy.
+                
+                initial_balance (float): initial account balance in base currency 
+                units.
+                
+                spread (float): bid/ask spread of instrument.
+                
+                commission (float): trading commission as percentage per trade.
+                
+                leverage (int): account leverage.
+                
+                base_currency (str): base currency of account.
+                
+                start_dt (datetime): datetime object corresponding to start time.
+                
+                end_dt (datetime): datetime object corresponding to end time.
+                
+            Note: 
+                Start and end times must be specified as the same type. For
+                example, both start and end arguments must be provided together, 
+                or alternatively, start_dt and end_dt must both be provided.
+        '''
+        
+        # Convert start and end strings to datetime objects
+        if start_dt is None and end_dt is None:
+            start_dt    = datetime.strptime(start + '+0000', '%d/%m/%Y%z')
+            end_dt      = datetime.strptime(end + '+0000', '%d/%m/%Y%z')
+        
+        # Assign attributes
+        self.data_start = start_dt
+        self.data_end   = end_dt
+        self.backtest_initial_balance = initial_balance
+        self.backtest_spread = spread
+        self.backtest_commission = commission
+        self.backtest_leverage = leverage
+        self.backtest_base_currency = base_currency
+    
     
     def plot_backtest(self, bot=None, validation_file=None):
         '''
