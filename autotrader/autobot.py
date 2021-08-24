@@ -52,7 +52,7 @@ class AutoTraderBot():
         self.backtest_mode      = autotrader_attributes.backtest
         self.data_start         = autotrader_attributes.data_start
         self.data_end           = autotrader_attributes.data_end
-        
+        self.base_currency      = autotrader_attributes.backtest_base_currency
         
         self.instrument = instrument
         self.broker     = broker
@@ -85,7 +85,13 @@ class AutoTraderBot():
         strategy            = getattr(strategy_module, strat_name)
         
         # Get data
+        global_config       = self.read_yaml(self.home_dir + '/config' + '/GLOBAL.yaml')
+        broker_config       = environment_manager.get_config(environment,
+                                                             global_config,
+                                                             feed)
+        
         feed             = strategy_config["FEED"]
+        self.get_data    = autodata.GetData(broker_config)
         data, quote_data = self.retrieve_data(instrument, feed)
         
         # instantiate strategy
@@ -125,6 +131,7 @@ class AutoTraderBot():
         
         if self.backtest_mode is True:
             # Running in backtest mode
+            self.get_data.base_currency = self.base_currency
             
             from_date       = datetime.strptime(self.config['BACKTESTING']['FROM']+'+0000', '%d/%m/%Y%z')
             to_date         = datetime.strptime(self.config['BACKTESTING']['TO']+'+0000', '%d/%m/%Y%z')

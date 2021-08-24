@@ -83,7 +83,7 @@ class AutoTrader():
         self.email_params   = None
         self.strategy       = None
         self.strategy_params = None
-        self.get_data       = None
+        # self.get_data       = None
         self.bots_deployed  = []
         
         self.scan_results = {}
@@ -169,9 +169,10 @@ class AutoTrader():
         broker_config       = environment_manager.get_config(environment,
                                                              global_config,
                                                              feed)
-        self.get_data       = autodata.GetData(broker_config)
+        # self.get_data       = autodata.GetData(broker_config)
         
         if 'ACCOUNT_ID' in config:
+            # Overwrite default account in global config
             broker_config['ACCOUNT_ID'] = config['ACCOUNT_ID']
         
         # Get watchlist
@@ -225,6 +226,21 @@ class AutoTrader():
         # There will be a bot assigned for every unique strategy/instrument pair
         # One strategy trading 4 instruments -> 4 bots
         # Two strategies trading 4 instruments each -> 8 bots
+        # Will need to make a dict similar to
+        # {'Simple_macd': ['EUR_USD'],
+        #  'EMA_cross': ['EUR_USD', 'GBP_NZD']}
+        # Maybe also include strat config in the dict for each
+        # {'Simple_macd': {'instruments': ['EUR_USD'],
+        #                  'config': strat_config},
+        #  'EMA_cross': {'instruments': ['EUR_USD', 'GBP_NZD'],
+        #                'config': strat_config}
+        # }
+        # then
+        # for strategy in strategy_dict:
+        #     for instrument in strategy_dict[strategy][instruments]:
+        #         bot = AutoTraderBot(instrument, strategy_dict[strategy]['config'],
+        #                             self.broker, self)
+        
         
         # for instrument in self.watchlist:
             # Get price history
@@ -616,7 +632,7 @@ class AutoTrader():
                 broker.commission = commission
                 broker.spread   = spread
                 broker.base_currency = base_currency
-                self.get_data.base_currency = base_currency
+                # self.get_data.base_currency = base_currency
                 
                 if int(self.verbosity) > 0:
                     banner = pyfiglet.figlet_format("AutoBacktest")
