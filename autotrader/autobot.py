@@ -11,6 +11,7 @@ import numpy as np
 from datetime import datetime, timedelta
 from autotrader.emailing import emailing
 from autotrader.lib import autodata, environment_manager
+from autotrader.lib.read_yaml import read_yaml
 
 
 class AutoTraderBot():
@@ -53,6 +54,8 @@ class AutoTraderBot():
         self.data_start         = autotrader_attributes.data_start
         self.data_end           = autotrader_attributes.data_end
         self.base_currency      = autotrader_attributes.backtest_base_currency
+        self.environment        = autotrader_attributes.environment
+        self.feed               = autotrader_attributes.feed
         
         self.instrument = instrument
         self.broker     = broker
@@ -64,7 +67,7 @@ class AutoTraderBot():
         period              = strategy_config["STRATEGY"]["PERIOD"]
         risk_pc             = strategy_config["STRATEGY"]["RISK_PC"]
         sizing              = strategy_config["STRATEGY"]["SIZING"]
-        environment         = strategy_config["ENVIRONMENT"]
+        # environment         = strategy_config["ENVIRONMENT"]
         params              = strategy_config["STRATEGY"]["PARAMETERS"]
         
         strategy_params                 = params
@@ -85,14 +88,13 @@ class AutoTraderBot():
         strategy            = getattr(strategy_module, strat_name)
         
         # Get data
-        feed                = strategy_config["FEED"]
-        global_config       = self.read_yaml(self.home_dir + '/config' + '/GLOBAL.yaml')
-        broker_config       = environment_manager.get_config(environment,
+        global_config       = read_yaml(self.home_dir + '/config' + '/GLOBAL.yaml')
+        broker_config       = environment_manager.get_config(self.environment,
                                                              global_config,
-                                                             feed)
+                                                             self.feed)
         
         self.get_data    = autodata.GetData(broker_config)
-        data, quote_data = self.retrieve_data(instrument, feed)
+        data, quote_data = self.retrieve_data(instrument, self.feed)
         
         # instantiate strategy
         my_strat = strategy(params, data, instrument)

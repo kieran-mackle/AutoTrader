@@ -26,7 +26,8 @@ import numpy as np
 import pandas as pd
 from autotrader.brokers.oanda import Oanda
 from autotrader.brokers.virtual.virtual_broker import Broker
-from autotrader.lib import instrument_list, environment_manager, autodata, printout
+from autotrader.lib import instrument_list, environment_manager, printout
+from autotrader.lib.read_yaml import read_yaml
 from autotrader import autoplot
 from autotrader.autobot import AutoTraderBot
 
@@ -91,8 +92,8 @@ class AutoTrader():
         self.broker         = None
         self.broker_utils   = None
         self.email_params   = None
-        self.strategy       = None
-        self.strategy_params = None
+        # self.strategy       = None
+        # self.strategy_params = None
         # self.get_data       = None
         self.bots_deployed  = []
         
@@ -107,6 +108,10 @@ class AutoTrader():
         self.backtest_commission = None
         self.backtest_leverage = None
         self.backtest_base_currency = None
+        
+        # Make adjustments
+        if self.home_dir is None:
+            self.home_dir = os.getcwd()
         
         
     def run(self):
@@ -142,8 +147,7 @@ class AutoTrader():
         ''' -------------------------------------------------------------- '''
         '''                         Load configuration                     '''
         ''' -------------------------------------------------------------- '''
-        if self.home_dir is None:
-            self.home_dir       = os.getcwd()
+        
         
         # TODO - make sure optimisation still works
         # if self.optimise is True and self.backtest is True:
@@ -179,7 +183,7 @@ class AutoTrader():
         # Construct broker config
         global_config_fp = os.path.join(self.home_dir, 'config', 'GLOBAL.yaml')
         if os.path.isfile(global_config_fp):
-            global_config = self.read_yaml(global_config_fp)
+            global_config = read_yaml(global_config_fp)
         else:
             global_config = None
         broker_config = environment_manager.get_config(self.environment,
@@ -223,9 +227,10 @@ class AutoTrader():
         if int(self.verbosity) > 0:
             if self.backtest is True:
                 print("Begining new backtest.")
-                print("  From: ", datetime.strptime(self.config['BACKTESTING']['FROM']+'+0000', '%d/%m/%Y%z'))
-                print("  To:   ", datetime.strptime(self.config['BACKTESTING']['TO']+'+0000', '%d/%m/%Y%z'))
-                print("  Instruments: ", self.watchlist)
+                # TODO - can the following be reintroduced?
+                # print("  From: ", datetime.strptime(self.config['BACKTESTING']['FROM']+'+0000', '%d/%m/%Y%z'))
+                # print("  To:   ", datetime.strptime(self.config['BACKTESTING']['TO']+'+0000', '%d/%m/%Y%z'))
+                # print("  Instruments: ", self.watchlist)
             elif self.scan is not None:
                 print("AutoScan:")
                 print("Time: {}".format(datetime.now().strftime("%A, %B %d %Y, "+
@@ -380,7 +385,7 @@ class AutoTrader():
         
         if strategy_dict is None:
             config_file_path = os.path.join(self.home_dir, 'config', strategy_filename)
-            new_strategy = self.read_yaml(config_file_path + '.yaml')
+            new_strategy = read_yaml(config_file_path + '.yaml')
         else:
             new_strategy = strategy_dict
         
@@ -628,11 +633,6 @@ class AutoTrader():
         print(round(backtest_results.avg_win / backtest_results.avg_loss,1))
         print("")
         
-
-    def read_yaml(self, file_path):
-        '''Function to read and extract contents from .yaml file.'''
-        with open(file_path, "r") as f:
-            return yaml.safe_load(f)
     
     def granularity_to_seconds(self, granularity):
         '''Converts the interval to time in seconds'''
