@@ -135,8 +135,6 @@ class AutoTrader():
         if self.home_dir is None:
             self.home_dir       = os.getcwd()
         
-        price_data_path         = os.path.join(self.home_dir, 'price_data')
-        
         if self.optimise is True and self.backtest is True:
             config              = self.custom_config
         else:
