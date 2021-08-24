@@ -26,6 +26,7 @@ import sys
 from scipy.optimize import brute
 import timeit
 from ast import literal_eval
+from autotrader.lib.read_yaml import read_yaml
 
 
 class Optimise():
@@ -46,12 +47,6 @@ class Optimise():
         self.bounds         = None
         self.Ns             = 4
         self.objective      = 'profit + MDD'
-    
-    def read_yaml(self, file_path):
-        '''Function to read and extract contents from .yaml file.'''
-        with open(file_path, "r") as f:
-            return yaml.safe_load(f)
-    
     
     def helper_function(self, params, config_dict, opt_params, verbosity):
         '''
@@ -109,7 +104,7 @@ class Optimise():
         else:
             home_dir            = os.getcwd()
         config_file_path    = os.path.join(home_dir, 'config', self.config_file)
-        config_dict         = self.read_yaml(config_file_path + '.yaml')
+        config_dict         = read_yaml(config_file_path + '.yaml')
         verbosity           = self.verbosity
         
         ''' ------------------------------------------------------------------ '''
