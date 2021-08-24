@@ -325,7 +325,7 @@ class AutoTrader():
                         cpl_dict[bot.instrument] = profit_df
                     
                     ap = autoplot.AutoPlot()
-                    ap.data = data
+                    ap.data = bot.data
                     ap.plot_multibot_backtest(self.multibot_backtest_results, 
                                               NAV,
                                               cpl_dict)
