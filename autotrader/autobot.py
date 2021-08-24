@@ -112,13 +112,9 @@ class AutoTraderBot():
                 
         # -------------------------------------------------------------- #
         
-        
-        
-        
         self.strategy   = my_strat
         self.data       = data
         self.quote_data = quote_data
-        
         
         self.latest_orders = []
         
@@ -130,6 +126,9 @@ class AutoTraderBot():
     
     
     def retrieve_data(self, instrument, feed):
+        '''
+        Retrieves price data from AutoData.
+        '''
     
         interval    = self.strategy_params['granularity']
         period      = self.strategy_params['period']
@@ -245,7 +244,10 @@ class AutoTraderBot():
 
 
     def verify_data_alignment(self, data, instrument, feed, period, price_data_path):
-    
+        '''
+        Verifies data time-alignment based on current time and last
+        candle in data.
+        '''
         interval = self.strategy_params['granularity']
         
         # Check data time alignment
@@ -395,6 +397,9 @@ class AutoTraderBot():
                     
     
     def update_backtest(self, i):
+        '''
+        Updates virtual broker with latest price data.
+        '''
         candle = self.data.iloc[i]
         self.broker.update_positions(candle, self.instrument)
     
@@ -498,6 +503,10 @@ class AutoTraderBot():
             
 
     def create_backtest_summary(self, NAV, margin):
+        '''
+        Constructs backtest summary dictionary for further processing.
+        '''
+        
         trade_summary = self.broker_utils.trade_summary(self.instrument, self.broker.closed_positions)
         open_trade_summary = self.broker_utils.open_order_summary(self.instrument, self.broker.open_positions)
         cancelled_summary = self.broker_utils.cancelled_order_summary(self.instrument, self.broker.cancelled_orders)

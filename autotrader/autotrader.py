@@ -115,6 +115,9 @@ class AutoTrader():
         
         
     def run(self):
+        '''
+        Run AutoTrader.
+        '''
         if self.show_help is not None:
             printout.option_help(self.show_help)
         
