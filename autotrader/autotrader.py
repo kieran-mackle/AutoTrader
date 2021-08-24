@@ -15,7 +15,7 @@
 """
 
 from datetime import datetime, timedelta
-# import sys
+import sys
 import os
 import pyfiglet
 import importlib
@@ -23,6 +23,9 @@ import importlib
 # import pytz
 import numpy as np
 import pandas as pd
+import timeit
+from scipy.optimize import brute
+from ast import literal_eval
 from autotrader.brokers.oanda import Oanda
 from autotrader.brokers.virtual.virtual_broker import Broker
 from autotrader.lib import instrument_list, environment_manager, printout
@@ -62,10 +65,8 @@ class AutoTrader():
         
         # TODO - how many of these can be cleaned up?
         
-        # Runtime options
-        self.backtest       = False
+        
         self.scan           = None
-        self.optimise       = False
         self.notify         = 0
         
         
@@ -100,6 +101,7 @@ class AutoTrader():
         self.order_summary_fp = None
         
         # Backtesting Parameters
+        self.backtest   = False
         self.data_start = None
         self.data_end   = None
         self.data_file  = None
@@ -108,6 +110,9 @@ class AutoTrader():
         self.backtest_commission = None
         self.backtest_leverage = None
         self.backtest_base_currency = None
+        
+        # Optimisation Parameters
+        self.optimise_mode  = False
         
         # Make adjustments
         if self.home_dir is None:
@@ -121,7 +126,12 @@ class AutoTrader():
         if self.show_help is not None:
             printout.option_help(self.show_help)
         
-        self.main()
+        # TODO add check of essential options
+        
+        if self.optimise_mode:
+            self.run_optimise()
+        else:
+            self.main()
     
     def usage(self):
         '''
@@ -918,7 +928,156 @@ class AutoTrader():
         else:
             print("There were no short trades.")
 
+    def optimise(self, opt_params, bounds, Ns=4):
+        '''
+        Optimisation configuration.
+        
+            Parameters: 
+                opt_params (list): 
+                
+                bounds (list of tuples):
+                
+                Ns (int):
+                
+        '''
+        
+        self.optimise_mode = True
+        self.opt_params = opt_params
+        self.bounds = bounds
+        self.Ns = Ns
+        
+        
 
+    def run_optimise(self):
+        '''
+        Runs optimisation of strategy parameters.
+        '''
+        
+        # self.config_file    = None
+        # self.verbosity      = 1
+        # self.show_help      = None
+        # self.log            = False
+        # self.home_dir       = None
+        # self.opt_params     = None
+        # self.bounds         = None
+        # self.Ns             = 4
+        self.objective      = 'profit + MDD'
+        
+        
+        ''' --------------------------------------------------------------- '''
+        '''                          Unpack user options                    '''
+        ''' --------------------------------------------------------------- '''
+        config_file_path    = os.path.join(self.home_dir, 'config', self.config_file)
+        config_dict         = read_yaml(config_file_path + '.yaml')
+        verbosity           = self.verbosity
+        
+        ''' --------------------------------------------------------------- '''
+        '''                      Define optimisation inputs                 '''
+        ''' --------------------------------------------------------------- '''
+        # TODO - move this into optimise config?
+        if type(bounds) == str:
+            full_tuple = literal_eval(bounds)
+            bounds = [(x[0], x[-1]) for x in full_tuple]
+        
+
+        if type(opt_params) == str:
+            opt_params = opt_params.split(',')
+        
+            
+        my_args     = (config_dict, opt_params, verbosity)
+        
+        ''' --------------------------------------------------------------- '''
+        '''                             Run Optimiser                       '''
+        ''' --------------------------------------------------------------- '''
+        start = timeit.default_timer()
+        result = brute(func         = self.optimisation_helper_function, 
+                       ranges       = bounds, 
+                       args         = my_args, 
+                       Ns           = Ns,
+                       full_output  = True)
+        stop = timeit.default_timer()
+        
+        ''' --------------------------------------------------------------- '''
+        '''      Delete historical data file after running optimisation     '''
+        ''' --------------------------------------------------------------- '''
+        granularity             = config_dict["STRATEGY"]["INTERVAL"]
+        pair                    = config_dict["WATCHLIST"][0]
+        historical_data_name    = 'hist_{0}{1}.csv'.format(granularity, pair)
+        historical_quote_data_name = 'hist_{0}{1}_quote.csv'.format(granularity, pair)
+        historical_data_file_path = os.path.join(self.home_dir, 
+                                                 'price_data',
+                                                 historical_data_name)
+        historical_quote_data_file_path = os.path.join(self.home_dir, 
+                                                       'price_data',
+                                                       historical_quote_data_name)
+        os.remove(historical_data_file_path)
+        os.remove(historical_quote_data_file_path)
+        
+        opt_params = result[0]
+        opt_value = result[1]
+        
+        # TODO - use the below for heatmap plotting
+        # grid_points = result[2]
+        # grid_values = result[3]
+        
+        
+        ''' --------------------------------------------------------------- '''
+        '''                           Print output                          '''
+        ''' --------------------------------------------------------------- '''
+        print("\nOptimisation complete.")
+        print('Time to run: {}s'.format(round((stop - start), 3)))
+        print("Optimal parameters:")
+        print(opt_params)
+        print("Objective:")
+        print(opt_value)
+    
+    
+    def optimisation_helper_function(self, params, config_dict, opt_params, verbosity):
+        '''
+        Helper function for optimising strategy parameters in AutoTrader.
+        This function will parse the ordered params into the config dict.
+        
+        '''
+        
+        ''' ------------------------------------------------------------------ '''
+        '''   Edit strategy parameters in config_dict using supplied params    '''
+        ''' ------------------------------------------------------------------ '''
+        for parameter in config_dict['STRATEGY']['PARAMETERS']:
+            if parameter in opt_params:
+                config_dict['STRATEGY']['PARAMETERS'][parameter] = params[opt_params.index(parameter)]
+            else:
+                continue
+        
+        ''' ------------------------------------------------------------------ '''
+        '''           Run AutoTrader and evaluate objective function           '''
+        ''' ------------------------------------------------------------------ '''
+        # at                  = AutoTrader()
+        # at.backtest         = True
+        # at.optimise         = True
+        self.custom_config    = config_dict
+        # at.include_broker   = True
+        self.run()  # or self.main()
+        bots                = self.bots_deployed
+        
+        if len(bots) > 1:
+            print("Error: please optimise one instrument at a time.")
+            print("Exiting.")
+            sys.exit(0)
+        else:
+            bot = bots[0]
+            
+        backtest_results    = self.analyse_backtest(bot.backtest_summary)
+        
+        try:
+            objective           = -backtest_results['all_trades']['net_pl']
+        except:
+            objective           = 1000
+                              
+        print("Parameters/objective:", params, "/", objective)
+        
+        return objective
+    
+    
 
 if __name__ == '__main__':
     autotrader = AutoTrader()

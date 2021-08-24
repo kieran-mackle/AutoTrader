@@ -19,7 +19,7 @@ TODO:
 """
 
 from autotrader.autotrader import AutoTrader
-import yaml
+# import yaml
 import os
 from getopt import getopt
 import sys
