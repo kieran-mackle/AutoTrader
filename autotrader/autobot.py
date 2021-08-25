@@ -88,7 +88,11 @@ class AutoTraderBot():
         strategy                = getattr(strategy_module, strat_name)
         
         # Get data
-        global_config           = read_yaml(self.home_dir + '/config' + '/GLOBAL.yaml')
+        global_config_fp = os.path.join(self.home_dir, 'config', 'GLOBAL.yaml')
+        if os.path.isfile(global_config_fp):
+            global_config = read_yaml(global_config_fp)
+        else:
+            global_config = None
         broker_config           = environment_manager.get_config(self.environment,
                                                              global_config,
                                                              self.feed)
