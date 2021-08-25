@@ -120,10 +120,11 @@ class AutoTrader():
         if self.show_help is not None:
             printout.option_help(self.show_help)
         
-        # TODO - what if no strategy is provided? Maybe do a printout of 
-        # settings to help debug any potential issues (eg. feed, include broker,
-        # backtest dates, strategy, etc)
-        
+        if len(self.strategies) == 0:
+            print("Error: no strategy has been provided. Do so by using the" +\
+                  " 'add_strategy' method of AutoTrader.")
+            sys.exit(0)
+            
         if sum([self.backtest_mode, self.scan_mode]) > 1:
             print("Error: backtest mode and scan mode are both set to True," +\
                   " but only one of these can run at a time.")
