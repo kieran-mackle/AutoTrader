@@ -706,11 +706,16 @@ class AutoTrader():
             if mailing_list is None:
                 print("Warning: no mailing list provided.")
                 
-            order_summary_fp = os.path.join(self.home_dir, 'logfiles/order_history.txt')
-            
             email_params = {'mailing_list': mailing_list,
                             'host_email': host_email}
             self.email_params = email_params
+            
+            logfiles_path = os.path.join(self.home_dir, 'logfiles')
+            order_summary_fp = os.path.join(logfiles_path, 'order_history.txt')
+            
+            if not os.path.isdir(logfiles_path):
+                os.mkdir(logfiles_path)
+            
             self.order_summary_fp = order_summary_fp
 
 
