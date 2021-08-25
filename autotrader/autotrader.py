@@ -119,7 +119,7 @@ class AutoTrader():
         if self.show_help is not None:
             printout.option_help(self.show_help)
         
-        # TODO add check of essential options
+        # TODO add check of essential options / conflicting run modes
         
         if self.optimise_mode:
             self.run_optimise()
@@ -387,6 +387,24 @@ class AutoTrader():
         self.backtest_base_currency = base_currency
     
     
+    def scan(self, scan_index=None):
+        '''
+        Configure AutoTrader scan. 
+            
+            Parameters:
+                scan_index (str): index to scan.
+        '''
+        
+        if scan_index is None:
+            # Use instruments specified in strategy config
+            scan_index = strategy_watchlist
+        else:
+            scan_index = instrument_list(scan_index)
+        
+        self.scan_mode = True
+        self.scan_index = scan_index
+    
+    
     def plot_backtest(self, bot=None, validation_file=None):
         '''
         Plots backtest results of an AutoTrader Bot.
@@ -650,12 +668,6 @@ class AutoTrader():
             mailing_list    = None
             
             # TODO - what if no email provided?
-            # if 'EMAILING' in config:
-            #     # Look for host email and mailing list in strategy config
-            #     if "MAILING_LIST" in config["EMAILING"]:
-            #         mailing_list    = config["EMAILING"]["MAILING_LIST"]
-            #     if "HOST_ACCOUNT" in config["EMAILING"]:
-            #         host_email      = config["EMAILING"]["HOST_ACCOUNT"]
             
             if "EMAILING" in global_config:
                 # Look for host email and mailing list in strategy config, if it
