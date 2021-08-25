@@ -38,7 +38,10 @@ class AutoTraderBot():
     '''
     
     def __init__(self, instrument, strategy_config, broker, autotrader_attributes):
-        
+        '''
+        AutoTrader Bot initialisation. 
+        '''
+
         # Inherit user options from autotrader
         self.home_dir           = autotrader_attributes.home_dir
         self.scan_mode          = autotrader_attributes.scan_mode
@@ -551,11 +554,3 @@ class AutoTraderBot():
 
         return start_range, end_range
     
-    def reset_backtest_history(self, strategy_config):
-        '''
-        Clears backtest results of bot to allow for backtest re-run. This 
-        method is primarily intended to accelerate strategy optimisation.
-        '''
-        
-        
-        return
