@@ -207,10 +207,8 @@ class AutoTrader():
         if int(self.verbosity) > 0:
             if self.backtest_mode:
                 print("Begining new backtest.")
-                # TODO - can the following be reintroduced? Also in self.print_backtest_results
-                # Answer: yes, from self.backtest_...
-                # print("  From: ", datetime.strptime(self.config['BACKTESTING']['FROM']+'+0000', '%d/%m/%Y%z'))
-                # print("  To:   ", datetime.strptime(self.config['BACKTESTING']['TO']+'+0000', '%d/%m/%Y%z'))
+                print("  From: ", datetime.strftime(self.data_start,'%d/%m/%Y %H:%M'))
+                print("  To:   ", datetime.strftime(self.data_end,'%d/%m/%Y %H:%M'))
                 # print("  Instruments: ", self.watchlist)
             elif self.scan_mode:
                 print("AutoScan:")
