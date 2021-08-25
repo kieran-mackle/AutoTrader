@@ -971,7 +971,7 @@ class AutoTrader():
         ''' --------------------------------------------------------------- '''
         '''      Delete historical data file after running optimisation     '''
         ''' --------------------------------------------------------------- '''
-        granularity             = config_dict["STRATEGY"]["INTERVAL"]
+        granularity             = config_dict["INTERVAL"]
         pair                    = config_dict["WATCHLIST"][0]
         historical_data_name    = 'hist_{0}{1}.csv'.format(granularity, pair)
         historical_quote_data_name = 'hist_{0}{1}_quote.csv'.format(granularity, pair)
@@ -1015,9 +1015,9 @@ class AutoTrader():
         ''' ------------------------------------------------------------------ '''
         '''   Edit strategy parameters in config_dict using supplied params    '''
         ''' ------------------------------------------------------------------ '''
-        for parameter in config_dict['STRATEGY']['PARAMETERS']:
+        for parameter in config_dict['PARAMETERS']:
             if parameter in opt_params:
-                config_dict['STRATEGY']['PARAMETERS'][parameter] = params[opt_params.index(parameter)]
+                config_dict['PARAMETERS'][parameter] = params[opt_params.index(parameter)]
             else:
                 continue
         
