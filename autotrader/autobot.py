@@ -1,8 +1,18 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from autotrader.emailing import emailing
+import sys
+import os
+import importlib
+import time
+import pytz
+import pandas as pd
 import numpy as np
+from datetime import datetime, timedelta
+from autotrader.emailing import emailing
+from autotrader.lib import autodata, environment_manager
+from autotrader.lib.read_yaml import read_yaml
+
 
 class AutoTraderBot():
     '''
@@ -27,17 +37,15 @@ class AutoTraderBot():
     
     '''
     
-    def __init__(self, broker, strategy, instrument, data, autotrader_attributes):
-        self.broker     = broker
-        self.strategy   = strategy
-        self.instrument = instrument
-        self.data       = data
-        self.quote_data = None
-        self.latest_orders = []
-        
+    def __init__(self, instrument, strategy_config, broker, autotrader_attributes):
+        '''
+        AutoTrader Bot initialisation. 
+        '''
+
         # Inherit user options from autotrader
-        self.strategy_params    = autotrader_attributes.strategy_params
-        self.scan               = autotrader_attributes.scan
+        self.home_dir           = autotrader_attributes.home_dir
+        self.scan_mode          = autotrader_attributes.scan_mode
+        self.scan_index         = autotrader_attributes.scan_index
         self.scan_results       = {}
         self.broker_utils       = autotrader_attributes.broker_utils
         self.email_params       = autotrader_attributes.email_params
@@ -45,12 +53,254 @@ class AutoTraderBot():
         self.validation_file    = autotrader_attributes.validation_file
         self.verbosity          = autotrader_attributes.verbosity
         self.order_summary_fp   = autotrader_attributes.order_summary_fp
-        self.backtest_mode      = autotrader_attributes.backtest
+        self.backtest_mode      = autotrader_attributes.backtest_mode
+        self.data_start         = autotrader_attributes.data_start
+        self.data_end           = autotrader_attributes.data_end
+        self.base_currency      = autotrader_attributes.backtest_base_currency
+        self.environment        = autotrader_attributes.environment
+        self.feed               = autotrader_attributes.feed
+        self.data_file          = autotrader_attributes.data_file
+        self.optimise_mode      = autotrader_attributes.optimise_mode
+        self.include_broker     = autotrader_attributes.include_broker
+        
+        self.instrument         = instrument
+        self.broker             = broker
+        
+        # Unpack strategy parameters
+        interval                = strategy_config["INTERVAL"]
+        period                  = strategy_config["PERIOD"]
+        risk_pc                 = strategy_config["RISK_PC"]
+        sizing                  = strategy_config["SIZING"]
+        params                  = strategy_config["PARAMETERS"]
+        
+        strategy_params                 = params
+        strategy_params['granularity']  = interval
+        strategy_params['risk_pc']      = risk_pc
+        strategy_params['sizing']       = sizing
+        strategy_params['period']       = period
+        self.strategy_params            = strategy_params
+        
+        # Import Strategy
+        strat_module            = strategy_config["MODULE"]
+        strat_name              = strategy_config["CLASS"]
+        strat_package_path      = os.path.join(self.home_dir, "strategies") 
+        strat_module_path       = os.path.join(strat_package_path, strat_module) + '.py'
+        strat_spec              = importlib.util.spec_from_file_location(strat_module, strat_module_path)
+        strategy_module         = importlib.util.module_from_spec(strat_spec)
+        strat_spec.loader.exec_module(strategy_module)
+        strategy                = getattr(strategy_module, strat_name)
+        
+        # Get data
+        global_config_fp = os.path.join(self.home_dir, 'config', 'GLOBAL.yaml')
+        if os.path.isfile(global_config_fp):
+            global_config = read_yaml(global_config_fp)
+        else:
+            global_config = None
+        broker_config           = environment_manager.get_config(self.environment,
+                                                             global_config,
+                                                             self.feed)
+        
+        self.get_data           = autodata.GetData(broker_config)
+        data, quote_data        = self.retrieve_data(instrument, self.feed)
+        
+        # instantiate strategy
+        my_strat = strategy(params, data, instrument)
+        
+        if self.include_broker:
+                my_strat.broker = self.broker
+                my_strat.broker_utils = self.broker_utils
+                
+        self.strategy           = my_strat
+        self.data               = data
+        self.quote_data         = quote_data
+        
+        self.latest_orders      = []
+        
         
         if int(self.verbosity) > 0:
                 print("AutoTraderBot assigned to analyse {}".format(instrument),
                       "on {} timeframe using {}.".format(self.strategy_params['granularity'],
                                                          self.strategy.name))
+    
+    
+    def retrieve_data(self, instrument, feed):
+        '''
+        Retrieves price data from AutoData.
+        '''
+    
+        interval    = self.strategy_params['granularity']
+        period      = self.strategy_params['period']
+        price_data_path = os.path.join(self.home_dir, 'price_data')
+        
+        if self.backtest_mode is True:
+            # Running in backtest mode
+            self.get_data.base_currency = self.base_currency
+            
+            from_date       = self.data_start
+            to_date         = self.data_end
+            
+            if self.validation_file is not None:
+                # Extract instrument-specific trade history as trade summary and trade period
+                livetrade_history = self.livetrade_history
+                formatted_instrument = instrument[:3] + "/" + instrument[-3:]
+                raw_livetrade_summary = livetrade_history[livetrade_history.Instrument == formatted_instrument] # FOR OANDA
+                from_date           = pd.to_datetime(raw_livetrade_summary.Date.values)[0]
+                to_date             = pd.to_datetime(raw_livetrade_summary.Date.values)[-1]
+                
+                self.raw_livetrade_summary = raw_livetrade_summary
+                
+                # Modify from date to improve backtest
+                from_date = from_date - period*timedelta(seconds = self.granularity_to_seconds(interval))
+                
+                # Modify starting balance
+                self.broker.portfolio_balance = raw_livetrade_summary.Balance.values[np.isfinite(raw_livetrade_summary.Balance.values)][0]
+                
+            if self.data_file is not None:
+                custom_data_file        = self.data_file
+                custom_data_filepath    = os.path.join(price_data_path,
+                                                       custom_data_file)
+                if int(self.verbosity) > 1:
+                    print("Using data file specified ({}).".format(custom_data_file))
+                data            = pd.read_csv(custom_data_filepath, 
+                                              index_col = 0)
+                data.index = pd.to_datetime(data.index)
+                quote_data = data
+                
+            else:
+                if int(self.verbosity) > 1:
+                    print("\nDownloading OHLC price data for {}.".format(instrument))
+                
+                if self.optimise_mode is True:
+                    # Check if historical data already exists
+                    historical_data_name = 'hist_{0}{1}.csv'.format(interval, instrument)
+                    historical_quote_data_name = 'hist_{0}{1}_quote.csv'.format(interval, instrument)
+                    data_dir_path = os.path.join(self.home_dir, 'price_data')
+                    historical_data_file_path = os.path.join(self.home_dir, 
+                                                             'price_data',
+                                                             historical_data_name)
+                    historical_quote_data_file_path = os.path.join(self.home_dir, 
+                                                             'price_data',
+                                                             historical_quote_data_name)
+                    
+                    if not os.path.exists(historical_data_file_path):
+                        # Data file does not yet exist
+                        data        = getattr(self.get_data, feed.lower())(instrument,
+                                                         granularity = interval,
+                                                         start_time = from_date,
+                                                         end_time = to_date)
+                        quote_data  = getattr(self.get_data, feed.lower() + '_quote_data')(data,
+                                                                                      instrument,
+                                                                                      interval,
+                                                                                      from_date,
+                                                                                      to_date)
+                        data, quote_data    = self.broker_utils.check_dataframes(data, quote_data)
+                        
+                        # Check if price_data folder exists
+                        if not os.path.exists(data_dir_path):
+                            # If price data directory doesn't exist, make it
+                            os.makedirs(data_dir_path)
+                            
+                        # Save data in file/s
+                        data.to_csv(historical_data_file_path)
+                        quote_data.to_csv(historical_quote_data_file_path)
+                        
+                    else:
+                        # Data file does exist, import it as dataframe
+                        data = pd.read_csv(historical_data_file_path, 
+                                           index_col = 0)
+                        quote_data = pd.read_csv(historical_quote_data_file_path, 
+                                                 index_col = 0)
+                        
+                else:
+                    data        = getattr(self.get_data, feed.lower())(instrument,
+                                                         granularity = interval,
+                                                         start_time = from_date,
+                                                         end_time = to_date)
+                    quote_data  = getattr(self.get_data, feed.lower() + '_quote_data')(data,
+                                                                    instrument,
+                                                                    interval,
+                                                                    from_date,
+                                                                    to_date)
+                    
+                    data, quote_data    = self.broker_utils.check_dataframes(data, quote_data)
+                
+                
+                if int(self.verbosity) > 1:
+                    print("  Done.\n")
+            
+            return data, quote_data
+            
+        else:
+            # Running in livetrade mode or scan mode
+            data = getattr(self.get_data, feed.lower())(instrument,
+                                                         granularity = interval,
+                                                         count=period)
+            
+            data = self.verify_data_alignment(data, instrument, feed, period, 
+                                              price_data_path)
+        
+            return data, None
+
+
+    def verify_data_alignment(self, data, instrument, feed, period, price_data_path):
+        '''
+        Verifies data time-alignment based on current time and last
+        candle in data.
+        '''
+        interval = self.strategy_params['granularity']
+        
+        # Check data time alignment
+        current_time        = datetime.now(tz=pytz.utc)
+        last_candle_closed  = self.broker_utils.last_period(current_time, interval)
+        data_ts             = data.index[-1].to_pydatetime().timestamp()
+        
+        if data_ts != last_candle_closed.timestamp():
+            # Time misalignment detected - attempt to correct
+            count = 0
+            while data_ts != last_candle_closed.timestamp():
+                print("  Time misalginment detected at {}".format(datetime.now().strftime("%H:%M:%S")),
+                      "({}/{}).".format(data.index[-1].minute, last_candle_closed.minute),
+                      "Trying again...")
+                time.sleep(3) # wait 3 seconds...
+                data    = getattr(self.get_data, feed.lower())(instrument,
+                                    granularity = interval,
+                                    count=period)
+                data_ts = data.index[-1].to_pydatetime().timestamp()
+                count   += 1
+                if count == 3:
+                    break
+            
+            if data_ts != last_candle_closed.timestamp():
+                # Time misalignment still present - attempt to correct
+                # Check price data directory to see if the stream has caught 
+                # the latest candle
+                price_data_filename = "{0}{1}.txt".format(interval, instrument)
+                abs_price_path      = os.path.join(price_data_path, price_data_filename)
+                
+                if os.path.exists(abs_price_path):
+                    # Price data file matching instrument and granularity 
+                    # exists, check latest candle in file
+                    f                   = open(abs_price_path, "r")
+                    price_lines         = f.readlines()
+                    
+                    if len(price_lines) > 1:
+                        latest_candle       = price_lines[-1].split(',')
+                        latest_candle_time  = datetime.strptime(latest_candle[0],
+                                                                '%Y-%m-%d %H:%M:%S')
+                        UTC_last_candle_in_file = latest_candle_time.replace(tzinfo=pytz.UTC)
+                        price_data_ts       = UTC_last_candle_in_file.timestamp()
+                        
+                        if price_data_ts == last_candle_closed.timestamp():
+                            data    = self.broker_utils.update_data_with_candle(data, latest_candle)
+                            data_ts = data.index[-1].to_pydatetime().timestamp()
+                            print("  Data updated using price stream.")
+            
+            # if data is still misaligned, perform manual adjustment.
+            if data_ts != last_candle_closed.timestamp():
+                print("  Could not retrieve updated data. Aborting.")
+                sys.exit(0)
+        
+        return data
     
     
     def update(self, i):
@@ -81,9 +331,13 @@ class AutoTraderBot():
         if int(self.verbosity) > 1:
             if len(self.latest_orders) > 0:
                 for order in self.latest_orders:
-                    order_string = "{}: {} {} order of {} units placed at {}.".format(order['order_time'], order['instrument'], order['order_type'], order['size'], order['order_price'])
+                    order_string = "{}: {} {}".format(order['order_time'], 
+                                                      order['instrument'], 
+                                                      order['order_type']) + \
+                        " order of {} units placed at {}.".format(order['size'],
+                                                                  order['order_price'])
                     print(order_string)
-            elif int(self.verbosity) > 2:
+            else:
                 print("No signal detected.")
         
         # Check for orders placed and/or scan hits
@@ -108,9 +362,9 @@ class AutoTraderBot():
                             print("  Done.\n")
             
         # Check scan results
-        if self.scan is not None:
+        if self.scan_mode:
             # Construct scan details dict
-            scan_details    = {'index'      : self.scan,
+            scan_details    = {'index'      : self.scan_index,
                                'strategy'   : self.strategy.name,
                                'timeframe'  : self.strategy_params['granularity']
                                 }
@@ -146,6 +400,9 @@ class AutoTraderBot():
                     
     
     def update_backtest(self, i):
+        '''
+        Updates virtual broker with latest price data.
+        '''
         candle = self.data.iloc[i]
         self.broker.update_positions(candle, self.instrument)
     
@@ -232,12 +489,7 @@ class AutoTraderBot():
         order_details["related_orders"] = order_signal_dict['related_orders'] if 'related_orders' in order_signal_dict else None
 
         # Place order
-        if self.scan is None:
-            # Bot is trading
-            self.broker.place_order(order_details)
-            self.latest_orders.append(order_details)
-            
-        else:
+        if self.scan_mode:
             # Bot is scanning
             scan_hit = {"size"  : size,
                         "entry" : order_price,
@@ -247,8 +499,18 @@ class AutoTraderBot():
                         }
             self.scan_results[instrument] = scan_hit
             
+        else:
+            # Bot is trading
+            self.broker.place_order(order_details)
+            self.latest_orders.append(order_details)
+            
+            
 
     def create_backtest_summary(self, NAV, margin):
+        '''
+        Constructs backtest summary dictionary for further processing.
+        '''
+        
         trade_summary = self.broker_utils.trade_summary(self.instrument, self.broker.closed_positions)
         open_trade_summary = self.broker_utils.open_order_summary(self.instrument, self.broker.open_positions)
         cancelled_summary = self.broker_utils.cancelled_order_summary(self.instrument, self.broker.cancelled_orders)
@@ -276,3 +538,19 @@ class AutoTraderBot():
         backtest_dict['cancelled_trades'] = cancelled_summary
         
         self.backtest_summary = backtest_dict
+    
+    def get_iteration_range(self):
+        '''
+        Checks mode of operation and returns data iteration range. For backtesting,
+        the entire dataset is iterated over. For livetrading, only the latest candle
+        is used.
+        '''
+        
+        if self.backtest_mode:
+            start_range = 0
+        else:
+            start_range = len(self.data)-1
+        end_range       = len(self.data)
+
+        return start_range, end_range
+    

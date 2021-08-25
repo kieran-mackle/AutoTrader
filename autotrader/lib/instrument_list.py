@@ -7,6 +7,22 @@ Function to parse scan request and return watchlist.
 import sys
 
 def get_watchlist(index):
+    '''
+    This code is currently in development.
+    
+    Returns a watchlist of instruments. 
+    
+    Objectives: 
+        - return specific list of instruments based on input
+          For example; 
+              - forex:major -> major forex pairs
+              - stocks:asx200
+              - custom
+    
+    The current implementation only support forex indices, with Oanda 
+    formatting.
+    
+    '''
     
     if len(index) == 0:
         print("\nArgument for scan missing. Please specify instrument/index to scan.")
