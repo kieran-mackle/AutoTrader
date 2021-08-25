@@ -120,6 +120,10 @@ class AutoTrader():
         if self.show_help is not None:
             printout.option_help(self.show_help)
         
+        # TODO - what if no strategy is provided? Maybe do a printout of 
+        # settings to help debug any potential issues (eg. feed, include broker,
+        # backtest dates, strategy, etc)
+        
         if sum([self.backtest_mode, self.scan_mode]) > 1:
             print("Error: backtest mode and scan mode are both set to True," +\
                   " but only one of these can run at a time.")
@@ -183,7 +187,6 @@ class AutoTrader():
         # if self.scan is not None:
         #     self.watchlist  = instrument_list.get_watchlist(self.scan)
         #     self.scan_results = {}
-            
         # TODO - validate backtest validation functionality
         # elif self.instruments is not None:
         #     self.watchlist  = self.instruments.split(',') 
@@ -202,13 +205,14 @@ class AutoTrader():
             margin  = []
         
         if int(self.verbosity) > 0:
-            if self.backtest_mode is True:
+            if self.backtest_mode:
                 print("Begining new backtest.")
                 # TODO - can the following be reintroduced? Also in self.print_backtest_results
+                # Answer: yes, from self.backtest_...
                 # print("  From: ", datetime.strptime(self.config['BACKTESTING']['FROM']+'+0000', '%d/%m/%Y%z'))
                 # print("  To:   ", datetime.strptime(self.config['BACKTESTING']['TO']+'+0000', '%d/%m/%Y%z'))
                 # print("  Instruments: ", self.watchlist)
-            elif self.scan is not None:
+            elif self.scan_mode:
                 print("AutoScan:")
                 print("Time: {}".format(datetime.now().strftime("%A, %B %d %Y, "+
                                                                   "%H:%M:%S")))

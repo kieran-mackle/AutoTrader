@@ -324,9 +324,13 @@ class AutoTraderBot():
         if int(self.verbosity) > 1:
             if len(self.latest_orders) > 0:
                 for order in self.latest_orders:
-                    order_string = "{}: {} {} order of {} units placed at {}.".format(order['order_time'], order['instrument'], order['order_type'], order['size'], order['order_price'])
+                    order_string = "{}: {} {}".format(order['order_time'], 
+                                                      order['instrument'], 
+                                                      order['order_type']) + \
+                        " order of {} units placed at {}.".format(order['size'],
+                                                                  order['order_price'])
                     print(order_string)
-            elif int(self.verbosity) > 2:
+            else:
                 print("No signal detected.")
         
         # Check for orders placed and/or scan hits
