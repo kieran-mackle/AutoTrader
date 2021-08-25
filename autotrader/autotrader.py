@@ -59,9 +59,10 @@ class AutoTrader():
     """
     
     def __init__(self):
+        '''
+        AutoTrader initialisation. Called when creating new AutoTrader instance.
+        '''
         
-        # TODO - how many of these can be cleaned up?
-
         self.home_dir       = None
         self.order_summary_fp = None
         
@@ -119,7 +120,17 @@ class AutoTrader():
         if self.show_help is not None:
             printout.option_help(self.show_help)
         
-        # TODO add check of essential options / conflicting run modes
+        if sum([self.backtest_mode, self.scan_mode]) > 1:
+            print("Error: backtest mode and scan mode are both set to True," +\
+                  " but only one of these can run at a time.")
+            print("Please check your inputs and try again.")
+            sys.exit(0)
+        
+        if self.backtest_mode:
+            if self.notify > 0:
+                print("Warning: notify set to {} ".format(self.notify) + \
+                      "during backtest. Setting to zero to prevent emails.")
+                self.notify = 0
         
         if self.optimise_mode:
             self.run_optimise()
@@ -169,7 +180,6 @@ class AutoTrader():
             broker_config['ACCOUNT_ID'] = self.account_id
         
         # Get watchlist
-        # TODO - validate scanning again !
         # if self.scan is not None:
         #     self.watchlist  = instrument_list.get_watchlist(self.scan)
         #     self.scan_results = {}
@@ -668,6 +678,12 @@ class AutoTrader():
     
     
     def configure_emailing(self, global_config):
+        '''
+        Configure email settings.
+        '''
+        
+        # TODO - allow setting email in this method
+        
         if int(self.notify) > 0:
             host_email      = None
             mailing_list    = None
