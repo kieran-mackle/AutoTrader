@@ -915,11 +915,15 @@ class AutoTrader():
         Optimisation configuration.
         
             Parameters: 
-                opt_params (list): 
+                opt_params (list): the parameters to be optimised, as they 
+                are named in the strategy configuration file.
                 
-                bounds (list of tuples):
+                bounds (list of tuples): the bounds on each of the 
+                parameters to be optimised, specified as a tuple of the form
+                (lower, upper) for each parameter.
                 
-                Ns (int):
+                Ns (int): the number of points along each dimension of the 
+                optimisation grid.
                 
         '''
         
