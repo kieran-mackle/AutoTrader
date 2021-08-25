@@ -370,6 +370,13 @@ class AutoTrader():
         '''
         
         self.strategies = {}
+    
+    def clear_bots(self):
+        '''
+        Removes all strategies saved in autotrader instance.
+        '''
+        
+        self.bots_deployed = []
         
     
     def add_strategy(self, strategy_filename=None, 
@@ -1050,6 +1057,7 @@ class AutoTrader():
         # self.optimisation_config = config_dict
         # More likely it's the broker not being reset...
         self.clear_strategies()
+        self.clear_bots()
         self.add_strategy(strategy_dict = config_dict)
         self.main()
         
