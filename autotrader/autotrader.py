@@ -19,8 +19,6 @@ import sys
 import os
 import pyfiglet
 import importlib
-# import time
-# import pytz
 import numpy as np
 import pandas as pd
 import timeit
@@ -75,7 +73,7 @@ class AutoTrader():
         self.verbosity      = 0
         self.show_help      = None
         self.show_plot      = False
-        self.log            = False
+        # self.log            = False 
         # self.analyse        = False
         
         
@@ -162,38 +160,9 @@ class AutoTrader():
         ''' -------------------------------------------------------------- '''
         '''                         Load configuration                     '''
         ''' -------------------------------------------------------------- '''
-        
-        
-        # TODO - make sure optimisation still works
-        # if self.optimise is True and self.backtest_mode is True:
-        #     config              = self.custom_config
-        # else:
-        #     config_file         = self.config_file
-        #     config_file_path    = os.path.join(self.home_dir, 'config', config_file)
-        #     config              = self.read_yaml(config_file_path + '.yaml')
-        
         if self.validation_file is not None:
             livetrade_history   = pd.read_csv(self.validation_file, index_col = 0)
             self.livetrade_history = livetrade_history.fillna(method='ffill')
-        
-        # Read configuration file
-        # self.config         = config
-        # interval            = config["STRATEGY"]["INTERVAL"]
-        # period              = config["STRATEGY"]["PERIOD"]
-        # params              = config["STRATEGY"]["PARAMETERS"]
-        # risk_pc             = config["STRATEGY"]["RISK_PC"]
-        # sizing              = config["STRATEGY"]["SIZING"]
-        # strat_module        = config["STRATEGY"]["MODULE"]
-        # strat_name          = config["STRATEGY"]["NAME"]
-        # environment         = config["ENVIRONMENT"]
-        # feed                = config["FEED"]
-        
-        # strategy_params                 = params
-        # strategy_params['granularity']  = interval
-        # strategy_params['risk_pc']      = risk_pc
-        # strategy_params['sizing']       = sizing
-        # strategy_params['period']       = period
-        # self.strategy_params            = strategy_params
         
         # Construct broker config
         global_config_fp = os.path.join(self.home_dir, 'config', 'GLOBAL.yaml')
@@ -204,7 +173,6 @@ class AutoTrader():
         broker_config = environment_manager.get_config(self.environment,
                                                        global_config,
                                                        self.feed)
-        # self.get_data       = autodata.GetData(broker_config)
         
         if self.account_id is not None:
             # Overwrite default account in global config
@@ -216,19 +184,13 @@ class AutoTrader():
         #     self.watchlist  = instrument_list.get_watchlist(self.scan)
         #     self.scan_results = {}
             
+        # TODO - validate backtest validation functionality
         # elif self.instruments is not None:
         #     self.watchlist  = self.instruments.split(',') 
         # elif self.validation_file is not None:
         #     self.raw_watchlist = livetrade_history.Instrument.unique() # FOR OANDA
         # else:
         #     self.watchlist  = config["WATCHLIST"]
-        
-        # strat_package_path  = os.path.join(self.home_dir, "strategies")
-        # strat_module_path   = os.path.join(strat_package_path, strat_module) + '.py'
-        # strat_spec          = importlib.util.spec_from_file_location(strat_module, strat_module_path)
-        # strategy_module     = importlib.util.module_from_spec(strat_spec)
-        # strat_spec.loader.exec_module(strategy_module)
-        # strategy            = getattr(strategy_module, strat_name)
         
         self.assign_broker(broker_config)
         self.configure_emailing(global_config)
@@ -259,26 +221,11 @@ class AutoTrader():
         ''' -------------------------------------------------------------- '''
         '''    Assign strategy to bot for each instrument in watchlist     '''
         ''' -------------------------------------------------------------- '''
-        
-        # TODO - in case of optimisation, do not want to deploy a new bot
-        # every single time. instead, just want to update the existing bot's
-        # config parameters and proceed.
-        
-            
-        # if len(self.bots_deployed) == 0:
-        #     # Deploy bots
         for strategy in self.strategies:
             for instrument in self.strategies[strategy]['WATCHLIST']:
                 bot = AutoTraderBot(instrument, self.strategies[strategy],
                                     self.broker, self)
                 self.bots_deployed.append(bot)
-        
-        # if self.optimise_mode:
-        #     # Modify strategy params of bot deployed for bt optimisation
-        #     bot = self.bots_deployed[0]
-            
-        #     bot.reset_backtest(self.optimisation_config)
-            
             
         
         ''' -------------------------------------------------------------- '''
@@ -373,7 +320,7 @@ class AutoTrader():
     
     def clear_bots(self):
         '''
-        Removes all strategies saved in autotrader instance.
+        Removes all deployed bots in autotrader instance.
         '''
         
         self.bots_deployed = []
@@ -850,7 +797,7 @@ class AutoTrader():
         print("\n-------------------------------------------")
         print("            Backtest Results")
         print("-------------------------------------------")
-        # TODO - these are all strategy specific. Maybe if only one strategy
+        # TODO - the below are all strategy specific. Maybe if only one strategy
         # is used (ie len(self.strategies) = 1), that can be used. Otherwise,
         # not sure. However, the granularity has to be the same ... until 
         # time indexing becomes a thing
@@ -982,8 +929,6 @@ class AutoTrader():
         ''' --------------------------------------------------------------- '''
         '''                      Define optimisation inputs                 '''
         ''' --------------------------------------------------------------- '''
-        # TODO - dont need to load config dict at all, just access it in helper
-        # function from self.strategies
         my_args     = (config_dict, self.opt_params, self.verbosity)
         
         ''' --------------------------------------------------------------- '''
@@ -1053,9 +998,6 @@ class AutoTrader():
         ''' ------------------------------------------------------------------ '''
         '''           Run AutoTrader and evaluate objective function           '''
         ''' ------------------------------------------------------------------ '''
-        # TODO - reset bot profit, its being added I think for each run
-        # self.optimisation_config = config_dict
-        # More likely it's the broker not being reset...
         self.clear_strategies()
         self.clear_bots()
         self.add_strategy(strategy_dict = config_dict)
