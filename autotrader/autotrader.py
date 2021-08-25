@@ -10,8 +10,6 @@
     
 ---------------------------------------------------------------------------
      A Python-Based Development Platform For Automated Trading Systems
-                             Kieran Mackle
-                             Version 0.3.0
 """
 
 from datetime import datetime, timedelta
@@ -35,6 +33,11 @@ from autotrader.autobot import AutoTraderBot
 class AutoTrader():
     """
     AutoTrader: A Python-Based Development Platform For Automated Trading Systems.
+    
+    Kieran Mackle
+    
+    Version 0.3.0
+    
 
     Attributes
     ----------
