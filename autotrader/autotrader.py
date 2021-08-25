@@ -207,7 +207,7 @@ class AutoTrader():
         
         if int(self.verbosity) > 0:
             if self.backtest_mode:
-                print("Begining new backtest.")
+                print("Beginning new backtest.")
                 print("  From: ", datetime.strftime(self.data_start,'%d/%m/%Y %H:%M'))
                 print("  To:   ", datetime.strftime(self.data_end,'%d/%m/%Y %H:%M'))
                 # print("  Instruments: ", self.watchlist)
