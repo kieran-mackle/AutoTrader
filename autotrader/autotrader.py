@@ -348,8 +348,8 @@ class AutoTrader():
         else:
             new_strategy = strategy_dict
         
-        name = new_strategy['MODULE']
-        self.strategies[name] = new_strategy    
+        name = new_strategy['NAME']
+        self.strategies[name] = new_strategy
     
     
     def backtest(self, start=None, end=None, initial_balance=1000, spread=0, 

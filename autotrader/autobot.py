@@ -82,7 +82,7 @@ class AutoTraderBot():
         
         # Import Strategy
         strat_module            = strategy_config["MODULE"]
-        strat_name              = strategy_config["NAME"]
+        strat_name              = strategy_config["CLASS"]
         strat_package_path      = os.path.join(self.home_dir, "strategies") 
         strat_module_path       = os.path.join(strat_package_path, strat_module) + '.py'
         strat_spec              = importlib.util.spec_from_file_location(strat_module, strat_module_path)
