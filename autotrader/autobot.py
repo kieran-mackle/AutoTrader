@@ -41,7 +41,6 @@ class AutoTraderBot():
         
         # Inherit user options from autotrader
         self.home_dir           = autotrader_attributes.home_dir
-        # self.strategy_params    = autotrader_attributes.strategy_params
         self.scan_mode          = autotrader_attributes.scan_mode
         self.scan_index         = autotrader_attributes.scan_index
         self.scan_results       = {}
@@ -61,18 +60,15 @@ class AutoTraderBot():
         self.optimise_mode      = autotrader_attributes.optimise_mode
         self.include_broker     = autotrader_attributes.include_broker
         
-        self.instrument = instrument
-        self.broker     = broker
+        self.instrument         = instrument
+        self.broker             = broker
         
-        
-        # New from autotrader.py ------------------------------------- #
         # Unpack strategy parameters
-        interval            = strategy_config["STRATEGY"]["INTERVAL"]
-        period              = strategy_config["STRATEGY"]["PERIOD"]
-        risk_pc             = strategy_config["STRATEGY"]["RISK_PC"]
-        sizing              = strategy_config["STRATEGY"]["SIZING"]
-        # environment         = strategy_config["ENVIRONMENT"]
-        params              = strategy_config["STRATEGY"]["PARAMETERS"]
+        interval                = strategy_config["STRATEGY"]["INTERVAL"]
+        period                  = strategy_config["STRATEGY"]["PERIOD"]
+        risk_pc                 = strategy_config["STRATEGY"]["RISK_PC"]
+        sizing                  = strategy_config["STRATEGY"]["SIZING"]
+        params                  = strategy_config["STRATEGY"]["PARAMETERS"]
         
         strategy_params                 = params
         strategy_params['granularity']  = interval
@@ -82,42 +78,36 @@ class AutoTraderBot():
         self.strategy_params            = strategy_params
         
         # Import Strategy
-        strat_module        = strategy_config["STRATEGY"]["MODULE"]
-        strat_name          = strategy_config["STRATEGY"]["NAME"]
-        strat_package_path  = os.path.join(self.home_dir, "strategies") 
-        strat_module_path   = os.path.join(strat_package_path, strat_module) + '.py'
-        strat_spec          = importlib.util.spec_from_file_location(strat_module, strat_module_path)
-        strategy_module     = importlib.util.module_from_spec(strat_spec)
+        strat_module            = strategy_config["STRATEGY"]["MODULE"]
+        strat_name              = strategy_config["STRATEGY"]["NAME"]
+        strat_package_path      = os.path.join(self.home_dir, "strategies") 
+        strat_module_path       = os.path.join(strat_package_path, strat_module) + '.py'
+        strat_spec              = importlib.util.spec_from_file_location(strat_module, strat_module_path)
+        strategy_module         = importlib.util.module_from_spec(strat_spec)
         strat_spec.loader.exec_module(strategy_module)
-        strategy            = getattr(strategy_module, strat_name)
+        strategy                = getattr(strategy_module, strat_name)
         
         # Get data
-        global_config       = read_yaml(self.home_dir + '/config' + '/GLOBAL.yaml')
-        broker_config       = environment_manager.get_config(self.environment,
+        global_config           = read_yaml(self.home_dir + '/config' + '/GLOBAL.yaml')
+        broker_config           = environment_manager.get_config(self.environment,
                                                              global_config,
                                                              self.feed)
         
-        self.get_data    = autodata.GetData(broker_config)
-        data, quote_data = self.retrieve_data(instrument, self.feed)
+        self.get_data           = autodata.GetData(broker_config)
+        data, quote_data        = self.retrieve_data(instrument, self.feed)
         
         # instantiate strategy
         my_strat = strategy(params, data, instrument)
         
-        # TODO - instead of this logic, instantiate my_strat above with 
-        # broker as well. This will mean you have to change the format of 
-        # the strategy __init__, but has the benefit of immediate access to 
-        # broker. Maybe not, but have a think.
         if self.include_broker:
                 my_strat.broker = self.broker
                 my_strat.broker_utils = self.broker_utils
                 
-        # -------------------------------------------------------------- #
+        self.strategy           = my_strat
+        self.data               = data
+        self.quote_data         = quote_data
         
-        self.strategy   = my_strat
-        self.data       = data
-        self.quote_data = quote_data
-        
-        self.latest_orders = []
+        self.latest_orders      = []
         
         
         if int(self.verbosity) > 0:
@@ -133,13 +123,14 @@ class AutoTraderBot():
     
         interval    = self.strategy_params['granularity']
         period      = self.strategy_params['period']
+        price_data_path = os.path.join(self.home_dir, 'price_data')
         
         if self.backtest_mode is True:
             # Running in backtest mode
             self.get_data.base_currency = self.base_currency
             
-            from_date       = self.data_start #datetime.strptime(self.config['BACKTESTING']['FROM']+'+0000', '%d/%m/%Y%z')
-            to_date         = self.data_end #datetime.strptime(self.config['BACKTESTING']['TO']+'+0000', '%d/%m/%Y%z')
+            from_date       = self.data_start
+            to_date         = self.data_end
             
             if self.validation_file is not None:
                 # Extract instrument-specific trade history as trade summary and trade period
@@ -158,7 +149,6 @@ class AutoTraderBot():
                 self.broker.portfolio_balance = raw_livetrade_summary.Balance.values[np.isfinite(raw_livetrade_summary.Balance.values)][0]
                 
             if self.data_file is not None:
-                price_data_path         = os.path.join(self.home_dir, 'price_data')
                 custom_data_file        = self.data_file
                 custom_data_filepath    = os.path.join(price_data_path,
                                                        custom_data_file)
@@ -234,12 +224,13 @@ class AutoTraderBot():
             return data, quote_data
             
         else:
-            # Running in livetrade mode
+            # Running in livetrade mode or scan mode
             data = getattr(self.get_data, feed.lower())(instrument,
                                                          granularity = interval,
                                                          count=period)
             
-            data = self.verify_data_alignment(data, instrument, feed, period, price_data_path)
+            data = self.verify_data_alignment(data, instrument, feed, period, 
+                                              price_data_path)
         
             return data, None
 

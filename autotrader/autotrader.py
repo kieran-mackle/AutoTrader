@@ -395,11 +395,16 @@ class AutoTrader():
                 scan_index (str): index to scan.
         '''
         
-        if scan_index is None:
-            # Use instruments specified in strategy config
-            scan_index = strategy_watchlist
+        # If scan index provided, use that. Else, use strategy watchlist
+        if scan_index is not None:
+            scan_watchlist = instrument_list.get_watchlist(scan_index)
+            
+            # Update strategy watchlist
+            for strategy in self.strategies:
+                self.strategies[strategy]['WATCHLIST'] = scan_watchlist
         else:
-            scan_index = instrument_list(scan_index)
+            scan_index = 'Strategy watchlist'
+            
         
         self.scan_mode = True
         self.scan_index = scan_index
