@@ -60,42 +60,28 @@ class AutoTrader():
     
     def __init__(self):
         
-        
         # TODO - how many of these can be cleaned up?
+
+        self.home_dir       = None
+        self.order_summary_fp = None
         
-        
-        self.scan           = None
-        self.notify         = 0
-        
-        
-        # self.config_file    = None
-        self.custom_config  = None
         self.verbosity      = 0
+        self.notify         = 0
+        self.email_params   = None
         self.show_help      = None
         self.show_plot      = False
-        # self.log            = False 
-        # self.analyse        = False
-        
-        
-        # self.instruments    = None
-        self.home_dir       = None
         self.plot_validation_balance = True
-        self.include_broker = False
-        
-        self.environment    = 'demo'
-        self.feed           = 'yahoo'
-        self.account_id     = None
-        
-        self.strategies     = {}
         
         # self.config         = None
         self.broker         = None
         self.broker_utils   = None
-        self.email_params   = None
-        self.bots_deployed  = []
+        self.environment    = 'demo'
+        self.account_id     = None
         
-        self.scan_results = {}
-        self.order_summary_fp = None
+        self.strategies     = {}
+        self.feed           = 'yahoo'
+        self.include_broker = False
+        self.bots_deployed  = []
         
         # Backtesting Parameters
         self.backtest_mode = False
@@ -116,6 +102,10 @@ class AutoTrader():
         self.bounds = None
         self.Ns = None
         
+        # Scan Parameters
+        self.scan_mode = False
+        self.scan_index = None
+        self.scan_results = {}
         
         # Make adjustments
         if self.home_dir is None:

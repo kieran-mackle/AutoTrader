@@ -42,7 +42,8 @@ class AutoTraderBot():
         # Inherit user options from autotrader
         self.home_dir           = autotrader_attributes.home_dir
         # self.strategy_params    = autotrader_attributes.strategy_params
-        self.scan               = autotrader_attributes.scan
+        self.scan_mode          = autotrader_attributes.scan_mode
+        self.scan_index         = autotrader_attributes.scan_index
         self.scan_results       = {}
         self.broker_utils       = autotrader_attributes.broker_utils
         self.email_params       = autotrader_attributes.email_params
@@ -359,9 +360,9 @@ class AutoTraderBot():
                             print("  Done.\n")
             
         # Check scan results
-        if self.scan is not None:
+        if self.scan_mode:
             # Construct scan details dict
-            scan_details    = {'index'      : self.scan,
+            scan_details    = {'index'      : self.scan_index,
                                'strategy'   : self.strategy.name,
                                'timeframe'  : self.strategy_params['granularity']
                                 }
@@ -486,12 +487,7 @@ class AutoTraderBot():
         order_details["related_orders"] = order_signal_dict['related_orders'] if 'related_orders' in order_signal_dict else None
 
         # Place order
-        if self.scan is None:
-            # Bot is trading
-            self.broker.place_order(order_details)
-            self.latest_orders.append(order_details)
-            
-        else:
+        if self.scan_mode:
             # Bot is scanning
             scan_hit = {"size"  : size,
                         "entry" : order_price,
@@ -500,6 +496,12 @@ class AutoTraderBot():
                         "signal": signal
                         }
             self.scan_results[instrument] = scan_hit
+            
+        else:
+            # Bot is trading
+            self.broker.place_order(order_details)
+            self.latest_orders.append(order_details)
+            
             
 
     def create_backtest_summary(self, NAV, margin):
