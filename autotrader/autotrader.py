@@ -348,7 +348,7 @@ class AutoTrader():
         else:
             new_strategy = strategy_dict
         
-        name = new_strategy['STRATEGY']['MODULE']
+        name = new_strategy['MODULE']
         self.strategies[name] = new_strategy    
     
     

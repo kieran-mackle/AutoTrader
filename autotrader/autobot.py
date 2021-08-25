@@ -64,11 +64,11 @@ class AutoTraderBot():
         self.broker             = broker
         
         # Unpack strategy parameters
-        interval                = strategy_config["STRATEGY"]["INTERVAL"]
-        period                  = strategy_config["STRATEGY"]["PERIOD"]
-        risk_pc                 = strategy_config["STRATEGY"]["RISK_PC"]
-        sizing                  = strategy_config["STRATEGY"]["SIZING"]
-        params                  = strategy_config["STRATEGY"]["PARAMETERS"]
+        interval                = strategy_config["INTERVAL"]
+        period                  = strategy_config["PERIOD"]
+        risk_pc                 = strategy_config["RISK_PC"]
+        sizing                  = strategy_config["SIZING"]
+        params                  = strategy_config["PARAMETERS"]
         
         strategy_params                 = params
         strategy_params['granularity']  = interval
@@ -78,8 +78,8 @@ class AutoTraderBot():
         self.strategy_params            = strategy_params
         
         # Import Strategy
-        strat_module            = strategy_config["STRATEGY"]["MODULE"]
-        strat_name              = strategy_config["STRATEGY"]["NAME"]
+        strat_module            = strategy_config["MODULE"]
+        strat_name              = strategy_config["NAME"]
         strat_package_path      = os.path.join(self.home_dir, "strategies") 
         strat_module_path       = os.path.join(strat_package_path, strat_module) + '.py'
         strat_spec              = importlib.util.spec_from_file_location(strat_module, strat_module_path)
