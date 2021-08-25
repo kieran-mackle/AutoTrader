@@ -43,6 +43,9 @@ class AutoPlot():
         self.fig_tools          = self.fig_tools + "," + tool_name
     
     def _reindex_data(self):
+        '''
+        Resets index of data to obtain integer indexing.
+        '''
         modified_data           = self.data
         modified_data['date']   = modified_data.index
         modified_data           = modified_data.reset_index(drop = True)
@@ -879,8 +882,12 @@ class AutoPlot():
     
         
         # tooltips       = "NAV: $@NAV" ,
-        fig_hovertool = HoverTool(tooltips = "NAV: $@{NAV}{%0.2f}", 
-                                  formatters={'@{NAV}' : 'printf'},
+        fig_hovertool = HoverTool(tooltips = [
+                                              ("Date", "@date{%b %d %H:%M}"),
+                                              ("NAV", "$@{NAV}{%0.2f}")
+                                              ], 
+                                  formatters={'@{NAV}' : 'printf',
+                                              '@date' : 'datetime'},
                                   mode = 'vline')
         
         fig.add_tools(fig_hovertool)
