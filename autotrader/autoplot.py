@@ -621,8 +621,16 @@ class AutoPlot():
                      active_drag    = linked_fig.tools[0],
                      active_scroll  = linked_fig.tools[1],
                      x_range        = linked_fig.x_range)
-    
-        histcolour = np.where(macd_data['histogram'] < 0, 'red', 'lightblue')
+        
+        histcolour = []
+        for i in range(len(macd_data['histogram'])):
+            if np.isnan(macd_data['histogram'][i]):
+                histcolour.append('lightblue')
+            else:
+                if macd_data['histogram'][i] < 0:
+                    histcolour.append('red')
+                else:
+                    histcolour.append('lightblue')
         
         # Add glyphs
         fig.line(x_range, macd_data['macd'], line_color = 'blue')
