@@ -603,7 +603,7 @@ class AutoPlot():
         
         candle_hovertool = HoverTool(tooltips   = candle_tooltips, 
                                   formatters    = {'@date':'datetime'}, 
-                                  mode          = 'mouse',
+                                  mode          = 'vline',
                                   renderers     = [candles])
         
         candle_plot.add_tools(candle_hovertool)
