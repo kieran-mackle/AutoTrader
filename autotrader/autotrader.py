@@ -141,9 +141,12 @@ class AutoTrader():
                 self.notify = 0
         
         if self.optimise_mode:
-            self.run_optimise()
+            if self.backtest_mode:
+                self._run_optimise()
+            else:
+                print("Please set backtest parameters to run optimisation.")
         else:
-            self.main()
+            self._main()
     
     def usage(self):
         '''
@@ -160,7 +163,7 @@ class AutoTrader():
         '''
         printout.option_help(option)
         
-    def main(self):
+    def _main(self):
         '''
         Main run file of autotrader.py. This method is called internally 
         from the "run" method.
@@ -199,7 +202,7 @@ class AutoTrader():
         # else:
         #     self.watchlist  = config["WATCHLIST"]
         
-        self.assign_broker(broker_config)
+        self._assign_broker(broker_config)
         self.configure_emailing(global_config)
         
         if self.backtest_mode:
@@ -317,14 +320,14 @@ class AutoTrader():
                                               NAV,
                                               cpl_dict)
 
-    def clear_strategies(self):
+    def _clear_strategies(self):
         '''
         Removes all strategies saved in autotrader instance.
         '''
         
         self.strategies = {}
     
-    def clear_bots(self):
+    def _clear_bots(self):
         '''
         Removes all deployed bots in autotrader instance.
         '''
@@ -620,28 +623,11 @@ class AutoTrader():
         print("")
         
     
-    def granularity_to_seconds(self, granularity):
-        '''Converts the interval to time in seconds'''
-        letter = granularity[0]
+    def _assign_broker(self, broker_config):
+        '''
+        Configures and assigns appropriate broker for trading.
+        '''
         
-        if len(granularity) > 1:
-            number = float(granularity[1:])
-        else:
-            number = 1
-        
-        conversions = {'S': 1,
-                       'M': 60,
-                       'H': 60*60,
-                       'D': 60*60*24
-                       }
-        
-        my_int = conversions[letter] * number
-        
-        return my_int
-
-
-    
-    def assign_broker(self, broker_config):
         if self.backtest_mode is True:
                 utils_module    = importlib.import_module('autotrader.brokers.virtual.utils')
                 
@@ -941,7 +927,7 @@ class AutoTrader():
         self.Ns = Ns
         
         
-    def run_optimise(self):
+    def _run_optimise(self):
         '''
         Runs optimisation of strategy parameters.
         '''
@@ -974,7 +960,7 @@ class AutoTrader():
         '''                             Run Optimiser                       '''
         ''' --------------------------------------------------------------- '''
         start = timeit.default_timer()
-        result = brute(func         = self.optimisation_helper_function, 
+        result = brute(func         = self._optimisation_helper_function, 
                        ranges       = self.bounds, 
                        args         = my_args, 
                        Ns           = self.Ns,
@@ -1018,7 +1004,7 @@ class AutoTrader():
         self.verbosity = verbosity
     
     
-    def optimisation_helper_function(self, params, config_dict, opt_params, verbosity):
+    def _optimisation_helper_function(self, params, config_dict, opt_params, verbosity):
         '''
         Helper function for optimising strategy parameters in AutoTrader.
         This function will parse the ordered params into the config dict.
@@ -1037,10 +1023,10 @@ class AutoTrader():
         ''' ------------------------------------------------------------------ '''
         '''           Run AutoTrader and evaluate objective function           '''
         ''' ------------------------------------------------------------------ '''
-        self.clear_strategies()
-        self.clear_bots()
+        self._clear_strategies()
+        self._clear_bots()
         self.add_strategy(strategy_dict = config_dict)
-        self.main()
+        self._main()
         
         bot = self.bots_deployed[0]
         
