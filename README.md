@@ -29,6 +29,9 @@ AutoTrader is well documented on the [project website](https://kieran-mackle.git
 
 There is also a detailed [Quick Start Guide](https://kieran-mackle.github.io/AutoTrader/tutorials/getting-autotrader).
 
+Examples can be found in the [demo repository](https://github.com/kieran-mackle/autotrader-demo).
+
+
 ## Demo Chart
 The chart below is produced by a backtest of a MACD strategy. Note that stop loss and take profit levels are shown for each trade taken. 
 This allows you to see how effective your exit strategy is - are you being stopped out too early by placing your stop losses too tight? 
