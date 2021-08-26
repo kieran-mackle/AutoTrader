@@ -817,16 +817,17 @@ class AutoTrader():
     def print_backtest_results(self, backtest_results):
         # params      = self.strategy_params
         no_trades   = backtest_results['no_trades']
-        win_rate    = backtest_results['all_trades']['win_rate']
-        profit_abs  = backtest_results['all_trades']['profit_abs']
-        profit_pc   = backtest_results['all_trades']['profit_pc']
-        MDD         = backtest_results['all_trades']['MDD']
-        max_win     = backtest_results['all_trades']['max_win']
-        avg_win     = backtest_results['all_trades']['avg_win']
-        max_loss    = backtest_results['all_trades']['max_loss']
-        avg_loss    = backtest_results['all_trades']['avg_loss']
-        longest_win_streak = backtest_results['all_trades']['win_streak']
-        longest_lose_streak = backtest_results['all_trades']['lose_streak']
+        if no_trades > 0:
+            win_rate    = backtest_results['all_trades']['win_rate']
+            profit_abs  = backtest_results['all_trades']['profit_abs']
+            profit_pc   = backtest_results['all_trades']['profit_pc']
+            MDD         = backtest_results['all_trades']['MDD']
+            max_win     = backtest_results['all_trades']['max_win']
+            avg_win     = backtest_results['all_trades']['avg_win']
+            max_loss    = backtest_results['all_trades']['max_loss']
+            avg_loss    = backtest_results['all_trades']['avg_loss']
+            longest_win_streak = backtest_results['all_trades']['win_streak']
+            longest_lose_streak = backtest_results['all_trades']['lose_streak']
         
         print("\n-------------------------------------------")
         print("            Backtest Results")
