@@ -101,7 +101,7 @@ class AutoTraderBot():
                                                              self.feed)
         
         self.get_data           = autodata.GetData(broker_config)
-        data, quote_data        = self.retrieve_data(instrument, self.feed)
+        data, quote_data        = self._retrieve_data(instrument, self.feed)
         
         # instantiate strategy
         my_strat = strategy(params, data, instrument)
@@ -123,7 +123,7 @@ class AutoTraderBot():
                                                          self.strategy.name))
     
     
-    def retrieve_data(self, instrument, feed):
+    def _retrieve_data(self, instrument, feed):
         '''
         Retrieves price data from AutoData.
         '''
@@ -236,13 +236,13 @@ class AutoTraderBot():
                                                          granularity = interval,
                                                          count=period)
             
-            data = self.verify_data_alignment(data, instrument, feed, period, 
+            data = self._verify_data_alignment(data, instrument, feed, period, 
                                               price_data_path)
         
             return data, None
 
 
-    def verify_data_alignment(self, data, instrument, feed, period, price_data_path):
+    def _verify_data_alignment(self, data, instrument, feed, period, price_data_path):
         '''
         Verifies data time-alignment based on current time and last
         candle in data.
@@ -303,7 +303,7 @@ class AutoTraderBot():
         return data
     
     
-    def update(self, i):
+    def _update(self, i):
         '''
         Update strategy with latest data and generate latest signal.
         '''
@@ -325,7 +325,7 @@ class AutoTraderBot():
             order_signal_dict = signal_dict[order].copy()
             
             if order_signal_dict["direction"] != 0:
-                self.process_signal(order_signal_dict, i, self.data, 
+                self._process_signal(order_signal_dict, i, self.data, 
                                     self.quote_data, self.instrument)
         
         if int(self.verbosity) > 1:
@@ -399,7 +399,7 @@ class AutoTraderBot():
                                                 self.email_params['host_email'])
                     
     
-    def update_backtest(self, i):
+    def _update_backtest(self, i):
         '''
         Updates virtual broker with latest price data.
         '''
@@ -407,7 +407,7 @@ class AutoTraderBot():
         self.broker.update_positions(candle, self.instrument)
     
     
-    def process_signal(self, order_signal_dict, i, data, quote_data, 
+    def _process_signal(self, order_signal_dict, i, data, quote_data, 
                        instrument):
         '''
             Process order_signal_dict and send orders to broker.
@@ -539,7 +539,7 @@ class AutoTraderBot():
         
         self.backtest_summary = backtest_dict
     
-    def get_iteration_range(self):
+    def _get_iteration_range(self):
         '''
         Checks mode of operation and returns data iteration range. For backtesting,
         the entire dataset is iterated over. For livetrading, only the latest candle

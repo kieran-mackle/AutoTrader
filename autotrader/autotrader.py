@@ -245,16 +245,16 @@ class AutoTrader():
         
         # TODO - add check that data ranges are consistent across bots
         # For now, assume correct and use first bot.
-        start_range, end_range = self.bots_deployed[0].get_iteration_range()
+        start_range, end_range = self.bots_deployed[0]._get_iteration_range()
         for i in range(start_range, end_range):
             
             # Update each bot with latest data to generate signal
             for bot in self.bots_deployed:
-                bot.update(i)
+                bot._update(i)
                 
                 # If backtesting, update virtual broker with latest data
                 if self.backtest_mode:
-                    bot.update_backtest(i)
+                    bot._update_backtest(i)
             
             if self.backtest_mode is True:
                 NAV.append(self.broker.NAV)
