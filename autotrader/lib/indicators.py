@@ -124,13 +124,21 @@ def sma(data, period=14):
 
 
 def crossover(list_1, list_2):
-    ''' Returns a list of length len(list_1) with 1 when list_1 crosses above
+    ''' 
+    Returns a list of length len(list_1) with 1 when list_1 crosses above
     list_2 and -1 when list_1 crosses below list_2.
-    
     '''
-
-    difference = [list_1[i] - list_2[i] for i in range(len(list_1))]
-    sign_list = np.where(np.sign(difference) < 0, -1,1)
+    
+    sign_list = []
+    for i in range(len(list_1)):
+        if np.isnan(list_1[i]):
+            sign_list.append(np.nan)
+        else:
+            difference = list_1[i] - list_2[i]
+            if difference < 0:
+                sign_list.append(-1)
+            else:
+                sign_list.append(1)
     
     crossover_list = [0]
     
@@ -143,7 +151,6 @@ def crossover(list_1, list_2):
         crossover_list.append(val)
 
     return crossover_list
-
 
 
 def cross_values(a, b, ab_crossover):
