@@ -22,15 +22,15 @@ def send_order(order_details, mailing_list, host_email):
     Send order summary from oanda.
     '''
     
-    pair            = order_details['instrument']
+    instrument      = order_details['instrument']
+    order_type      = order_details['order_type']
     size            = order_details['size']
     price           = order_details['order_price']
     stop_loss       = order_details['stop_loss']
     take_profit     = order_details['take_profit']
     strategy_name   = order_details['strategy']
     
-    formatted_pair  = pair[:3] + '/' + pair[-3:]
-    if pair[-3:] == "JPY":
+    if instrument[-3:] == "JPY":
         val         = 2
     else:
         val         = 4
@@ -60,9 +60,8 @@ def send_order(order_details, mailing_list, host_email):
         # Constuct message details
         time        = datetime.now().strftime("%H:%M:%S")
         message     = MIMEMultipart("alternative")
-        message["Subject"] = "{0} market order placed at {1}".format(formatted_pair, 
-                                                                               time
-                                                                               )
+        message["Subject"] = "{0} market order placed at {1}".format(instrument, 
+                                                                     time)
         message["From"] = sender_email
         
         # Create the plain-text version of email
@@ -76,8 +75,8 @@ def send_order(order_details, mailing_list, host_email):
         with open(email_message_path, 'w+') as f:
             f.write('<p>Dear {} {},</p>\n'.format(title,
                                                   last_name))
-            f.write('<p>A market order has been placed for {} '.format(size))
-            f.write('units of {} following an entry signal '.format(formatted_pair))
+            f.write('<p>A {} order has been placed for {} '.format(order_type, size))
+            f.write('units of {} following an entry signal '.format(instrument))
             f.write('recieved by {}.</p>\n'.format(strategy_name))
             
             f.write('<p>A summary of the entry signal is provided below.</p>\n')
@@ -86,7 +85,7 @@ def send_order(order_details, mailing_list, host_email):
             f.write('<tbody>\n')
             f.write('<tr>\n')
             f.write('<td>Pair</td>\n')
-            f.write('<td>{}</td>\n'.format(formatted_pair))
+            f.write('<td>{}</td>\n'.format(instrument))
             f.write('</tr>\n')
             f.write('<tr>\n')
             f.write('<td>Size</td>\n')
@@ -142,10 +141,8 @@ def send_order(order_details, mailing_list, host_email):
 def send_order_summary(filepath, mailing_list, host_email):
     '''
     Send summary of orders placed with AutoTrader.
-    
-    # TODO: ping oanda to get account balance
-    
     '''
+    
     file_dir        = os.path.dirname(os.path.abspath(__file__))
     order_history   = pd.read_csv(filepath, index_col=0, skipinitialspace=True)
     now             = datetime.now()
