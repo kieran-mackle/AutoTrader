@@ -390,11 +390,12 @@ def find_swings(data, use_body = False):
     
     grad    = np.gradient(ema)
     
-    
-    zeros   = np.where(np.sign(grad[1:len(grad)]) != np.sign(grad[0:-1]), 1, 0)
-    zeros   = np.insert(zeros, 0, 0)
-    swings  = -zeros*np.sign(grad)
-    
+    swings   = np.zeros(len(grad))
+    for i in range(1, len(grad)):
+        if not np.isnan(grad[i-1]):
+            if np.sign(grad[i]) != np.sign(grad[i-1]):
+                swings[i] = -np.sign(grad[i])
+
     swing_df = pd.DataFrame(data=swings, index=data.index, columns=['swing'])
     
     low_list    = []
