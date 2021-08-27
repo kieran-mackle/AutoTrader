@@ -56,6 +56,11 @@ class AutoPlot():
         # Modify data index
         self.data               = self._reindex_data(data)
         
+        # Load JavaScript code for auto-scaling 
+        with open(os.path.join(os.path.dirname(__file__), 'lib/autoscale.js'),
+                  encoding = 'utf-8') as _f:
+            self._autoscale_code = _f.read()
+        
         
     def add_tool(self, tool_name):
         '''
@@ -76,12 +81,112 @@ class AutoPlot():
         modified_data           = data.copy()
         modified_data['date']   = modified_data.index
         modified_data           = modified_data.reset_index(drop = True)
+        modified_data['data_index'] = modified_data.index
         
         return modified_data
     
     
     ''' ------------------- FIGURE MANAGEMENT METHODS --------------------- '''
+    def plot_backtest(self, backtest_dict, cumulative_PL=None):
+        ''' 
+        Creates backtest figure. 
+        '''
+        
+        instrument = backtest_dict['instrument']
+        
+        # Preparation ----------------------------------- #
+        output_file("{}-backtest-chart.html".format(instrument),
+                    title = "AutoTrader Backtest Results - {}".format(instrument))
+        
+        source = ColumnDataSource(self.data)
+        source.add((self.data.Close >= self.data.Open).values.astype(np.uint8).astype(str),
+                   'change')
+        
+        # Plotting ---------------------------------------------------------- #
+        NAV             = backtest_dict['NAV']
+        trade_summary   = backtest_dict['trade_summary']
+        indicators      = backtest_dict['indicators']
+        granularity     = backtest_dict['interval']
+        open_trades     = backtest_dict['open_trades']
+        cancelled_trades = backtest_dict['cancelled_trades']
+        
+        # OHLC candlestick plot
+        candle_plot = self.plot_candles(source)
+        
+        # Overlay trades 
+        self._plot_trade_history(trade_summary, candle_plot)
+        if len(cancelled_trades) > 0:
+            self._plot_partial_orders(cancelled_trades, candle_plot)
+        if len(open_trades) > 0:
+            self._plot_partial_orders(open_trades, candle_plot, cancelled_orders=False)
+        
+        # Indicators
+        if indicators is not None:
+            bottom_figs             = self.plot_indicators(indicators, candle_plot)
+        else:
+            bottom_figs             = []
+        
+        # Above plots
+        top_fig         = self.plot_portfolio_history(NAV, candle_plot)
+        if cumulative_PL is not None:
+            self.plot_cumulative_pl(cumulative_PL, top_fig, NAV[0])
+        
+        # Compile plots for final figure ------------------------------------ #
+        # Auto-scale y-axis of candlestick chart - TODO - improve
+        autoscale_args      = dict(y_range  = candle_plot.y_range, 
+                                   source   = source)
+        candle_plot.x_range.js_on_change('end', CustomJS(args = autoscale_args, 
+                                                         code = self._autoscale_code))
+        
+        plots               = [top_fig, candle_plot] + bottom_figs
+        linked_crosshair    = CrosshairTool(dimensions='both')
+        
+        titled  = 0
+        t       = Title()
+        t.text  = "Backtest chart for {} ({} candles)".format(instrument, granularity)
+        for plot in plots:
+            if plot is not None:
+                plot.xaxis.major_label_overrides = {
+                    i: date.strftime('%b %d') for i, date in enumerate(pd.to_datetime(self._modified_data["date"]))
+                }
+                plot.xaxis.bounds   = (0, self._modified_data.index[-1])
+                plot.sizing_mode    = 'stretch_width'
+                
+                if titled == 0:
+                    plot.title = t
+                    titled = 1
+                
+                if plot.legend:
+                    plot.legend.visible             = True
+                    plot.legend.location            = 'top_left'
+                    plot.legend.border_line_width   = 1
+                    plot.legend.border_line_color   = '#333333'
+                    plot.legend.padding             = 5
+                    plot.legend.spacing             = 0
+                    plot.legend.margin              = 0
+                    plot.legend.label_text_font_size = '8pt'
+                    plot.legend.click_policy        = "hide"
+                
+                plot.add_tools(linked_crosshair)
+                plot.min_border_left    = 0
+                plot.min_border_top     = 3
+                plot.min_border_bottom  = 6
+                plot.min_border_right   = 10
+                plot.outline_line_color = 'black'
     
+        # Construct final figure
+        fig                 = gridplot(plots, 
+                                       ncols            = 1, 
+                                       toolbar_location = 'right',
+                                       toolbar_options  = dict(logo = None), 
+                                       merge_tools      = True
+                                       )
+        fig.sizing_mode     = 'stretch_width'
+        
+        # TODO - add option to save fig only, and not show it 
+        show(fig)
+        
+        
     def _plot_indicators(self, indicators, linked_fig):
         ''' 
         Plots indicators based on indicator type. If inidcator type is 
@@ -267,8 +372,123 @@ class AutoPlot():
                     legend_label = 'Down trend support')
     
     
+    ''' ----------------------- TOP FIG PLOTTING -------------------------- '''
     
-    ''' ----------------------- UNDERFIG PLOTTING ------------------------- '''
+    def _plot_trade(self, x_data, y_data, marker_type, marker_colour, 
+                    label, linked_fig, scatter_size=15):
+        '''
+        Plots individual trade.
+        '''
+        
+        linked_fig.scatter(x_data, y_data,
+                           marker       = marker_type,
+                           size         = scatter_size,
+                           fill_color   = marker_colour,
+                           legend_label = label)
+    
+    def _plot_trade_history(self, trade_summary, linked_fig, 
+                            cancelled_summary=False, open_summary=False):
+        ''' Plots trades taken over ohlc chart. '''
+        
+        ts = trade_summary
+        # TODO - merge should work with left_on='date', right_index=True,
+        # meaning this can be deleted below - test it
+        ts['date']   = ts.index 
+        ts           = ts.reset_index(drop = True)
+        
+        trade_summary = pd.merge(self.data, ts, left_on='date', right_on='date')
+        
+        # Backtesting signals
+        long_trades             = trade_summary[trade_summary.Size > 0]
+        shorts_trades           = trade_summary[trade_summary.Size < 0]
+        
+        if cancelled_summary is False and open_summary is False:
+            
+            exit_summary = pd.merge(self.data, ts, left_on='date', right_on='Exit_time')
+            
+            profitable_longs        = long_trades[(long_trades['Profit'] > 0)]
+            unprofitable_longs      = long_trades[(long_trades['Profit'] < 0)]
+            profitable_shorts       = shorts_trades[(shorts_trades['Profit'] > 0)]
+            unprofitable_shorts     = shorts_trades[(shorts_trades['Profit'] < 0)]
+            
+            # Profitable long trades
+            if len(profitable_longs) > 0:
+                self._plot_trade(list(profitable_longs.data_index.values),
+                                 list(profitable_longs.Entry.values), 
+                                 'triangle', 'lightgreen', 
+                                 'Profitable long trades', linked_fig)
+    
+            # Profitable short trades
+            if len(profitable_shorts) > 0:
+                self._plot_trade(list(profitable_shorts.data_index.values),
+                                 list(profitable_shorts.Entry.values),
+                                 'inverted_triangle', 'lightgreen',
+                                 'Profitable short trades', linked_fig)
+            
+            # Unprofitable long trades
+            if len(unprofitable_longs) > 0:
+                self._plot_trade(list(unprofitable_longs.data_index.values),
+                                 list(unprofitable_longs.Entry.values),
+                                 'triangle', 'orangered',
+                                 'Unprofitable long trades', linked_fig)
+            
+            # Unprofitable short trades
+            if len(unprofitable_shorts) > 0:
+                self._plot_trade(list(unprofitable_shorts.data_index.values),
+                                 list(unprofitable_shorts.Entry.values),
+                                 'inverted_triangle', 'orangered',
+                                 'Unprofitable short trades', linked_fig)
+        else:
+            if cancelled_summary:
+                long_legend_label = 'Cancelled long trades'
+                short_legend_label = 'Cancelled short trades'
+                fill_color = 'black'
+                price = 'Order_price'
+            else:
+                long_legend_label = 'Open long trades'
+                short_legend_label = 'Open short trades'
+                fill_color = 'white'
+                price = 'Entry'
+        
+            # Partial long trades
+            if len(long_trades) > 0:
+                linked_fig.scatter(list(long_trades.data_index.values),
+                                   list(long_trades[price].values),
+                                   marker = 'triangle',
+                                   size = 15,
+                                   fill_color = fill_color,
+                                   legend_label = long_legend_label)
+            
+            # Partial short trades
+            if len(shorts_trades) > 0:
+                linked_fig.scatter(list(shorts_trades.data_index.values),
+                                   list(shorts_trades[price].values),
+                                   marker = 'inverted_triangle',
+                                   size = 15,
+                                   fill_color = fill_color,
+                                   legend_label = short_legend_label)
+        
+        
+        # Stop loss  levels
+        if None not in trade_summary.Stop_loss.values:
+            self._plot_trade(list(trade_summary.data_index.values),
+                             list(trade_summary.Stop_loss.values),
+                             'dash', 'black', 'Stop loss', linked_fig)
+        
+        # Take profit levels
+        if None not in trade_summary.Take_profit.values:
+            self._plot_trade(list(trade_summary.data_index.values),
+                             list(trade_summary.Take_profit.values),
+                             'dash', 'black', 'Take profit', linked_fig)
+        
+        # Position exits
+        if cancelled_summary is False and open_summary is False:
+            self._plot_trade(list(exit_summary.data_index),
+                             list(exit_summary.Exit_price.values),
+                             'circle', 'black', 'Position exit', linked_fig)
+    
+    
+    ''' --------------------- BOTTOM FIG PLOTTING ------------------------- '''
     
     def _plot_macd(self, x_range, macd_data, linked_fig):
         ''' Plots MACD indicator. '''
