@@ -271,18 +271,9 @@ class AutoPlot():
         # ----------------------- Win rate bar chart ----------------------- #
         instruments = multibot_backtest_results.index.values
         
-        winrate = figure(x_range = instruments,
-                         title = "Bot win rate (%)",
-                         toolbar_location = None,
-                         tools = 'hover',
-                         tooltips = "@index: @win_rate%",
-                         plot_height = 250)
-        
-        winrate.vbar(x = 'index', 
-                     top = 'win_rate',
-                     width = 0.9,
-                     color = 'color',
-                     source = MBR)
+        winrate = self._plot_bars(instruments, 'win_rate', MBR, 
+                                  fig_title='Bot win rate (%)',
+                                  hover_name='win_rate%')
         
         winrate.sizing_mode = 'stretch_width'
         
@@ -295,21 +286,7 @@ class AutoPlot():
         else:
             pie_data['color'] = Category20c[len(multibot_backtest_results)]
 
-        pie = figure(title = "Trade distribution", 
-                     toolbar_location = None,
-                     tools = "hover", 
-                     tooltips="@instrument: @value",
-                     x_range=(-1, 1),
-                     y_range=(0.0, 2.0),
-                     plot_height = 250)
-        
-        pie.wedge(x=0, y=1, radius=0.3,
-                  start_angle=cumsum('angle', include_zero=True), 
-                  end_angle=cumsum('angle'),
-                  line_color="white", 
-                  fill_color='color',
-                  legend_field='instrument',
-                  source=pie_data)
+        pie = self._plot_pie(pie_data, fig_title="Trade distribution")
         
         pie.axis.axis_label=None
         pie.axis.visible=False
@@ -812,4 +789,40 @@ class AutoPlot():
         return fig
     
     ''' -------------------- MISCELLANEOUS PLOTTING ----------------------- '''
+    def _plot_bars(self, x_vals, data_name, source, linked_fig=None, fig_height=250,
+                   fig_title=None, hover_name=None):
+        fig = figure(x_range = x_vals,
+                     title = fig_title,
+                     toolbar_location = None,
+                     tools = 'hover',
+                     tooltips = "@index: @{}".format(hover_name),
+                     plot_height = fig_height)
+        
+        fig.vbar(x = 'index', 
+                 top = data_name,
+                 width = 0.9,
+                 color = 'color',
+                 source = source)
+        
+        return fig
+    
+    def _plot_pie(self, source, fig_title=None, fig_height=250):
+        
+        pie = figure(title = fig_title, 
+                     toolbar_location = None,
+                     tools = "hover", 
+                     tooltips="@instrument: @value",
+                     x_range=(-1, 1),
+                     y_range=(0.0, 2.0),
+                     plot_height = fig_height)
+        
+        pie.wedge(x=0, y=1, radius=0.3,
+                  start_angle=cumsum('angle', include_zero=True), 
+                  end_angle=cumsum('angle'),
+                  line_color="white", 
+                  fill_color='color',
+                  legend_field='instrument',
+                  source=source)
+        
+        return pie
     
