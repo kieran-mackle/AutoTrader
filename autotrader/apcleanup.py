@@ -10,7 +10,7 @@ import os
 
 # Bokeh
 from bokeh.models.annotations import Title
-from bokeh.plotting import figure, output_file, show
+from bokeh.plotting import figure, output_file, show, save
 from bokeh.models import (
     CustomJS,
     ColumnDataSource,
@@ -90,7 +90,7 @@ class AutoPlot():
     
     ''' ------------------- FIGURE MANAGEMENT METHODS --------------------- '''
     def plot(self, backtest_dict=None, cumulative_PL=None, indicators=None, 
-             instrument=None):
+             instrument=None, show_fig=True):
         ''' 
         Creates chart of price data and indicators. 
         '''
@@ -121,7 +121,7 @@ class AutoPlot():
         
         # Plotting ---------------------------------------------------------- #
         # OHLC candlestick plot
-        candle_plot = self.plot_candles(source)
+        candle_plot = self._plot_candles(source)
         
         top_figs = []
         bottom_figs = []
@@ -172,9 +172,9 @@ class AutoPlot():
         for plot in plots:
             if plot is not None:
                 plot.xaxis.major_label_overrides = {
-                    i: date.strftime('%b %d') for i, date in enumerate(pd.to_datetime(self._modified_data["date"]))
+                    i: date.strftime('%b %d') for i, date in enumerate(pd.to_datetime(self.data["date"]))
                 }
-                plot.xaxis.bounds   = (0, self._modified_data.index[-1])
+                plot.xaxis.bounds   = (0, self.data.index[-1])
                 plot.sizing_mode    = 'stretch_width'
                 
                 if titled == 0:
@@ -208,8 +208,10 @@ class AutoPlot():
                                        )
         fig.sizing_mode     = 'stretch_width'
         
-        # TODO - add option to save fig only, and not show it 
-        show(fig)
+        if show_fig:
+            show(fig)
+        else:
+            save(fig)
     
     
     def _plot_multibot_backtest(self, multibot_backtest_results, NAV, cpl_dict):
@@ -225,6 +227,7 @@ class AutoPlot():
         '''
         
         # TODO - merge this into self.plot method?
+        # First, clean up individual plots (pie, etc) into new methods
         
         # Preparation ----------------------------------- #
         output_file("candlestick.html",
@@ -523,21 +526,11 @@ class AutoPlot():
             else:
                 # The indicator plot type is not recognised - plotting on new fig
                 if indis_below < self.max_indis_below:
-                    # TODO - use generic plot method
                     print("Indicator type '{}' not recognised in AutoPlot.".format(indi_type))
-                    new_fig = figure(plot_width     = linked_fig.plot_width,
-                                     plot_height    = 130,
-                                     title          = None,
-                                     tools          = linked_fig.tools,
-                                     active_drag    = linked_fig.tools[0],
-                                     active_scroll  = linked_fig.tools[1],
-                                     x_range        = linked_fig.x_range)
-                    
-                    # Add glyphs
-                    new_fig.line(x_range, 
-                                 indicators[indicator]['data'],
-                                 line_color         = 'black', 
-                                 legend_label       = indicator)
+                    new_fig = self._plot_line(indicators[indicator]['data'], 
+                                              linked_fig, new_fig=True, 
+                                              legend_label=indicator, 
+                                              hover_name=indicator)
                     
                     indis_below    += 1
                     bottom_figs.append(new_fig)
@@ -818,5 +811,5 @@ class AutoPlot():
     
         return fig
     
-    # TODO - create generic line plot method
+    ''' -------------------- MISCELLANEOUS PLOTTING ----------------------- '''
     
