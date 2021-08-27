@@ -49,6 +49,7 @@ class AutoPlot():
         self.fig_tools          = "pan,wheel_zoom,box_zoom,undo,redo,reset,save,crosshair"
         self.ohlc_height        = 400
         self.ohlc_width         = 800
+        self.top_fig_height     = 150
         self.bottom_fig_height  = 150
         # self.total_height       = 1000
         self.plot_validation_balance = True
@@ -116,20 +117,20 @@ class AutoPlot():
         # Overlay trades 
         self._plot_trade_history(trade_summary, candle_plot)
         if len(cancelled_trades) > 0:
-            self._plot_partial_orders(cancelled_trades, candle_plot)
+            self._plot_trade_history(cancelled_trades, candle_plot, cancelled_summary=True)
         if len(open_trades) > 0:
-            self._plot_partial_orders(open_trades, candle_plot, cancelled_orders=False)
+            self._plot_trade_history(open_trades, candle_plot, open_summary=True)
         
         # Indicators
         if indicators is not None:
-            bottom_figs             = self.plot_indicators(indicators, candle_plot)
+            bottom_figs = self._plot_indicators(indicators, candle_plot)
         else:
-            bottom_figs             = []
+            bottom_figs = []
         
         # Above plots
-        top_fig         = self.plot_portfolio_history(NAV, candle_plot)
+        top_fig = self._plot_portfolio_history(NAV, candle_plot)
         if cumulative_PL is not None:
-            self.plot_cumulative_pl(cumulative_PL, top_fig, NAV[0])
+            self._plot_cumulative_pl(cumulative_PL, top_fig, NAV[0])
         
         # Compile plots for final figure ------------------------------------ #
         # Auto-scale y-axis of candlestick chart - TODO - improve
@@ -193,7 +194,7 @@ class AutoPlot():
         "over", it will be plotted on top of linked_fig. If indicator type is 
         "below", it will be plotted on a new figure below the OHLC chart.
         '''
-
+        
         x_range   = self.data.index
         
         plot_type = {'MACD'        : 'below',
@@ -276,6 +277,7 @@ class AutoPlot():
             else:
                 # The indicator plot type is not recognised - plotting on new fig
                 if indis_below < self.max_indis_below:
+                    # TODO - use generic plot method
                     print("Indicator type '{}' not recognised in AutoPlot.".format(indi_type))
                     new_fig = figure(plot_width     = linked_fig.plot_width,
                                      plot_height    = 130,
@@ -295,6 +297,47 @@ class AutoPlot():
                     bottom_figs.append(new_fig)
                 
         return bottom_figs
+    
+    
+    def _plot_line(self, plot_data, linked_fig, new_fig=False, fig_height=150,
+                   fig_title=None, legend_label=None, hover_name=None):
+        '''
+        Generic method to plot data as a line.
+        '''
+        
+        # Initiate figure
+        if new_fig:
+            fig = figure(plot_width     = linked_fig.plot_width,
+                         plot_height    = fig_height,
+                         title          = fig_title,
+                         tools          = self.fig_tools,
+                         active_drag    = 'pan',
+                         active_scroll  = 'wheel_zoom',
+                         x_range        = linked_fig.x_range)
+        else:
+            fig = linked_fig
+        
+        # Add glyphs
+        source = ColumnDataSource(self.data)
+        source.add(plot_data, 'plot_data')
+        fig.line('data_index', 'plot_data', 
+                 line_color         = 'black',
+                 legend_label       = legend_label,
+                 source             = source)
+        
+        if hover_name is None:
+            hover_name = 'Data'
+        
+        fig_hovertool = HoverTool(tooltips = [("Date", "@date{%b %d %H:%M}"),
+                                              (hover_name, "$@{plot_data}{%0.2f}")
+                                              ], 
+                                  formatters={'@{plot_data}' : 'printf',
+                                              '@date' : 'datetime'},
+                                  mode = 'vline')
+        
+        fig.add_tools(fig_hovertool)
+        
+        return fig
     
     
     ''' ------------------------ OVERLAY PLOTTING ------------------------- '''
