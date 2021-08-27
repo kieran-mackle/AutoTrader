@@ -314,9 +314,8 @@ class AutoTrader():
                                  left_index=True, right_index=True).Profit.cumsum()
                         cpl_dict[bot.instrument] = profit_df
                     
-                    ap = autoplot.AutoPlot()
-                    ap.data = bot.data
-                    ap.plot_multibot_backtest(self.multibot_backtest_results, 
+                    ap = autoplot.AutoPlot(bot.data)
+                    ap._plot_multibot_backtest(self.multibot_backtest_results, 
                                               NAV,
                                               cpl_dict)
 
@@ -438,14 +437,13 @@ class AutoTrader():
                 
                 validation_file (str): filepath of backtest validation file.
         '''
-        ap = autoplot.AutoPlot()
-        ap.data = bot.data
+        ap = autoplot.AutoPlot(bot.data)
         profit_df = pd.merge(bot.data, 
                              bot.backtest_summary['trade_summary']['Profit'], 
                              left_index=True, right_index=True).Profit.cumsum()
         
         if validation_file is None:
-            ap.plot_backtest(bot.backtest_summary, cumulative_PL=profit_df)
+            ap.plot(bot.backtest_summary, cumulative_PL=profit_df)
             
         else:
             ap.plot_validation_balance = self.plot_validation_balance # User option flag

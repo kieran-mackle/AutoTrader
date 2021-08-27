@@ -4,7 +4,6 @@
 AutoPlot
 ----------
 Automated plotting script.
-
 """
 
 import pandas as pd
@@ -13,7 +12,7 @@ import os
 
 # Bokeh
 from bokeh.models.annotations import Title
-from bokeh.plotting import figure, output_file, show
+from bokeh.plotting import figure, output_file, show, save
 from bokeh.models import (
     CustomJS,
     ColumnDataSource,
@@ -22,103 +21,163 @@ from bokeh.models import (
 )
 from bokeh.layouts import gridplot, layout
 from bokeh.transform import factor_cmap, cumsum
-from bokeh.palettes import Category20c, GnBu3, OrRd3, Category20
+from bokeh.palettes import Category20c
 from math import pi
 
 
 class AutoPlot():
+    '''
+    AutoPlot.
     
-    def __init__(self):
-        self.data               = None
+    Attributes
+    ----------
+    data : df
+        The base data.
+        
+
+    Methods
+    -------
+    __init__(data):
+        Initialise AutoPlot with the lowest timeframe data being used for 
+        plotting.
+    
+    add_tool(tool_name):
+        Add bokeh tool to plot.
+    
+    '''
+    def __init__(self, data):
         self.max_indis_over     = 3
         self.max_indis_below    = 2
         self._modified_data     = None
         self.fig_tools          = "pan,wheel_zoom,box_zoom,undo,redo,reset,save,crosshair"
         self.ohlc_height        = 400
         self.ohlc_width         = 800
-        self.total_height       = 1000
+        self.top_fig_height     = 150
+        self.bottom_fig_height  = 150
+        # self.total_height       = 1000
         self.plot_validation_balance = True
-    
-    def add_tool(self, tool_name):
-        self.fig_tools          = self.fig_tools + "," + tool_name
-    
-    def _reindex_data(self):
-        '''
-        Resets index of data to obtain integer indexing.
-        '''
-        modified_data           = self.data
-        modified_data['date']   = modified_data.index
-        modified_data           = modified_data.reset_index(drop = True)
-        self._modified_data     = modified_data
-    
-    def plot_backtest(self, backtest_dict, cumulative_PL=None):
-        ''' Creates backtest figure. '''
-        NAV             = backtest_dict['NAV']
-        trade_summary   = backtest_dict['trade_summary']
-        indicators      = backtest_dict['indicators']
-        pair            = backtest_dict['instrument']
-        interval        = backtest_dict['interval']
-        open_trades     = backtest_dict['open_trades']
-        cancelled_trades = backtest_dict['cancelled_trades']
         
-        # Preparation ----------------------------------- #
-        output_file("candlestick.html",
-                    title = "AutoTrader Backtest Results")
-        
-        if self._modified_data is None:
-            self._reindex_data()
-        source                  = ColumnDataSource(self._modified_data)
-        source.add((self._modified_data.Close >= self._modified_data.Open).values.astype(np.uint8).astype(str),
-                   'change')
+        # Modify data index
+        self.data               = self._reindex_data(data)
         
         # Load JavaScript code for auto-scaling 
         with open(os.path.join(os.path.dirname(__file__), 'lib/autoscale.js'),
                   encoding = 'utf-8') as _f:
-            autoscale_code      = _f.read()
+            self._autoscale_code = _f.read()
         
-        # Plotting ------------------------------------- #
-        # Create main candlestick plot
-        candle_plot             = self.plot_candles(source)
         
-        # Overlay trades 
-        self.plot_trade_history(trade_summary, candle_plot)
-        if len(cancelled_trades) > 0:
-            self.plot_partial_orders(cancelled_trades, candle_plot)
-        if len(open_trades) > 0:
-            self.plot_partial_orders(open_trades, candle_plot, cancelled_orders=False)
+    def add_tool(self, tool_name):
+        '''
+        Adds a tool to the plot. 
         
-        # Plot indicators
-        if indicators is not None:
-            bottom_figs             = self.plot_indicators(indicators, candle_plot)
+            Parameters:
+                tool_name (str): name of tool to add (see Bokeh documentation).
+        '''
+        
+        self.fig_tools          = self.fig_tools + "," + tool_name
+    
+    
+    def _reindex_data(self, data):
+        '''
+        Resets index of data to obtain integer indexing.
+        '''
+        
+        modified_data           = data.copy()
+        modified_data['date']   = modified_data.index
+        modified_data           = modified_data.reset_index(drop = True)
+        modified_data['data_index'] = modified_data.index
+        
+        return modified_data
+    
+    
+    ''' ------------------- FIGURE MANAGEMENT METHODS --------------------- '''
+    def plot(self, backtest_dict=None, cumulative_PL=None, indicators=None, 
+             instrument=None, show_fig=True):
+        ''' 
+        Creates chart of price data and indicators. 
+        '''
+        
+        # Preparation ------------------------------------------------------- #
+        if backtest_dict is None:
+            if instrument is not None:
+                title_string = "AutoTrader IndiView - {}".format(instrument)
+            else:
+                title_string = "AutoTrader IndiView"
+            
+            output_file("indiview-chart.html",
+                        title = title_string)
+            
         else:
-            bottom_figs             = []
+            if instrument is None:
+                instrument = backtest_dict['instrument']
+            
+            title_string = "Backtest chart for {} ({} candles)".format(instrument, 
+                                                                       backtest_dict['interval'])
+            output_file("{}-backtest-chart.html".format(instrument),
+                        title = "AutoTrader Backtest Results - {}".format(instrument))
+        
+        source = ColumnDataSource(self.data)
+        source.add((self.data.Close >= self.data.Open).values.astype(np.uint8).astype(str),
+                   'change')
         
         
-        # Auto-scale y-axis of candlestick chart
+        # Plotting ---------------------------------------------------------- #
+        # OHLC candlestick plot
+        candle_plot = self._plot_candles(source)
+        
+        top_figs = []
+        bottom_figs = []
+        
+        if backtest_dict is not None:
+            
+            NAV             = backtest_dict['NAV']
+            trade_summary   = backtest_dict['trade_summary']
+            indicators      = backtest_dict['indicators']
+            open_trades     = backtest_dict['open_trades']
+            cancelled_trades = backtest_dict['cancelled_trades']
+            
+            # Top plots
+            top_fig = self._plot_line(NAV, candle_plot, new_fig=True, 
+                                      legend_label='Net Asset Value', 
+                                      hover_name='NAV')
+            # if cumulative_PL is not None:
+                
+            #     self._plot_line(cumulative_PL, top_fig, 
+            #                     legend_label='Cumulative P/L', 
+            #                     hover_name='P/L')
+            top_figs.append(top_fig)
+            
+            # Overlay trades 
+            self._plot_trade_history(trade_summary, candle_plot)
+            if len(cancelled_trades) > 0:
+                self._plot_trade_history(cancelled_trades, candle_plot, cancelled_summary=True)
+            if len(open_trades) > 0:
+                self._plot_trade_history(open_trades, candle_plot, open_summary=True)
+        
+        # Indicators
+        if indicators is not None:
+            bottom_figs = self._plot_indicators(indicators, candle_plot)
+        
+        
+        # Compile plots for final figure ------------------------------------ #
+        # Auto-scale y-axis of candlestick chart - TODO - improve
         autoscale_args      = dict(y_range  = candle_plot.y_range, 
                                    source   = source)
         candle_plot.x_range.js_on_change('end', CustomJS(args = autoscale_args, 
-                                                         code = autoscale_code))
+                                                         code = self._autoscale_code))
         
-        # Above plots
-        top_fig         = self.plot_portfolio_history(NAV, candle_plot)
-        if cumulative_PL is not None:
-            self.plot_cumulative_pl(cumulative_PL, top_fig, NAV[0])
-        
-        # Compile plots for final figure
-        plots               = [top_fig, candle_plot] + bottom_figs
-        
+        plots               = top_figs + [candle_plot] + bottom_figs
         linked_crosshair    = CrosshairTool(dimensions='both')
         
         titled  = 0
         t       = Title()
-        t.text  = "Backtest chart for {} ({} candles)".format(pair, interval)
+        t.text  = title_string
         for plot in plots:
             if plot is not None:
                 plot.xaxis.major_label_overrides = {
-                    i: date.strftime('%b %d') for i, date in enumerate(pd.to_datetime(self._modified_data["date"]))
+                    i: date.strftime('%b %d') for i, date in enumerate(pd.to_datetime(self.data["date"]))
                 }
-                plot.xaxis.bounds   = (0, self._modified_data.index[-1])
+                plot.xaxis.bounds   = (0, self.data.index[-1])
                 plot.sizing_mode    = 'stretch_width'
                 
                 if titled == 0:
@@ -151,10 +210,14 @@ class AutoPlot():
                                        merge_tools      = True
                                        )
         fig.sizing_mode     = 'stretch_width'
-        show(fig)
+        
+        if show_fig:
+            show(fig)
+        else:
+            save(fig)
     
     
-    def plot_multibot_backtest(self, multibot_backtest_results, NAV, cpl_dict):
+    def _plot_multibot_backtest(self, multibot_backtest_results, NAV, cpl_dict):
         ''' 
         Creates multi-bot backtest figure. 
         
@@ -166,22 +229,14 @@ class AutoPlot():
                 cpl_dict (dict): cumulative PL of each bot.
         '''
         
+        # TODO - merge this into self.plot method?
+        # First, clean up individual plots (pie, etc) into new methods
+        
         # Preparation ----------------------------------- #
         output_file("candlestick.html",
                     title = "AutoTrader Multi-Bot Backtest Results")
         
-        if self._modified_data is None:
-            self._reindex_data()
-        # source                  = ColumnDataSource(self._modified_data)
-        # source.add((self._modified_data.Close >= self._modified_data.Open).values.astype(np.uint8).astype(str),
-        #             'change')
-        
-        # TODO - Load JavaScript code for auto-scaling - use for NAV
-        # with open(os.path.join(os.path.dirname(__file__), 'lib/autoscale.js'),
-        #           encoding = 'utf-8') as _f:
-        #     autoscale_code      = _f.read()
-        
-        linked_crosshair    = CrosshairTool(dimensions='both')
+        linked_crosshair = CrosshairTool(dimensions='both')
         if len(multibot_backtest_results) < 3:
             multibot_backtest_results['color'] = Category20c[3][0:len(multibot_backtest_results)]
         else:
@@ -190,22 +245,22 @@ class AutoPlot():
         MBR = ColumnDataSource(multibot_backtest_results)
         
         # ----------------------- Account Balance -------------------------- #
-        navfig = figure(plot_width = 800,
-                        plot_height = 150,
+        navfig = figure(plot_width = self.ohlc_width,
+                        plot_height = self.top_fig_height,
                         title = None,
                         active_drag = 'pan',
                         active_scroll = 'wheel_zoom')
         
         # Add glyphs
-        navfig.line(self._modified_data.index, 
+        navfig.line(self.data.index, 
                     NAV, 
                     line_color = 'black',
                     legend_label = 'Backtest Net Asset Value')
         
         navfig.xaxis.major_label_overrides = {
-                    i: date.strftime('%b %d') for i, date in enumerate(pd.to_datetime(self._modified_data["date"]))
+                    i: date.strftime('%b %d') for i, date in enumerate(pd.to_datetime(self.data["date"]))
                 }
-        navfig.xaxis.bounds = (0, self._modified_data.index[-1])
+        navfig.xaxis.bounds = (0, self.data.index[-1])
         navfig.sizing_mode = 'stretch_width'
         navfig.legend.location = 'top_left'
         navfig.legend.border_line_width   = 1
@@ -219,18 +274,9 @@ class AutoPlot():
         # ----------------------- Win rate bar chart ----------------------- #
         instruments = multibot_backtest_results.index.values
         
-        winrate = figure(x_range = instruments,
-                         title = "Bot win rate (%)",
-                         toolbar_location = None,
-                         tools = 'hover',
-                         tooltips = "@index: @win_rate%",
-                         plot_height = 250)
-        
-        winrate.vbar(x = 'index', 
-                     top = 'win_rate',
-                     width = 0.9,
-                     color = 'color',
-                     source = MBR)
+        winrate = self._plot_bars(instruments, 'win_rate', MBR, 
+                                  fig_title='Bot win rate (%)',
+                                  hover_name='win_rate%')
         
         winrate.sizing_mode = 'stretch_width'
         
@@ -243,21 +289,7 @@ class AutoPlot():
         else:
             pie_data['color'] = Category20c[len(multibot_backtest_results)]
 
-        pie = figure(title = "Trade distribution", 
-                     toolbar_location = None,
-                     tools = "hover", 
-                     tooltips="@instrument: @value",
-                     x_range=(-1, 1),
-                     y_range=(0.0, 2.0),
-                     plot_height = 250)
-        
-        pie.wedge(x=0, y=1, radius=0.3,
-                  start_angle=cumsum('angle', include_zero=True), 
-                  end_angle=cumsum('angle'),
-                  line_color="white", 
-                  fill_color='color',
-                  legend_field='instrument',
-                  source=pie_data)
+        pie = self._plot_pie(pie_data, fig_title="Trade distribution")
         
         pie.axis.axis_label=None
         pie.axis.visible=False
@@ -334,13 +366,13 @@ class AutoPlot():
     
         # --------------------- Cumulative PL ------------------------------ #
         cplfig = figure(plot_width = navfig.plot_width,
-                        plot_height = 150,
+                        plot_height = self.top_fig_height,
                         title = None,
                         active_drag = 'pan',
                         active_scroll = 'wheel_zoom',
                         x_range = navfig.x_range)
         
-        self.data['data_index'] = self.data.reset_index(drop=True).index
+        # self.data['data_index'] = self.data.reset_index(drop=True).index
         
         if len(multibot_backtest_results) < 3:
             colors = Category20c[3][0:len(multibot_backtest_results)]
@@ -371,9 +403,9 @@ class AutoPlot():
         cplfig.add_tools(linked_crosshair)
         
         cplfig.xaxis.major_label_overrides = {
-                    i: date.strftime('%b %d') for i, date in enumerate(pd.to_datetime(self._modified_data["date"]))
+                    i: date.strftime('%b %d') for i, date in enumerate(pd.to_datetime(self.data["date"]))
                 }
-        cplfig.xaxis.bounds   = (0, self._modified_data.index[-1])
+        cplfig.xaxis.bounds   = (0, self.data.index[-1])
         
         # -------------------- Construct final figure ---------------------- #     
         final_fig = layout([  
@@ -383,92 +415,16 @@ class AutoPlot():
                         ])
         final_fig.sizing_mode = 'scale_width'
         show(final_fig)
-        
     
-    def view_indicators(self, indicators=None, instrument=None):
-        ''' Constructs indicator visualisation figure. '''
-        # Preparation ----------------------------------- #
-        if instrument is not None:
-            title_string = "AutoTrader IndiView - {}".format(instrument)
-        else:
-            title_string = "AutoTrader IndiView"
-        output_file("candlestick.html",
-                    title = title_string)
         
-        if self._modified_data is None:
-            self._reindex_data()
+    def _plot_indicators(self, indicators, linked_fig):
+        ''' 
+        Plots indicators based on indicator type. If inidcator type is 
+        "over", it will be plotted on top of linked_fig. If indicator type is 
+        "below", it will be plotted on a new figure below the OHLC chart.
+        '''
         
-        self.data['date']       = self.data.index 
-        self.data               = self.data.reset_index(drop = True)
-        source                  = ColumnDataSource(self.data)
-        source.add((self.data.Close >= self.data.Open).values.astype(np.uint8).astype(str),
-                   'change')
-        
-        # Load JavaScript code for auto-scaling 
-        with open(os.path.join(os.path.dirname(__file__), 'lib/autoscale.js'),
-                  encoding = 'utf-8') as _f:
-            autoscale_code      = _f.read()
-            
-        # Plotting ------------------------------------- #
-        # Create main candlestick plot
-        candle_plot             = self.plot_candles(source)
-        candle_plot.title       = title_string
-        
-        # Plot indicators
-        if indicators is not None:
-            bottom_figs             = self.plot_indicators(indicators, candle_plot)
-        else:
-            bottom_figs             = []
-        
-        # Auto-scale y-axis of candlestick chart
-        autoscale_args          = dict(y_range  = candle_plot.y_range, 
-                                       source   = source)
-        candle_plot.x_range.js_on_change('end', CustomJS(args = autoscale_args, 
-                                                         code = autoscale_code))
-        
-        plots = [candle_plot] + bottom_figs
-        
-        for plot in plots:
-            if plot is not None:
-                plot.xaxis.major_label_overrides = {
-                    i: date.strftime('%b %d') for i, date in enumerate(pd.to_datetime(self._modified_data["date"]))
-                }
-                plot.xaxis.bounds   = (0, self._modified_data.index[-1])
-                plot.sizing_mode    = 'stretch_width'
-    
-                if plot.legend:
-                    plot.legend.visible             = True
-                    plot.legend.location            = 'top_left'
-                    plot.legend.border_line_width   = 1
-                    plot.legend.border_line_color   = '#333333'
-                    plot.legend.padding             = 5
-                    plot.legend.spacing             = 0
-                    plot.legend.margin              = 0
-                    plot.legend.label_text_font_size = '8pt'
-                    plot.legend.click_policy        = "hide"
-                
-                plot.min_border_left    = 0
-                plot.min_border_top     = 3
-                plot.min_border_bottom  = 6
-                plot.min_border_right   = 10
-                plot.outline_line_color = 'black'
-    
-        # Construct final figure
-        fig                 = gridplot(plots, 
-                                       ncols            = 1, 
-                                       toolbar_location = 'right',
-                                       toolbar_options  = dict(logo = None), 
-                                       merge_tools      = True
-                                       )
-        fig.sizing_mode     = 'stretch_width'
-        show(fig)
-    
-    def plot_indicators(self, indicators, linked_fig):
-        ''' Plots indicators. '''
-        # Get integer index
-        if self._modified_data is None:
-            self._reindex_data()
-        x_range   = self._modified_data.index
+        x_range   = self.data.index
         
         plot_type = {'MACD'        : 'below',
                      'MA'          : 'over',
@@ -486,23 +442,24 @@ class AutoPlot():
         indis_over              = 0
         indis_below             = 0
         bottom_figs             = []
-        
         colours                 = ['red', 'blue', 'orange', 'green']
         
         for indicator in indicators:
             indi_type = indicators[indicator]['type']
             
             if indi_type in plot_type:
+                # The indicator plot type is recognised
                 if plot_type[indi_type] == 'over' and indis_over < self.max_indis_over:
                     if indi_type == 'Supertrend':
-                        self.plot_supertrend(indicators[indicator]['data'], 
-                                                      linked_fig)
+                        self._plot_supertrend(indicators[indicator]['data'], 
+                                              linked_fig)
                         
                         indis_over     += 1 # Count as 2 indicators
                     elif indi_type == 'Swings':
-                        self.plot_swings(indicators[indicator]['data'], 
-                                                      linked_fig)
+                        self._plot_swings(indicators[indicator]['data'], 
+                                          linked_fig)
                     else:
+                        # Generic overlay indicator - plot as line
                         linked_fig.line(x_range, 
                                         indicators[indicator]['data'], 
                                         line_width = 1.5, 
@@ -512,21 +469,18 @@ class AutoPlot():
                     
                 elif plot_type[indi_type] == 'below' and indis_below < self.max_indis_below:
                     if indi_type == 'MACD':
-                        new_fig     = self.plot_macd(x_range,
-                                                indicators[indicator], 
-                                                linked_fig)
+                        new_fig     = self._plot_macd(x_range,
+                                                      indicators[indicator], 
+                                                      linked_fig)
                         new_fig.title = indicator
                     
                     elif indi_type == 'Heikin-Ashi':
                         
-                        data        = indicators[indicator]['data']
-                        data['date'] = data.index 
-                        data        = data.reset_index(drop = True)
-                        source      = ColumnDataSource(data)
-                        source.add((data.Close >= data.Open).values.astype(np.uint8).astype(str),
+                        HA_data     = self._reindex_data(indicators[indicator]['data'])
+                        source      = ColumnDataSource(HA_data)
+                        source.add((HA_data.Close >= HA_data.Open).values.astype(np.uint8).astype(str),
                                    'change')
-                                                
-                        new_fig     = self.plot_candles(source)
+                        new_fig     = self._plot_candles(source)
                         new_fig.x_range = linked_fig.x_range
                         new_fig.y_range = linked_fig.y_range
                         new_fig.title = indicator
@@ -550,22 +504,13 @@ class AutoPlot():
                     indis_below    += 1
                     bottom_figs.append(new_fig)
             else:
+                # The indicator plot type is not recognised - plotting on new fig
                 if indis_below < self.max_indis_below:
-                    # Unknown plot type - plot generally on new bottom fig
                     print("Indicator type '{}' not recognised in AutoPlot.".format(indi_type))
-                    new_fig = figure(plot_width     = linked_fig.plot_width,
-                                     plot_height    = 130,
-                                     title          = None,
-                                     tools          = linked_fig.tools,
-                                     active_drag    = linked_fig.tools[0],
-                                     active_scroll  = linked_fig.tools[1],
-                                     x_range        = linked_fig.x_range)
-                    
-                    # Add glyphs
-                    new_fig.line(x_range, 
-                                 indicators[indicator]['data'],
-                                 line_color         = 'black', 
-                                 legend_label       = indicator)
+                    new_fig = self._plot_line(indicators[indicator]['data'], 
+                                              linked_fig, new_fig=True, 
+                                              legend_label=indicator, 
+                                              hover_name=indicator)
                     
                     indis_below    += 1
                     bottom_figs.append(new_fig)
@@ -573,8 +518,51 @@ class AutoPlot():
         return bottom_figs
     
     
-    def plot_candles(self, source):
-        ''' Plots OHLC data. '''
+    def _plot_line(self, plot_data, linked_fig, new_fig=False, fig_height=150,
+                   fig_title=None, legend_label=None, hover_name=None):
+        '''
+        Generic method to plot data as a line.
+        '''
+        
+        # Initiate figure
+        if new_fig:
+            fig = figure(plot_width     = linked_fig.plot_width,
+                         plot_height    = fig_height,
+                         title          = fig_title,
+                         tools          = self.fig_tools,
+                         active_drag    = 'pan',
+                         active_scroll  = 'wheel_zoom',
+                         x_range        = linked_fig.x_range)
+        else:
+            fig = linked_fig
+        
+        # Add glyphs
+        source = ColumnDataSource(self.data)
+        source.add(plot_data, 'plot_data')
+        fig.line('data_index', 'plot_data', 
+                 line_color         = 'black',
+                 legend_label       = legend_label,
+                 source             = source)
+        
+        if hover_name is None:
+            hover_name = 'Data'
+        
+        fig_hovertool = HoverTool(tooltips = [("Date", "@date{%b %d %H:%M}"),
+                                              (hover_name, "$@{plot_data}{%0.2f}")
+                                              ], 
+                                  formatters={'@{plot_data}' : 'printf',
+                                              '@date' : 'datetime'},
+                                  mode = 'vline')
+        
+        fig.add_tools(fig_hovertool)
+        
+        return fig
+    
+    
+    ''' ------------------------ OVERLAY PLOTTING ------------------------- '''
+    
+    def _plot_candles(self, source):
+        ''' Plots OHLC data onto new figure. '''
         bull_colour             = "#D5E1DD"
         bear_colour             = "#F2583E"
         candle_colours          = [bear_colour, bull_colour]
@@ -610,12 +598,166 @@ class AutoPlot():
         
         return candle_plot
     
+    def plot_swings(self, swings, linked_fig):
+        '''
+        Plots swing detection indicator.
+        '''
+        swings = pd.merge(self.data, swings, left_on='date', right_index=True)
+        
+        linked_fig.scatter(list(swings.index),
+                            list(swings.Last.values),
+                            marker = 'dash',
+                            size = 15,
+                            fill_color = 'black',
+                            legend_label = 'Last Swing Price Level')
     
-    def plot_macd(self, x_range, macd_data, linked_fig):
+    def plot_supertrend(self, st_data, linked_fig):
+        ''' Plots supertrend indicator. '''
+        # Extract supertrend data
+        # uptrend     = st_data['uptrend']
+        # dntrend     = st_data['downtrend']
+        
+        # reset index 
+        st_data['date']         = st_data.index 
+        st_data                 = st_data.reset_index(drop = True)
+        
+        # Add glyphs
+        linked_fig.scatter(st_data.index,
+                    st_data['uptrend'],
+                    size = 5,
+                    fill_color = 'blue',
+                    legend_label = 'Up trend support')
+        linked_fig.scatter(st_data.index,
+                    st_data['downtrend'],
+                    size = 5,
+                    fill_color = 'red',
+                    legend_label = 'Down trend support')
+    
+    
+    ''' ----------------------- TOP FIG PLOTTING -------------------------- '''
+    
+    def _plot_trade(self, x_data, y_data, marker_type, marker_colour, 
+                    label, linked_fig, scatter_size=15):
+        '''
+        Plots individual trade.
+        '''
+        
+        linked_fig.scatter(x_data, y_data,
+                           marker       = marker_type,
+                           size         = scatter_size,
+                           fill_color   = marker_colour,
+                           legend_label = label)
+    
+    def _plot_trade_history(self, trade_summary, linked_fig, 
+                            cancelled_summary=False, open_summary=False):
+        ''' Plots trades taken over ohlc chart. '''
+        
+        ts = trade_summary
+        # TODO - merge should work with left_on='date', right_index=True,
+        # meaning this can be deleted below - test it
+        ts['date']   = ts.index 
+        ts           = ts.reset_index(drop = True)
+        
+        trade_summary = pd.merge(self.data, ts, left_on='date', right_on='date')
+        
+        # Backtesting signals
+        long_trades             = trade_summary[trade_summary.Size > 0]
+        shorts_trades           = trade_summary[trade_summary.Size < 0]
+        
+        if cancelled_summary is False and open_summary is False:
+            
+            exit_summary = pd.merge(self.data, ts, left_on='date', right_on='Exit_time')
+            
+            profitable_longs        = long_trades[(long_trades['Profit'] > 0)]
+            unprofitable_longs      = long_trades[(long_trades['Profit'] < 0)]
+            profitable_shorts       = shorts_trades[(shorts_trades['Profit'] > 0)]
+            unprofitable_shorts     = shorts_trades[(shorts_trades['Profit'] < 0)]
+            
+            # Profitable long trades
+            if len(profitable_longs) > 0:
+                self._plot_trade(list(profitable_longs.data_index.values),
+                                 list(profitable_longs.Entry.values), 
+                                 'triangle', 'lightgreen', 
+                                 'Profitable long trades', linked_fig)
+    
+            # Profitable short trades
+            if len(profitable_shorts) > 0:
+                self._plot_trade(list(profitable_shorts.data_index.values),
+                                 list(profitable_shorts.Entry.values),
+                                 'inverted_triangle', 'lightgreen',
+                                 'Profitable short trades', linked_fig)
+            
+            # Unprofitable long trades
+            if len(unprofitable_longs) > 0:
+                self._plot_trade(list(unprofitable_longs.data_index.values),
+                                 list(unprofitable_longs.Entry.values),
+                                 'triangle', 'orangered',
+                                 'Unprofitable long trades', linked_fig)
+            
+            # Unprofitable short trades
+            if len(unprofitable_shorts) > 0:
+                self._plot_trade(list(unprofitable_shorts.data_index.values),
+                                 list(unprofitable_shorts.Entry.values),
+                                 'inverted_triangle', 'orangered',
+                                 'Unprofitable short trades', linked_fig)
+        else:
+            if cancelled_summary:
+                long_legend_label = 'Cancelled long trades'
+                short_legend_label = 'Cancelled short trades'
+                fill_color = 'black'
+                price = 'Order_price'
+            else:
+                long_legend_label = 'Open long trades'
+                short_legend_label = 'Open short trades'
+                fill_color = 'white'
+                price = 'Entry'
+        
+            # Partial long trades
+            if len(long_trades) > 0:
+                linked_fig.scatter(list(long_trades.data_index.values),
+                                   list(long_trades[price].values),
+                                   marker = 'triangle',
+                                   size = 15,
+                                   fill_color = fill_color,
+                                   legend_label = long_legend_label)
+            
+            # Partial short trades
+            if len(shorts_trades) > 0:
+                linked_fig.scatter(list(shorts_trades.data_index.values),
+                                   list(shorts_trades[price].values),
+                                   marker = 'inverted_triangle',
+                                   size = 15,
+                                   fill_color = fill_color,
+                                   legend_label = short_legend_label)
+        
+        
+        # Stop loss  levels
+        if None not in trade_summary.Stop_loss.values:
+            self._plot_trade(list(trade_summary.data_index.values),
+                             list(trade_summary.Stop_loss.values),
+                             'dash', 'black', 'Stop loss', linked_fig)
+        
+        # Take profit levels
+        if None not in trade_summary.Take_profit.values:
+            self._plot_trade(list(trade_summary.data_index.values),
+                             list(trade_summary.Take_profit.values),
+                             'dash', 'black', 'Take profit', linked_fig)
+        
+        # Position exits
+        if cancelled_summary is False and open_summary is False:
+            self._plot_trade(list(exit_summary.data_index),
+                             list(exit_summary.Exit_price.values),
+                             'circle', 'black', 'Position exit', linked_fig,
+                             scatter_size=7)
+    
+    
+    ''' --------------------- BOTTOM FIG PLOTTING ------------------------- '''
+    
+    def _plot_macd(self, x_range, macd_data, linked_fig):
         ''' Plots MACD indicator. '''
         # Initialise figure
         fig = figure(plot_width     = linked_fig.plot_width,
-                     plot_height    = 150,
+                     plot_height    = self.bottom_fig_height,
                      title          = None,
                      tools          = linked_fig.tools,
                      active_drag    = linked_fig.tools[0],
@@ -650,445 +792,41 @@ class AutoPlot():
     
         return fig
     
-    
-    def plot_supertrend(self, st_data, linked_fig):
-        ''' Plots supertrend indicator. '''
-        # Extract supertrend data
-        # uptrend     = st_data['uptrend']
-        # dntrend     = st_data['downtrend']
+    ''' -------------------- MISCELLANEOUS PLOTTING ----------------------- '''
+    def _plot_bars(self, x_vals, data_name, source, linked_fig=None, fig_height=250,
+                   fig_title=None, hover_name=None):
+        fig = figure(x_range = x_vals,
+                     title = fig_title,
+                     toolbar_location = None,
+                     tools = 'hover',
+                     tooltips = "@index: @{}".format(hover_name),
+                     plot_height = fig_height)
         
-        # reset index 
-        st_data['date']         = st_data.index 
-        st_data                 = st_data.reset_index(drop = True)
-        
-        # Add glyphs
-        linked_fig.scatter(st_data.index,
-                    st_data['uptrend'],
-                    size = 5,
-                    fill_color = 'blue',
-                    legend_label = 'Up trend support')
-        linked_fig.scatter(st_data.index,
-                    st_data['downtrend'],
-                    size = 5,
-                    fill_color = 'red',
-                    legend_label = 'Down trend support')
-        
-    def plot_swings(self, swings, linked_fig):
-        # Merge index to base data time
-        swings = pd.merge(self.data, swings, left_on='date', right_index=True)
-        
-        linked_fig.scatter(list(swings.index),
-                            list(swings.Last.values),
-                            marker = 'dash',
-                            size = 15,
-                            fill_color = 'black',
-                            legend_label = 'Last Swing Price Level')
-        
-    
-    def plot_partial_orders(self, cancelled_order_summary, linked_fig, 
-                            cancelled_orders=True):
-        ts              = cancelled_order_summary
-        ts['date']      = ts.index 
-        ts              = ts.reset_index(drop = True)
-        
-        # Compute x-range in integer index form
-        if self._modified_data is None:
-            self._reindex_data()
-        
-        trade_summary   = pd.merge(self.data, ts, left_on='date', right_on='date')
-
-        
-        longs           = trade_summary[trade_summary.Size > 0]
-        shorts          = trade_summary[trade_summary.Size < 0]
-        
-        if cancelled_orders:
-            long_legend_label = 'Cancelled long trades'
-            short_legend_label = 'Cancelled short trades'
-            fill_color = 'black'
-            price = 'Order_price'
-        else:
-            long_legend_label = 'Open long trades'
-            short_legend_label = 'Open short trades'
-            fill_color = 'white'
-            price = 'Entry'
-        
-        # Partial long trades
-        if len(longs) > 0:
-            linked_fig.scatter(list(longs.data_index.values),
-                               list(longs[price].values),
-                               marker = 'triangle',
-                               size = 15,
-                               fill_color = fill_color,
-                               legend_label = long_legend_label)
-        
-        # Partial short trades
-        if len(shorts) > 0:
-            linked_fig.scatter(list(shorts.data_index.values),
-                               list(shorts[price].values),
-                               marker = 'inverted_triangle',
-                               size = 15,
-                               fill_color = fill_color,
-                               legend_label = short_legend_label)
-            
-        if None not in trade_summary.Stop_loss.values:
-            linked_fig.scatter(list(trade_summary.data_index.values),
-                                list(trade_summary.Stop_loss.values),
-                                marker = 'dash',
-                                size = 15,
-                                fill_color = 'black',
-                                legend_label = 'Stop loss')
-        
-        if None not in trade_summary.Take_profit.values:
-            linked_fig.scatter(list(trade_summary.data_index.values),
-                                list(trade_summary.Take_profit.values),
-                                marker = 'dash',
-                                size = 15,
-                                fill_color = 'black',
-                                legend_label = 'Take profit')
-            
-
-    def plot_trade_history(self, trade_summary, linked_fig):
-        ''' Plots trades taken over ohlc chart. '''
-        ts = trade_summary
-        ts['date']   = ts.index 
-        ts           = ts.reset_index(drop = True)
-        
-        # Compute x-range in integer index form
-        if self._modified_data is None:
-            self._reindex_data()
-        # ts_xrange   = self._modified_data[self._modified_data.date.isin(trade_summary.index)].index
-        # trade_summary = ts.set_index(ts_xrange)
-        
-        
-        # Assign new 'data_index' column to capture index in trade summary merge
-        self.data['data_index'] = self._modified_data.index
-        trade_summary = pd.merge(self.data, ts, left_on='date', right_on='date')
-        exit_summary = pd.merge(self.data, ts, left_on='date', right_on='Exit_time')
-        
-        # Backtesting signals
-        profitable_longs        = trade_summary[(trade_summary['Profit'] > 0) 
-                                                & (trade_summary['Size'] > 0)]
-        profitable_shorts       = trade_summary[(trade_summary['Profit'] > 0) 
-                                                & (trade_summary['Size'] < 0)]
-        unprofitable_longs      = trade_summary[(trade_summary['Profit'] < 0) 
-                                                & (trade_summary['Size'] > 0)]
-        unprofitable_shorts     = trade_summary[(trade_summary['Profit'] < 0) 
-                                                & (trade_summary['Size'] < 0)]
-        
-        
-        # Profitable long trades
-        if len(profitable_longs) > 0:
-            linked_fig.scatter(list(profitable_longs.data_index.values),
-                               list(profitable_longs.Entry.values),
-                               marker = 'triangle',
-                               size = 15,
-                               fill_color = 'lightgreen',
-                               legend_label = 'Profitable long trades')
-        
-        # Profitable short trades
-        if len(profitable_shorts) > 0:
-            linked_fig.scatter(list(profitable_shorts.data_index.values),
-                               list(profitable_shorts.Entry.values),
-                               marker = 'inverted_triangle',
-                               size = 15,
-                               fill_color = 'lightgreen',
-                               legend_label = 'Profitable short trades')
-        
-        # Unprofitable long trades
-        if len(unprofitable_longs) > 0:
-            linked_fig.scatter(list(unprofitable_longs.data_index.values),
-                               list(unprofitable_longs.Entry.values),
-                               marker = 'triangle',
-                               size = 15,
-                               fill_color = 'orangered',
-                               legend_label = 'Unprofitable long trades')
-        
-        # Unprofitable short trades
-        if len(unprofitable_shorts) > 0:
-            linked_fig.scatter(list(unprofitable_shorts.data_index.values),
-                               list(unprofitable_shorts.Entry.values),
-                               marker = 'inverted_triangle',
-                               size = 15,
-                               fill_color = 'orangered',
-                               legend_label = 'Unprofitable short trades')
-        
-        # Stop loss  levels
-        if None in trade_summary.Stop_loss.values:
-            pass
-        else:
-            linked_fig.scatter(list(trade_summary.data_index.values),
-                                list(trade_summary.Stop_loss.values),
-                                marker = 'dash',
-                                size = 15,
-                                fill_color = 'black',
-                                legend_label = 'Stop loss')
-        
-        # Take profit levels
-        if None in trade_summary.Take_profit.values:
-            pass
-        else:
-            linked_fig.scatter(list(trade_summary.data_index.values),
-                                list(trade_summary.Take_profit.values),
-                                marker = 'dash',
-                                size = 15,
-                                fill_color = 'black',
-                                legend_label = 'Take profit')
-        
-        # Position exits
-        linked_fig.scatter(list(exit_summary.data_index),
-                            list(exit_summary.Exit_price.values),
-                            marker = 'circle',
-                            size = 8,
-                            fill_color = 'black',
-                            legend_label = 'Position exit')
-
-    
-    def plot_cumulative_pl(self, cumulative_PL, linked_fig, offset=0):
-        ''' Plots cumulative PL of bot. '''
-        cpldata = cumulative_PL.to_frame()
-        cpldata['date'] = cpldata.index
-        cpldata = cpldata.reset_index(drop = True)
-        cpldata = pd.merge(self.data, cpldata, left_on='date', right_on='date')
-        
-        # # Initialise figure
-        # fig = figure(plot_width     = linked_fig.plot_width,
-        #               plot_height    = 150,
-        #               title          = None,
-        #               tools          = self.fig_tools,
-        #               active_drag    = 'pan',
-        #               active_scroll  = 'wheel_zoom',
-        #               x_range        = linked_fig.x_range)
-        
-        # Add glyphs
-        linked_fig.step(cpldata.data_index.values,
-                 cpldata.Profit.values + offset,
-                 line_color         = 'blue',
-                 legend_label       = 'Cumulative P/L')
-    
-        # return fig
-    
-    
-    def plot_portfolio_history(self, NAV, linked_fig):
-        ''' Plots NAV over trade period. '''
-        # Initialise figure
-        fig = figure(plot_width     = linked_fig.plot_width,
-                     plot_height    = 150,
-                     title          = None,
-                     tools          = self.fig_tools,
-                     active_drag    = 'pan',
-                     active_scroll  = 'wheel_zoom',
-                     x_range        = linked_fig.x_range)
-        
-        # Add glyphs
-        source = ColumnDataSource(self.data)
-        source.add(NAV, 'NAV')
-        fig.line('data_index', 
-                 'NAV', 
-                 line_color         = 'black',
-                 legend_label       = 'Backtest Net Asset Value',
-                 source             = source)
-    
-        
-        # tooltips       = "NAV: $@NAV" ,
-        fig_hovertool = HoverTool(tooltips = [
-                                              ("Date", "@date{%b %d %H:%M}"),
-                                              ("NAV", "$@{NAV}{%0.2f}")
-                                              ], 
-                                  formatters={'@{NAV}' : 'printf',
-                                              '@date' : 'datetime'},
-                                  mode = 'vline')
-        
-        fig.add_tools(fig_hovertool)
+        fig.vbar(x = 'index', 
+                 top = data_name,
+                 width = 0.9,
+                 color = 'color',
+                 source = source)
         
         return fig
     
+    def _plot_pie(self, source, fig_title=None, fig_height=250):
+        
+        pie = figure(title = fig_title, 
+                     toolbar_location = None,
+                     tools = "hover", 
+                     tooltips="@instrument: @value",
+                     x_range=(-1, 1),
+                     y_range=(0.0, 2.0),
+                     plot_height = fig_height)
+        
+        pie.wedge(x=0, y=1, radius=0.3,
+                  start_angle=cumsum('angle', include_zero=True), 
+                  end_angle=cumsum('angle'),
+                  line_color="white", 
+                  fill_color='color',
+                  legend_field='instrument',
+                  source=source)
+        
+        return pie
     
-    def validate_backtest(self, livetrade_summary, backtest_dict):
-        """
-            Code below takes oanda csv history and plots it.
-            
-            When a position is opened, it will be shown as a triangle with no fill (open).
-            It will point in the direction of the trade.
-            
-            When a position is closed, it will be shown as a triangle with red or green 
-            fill, depending on if it was profitable or not. It will point in the direction 
-            of the closing trade.
-            
-        """
-        backtest_trade_summary  = backtest_dict['trade_summary']
-        backtest_cancelled_summary = backtest_dict['cancelled_trades']
-        backtest_NAV            = backtest_dict['NAV']
-        instrument              = backtest_dict['pair']
-        granularity             = backtest_dict['interval']
-        
-        # Preparation ----------------------------------- #
-        output_file("candlestick.html",
-                    title = "AutoTrader Backtest Validation")
-        if self._modified_data is None:
-            self._reindex_data()
-        source                  = ColumnDataSource(self._modified_data)
-        source.add((self._modified_data.Close >= self._modified_data.Open).values.astype(np.uint8).astype(str),
-                   'change')
-        
-        
-        ''' Plot livetrade history '''
-        # Currently no nice way to do this due to .csv formatting
-        # Initialise figure with OHLC data
-        livetrade_candle_plot       = self.plot_candles(source)
-        
-        # Load JavaScript code for auto-scaling 
-        with open(os.path.join(os.path.dirname(__file__), 'lib/autoscale.js'),
-                  encoding = 'utf-8') as _f:
-            autoscale_code      = _f.read()
-        
-        # Auto-scale y-axis of candlestick chart
-        autoscale_args      = dict(y_range  = livetrade_candle_plot.y_range, 
-                                   source   = source)
-        livetrade_candle_plot.x_range.js_on_change('end', CustomJS(args = autoscale_args, 
-                                                         code = autoscale_code))
-        
-        # Add trade history to OHLC chart
-        cancelled_orders    = livetrade_summary[livetrade_summary.Transaction == 'ORDER_CANCEL']
-        insufficient_margin = cancelled_orders[cancelled_orders.Details == 'INSUFFICIENT_MARGIN']
-        short_insf_m        = insufficient_margin[insufficient_margin['Direction'] == 'Sell']
-        short_insf_data     = self._modified_data[self._modified_data.index.isin(short_insf_m.data_index)].Open
-        
-        long_insf_m         = insufficient_margin[insufficient_margin['Direction'] == 'Buy']
-        long_insf_data      = self._modified_data[self._modified_data.index.isin(long_insf_m.data_index)].Open
-        
-        filled_orders               = livetrade_summary[livetrade_summary.Transaction == 'ORDER_FILL']
-        sl_orders                   = livetrade_summary[livetrade_summary.Transaction == 'STOP_LOSS_ORDER']
-        tp_orders                   = livetrade_summary[livetrade_summary.Transaction == 'TAKE_PROFIT_ORDER']
-        
-        entries                     = filled_orders[filled_orders.Details == 'MARKET_ORDER']
-        exits                       = filled_orders[filled_orders.Details != 'MARKET_ORDER']
-        long_entries                = entries[entries['Direction'] == 'Buy']
-        short_entries               = entries[entries['Direction'] == 'Sell']
-        # profitable_short_exits      = exits[(exits['P/L'] > 0) & (exits['Direction'] == 'Buy')]
-        # unprofitable_short_exits    = exits[(exits['P/L'] < 0) & (exits['Direction'] == 'Buy')]
-        # profitable_long_exits       = exits[(exits['P/L'] > 0) & (exits['Direction'] == 'Sell')]
-        # unprofitable_long_exits     = exits[(exits['P/L'] < 0) & (exits['Direction'] == 'Sell')]
-        
-        # Long trades
-        livetrade_candle_plot.scatter(list(long_entries.data_index.values),
-                                      list(long_entries.Price.values),
-                                      marker = 'triangle',
-                                      size = 15,
-                                      fill_color = 'white',
-                                      line_color = 'black',
-                                      legend_label = 'Long Position Entry')
-        
-        # Short trades
-        livetrade_candle_plot.scatter(list(short_entries.data_index.values),
-                                      list(short_entries.Price.values),
-                                      marker = 'inverted_triangle',
-                                      size = 15,
-                                      fill_color = 'white',
-                                      line_color = 'black',
-                                      legend_label = 'Short Position Entry')
-        
-        # Position exits
-        livetrade_candle_plot.scatter(list(exits.data_index.values),
-                                      list(exits.Price.values),
-                                      marker = 'circle',
-                                      size = 8,
-                                      fill_color = 'black',
-                                      line_color = 'black',
-                                      legend_label = 'Short Position Entry')
-        
-        # Stop loss  levels
-        livetrade_candle_plot.scatter(list(sl_orders.data_index.values),
-                            list(sl_orders.Price.values),
-                            marker = 'dash',
-                            size = 15,
-                            fill_color = 'black',
-                            legend_label = 'Stop loss')
-        
-        # Take profit levels
-        livetrade_candle_plot.scatter(list(tp_orders.data_index.values),
-                            list(tp_orders.Price.values),
-                            marker = 'dash',
-                            size = 15,
-                            fill_color = 'black',
-                            legend_label = 'Take profit')
-        
-        # Cancelled orders
-        livetrade_candle_plot.scatter(list(long_insf_m.data_index.values),
-                                      list(long_insf_data.values),
-                                      marker = 'triangle',
-                                      size = 15,
-                                      fill_color = 'black',
-                                      line_color = 'black',
-                                      legend_label = 'Cancelled Long Order')
-        
-        livetrade_candle_plot.scatter(list(short_insf_m.data_index.values),
-                                      list(short_insf_data.values),
-                                      marker = 'inverted_triangle',
-                                      size = 15,
-                                      fill_color = 'black',
-                                      line_color = 'black',
-                                      legend_label = 'Cancelled Short Order')
-        
-        
-        livetrade_candle_plot.title = "Trade history chart for " + \
-            "{} ({} candles)".format(instrument, granularity)
-        
-        
-        ''' Plot backtest trade history '''
-        # Create new chart for backtest results 
-        backtest_candle_plot        = self.plot_candles(source)
-        backtest_candle_plot.x_range = livetrade_candle_plot.x_range
-        backtest_candle_plot.y_range = livetrade_candle_plot.y_range
-        self.plot_trade_history(backtest_trade_summary, backtest_candle_plot)
-        self.plot_partial_orders(backtest_cancelled_summary, backtest_candle_plot)
-        backtest_candle_plot.title  = "Backtest Trade History for " + \
-            "{} ({} candles)".format(instrument, granularity)
-        
-        ''' Plot portfolio balances '''
-        if self.plot_validation_balance:
-            top_fig = self.plot_portfolio_history(backtest_NAV, backtest_candle_plot)
-            top_fig.line(list(livetrade_summary.data_index.values), 
-                          list(livetrade_summary.Balance.fillna(method='bfill').values), 
-                          line_color         = 'blue',
-                          legend_label       = 'Livetrade Portfolio Balance')
-            top_fig.title = "Comparison of Portfolio Balances"
-        else:
-            top_fig = None
-        
-        ''' Compile final figure '''
-        plots = [top_fig, livetrade_candle_plot, backtest_candle_plot]
-        
-        for plot in plots:
-            if plot is not None:
-                plot.xaxis.major_label_overrides = {
-                    i: date.strftime('%b %d') for i, date in enumerate(pd.to_datetime(self.data["date"]))
-                }
-                plot.xaxis.bounds   = (0, self.data.index[-1])
-                plot.sizing_mode    = 'stretch_width'
-    
-                if plot.legend:
-                    plot.legend.visible             = True
-                    plot.legend.location            = 'top_left'
-                    plot.legend.border_line_width   = 1
-                    plot.legend.border_line_color   = '#333333'
-                    plot.legend.padding             = 5
-                    plot.legend.spacing             = 0
-                    plot.legend.margin              = 0
-                    plot.legend.label_text_font_size = '8pt'
-                    plot.legend.click_policy        = "hide"
-                
-                plot.min_border_left    = 0
-                plot.min_border_top     = 3
-                plot.min_border_bottom  = 6
-                plot.min_border_right   = 10
-                plot.outline_line_color = 'black'
-        
-        fig                 = gridplot(plots, 
-                                       ncols            = 1, 
-                                       toolbar_location = 'right',
-                                       toolbar_options  = dict(logo = None), 
-                                       merge_tools      = True
-                                       )
-        fig.sizing_mode     = 'stretch_width'
-        show(fig)
-
