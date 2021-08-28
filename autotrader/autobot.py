@@ -120,7 +120,7 @@ class AutoTraderBot():
         if int(self.verbosity) > 0:
                 print("AutoTraderBot assigned to analyse {}".format(instrument),
                       "on {} timeframe using {}.".format(self.strategy_params['granularity'],
-                                                         self.strategy.name))
+                                                         strategy_config['NAME']))
     
     
     def _retrieve_data(self, instrument, feed):
