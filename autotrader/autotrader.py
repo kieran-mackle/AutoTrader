@@ -299,8 +299,9 @@ class AutoTrader():
             if self.show_plot:
                 if len(self.bots_deployed) == 1:
                     if self.validation_file is None:
-                        # ap.plot_backtest(bot.backtest_summary)
-                        self.plot_backtest(bot=self.bots_deployed[0])
+                        if len(self.bots_deployed[0].backtest_summary['trade_summary']) > 0:
+                            self.plot_backtest(bot=self.bots_deployed[0])
+                        
                     else:
                         self.plot_backtest(bot=self.bots_deployed[0], 
                                            validation_file=self.validation_file)
