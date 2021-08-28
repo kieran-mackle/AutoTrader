@@ -309,6 +309,7 @@ class AutoTrader():
                     # Backtest run with multiple bots
                     cpl_dict = {}
                     for bot in self.bots_deployed:
+                        
                         profit_df = pd.merge(bot.data, 
                                  bot.backtest_summary['trade_summary']['Profit'], 
                                  left_index=True, right_index=True).Profit.cumsum()
@@ -354,6 +355,14 @@ class AutoTrader():
             new_strategy = strategy_dict
         
         name = new_strategy['NAME']
+        
+        if name in self.strategies:
+            print("Warning: duplicate strategy name deteced. Please check " + \
+                  "the NAME field of your strategy configuration file and " + \
+                  "make sure it is not the same as other strategies being " + \
+                  "run from this instance.")
+            print("Conflicting name:", name)
+        
         self.strategies[name] = new_strategy
     
     
@@ -478,14 +487,23 @@ class AutoTrader():
             backtest_results = self.analyse_backtest(bot.backtest_summary)
             
             instruments.append(bot.instrument)
-            win_rate.append(backtest_results['all_trades']['win_rate'])
             no_trades.append(backtest_results['no_trades'])
-            avg_win.append(backtest_results['all_trades']['avg_win'])
-            max_win.append(backtest_results['all_trades']['max_win'])
-            avg_loss.append(backtest_results['all_trades']['avg_loss'])
-            max_loss.append(backtest_results['all_trades']['max_loss'])
-            no_long.append(backtest_results['long_trades']['no_trades'])
-            no_short.append(backtest_results['short_trades']['no_trades'])
+            if backtest_results['no_trades'] > 0:
+                win_rate.append(backtest_results['all_trades']['win_rate'])
+                avg_win.append(backtest_results['all_trades']['avg_win'])
+                max_win.append(backtest_results['all_trades']['max_win'])
+                avg_loss.append(backtest_results['all_trades']['avg_loss'])
+                max_loss.append(backtest_results['all_trades']['max_loss'])
+                no_long.append(backtest_results['long_trades']['no_trades'])
+                no_short.append(backtest_results['short_trades']['no_trades'])
+            else:
+                win_rate.append(np.nan)
+                avg_win.append(np.nan)
+                max_win.append(np.nan)
+                avg_loss.append(np.nan)
+                max_loss.append(np.nan)
+                no_long.append(np.nan)
+                no_short.append(np.nan)
             
         
         multibot_backtest_results = pd.DataFrame(data={'win_rate': win_rate,
