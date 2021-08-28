@@ -625,6 +625,7 @@ class AutoTrader():
         print("         MultiBot Backtest Results")
         print("---------------------------------------------------")
         print("Instruments traded: ", backtest_results.index.values)
+        print("Final NAV:           ${}".format(round(self.broker.NAV, 2)))
         print("Total no trades:    ", backtest_results.no_trades.sum())
         print("Short trades:       ", backtest_results.no_short.sum(),
               "({}%)".format(round(100*backtest_results.no_short.sum()/backtest_results.no_trades.sum(),2)))
