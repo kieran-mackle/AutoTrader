@@ -598,7 +598,7 @@ class AutoPlot():
         
         return candle_plot
     
-    def plot_swings(self, swings, linked_fig):
+    def _plot_swings(self, swings, linked_fig):
         '''
         Plots swing detection indicator.
         '''
@@ -611,7 +611,7 @@ class AutoPlot():
                             fill_color = 'black',
                             legend_label = 'Last Swing Price Level')
     
-    def plot_supertrend(self, st_data, linked_fig):
+    def _plot_supertrend(self, st_data, linked_fig):
         ''' Plots supertrend indicator. '''
         # Extract supertrend data
         # uptrend     = st_data['uptrend']
