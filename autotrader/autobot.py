@@ -104,11 +104,15 @@ class AutoTraderBot():
         data, quote_data        = self._retrieve_data(instrument, self.feed)
         
         # instantiate strategy
-        my_strat = strategy(params, data, instrument)
+        # my_strat = strategy(params, data, instrument)
         
         if self.include_broker:
-                my_strat.broker = self.broker
-                my_strat.broker_utils = self.broker_utils
+            # my_strat.broker = self.broker
+            # my_strat.broker_utils = self.broker_utils
+            my_strat = strategy(params, data, instrument, self.broker, self.broker_utils)
+        else:
+            my_strat = strategy(params, data, instrument)
+            
                 
         self.strategy           = my_strat
         self.data               = data
