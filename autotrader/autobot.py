@@ -70,7 +70,7 @@ class AutoTraderBot():
         interval                = strategy_config["INTERVAL"]
         period                  = strategy_config["PERIOD"]
         risk_pc                 = strategy_config["RISK_PC"]
-        sizing                  = strategy_config["SIZING"]
+        sizing                  = strategy_config["SIZING"] if 'SIZING' in strategy_config else 0
         params                  = strategy_config["PARAMETERS"]
         
         strategy_params                 = params
