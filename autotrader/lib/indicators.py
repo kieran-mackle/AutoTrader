@@ -601,6 +601,26 @@ def last_level_crossed(data, base):
 
 
 def build_multiplier_grid(origin, direction, multiplier, no_levels, precision, spacing):
+    '''
+    Constructs grid levels with a multiplying grid space.
+    
+        Parameters:
+            origin (float): origin of grid as price amount.
+            
+            direction (int): direction of grid (1 for long, -1 for short).
+            
+            multiplier (float): grid space multiplier when price moves away 
+            from the origin opposite to direction.
+            
+            no_levels (int): number of levels to calculate either side of the 
+            origin.
+            
+            precision (int): instrument precision (eg. 4 for most currencies, 2 
+            for JPY).
+            
+            spacing (float): spacing of grid in price units.
+    '''
+    
     levels = [i for i in range(1, no_levels + 1)]
 
     pos_levels = [round(origin + direction*spacing*i, precision) for i in levels]
