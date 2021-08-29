@@ -599,6 +599,60 @@ def last_level_crossed(data, base):
     
     return levels_crossed
 
+
+def build_multiplier_grid(origin, direction, multiplier, no_levels, precision, spacing):
+    levels = [i for i in range(1, no_levels + 1)]
+
+    pos_levels = [round(origin + direction*spacing*i, precision) for i in levels]
+    neg_spaces = [spacing*multiplier**(i-1) for i in levels]
+    neg_levels = []
+    prev_neg_level = origin
+    for i in range(len(levels)):
+        next_neg_level = prev_neg_level - direction*neg_spaces[i]
+        prev_neg_level = next_neg_level
+        neg_levels.append(round(next_neg_level, precision))
+    
+    grid = neg_levels + [origin] + pos_levels
+    grid.sort()
+    
+    return grid
+
+
+def last_level_touched(data, grid):
+    '''
+    Calculates the grid levels touched by price data.
+    '''
+    
+    # initialise with nan
+    last_level_crossed = np.nan 
+    
+    levels_touched = []
+    for i in range(len(data)):
+        high = data.High.values[i]
+        low = data.Low.values[i]
+        
+        upper_prices = []
+        lower_prices = []
+        
+        for price in [high, low]:    
+            # Calculate level above
+            upper_prices.append(grid[next(x[0] for x in enumerate(grid) if x[1] > price)])
+            
+            # calculate level below
+            first_level_below_index = next(x[0] for x in enumerate(grid[::-1]) if x[1] < price)
+            lower_prices.append(grid[-(first_level_below_index+1)])
+        
+        if lower_prices[0] != lower_prices[1]:
+            # Candle has crossed a level, since the level below the candle high
+            # is different to the level below the candle low.
+            # This essentially means the grid level is between candle low and high.
+            last_level_crossed = lower_prices[0]
+        
+        levels_touched.append(last_level_crossed)
+    
+    return levels_touched
+
+
 # def TDI(data):
 #     rsiPeriod = input(11, minval = 1, title = "RSI Period")
 #     bandLength = input(31, minval = 1, title = "Band Length")
