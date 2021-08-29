@@ -638,11 +638,12 @@ class AutoPlot():
                     fill_color = 'red',
                     legend_label = 'Down trend support')
     
-    def _plot_grid(self, grid_levels, linked_fig, linewidth=1):
+    def _plot_grid(self, grid_levels, linked_fig, linewidth=0.5):
         for price in grid_levels:
             hline = Span(location=price, 
                          dimension='width',
-                         line_color='blue',
+                         line_color='black',
+                         line_dash='dashed',
                          line_width=linewidth)
             linked_fig.add_layout(hline)
     
