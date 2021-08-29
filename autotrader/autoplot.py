@@ -17,7 +17,8 @@ from bokeh.models import (
     CustomJS,
     ColumnDataSource,
     HoverTool,
-    CrosshairTool
+    CrosshairTool,
+    Span
 )
 from bokeh.layouts import gridplot, layout
 from bokeh.transform import factor_cmap, cumsum
@@ -436,7 +437,8 @@ class AutoPlot():
                      'Engulfing'   : 'below',
                      'Crossover'   : 'below',
                      'over'        : 'over',
-                     'below'       : 'below'}
+                     'below'       : 'below',
+                     'Grid'        : 'over'}
         
         # Plot indicators
         indis_over              = 0
@@ -458,6 +460,9 @@ class AutoPlot():
                     elif indi_type == 'Swings':
                         self._plot_swings(indicators[indicator]['data'], 
                                           linked_fig)
+                    elif indi_type == 'Grid':
+                        self._plot_grid(indicators[indicator]['data'], 
+                                        linked_fig)
                     else:
                         # Generic overlay indicator - plot as line
                         linked_fig.line(x_range, 
@@ -633,6 +638,13 @@ class AutoPlot():
                     fill_color = 'red',
                     legend_label = 'Down trend support')
     
+    def _plot_grid(self, grid_levels, linked_fig, linewidth=1):
+        for price in grid_levels:
+            hline = Span(location=price, 
+                         dimension='width',
+                         line_color='blue',
+                         line_width=linewidth)
+            linked_fig.add_layout(hline)
     
     ''' ----------------------- TOP FIG PLOTTING -------------------------- '''
     
