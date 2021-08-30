@@ -75,6 +75,7 @@ class AutoTrader():
         self.show_help      = None
         self.show_plot      = False
         self.plot_validation_balance = True
+        self.connect_to_stream = False
         
         # self.config         = None
         self.broker         = None
