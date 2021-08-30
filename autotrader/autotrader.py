@@ -28,6 +28,7 @@ from autotrader.lib import instrument_list, environment_manager, printout
 from autotrader.lib.read_yaml import read_yaml
 from autotrader import autoplot
 from autotrader.autobot import AutoTraderBot
+from autotrader.bot_manager import ManageBot
 
 
 class AutoTrader():
@@ -235,7 +236,15 @@ class AutoTrader():
             for instrument in self.strategies[strategy]['WATCHLIST']:
                 bot = AutoTraderBot(instrument, self.strategies[strategy],
                                     self.broker, self)
-                self.bots_deployed.append(bot)
+                
+                if self.connect_to_stream:
+                    # Send bot to bot manager to monitor stream
+                    print("Passing bot to bot manager...")
+                    ManageBot(bot)
+                    
+                else:
+                    # Periodic livetrade running
+                    self.bots_deployed.append(bot)
             
         
         ''' -------------------------------------------------------------- '''

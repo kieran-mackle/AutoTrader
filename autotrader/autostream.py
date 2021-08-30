@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-
 AutoStream
 -----------
-Data stream function.
-
+Data stream function for Oanda v20 API.
 """
 
 import v20
@@ -245,13 +243,11 @@ def process_stream(stream, candle_builders, file_names,
                         )
                 f.close()
     
-    return
-
-
 
 def main(uo_dict, stream_config):
-
-    ''' Subscribes to stream and build candlestick price files '''
+    '''
+    Subscribes to stream and build candlestick price files. 
+    '''
     
     instruments     = uo_dict['instrument']
     if uo_dict["index"] is not None:
@@ -301,64 +297,7 @@ def main(uo_dict, stream_config):
             break
     else:
             print("All attempts failed.")
-            # we failed all the attempts - deal with the consequences.
     
-    # ''' Monitor tick data from stream. '''
-    # # requires candle_builders, file_names, temp_file_path, stream_config
-    
-    # stream = connect_to_stream(stream_config)
-    
-    # for line in stream.lines:
-    #     # Process each update of stream
-    #     line    = line.decode('utf-8')
-    #     msg     = json.loads(line)
-    #     tick    = stream_record(msg)
-        
-    #     for instrument in candle_builders:
-            
-    #         candle  = candle_builders[instrument].process_tick(tick)
-            
-    #         if candle is not None:
-    #             Time    = candle['start']
-    #             High    = round(candle['data']['high'], 5)
-    #             Low     = round(candle['data']['low'], 5)
-    #             Open    = round(candle['data']['open'], 5)
-    #             Close   = round(candle['data']['last'], 5)
-                
-    #             # Check if max number of candles has been reached and remove 
-    #             # older candles
-    #             f = open(file_names[instrument], "r")
-    #             line_count = 0
-    #             for l in f:
-    #                 if l != "\n":
-    #                     line_count += 1
-    #             f.close()
-                
-    #             if line_count >= int(no_candles):
-    #                 with open(file_names[instrument], "r") as original_file:
-    #                     with open(temp_file_path, "w+") as temp_file:  
-    #                         for ind, old_line in enumerate(original_file):
-    #                             if ind in range(1,line_count - int(no_candles) + 1):
-    #                                 continue
-    #                             else:
-    #                                 temp_file.write(old_line)
-                            
-    #                         temp_file.close()
-                        
-    #                     os.remove(file_names[instrument])
-    #                     os.replace(temp_file_path, file_names[instrument])
-                
-    #             # Write new candle to file
-    #             f       = open(file_names[instrument], "a+")
-    #             f.write("{0}, {1}, {2}, {3}, {4}\n".format(Time, 
-    #                                                         Open,
-    #                                                         High, 
-    #                                                         Low, 
-    #                                                         Close)
-    #                     )
-    #             f.close()
-
-
 
 def print_usage():
     """ Print usage options. """
