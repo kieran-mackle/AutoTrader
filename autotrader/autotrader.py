@@ -28,7 +28,7 @@ from autotrader.lib import instrument_list, environment_manager, printout
 from autotrader.lib.read_yaml import read_yaml
 from autotrader import autoplot
 from autotrader.autobot import AutoTraderBot
-from autotrader.bot_manager import ManageBot
+from autotrader.lib.bot_manager import ManageBot
 
 
 class AutoTrader():
@@ -76,7 +76,7 @@ class AutoTrader():
         self.show_help      = None
         self.show_plot      = False
         self.plot_validation_balance = True
-        self.connect_to_stream = False
+        self.detach_bot     = False         # TODO - make this a strategy config option
         
         # self.config         = None
         self.broker         = None
@@ -233,19 +233,19 @@ class AutoTrader():
         '''    Assign strategy to bot for each instrument in watchlist     '''
         ''' -------------------------------------------------------------- '''
         for strategy in self.strategies:
-            for instrument in self.strategies[strategy]['WATCHLIST']:
-                bot = AutoTraderBot(instrument, self.strategies[strategy],
-                                    self.broker, self)
-                
-                if self.connect_to_stream:
-                    # Send bot to bot manager to monitor stream
-                    print("Passing bot to bot manager...")
-                    ManageBot(bot)
+                for instrument in self.strategies[strategy]['WATCHLIST']:
                     
-                else:
-                    # Periodic livetrade running
-                    self.bots_deployed.append(bot)
-            
+                    if self.detach_bot and self.backtest_mode is False:
+                        # Send bot to bot manager to monitor stream
+                        print("Passing bot to bot manager...")
+                        ManageBot(instrument, self.strategies[strategy],
+                                  self.broker, self)
+                        
+                    else:
+                        bot = AutoTraderBot(instrument, self.strategies[strategy],
+                                            self.broker, self)
+                        self.bots_deployed.append(bot)
+                    
         
         ''' -------------------------------------------------------------- '''
         '''                  Analyse price data using strategy             '''

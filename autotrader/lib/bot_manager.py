@@ -3,6 +3,7 @@
 
 # import autostream
 import threading
+import time
 import os
 import v20
 import json
@@ -17,7 +18,7 @@ class ManageBot():
     """
     AutoTrader Bot Manager
     ----------------------
-    Feeds tick data to bot.
+    Detaches from AutoTrader run script to allow for a single deployment.
     
     Attributes
     ----------
@@ -40,7 +41,9 @@ class ManageBot():
     
     """
     
-    def __init__(self, bot, stream_config):
+    def __init__(self, instrument, strategy_config, broker, autotrader_attributes):
+        
+        
         self.bot = bot
         self.stream_config = stream_config
         self.managing = True
@@ -67,7 +70,13 @@ class ManageBot():
             # I could literally just keep downloading the latest data and 
             # refresh the bot with that. Forget the stream for now.
                     
-            # Update bot data
+            # Update bot data - or reinstate bot (set verbosity to 1)
+            # Probably will have to update data 
+            # Don't want to reinitialise strategy, because that updates sizing....
+            
+            
+            # Pause an amount, depending on granularity
+            time.sleep(10)
             
             
             # Call bot update to act on latest data
@@ -111,5 +120,7 @@ class ManageBot():
         '''
         
         return
-
+    
+    def granularity_to_seconds(self):
+        return
 
