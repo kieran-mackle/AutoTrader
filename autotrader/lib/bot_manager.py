@@ -74,6 +74,8 @@ class ManageBot():
             # Probably will have to update data 
             # Don't want to reinitialise strategy, because that updates sizing....
             
+            self.bot._update_strategy_data()
+            
             
             # Pause an amount, depending on granularity
             time.sleep(10)

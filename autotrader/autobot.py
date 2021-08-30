@@ -127,6 +127,12 @@ class AutoTraderBot():
                       "on {} timeframe using {}.".format(self.strategy_params['granularity'],
                                                          strategy_config['NAME']))
     
+    def _update_strategy_data(self):
+        '''
+        Method to update strategy with latest data. Called by the bot manager.
+        '''
+        
+        return
     
     def _retrieve_data(self, instrument, feed):
         '''
