@@ -17,6 +17,7 @@ from autotrader.lib.read_yaml import read_yaml
 class AutoTraderBot():
     '''
     AutoTrader Bot.
+    ---------------
     
     Attributes
     ----------
