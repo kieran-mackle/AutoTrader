@@ -42,6 +42,15 @@ class ManageBot():
     
     As well as a "terminate" attribute.
     
+    Currently, there is only one way to intervene and kill a bot. This is to
+    create an empty file named 'killbot' in the home_dir. Note that this
+    will kill all bots running. In future updates, killing selected bots will 
+    be supported. Options for this include:
+        - creating an empty file with name related to specific bot
+        - bot manager will create an empty file corresponding to each bot 
+          (perhaps in a bots_deployed directory), allowing killing of bots by
+          deleting their specific file.
+    
     """
     
     def __init__(self, bot, home_dir, bot_name_string):
