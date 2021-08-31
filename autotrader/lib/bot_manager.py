@@ -44,10 +44,14 @@ class ManageBot():
     
     """
     
-    def __init__(self, bot):
+    def __init__(self, bot, home_dir):
         
         self.bot = bot
+        self.home_dir = home_dir
         self.managing = True
+        
+        self.bot_deployed_logfile = os.path.join(home_dir, 'bots_deployed.txt')
+        self.killfile = os.path.join(self.home_dir, 'killbot')
         
         # Spawn new thread for bot manager
         thread = threading.Thread(target=self.manage_bot, args=(), 
@@ -66,24 +70,24 @@ class ManageBot():
         self.write_bot_to_log()
         
         while self.managing:
-            # Refresh strategy with latest data
-            self.bot._update_strategy_data()
             
-            # Call bot update to act on latest data
-            self.bot._update(-1)
-
-            # Check for termination signals
+            # First check for any termination signals
             if self.bot.strategy.terminate:
                 self.managing = False
             
-            # TODO - pass homedir into os.path.exists!
-            if os.path.exists('killbot'):
+            if os.path.exists(self.killfile):
                 print("Killfile detected. Bot will be terminated.")
                 self.bot.strategy.exit_strategy(-1)
                 self.managing = False
                 
                 # Remove bot from log
                 self.remove_bot_from_log()
+            
+            # Refresh strategy with latest data
+            self.bot._update_strategy_data()
+            
+            # Call bot update to act on latest data
+            self.bot._update(-1)
                 
             
             # Pause an amount, depending on granularity
@@ -91,32 +95,27 @@ class ManageBot():
             time.sleep(sleep_time)
             
     
-    def update_bot_data(self):
-        '''
-        Passes the latest price data to the bot.
-        '''
-        
-        return
-    
-    
-    def kill_bot(self):
-        '''
-        Terminates the bot from trading.
-        '''
-        
-        return
-    
     def write_bot_to_log(self):
         '''
         Adds the bot being managed to the bots_deployed logfile.
         '''
         
-        return
+        # First check if file exists. If not, create, and write header
+        
+        instrument = self.bot.instrument
+        granularity = self.bot.strategy_params['granularity']
+        
+        f = open(self.bot_deployed_logfile, "a")
+        f.write("{} on {}\n".format(instrument, granularity))
+        f.close
+        
     
     def remove_bot_from_log(self):
         '''
         Removes the bot being managed from the bots_deployed logfile.
         '''
+        
+        # Open bots_deployed_logfile and remove bot from file
         
         return
 
