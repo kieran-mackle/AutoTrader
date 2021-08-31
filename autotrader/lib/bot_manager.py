@@ -56,13 +56,24 @@ class ManageBot():
         # Create name string for logfile
         self.bot_name_string = bot_name_string
         
-        # Spawn new thread for bot manager
-        thread = threading.Thread(target=self.manage_bot, args=(), 
-                                  daemon=True)
-        print("Bot recieved. Now managing bot.")
-        print("To kill bot, create file named 'killbot'.")
-        thread.start()
+        # Check if logfile exists
+        if not os.path.exists(self.bot_deployed_logfile):
+            f = open(self.bot_deployed_logfile, "w")
+            f.write("The following bots are currently deployed:\n")
+            f.close()
+            
+        # Check if bot is already deployed
+        bot_already_deployed = self.check_bots_deployed()
         
+        if not bot_already_deployed:
+            # Spawn new thread for bot manager
+            thread = threading.Thread(target=self.manage_bot, args=(), 
+                                      daemon=True)
+            print("Bot recieved. Now managing bot.")
+            print("To kill bot, create file named 'killbot'.\n")
+            thread.start()
+        else:
+            print("Notice: Bot has already been deployed.")
         
     def manage_bot(self):
         '''
@@ -76,38 +87,37 @@ class ManageBot():
             
             # First check for any termination signals
             if self.bot.strategy.terminate:
+                print("Bot will be terminated.")
+                self.remove_bot_from_log()
+                
+                # End management
                 self.managing = False
             
-            if os.path.exists(self.killfile):
+            elif os.path.exists(self.killfile):
                 print("Killfile detected. Bot will be terminated.")
                 self.bot.strategy.exit_strategy(-1)
-                self.managing = False
                 
                 # Remove bot from log
                 self.remove_bot_from_log()
+                
+                # End management
+                self.managing = False
+                
+            else:
+                # Refresh strategy with latest data
+                self.bot._update_strategy_data()
+                
+                # Call bot update to act on latest data
+                self.bot._update(-1)
+                
+                # Pause an amount, depending on granularity
+                sleep_time = 0.5*self.granularity_to_seconds(self.bot.strategy_params['granularity'])
+                time.sleep(sleep_time)
             
-            # Refresh strategy with latest data
-            self.bot._update_strategy_data()
-            
-            # Call bot update to act on latest data
-            self.bot._update(-1)
-            
-            # Pause an amount, depending on granularity
-            sleep_time = 0.5*self.granularity_to_seconds(self.bot.strategy_params['granularity'])
-            time.sleep(sleep_time)
-            
-    
     def write_bot_to_log(self):
         '''
         Adds the bot being managed to the bots_deployed logfile.
         '''
-        
-        # First check if file exists. If not, create, and write header
-        if not os.path.exists(self.bot_deployed_logfile):
-            f = open(self.bot_deployed_logfile, "w")
-            f.write("The following bots are currently deployed:\n")
-            f.close()
-        
         f = open(self.bot_deployed_logfile, "a")
         f.write("{}\n".format(self.bot_name_string))
         f.close()
@@ -124,6 +134,19 @@ class ManageBot():
             for line in lines:
                 if line.strip("\n") != self.bot_name_string:
                     f.write(line)
+        
+    
+    def check_bots_deployed(self):
+        '''
+        Checks the bots currently deployed to prevent a re-deployment.
+        '''
+        with open(self.bot_deployed_logfile, 'r') as read_obj:
+            # Read all lines in the file one by one
+            for line in read_obj:
+                # For each line, check if line contains the string
+                if self.bot_name_string in line:
+                    return True
+        return False
         
 
     def granularity_to_seconds(self, granularity):
