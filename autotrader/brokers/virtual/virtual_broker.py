@@ -387,14 +387,21 @@ class Broker():
     def add_funds(self, amount):
         ''' Add's funds to brokerage account. '''
         
-        if self.portfolio_balance == 0:
-            # If this is the initial deposit, set peak and low values for MDD
-            self.peak_value = amount
-            self.low_value = amount
-            
         self.portfolio_balance  += amount
         # self.margin_available   += amount
     
+    def make_deposit(self, deposit):
+        '''
+        Adds deposit to account balance and NAV.
+        '''
+        
+        if self.portfolio_balance == 0:
+            # If this is the initial deposit, set peak and low values for MDD
+            self.peak_value = deposit
+            self.low_value = deposit
+            
+        self.portfolio_balance += deposit
+        self.NAV += deposit
     
     def get_balance(self):
         ''' Returns balance of account. '''

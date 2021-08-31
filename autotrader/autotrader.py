@@ -666,7 +666,7 @@ class AutoTrader():
                 commission      = self.backtest_commission
                 base_currency   = self.backtest_base_currency
                 
-                broker.add_funds(initial_deposit)
+                broker.make_deposit(initial_deposit)
                 broker.fee      = spread
                 broker.leverage = leverage
                 broker.commission = commission
