@@ -132,7 +132,16 @@ class AutoTraderBot():
         Method to update strategy with latest data. Called by the bot manager.
         '''
         
-        return
+        print("Updating strategy with latest data.")
+        
+        # TODO - add option to get dancing bears in autodata
+        
+        # Download new data
+        new_data, _ = self._retrieve_data(self.instrument, self.feed)
+        
+        # Update strategy with new data
+        self.strategy.initialise_strategy(new_data)
+        
     
     def _retrieve_data(self, instrument, feed):
         '''

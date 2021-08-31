@@ -5,10 +5,6 @@
 import threading
 import time
 import os
-import v20
-import json
-from datetime import datetime
-import calendar
 
 # Not sure if the while loop should be in the class, or just in the script 
 # being run...
@@ -39,13 +35,18 @@ class ManageBot():
     remove_bot_from_log():
         Removes the bot being managed from the bots_deployed logfile.
     
+    
+    Strategies being deployed to bot manager must have the following methods:
+        - initialise_strategy()
+        - exit_strategy(i)
+    
+    As well as a "terminate" attribute.
+    
     """
     
-    def __init__(self, instrument, strategy_config, broker, autotrader_attributes):
-        
+    def __init__(self, bot):
         
         self.bot = bot
-        self.stream_config = stream_config
         self.managing = True
         
         # Spawn new thread for bot manager
@@ -62,35 +63,28 @@ class ManageBot():
         '''
         
         while self.managing:
-            
-            # Read stream file rather than run the stream from here, because
-            # otherwise it will get too complicated with strategies requiring
-            # some price history, as well as checking run conditions.
-            # Here, I dont even need to connect to the stream.
-            # I could literally just keep downloading the latest data and 
-            # refresh the bot with that. Forget the stream for now.
-                    
-            # Update bot data - or reinstate bot (set verbosity to 1)
-            # Probably will have to update data 
-            # Don't want to reinitialise strategy, because that updates sizing....
-            
+            # Refresh strategy with latest data
             self.bot._update_strategy_data()
             
-            
-            # Pause an amount, depending on granularity
-            time.sleep(10)
-            
-            
             # Call bot update to act on latest data
-            self.bot._update(i)
+            self.bot._update(-1)
             
             # The stuff below should probably be in the for loop
             
-            # Should terminal condition come from strategy -> bot -> here?
             
+            # Check for termination signals
+            if self.bot.strategy.terminate:
+                self.managing = False
+            
+            # TODO - pass homedir into os.path.exists!
             if os.path.exists('killbot'):
                 print("Killfile detected. Bot will be terminated.")
+                self.bot.strategy.exit_strategy(-1)
                 self.managing = False
+            
+            # Pause an amount, depending on granularity
+            sleep_time = 0.5*self.granularity_to_seconds(self.bot.strategy_params['granularity'])
+            time.sleep(sleep_time)
             
     
     def update_bot_data(self):
@@ -122,7 +116,22 @@ class ManageBot():
         '''
         
         return
-    
-    def granularity_to_seconds(self):
-        return
 
+    def granularity_to_seconds(self, granularity):
+        '''Converts the interval to time in seconds'''
+        letter = granularity[0]
+        
+        if len(granularity) > 1:
+            number = float(granularity[1:])
+        else:
+            number = 1
+        
+        conversions = {'S': 1,
+                       'M': 60,
+                       'H': 60*60,
+                       'D': 60*60*24
+                       }
+        
+        seconds = conversions[letter] * number
+        
+        return seconds

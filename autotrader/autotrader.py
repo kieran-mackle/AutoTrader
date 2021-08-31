@@ -234,16 +234,14 @@ class AutoTrader():
         ''' -------------------------------------------------------------- '''
         for strategy in self.strategies:
                 for instrument in self.strategies[strategy]['WATCHLIST']:
+                    bot = AutoTraderBot(instrument, self.strategies[strategy],
+                                            self.broker, self)
                     
                     if self.detach_bot and self.backtest_mode is False:
                         # Send bot to bot manager to monitor stream
                         print("Passing bot to bot manager...")
-                        ManageBot(instrument, self.strategies[strategy],
-                                  self.broker, self)
-                        
+                        ManageBot(bot)
                     else:
-                        bot = AutoTraderBot(instrument, self.strategies[strategy],
-                                            self.broker, self)
                         self.bots_deployed.append(bot)
                     
         
