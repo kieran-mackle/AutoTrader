@@ -62,16 +62,16 @@ class ManageBot():
         Manages bot until terminal condition is met.
         '''
         
+        # Add bot to log
+        self.write_bot_to_log()
+        
         while self.managing:
             # Refresh strategy with latest data
             self.bot._update_strategy_data()
             
             # Call bot update to act on latest data
             self.bot._update(-1)
-            
-            # The stuff below should probably be in the for loop
-            
-            
+
             # Check for termination signals
             if self.bot.strategy.terminate:
                 self.managing = False
@@ -81,6 +81,10 @@ class ManageBot():
                 print("Killfile detected. Bot will be terminated.")
                 self.bot.strategy.exit_strategy(-1)
                 self.managing = False
+                
+                # Remove bot from log
+                self.remove_bot_from_log()
+                
             
             # Pause an amount, depending on granularity
             sleep_time = 0.5*self.granularity_to_seconds(self.bot.strategy_params['granularity'])
@@ -106,7 +110,6 @@ class ManageBot():
         '''
         Adds the bot being managed to the bots_deployed logfile.
         '''
-        
         
         return
     
