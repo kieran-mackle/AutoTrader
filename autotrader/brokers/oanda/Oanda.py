@@ -271,7 +271,9 @@ class Oanda():
             else:
                 print("There is no current position with {} to close.".format(instrument))
                 response = None
-        
+        else:
+            response = None
+            
         return response
     
     

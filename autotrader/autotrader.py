@@ -237,7 +237,7 @@ class AutoTrader():
                     bot = AutoTraderBot(instrument, self.strategies[strategy],
                                             self.broker, self)
                     
-                    if self.detach_bot and self.backtest_mode is False:
+                    if self.detach_bot is True and self.backtest_mode is False:
                         # Send bot to bot manager to monitor stream
                         print("Passing bot to bot manager...")
                         bot_name_string = "{} on {}".format(instrument, 
@@ -255,21 +255,22 @@ class AutoTrader():
         
         # TODO - add check that data ranges are consistent across bots
         # For now, assume correct and use first bot.
-        start_range, end_range = self.bots_deployed[0]._get_iteration_range()
-        for i in range(start_range, end_range):
-            
-            # Update each bot with latest data to generate signal
-            for bot in self.bots_deployed:
-                bot._update(i)
+        if not self.detach_bot:
+            start_range, end_range = self.bots_deployed[0]._get_iteration_range()
+            for i in range(start_range, end_range):
                 
-                # If backtesting, update virtual broker with latest data
-                if self.backtest_mode:
-                    bot._update_backtest(i)
-            
-            if self.backtest_mode is True:
-                NAV.append(self.broker.NAV)
-                balance.append(self.broker.portfolio_balance)
-                margin.append(self.broker.margin_available)
+                # Update each bot with latest data to generate signal
+                for bot in self.bots_deployed:
+                    bot._update(i)
+                    
+                    # If backtesting, update virtual broker with latest data
+                    if self.backtest_mode:
+                        bot._update_backtest(i)
+                
+                if self.backtest_mode is True:
+                    NAV.append(self.broker.NAV)
+                    balance.append(self.broker.portfolio_balance)
+                    margin.append(self.broker.margin_available)
         
         ''' -------------------------------------------------------------- '''
         '''                     Backtest Post-Processing                   '''
