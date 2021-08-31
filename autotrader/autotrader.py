@@ -76,7 +76,11 @@ class AutoTrader():
         self.show_help      = None
         self.show_plot      = False
         self.plot_validation_balance = True
+        
+        # Livetrade Parameters
         self.detach_bot     = False         # TODO - make this a strategy config option
+        self.check_data_alignment = True
+        self.allow_dancing_bears = False
         
         # self.config         = None
         self.broker         = None

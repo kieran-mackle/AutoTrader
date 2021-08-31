@@ -63,6 +63,7 @@ class AutoTraderBot():
         self.data_file          = autotrader_attributes.data_file
         self.optimise_mode      = autotrader_attributes.optimise_mode
         self.include_broker     = autotrader_attributes.include_broker
+        self.check_data_alignment = autotrader_attributes.check_data_alignment
         
         self.instrument         = instrument
         self.broker             = broker
@@ -255,9 +256,9 @@ class AutoTraderBot():
             data = getattr(self.get_data, feed.lower())(instrument,
                                                          granularity = interval,
                                                          count=period)
-            
-            data = self._verify_data_alignment(data, instrument, feed, period, 
-                                              price_data_path)
+            if self.check_data_alignment:
+                data = self._verify_data_alignment(data, instrument, feed, period, 
+                                                  price_data_path)
         
             return data, None
 
