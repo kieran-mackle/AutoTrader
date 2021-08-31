@@ -430,19 +430,26 @@ class Broker():
         self.margin_available = self.portfolio_balance - margin_used
 
 
-    def get_price(self, instrument, data, conversion_data, i):
+    def get_price(self, instrument, data=None, conversion_data=None, i=None):
         ''' Returns the price data dict. '''
         
-        ask = data.Close[i]
-        bid = data.Close[i]
-        conversion_data = conversion_data.Close[i]
-        
-        if bid == conversion_data:
+        if data is not None and conversion_data is not None and i is not None:
+            ask = data.Close[i]
+            bid = data.Close[i]
+            conversion_data = conversion_data.Close[i]
+            
+            if bid == conversion_data:
+                negativeHCF = 1
+                positiveHCF = 1
+            else:
+                negativeHCF = 1/conversion_data
+                positiveHCF = 1/conversion_data
+        else:
+            # Allow calling get_price as placeholder for livetrading
+            ask = 1
+            bid = 1
             negativeHCF = 1
             positiveHCF = 1
-        else:
-            negativeHCF = 1/conversion_data
-            positiveHCF = 1/conversion_data
         
         price = {"ask": ask,
                  "bid": bid,
