@@ -64,6 +64,7 @@ class AutoTraderBot():
         self.optimise_mode      = autotrader_attributes.optimise_mode
         self.include_broker     = autotrader_attributes.include_broker
         self.check_data_alignment = autotrader_attributes.check_data_alignment
+        self.allow_dancing_bears = autotrader_attributes.allow_dancing_bears
         
         self.instrument         = instrument
         self.broker             = broker
@@ -102,7 +103,7 @@ class AutoTraderBot():
                                                              global_config,
                                                              self.feed)
         
-        self.get_data           = autodata.GetData(broker_config)
+        self.get_data           = autodata.GetData(broker_config, self.allow_dancing_bears)
         data, quote_data        = self._retrieve_data(instrument, self.feed)
         
         # instantiate strategy

@@ -19,6 +19,9 @@ class GetData():
     ----------
     home_curreny : str
         the home currency of the account (used for retrieving quote data)
+    
+    allow_dancing_bears : bool
+        Allow incomplete candlesticks in data retrieval.
 
     Methods
     -------
@@ -30,7 +33,7 @@ class GetData():
     
     """
     
-    def __init__(self, broker_config=None):
+    def __init__(self, broker_config=None, allow_dancing_bears=False):
         
         if broker_config is not None:
             if broker_config['data_source'] == 'OANDA':
@@ -40,7 +43,7 @@ class GetData():
                 self.api                = v20.Context(hostname=API, 
                                                       token=ACCESS_TOKEN, 
                                                       port=port)
-        
+        self.allow_dancing_bears = allow_dancing_bears
         self.home_currency      = None
         
 
@@ -220,12 +223,20 @@ class GetData():
         close_price, high_price, low_price, open_price = [], [], [], []
         
         for candle in candles:
-            if candle.complete:
+            if self.allow_dancing_bears:
                 times.append(candle.time)
                 close_price.append(float(candle.mid.c))
                 high_price.append(float(candle.mid.h))
                 low_price.append(float(candle.mid.l))
                 open_price.append(float(candle.mid.o))
+                
+            else:
+                if candle.complete:
+                    times.append(candle.time)
+                    close_price.append(float(candle.mid.c))
+                    high_price.append(float(candle.mid.h))
+                    low_price.append(float(candle.mid.l))
+                    open_price.append(float(candle.mid.o))
         
         dataframe = pd.DataFrame({"Open": open_price, "High": high_price, "Low": low_price, "Close": close_price})
         dataframe.index = pd.to_datetime(times)
