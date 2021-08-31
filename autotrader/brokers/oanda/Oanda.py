@@ -88,7 +88,8 @@ class Oanda():
     
     def cancel_pending_order(self, order_id):
         ''' Cancels pending order by ID. '''
-        self.api.order.cancel(accountID = self.ACCOUNT_ID, orderSpecifier=str(order_id))
+        self.api.order.cancel(accountID = self.ACCOUNT_ID, 
+                              orderSpecifier=str(order_id))
     
     def get_open_positions(self, instrument = None):
         ''' Gets the current positions open on the account. '''
@@ -248,29 +249,28 @@ class Oanda():
                        **dummy_inputs):
         ''' Closes all open positions on an instrument '''
         # Check if the position is long or short
-        position    = self.get_open_positions(instrument)['position']
-        if long_units is None:
-            long_units  = position.long.units
-        if short_units is None:
-            short_units = position.short.units
-        
-        if long_units > 0:
-            response = self.api.position.close(accountID=self.ACCOUNT_ID, 
-                                               instrument=instrument, 
-                                               longUnits="ALL")
-            # # Check response
-            # output = self.check_response(response)
-        
-        elif short_units > 0: 
-            response = self.api.position.close(accountID=self.ACCOUNT_ID, 
-                                               instrument=instrument,
-                                               shortUnits="ALL")
-            # # Check response
-            # output = self.check_response(response)
-        
-        else:
-            print("There is no current position with {} to close.".format(instrument))
-            response = None
+        open_position = self.get_open_positions(instrument)
+        if len(open_position) > 0:
+            position = open_position['position']
+            
+            if long_units is None:
+                long_units  = position.long.units
+            if short_units is None:
+                short_units = position.short.units
+            
+            if long_units > 0:
+                response = self.api.position.close(accountID=self.ACCOUNT_ID, 
+                                                   instrument=instrument, 
+                                                   longUnits="ALL")
+            
+            elif short_units > 0: 
+                response = self.api.position.close(accountID=self.ACCOUNT_ID, 
+                                                   instrument=instrument,
+                                                   shortUnits="ALL")
+            
+            else:
+                print("There is no current position with {} to close.".format(instrument))
+                response = None
         
         return response
     
