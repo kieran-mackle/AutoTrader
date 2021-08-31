@@ -73,7 +73,7 @@ class ManageBot():
             print("To kill bot, create file named 'killbot'.\n")
             thread.start()
         else:
-            print("Notice: Bot has already been deployed.")
+            print("Notice: Bot has already been deployed. Exiting.")
         
     def manage_bot(self):
         '''
