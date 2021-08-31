@@ -96,14 +96,14 @@ class ManageBot():
             
             # First check for any termination signals
             if self.bot.strategy.terminate:
-                print("Bot will be terminated.")
+                print("\nBot will be terminated.")
                 self.remove_bot_from_log()
                 
                 # End management
                 self.managing = False
             
             elif os.path.exists(self.killfile):
-                print("Killfile detected. Bot will be terminated.")
+                print("\nKillfile detected. Bot will be terminated.")
                 self.bot.strategy.exit_strategy(-1)
                 
                 # Remove bot from log
