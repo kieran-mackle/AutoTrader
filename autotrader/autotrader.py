@@ -240,7 +240,9 @@ class AutoTrader():
                     if self.detach_bot and self.backtest_mode is False:
                         # Send bot to bot manager to monitor stream
                         print("Passing bot to bot manager...")
-                        ManageBot(bot, self.home_dir)
+                        bot_name_string = "{} on {}".format(instrument, 
+                                                            strategy)
+                        ManageBot(bot, self.home_dir, bot_name_string)
                     else:
                         self.bots_deployed.append(bot)
                     

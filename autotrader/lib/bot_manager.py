@@ -44,7 +44,7 @@ class ManageBot():
     
     """
     
-    def __init__(self, bot, home_dir):
+    def __init__(self, bot, home_dir, bot_name_string):
         
         self.bot = bot
         self.home_dir = home_dir
@@ -52,6 +52,9 @@ class ManageBot():
         
         self.bot_deployed_logfile = os.path.join(home_dir, 'bots_deployed.txt')
         self.killfile = os.path.join(self.home_dir, 'killbot')
+        
+        # Create name string for logfile
+        self.bot_name_string = bot_name_string
         
         # Spawn new thread for bot manager
         thread = threading.Thread(target=self.manage_bot, args=(), 
@@ -88,7 +91,6 @@ class ManageBot():
             
             # Call bot update to act on latest data
             self.bot._update(-1)
-                
             
             # Pause an amount, depending on granularity
             sleep_time = 0.5*self.granularity_to_seconds(self.bot.strategy_params['granularity'])
@@ -101,23 +103,28 @@ class ManageBot():
         '''
         
         # First check if file exists. If not, create, and write header
-        
-        instrument = self.bot.instrument
-        granularity = self.bot.strategy_params['granularity']
+        if not os.path.exists(self.bot_deployed_logfile):
+            f = open(self.bot_deployed_logfile, "w")
+            f.write("The following bots are currently deployed:\n")
+            f.close()
         
         f = open(self.bot_deployed_logfile, "a")
-        f.write("{} on {}\n".format(instrument, granularity))
-        f.close
+        f.write("{}\n".format(self.bot_name_string))
+        f.close()
         
     
     def remove_bot_from_log(self):
         '''
         Removes the bot being managed from the bots_deployed logfile.
         '''
+        with open(self.bot_deployed_logfile, "r") as f:
+            lines = f.readlines()
         
-        # Open bots_deployed_logfile and remove bot from file
+        with open(self.bot_deployed_logfile, "w") as f:
+            for line in lines:
+                if line.strip("\n") != self.bot_name_string:
+                    f.write(line)
         
-        return
 
     def granularity_to_seconds(self, granularity):
         '''Converts the interval to time in seconds'''
