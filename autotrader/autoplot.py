@@ -132,6 +132,7 @@ class AutoPlot():
         if backtest_dict is not None:
             
             NAV             = backtest_dict['NAV']
+            balance         = backtest_dict['balance']
             trade_summary   = backtest_dict['trade_summary']
             indicators      = backtest_dict['indicators']
             open_trades     = backtest_dict['open_trades']
@@ -141,6 +142,11 @@ class AutoPlot():
             top_fig = self._plot_line(NAV, candle_plot, new_fig=True, 
                                       legend_label='Net Asset Value', 
                                       hover_name='NAV')
+            self._plot_line(balance, 
+                            top_fig, 
+                            legend_label='Account Balance', 
+                            hover_name='P/L',
+                            line_colour='blue')
             # if cumulative_PL is not None:
                 
             #     self._plot_line(cumulative_PL, top_fig, 
@@ -524,7 +530,8 @@ class AutoPlot():
     
     
     def _plot_line(self, plot_data, linked_fig, new_fig=False, fig_height=150,
-                   fig_title=None, legend_label=None, hover_name=None):
+                   fig_title=None, legend_label=None, hover_name=None,
+                   line_colour='black'):
         '''
         Generic method to plot data as a line.
         '''
@@ -545,7 +552,7 @@ class AutoPlot():
         source = ColumnDataSource(self.data)
         source.add(plot_data, 'plot_data')
         fig.line('data_index', 'plot_data', 
-                 line_color         = 'black',
+                 line_color         = line_colour,
                  legend_label       = legend_label,
                  source             = source)
         

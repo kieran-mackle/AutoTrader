@@ -526,7 +526,7 @@ class AutoTraderBot():
             
             
 
-    def create_backtest_summary(self, NAV, margin):
+    def create_backtest_summary(self, balance, NAV, margin):
         '''
         Constructs backtest summary dictionary for further processing.
         '''
@@ -549,6 +549,7 @@ class AutoTraderBot():
         backtest_dict = {}
         backtest_dict['data']           = self.data
         backtest_dict['NAV']            = NAV
+        backtest_dict['balance']        = balance
         backtest_dict['margin']         = margin
         backtest_dict['trade_summary']  = trade_summary
         backtest_dict['indicators']     = self.strategy.indicators if hasattr(self.strategy, 'indicators') else None
