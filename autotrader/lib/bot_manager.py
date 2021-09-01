@@ -77,10 +77,11 @@ class ManageBot():
         if not bot_already_deployed:
             # Spawn new thread for bot manager
             thread = threading.Thread(target=self.manage_bot, args=(), 
-                                      daemon=True)
+                                      daemon=False)
             print("Bot recieved. Now managing bot '{}'.".format(bot_name_string))
             print("To kill bot, delete from bots_deployed directory.")
-            print("Alternatively create file named 'killbots' to kill all bots.\n")
+            print("Alternatively create file named 'killbots' in the home_dir" \
+                  + " to kill all bots.\n")
             thread.start()
         else:
             print("Notice: Bot has already been deployed. Exiting.")
