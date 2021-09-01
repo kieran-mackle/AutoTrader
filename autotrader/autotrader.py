@@ -57,7 +57,7 @@ class AutoTrader():
     run():
         Runs AutoTrader.
     
-    plot_backtest(bot=None, validation_file=None):
+    plot_backtest(bot=None):
         Plots backtest results of an AutoTrader Bot.
     
     """
@@ -75,7 +75,6 @@ class AutoTrader():
         self.email_params   = None
         self.show_help      = None
         self.show_plot      = False
-        self.plot_validation_balance = True
         
         # Livetrade Parameters
         self.detach_bot     = False         # TODO - make this a strategy config option
@@ -103,7 +102,6 @@ class AutoTrader():
         self.backtest_commission = None
         self.backtest_leverage = None
         self.backtest_base_currency = None
-        self.validation_file = None # TODO - rename to backtest_validation_file
         
         # Optimisation Parameters
         self.optimisation_config = None
@@ -178,10 +176,6 @@ class AutoTrader():
         ''' -------------------------------------------------------------- '''
         '''                         Load configuration                     '''
         ''' -------------------------------------------------------------- '''
-        if self.validation_file is not None:
-            livetrade_history   = pd.read_csv(self.validation_file, index_col = 0)
-            self.livetrade_history = livetrade_history.fillna(method='ffill')
-        
         # Construct broker config
         global_config_fp = os.path.join(self.home_dir, 'config', 'GLOBAL.yaml')
         if os.path.isfile(global_config_fp):
@@ -195,18 +189,6 @@ class AutoTrader():
         if self.account_id is not None:
             # Overwrite default account in global config
             broker_config['ACCOUNT_ID'] = self.account_id
-        
-        # Get watchlist
-        # if self.scan is not None:
-        #     self.watchlist  = instrument_list.get_watchlist(self.scan)
-        #     self.scan_results = {}
-        # TODO - validate backtest validation functionality
-        # elif self.instruments is not None:
-        #     self.watchlist  = self.instruments.split(',') 
-        # elif self.validation_file is not None:
-        #     self.raw_watchlist = livetrade_history.Instrument.unique() # FOR OANDA
-        # else:
-        #     self.watchlist  = config["WATCHLIST"]
         
         self._assign_broker(broker_config)
         self.configure_emailing(global_config)
@@ -295,15 +277,6 @@ class AutoTrader():
                              self.broker, starting_balance, self.broker_utils) 
                     self.print_backtest_results(backtest_results)
                     
-                    if self.validation_file is not None:
-                        final_balance_diff = bot.livetrade_results['final_balance_difference']
-                        no_live_trades = bot.livetrade_results['no_live_trades']
-                        
-                        print("\n            Backtest Validation")
-                        print("-------------------------------------------")
-                        print("Difference between final portfolio balance between")
-                        print("live-trade account and backtest is ${}.".format(round(final_balance_diff, 2)))
-                        print("Number of live trades: {} trades.".format(no_live_trades))
                 else:
                     self.multibot_backtest_results = self.multibot_backtest_analysis()
                     self.print_multibot_backtest_results(self.multibot_backtest_results)
@@ -314,13 +287,8 @@ class AutoTrader():
             
             if self.show_plot:
                 if len(self.bots_deployed) == 1:
-                    if self.validation_file is None:
-                        if len(self.bots_deployed[0].backtest_summary['trade_summary']) > 0:
-                            self.plot_backtest(bot=self.bots_deployed[0])
-                        
-                    else:
-                        self.plot_backtest(bot=self.bots_deployed[0], 
-                                           validation_file=self.validation_file)
+                    if len(self.bots_deployed[0].backtest_summary['trade_summary']) > 0:
+                        self.plot_backtest(bot=self.bots_deployed[0])
                 
                 else:
                     # Backtest run with multiple bots
@@ -454,28 +422,19 @@ class AutoTrader():
         self.scan_index = scan_index
     
     
-    def plot_backtest(self, bot=None, validation_file=None):
+    def plot_backtest(self, bot=None):
         '''
         Plots backtest results of an AutoTrader Bot.
             
             Parameters:
                 bot (class): AutoTrader bot class containing backtest results.
-                
-                validation_file (str): filepath of backtest validation file.
         '''
         ap = autoplot.AutoPlot(bot.data)
         profit_df = pd.merge(bot.data, 
                              bot.backtest_summary['trade_summary']['Profit'], 
                              left_index=True, right_index=True).Profit.cumsum()
         
-        if validation_file is None:
-            ap.plot(bot.backtest_summary, cumulative_PL=profit_df)
-            
-        else:
-            ap.plot_validation_balance = self.plot_validation_balance # User option flag
-            ap.ohlc_height = 350
-            ap.validate_backtest(bot.livetrade_results['summary'],
-                                 bot.backtest_summary)
+        ap.plot(bot.backtest_summary, cumulative_PL=profit_df)
                 
     
     def multibot_backtest_analysis(self, bots=None):
@@ -686,13 +645,6 @@ class AutoTrader():
                     banner = pyfiglet.figlet_format("AutoBacktest")
                     print(banner)
                 
-                if self.validation_file is not None:
-                    # Also get broker-specific utility functions
-                    validation_utils = importlib.import_module('autotrader.brokers.{}.utils'.format(self.feed.lower()))
-                    
-                    # Correct watchlist
-                    if self.instruments is None:
-                        self.watchlist = validation_utils.format_watchlist(self.raw_watchlist)
                 
         else:
             utils_module    = importlib.import_module('autotrader.brokers.{}.utils'.format(self.feed.lower()))

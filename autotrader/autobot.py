@@ -51,7 +51,6 @@ class AutoTraderBot():
         self.broker_utils       = autotrader_attributes.broker_utils
         self.email_params       = autotrader_attributes.email_params
         self.notify             = autotrader_attributes.notify
-        self.validation_file    = autotrader_attributes.validation_file
         self.verbosity          = autotrader_attributes.verbosity
         self.order_summary_fp   = autotrader_attributes.order_summary_fp
         self.backtest_mode      = autotrader_attributes.backtest_mode
@@ -161,22 +160,6 @@ class AutoTraderBot():
             from_date       = self.data_start
             to_date         = self.data_end
             
-            if self.validation_file is not None:
-                # Extract instrument-specific trade history as trade summary and trade period
-                livetrade_history = self.livetrade_history
-                formatted_instrument = instrument[:3] + "/" + instrument[-3:]
-                raw_livetrade_summary = livetrade_history[livetrade_history.Instrument == formatted_instrument] # FOR OANDA
-                from_date           = pd.to_datetime(raw_livetrade_summary.Date.values)[0]
-                to_date             = pd.to_datetime(raw_livetrade_summary.Date.values)[-1]
-                
-                self.raw_livetrade_summary = raw_livetrade_summary
-                
-                # Modify from date to improve backtest
-                from_date = from_date - period*timedelta(seconds = self.granularity_to_seconds(interval))
-                
-                # Modify starting balance
-                self.broker.portfolio_balance = raw_livetrade_summary.Balance.values[np.isfinite(raw_livetrade_summary.Balance.values)][0]
-                
             if self.data_file is not None:
                 custom_data_file        = self.data_file
                 custom_data_filepath    = os.path.join(price_data_path,
@@ -536,17 +519,6 @@ class AutoTraderBot():
         trade_summary = self.broker_utils.trade_summary(self.instrument, self.broker.closed_positions)
         open_trade_summary = self.broker_utils.open_order_summary(self.instrument, self.broker.open_positions)
         cancelled_summary = self.broker_utils.cancelled_order_summary(self.instrument, self.broker.cancelled_orders)
-        
-        if self.validation_file is not None:
-            livetrade_summary = self.validation_utils.trade_summary(self.raw_livetrade_summary,
-                                                                    self.data,
-                                                                    self.strategy_params['granularity'])
-            final_balance_diff  = NAV[-1] - livetrade_summary.Balance.values[-1]
-            filled_live_orders  = livetrade_summary[livetrade_summary.Transaction == 'ORDER_FILL']
-            no_live_trades      = len(filled_live_orders)
-            self.livetrade_results = {'summary': livetrade_summary,
-                                      'final_balance_difference': final_balance_diff,
-                                      'no_live_trades': no_live_trades}
             
         backtest_dict = {}
         backtest_dict['data']           = self.data

@@ -56,7 +56,6 @@ class AutoPlot():
         self.top_fig_height     = 150
         self.bottom_fig_height  = 150
         # self.total_height       = 1000
-        self.plot_validation_balance = True
         
         # Modify data index
         self.data               = self._reindex_data(data)
