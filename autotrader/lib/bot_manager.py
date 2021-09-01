@@ -43,7 +43,7 @@ class ManageBot():
     As well as a "terminate" attribute.
     
     Currently, there is only one way to intervene and kill a bot. This is to
-    create an empty file named 'killbot' in the home_dir. Note that this
+    create an empty file named 'killbots' in the home_dir. Note that this
     will kill all bots running. In future updates, killing selected bots will 
     be supported. Options for this include:
         - creating an empty file with name related to specific bot
@@ -59,18 +59,18 @@ class ManageBot():
         self.home_dir = home_dir
         self.managing = True
         
-        self.bot_deployed_logfile = os.path.join(home_dir, 'bots_deployed.txt')
-        self.killfile = os.path.join(self.home_dir, 'killbot')
+        self.active_bots_dir = os.path.join(home_dir, 'active_bots')
+        self.active_bot_path = os.path.join(self.active_bots_dir, bot_name_string)
+        self.killfile = os.path.join(self.home_dir, 'killbots')
         
-        # Create name string for logfile
+        # Create name string
         self.bot_name_string = bot_name_string
         
-        # Check if logfile exists
-        if not os.path.exists(self.bot_deployed_logfile):
-            f = open(self.bot_deployed_logfile, "w")
-            f.write("The following bots are currently deployed:\n")
-            f.close()
-            
+        # Check if active_bots directory exists
+        if not os.path.isdir(self.active_bots_dir):
+            # Directory does not exist, create it
+            os.mkdir(self.active_bots_dir)
+        
         # Check if bot is already deployed
         bot_already_deployed = self.check_bots_deployed()
         
@@ -78,8 +78,9 @@ class ManageBot():
             # Spawn new thread for bot manager
             thread = threading.Thread(target=self.manage_bot, args=(), 
                                       daemon=True)
-            print("Bot recieved. Now managing bot.")
-            print("To kill bot, create file named 'killbot'.\n")
+            print("Bot recieved. Now managing bot '{}'.".format(bot_name_string))
+            print("To kill bot, delete from bots_deployed directory.")
+            print("Alternatively create file named 'killbots' to kill all bots.\n")
             thread.start()
         else:
             print("Notice: Bot has already been deployed. Exiting.")
@@ -102,8 +103,15 @@ class ManageBot():
                 # End management
                 self.managing = False
             
+            elif not os.path.exists(self.active_bot_path):
+                print("\nBot file deleted. Bot will be terminated.")
+                self.bot.strategy.exit_strategy(-1)
+                
+                # End management
+                self.managing = False
+            
             elif os.path.exists(self.killfile):
-                print("\nKillfile detected. Bot will be terminated.")
+                print("\nKillfile detected. All bots will be terminated.")
                 self.bot.strategy.exit_strategy(-1)
                 
                 # Remove bot from log
@@ -127,35 +135,27 @@ class ManageBot():
         '''
         Adds the bot being managed to the bots_deployed logfile.
         '''
-        f = open(self.bot_deployed_logfile, "a")
-        f.write("{}\n".format(self.bot_name_string))
-        f.close()
         
+        with open(self.active_bot_path, 'w') as f:
+            pass
     
     def remove_bot_from_log(self):
         '''
         Removes the bot being managed from the bots_deployed logfile.
         '''
-        with open(self.bot_deployed_logfile, "r") as f:
-            lines = f.readlines()
         
-        with open(self.bot_deployed_logfile, "w") as f:
-            for line in lines:
-                if line.strip("\n") != self.bot_name_string:
-                    f.write(line)
+        os.remove(self.active_bot_path)
         
     
     def check_bots_deployed(self):
         '''
         Checks the bots currently deployed to prevent a re-deployment.
         '''
-        with open(self.bot_deployed_logfile, 'r') as read_obj:
-            # Read all lines in the file one by one
-            for line in read_obj:
-                # For each line, check if line contains the string
-                if self.bot_name_string in line:
-                    return True
-        return False
+        
+        if os.path.exists(self.active_bot_path):
+            return True
+        else:
+            return False
         
 
     def granularity_to_seconds(self, granularity):
