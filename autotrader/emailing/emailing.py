@@ -71,7 +71,7 @@ def send_order(order_details, mailing_list, host_email):
         file_dir            = os.path.dirname(os.path.abspath(__file__))
         filename            = "{}_{}_{}.html".format(instrument, 
                                                     size,
-                                                    time.timestamp())
+                                                    datetime.now().timestamp())
         email_message_path  = os.path.join(file_dir, filename)
         
         # Write email in html
