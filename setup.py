@@ -28,6 +28,7 @@ setuptools.setup(
         "pyfiglet",
         "PyYAML",
         "bokeh >= 2.3.1",
+        "scipy",
         ],
     setup_requires=[
             'setuptools_git',
