@@ -69,7 +69,10 @@ def send_order(order_details, mailing_list, host_email):
         
         # Load HTML version of email
         file_dir            = os.path.dirname(os.path.abspath(__file__))
-        email_message_path  = os.path.join(file_dir, 'order_summary.html')
+        filename            = "{}_{}_{}.html".format(instrument, 
+                                                    size,
+                                                    time.timestamp())
+        email_message_path  = os.path.join(file_dir, filename)
         
         # Write email in html
         with open(email_message_path, 'w+') as f:
