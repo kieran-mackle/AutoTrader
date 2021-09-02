@@ -102,18 +102,18 @@ class AutoTraderBot():
                                                              global_config,
                                                              self.feed)
         
-        self.get_data           = autodata.GetData(broker_config, self.allow_dancing_bears)
-        data, quote_data        = self._retrieve_data(instrument, self.feed)
+        self.get_data = autodata.GetData(broker_config, self.allow_dancing_bears)
+        data, quote_data, MTF_data = self._retrieve_data(instrument, self.feed)
         
-        # instantiate strategy
-        # my_strat = strategy(params, data, instrument)
+        if MTF_data is None:
+            strat_data = data
+        else:
+            strat_data = MTF_data
         
         if self.include_broker:
-            # my_strat.broker = self.broker
-            # my_strat.broker_utils = self.broker_utils
-            my_strat = strategy(params, data, instrument, self.broker, self.broker_utils)
+            my_strat = strategy(params, strat_data, instrument, self.broker, self.broker_utils)
         else:
-            my_strat = strategy(params, data, instrument)
+            my_strat = strategy(params, strat_data, instrument)
             
                 
         self.strategy           = my_strat
@@ -215,36 +215,66 @@ class AutoTraderBot():
                                            index_col = 0)
                         quote_data = pd.read_csv(historical_quote_data_file_path, 
                                                  index_col = 0)
+                    
+                    # TODO - add support of MTF for optimisation
+                    MTF_data = None
                         
                 else:
-                    data        = getattr(self.get_data, feed.lower())(instrument,
-                                                         granularity = interval,
-                                                         start_time = from_date,
-                                                         end_time = to_date)
-                    quote_data  = getattr(self.get_data, feed.lower() + '_quote_data')(data,
-                                                                    instrument,
-                                                                    interval,
-                                                                    from_date,
-                                                                    to_date)
+                    # Running in single backtest mode
+                    MTF_data = {}
+                    for granularity in interval.split(','):
+                        data        = getattr(self.get_data, feed.lower())(instrument,
+                                                             granularity = granularity,
+                                                             start_time = from_date,
+                                                             end_time = to_date)
+                        
+                        # Only get quote data for first granularity
+                        if granularity == interval.split(',')[0]:
+                            quote_data  = getattr(self.get_data, feed.lower() + '_quote_data')(data,
+                                                                            instrument,
+                                                                            granularity,
+                                                                            from_date,
+                                                                            to_date)
+                        
+                            data, quote_data    = self.broker_utils.check_dataframes(data, quote_data)
+                        
+                        MTF_data[granularity] = data
                     
-                    data, quote_data    = self.broker_utils.check_dataframes(data, quote_data)
+                    # Extract first dataset to use as base
+                    first_granularity = interval.split(',')[0]
+                    data = MTF_data[first_granularity]
+                    quote_data = quote_data
                 
+                if len(MTF_data) == 1:
+                    MTF_data = None
                 
                 if int(self.verbosity) > 1:
                     print("  Done.\n")
             
-            return data, quote_data
+            return data, quote_data, MTF_data
             
         else:
             # Running in livetrade mode or scan mode
-            data = getattr(self.get_data, feed.lower())(instrument,
-                                                         granularity = interval,
-                                                         count=period)
-            if self.check_data_alignment:
-                data = self._verify_data_alignment(data, instrument, feed, period, 
-                                                  price_data_path)
+            
+            MTF_data = {}
+            for granularity in interval.split(','):
+                data = getattr(self.get_data, feed.lower())(instrument,
+                                                             granularity = granularity,
+                                                             count=period)
+                
+                if self.check_data_alignment:
+                    data = self._verify_data_alignment(data, instrument, feed, period, 
+                                                      price_data_path)
+                
+                MTF_data[granularity] = data
+            
+            first_granularity = interval.split(',')[0]
+            data = MTF_data[first_granularity]
+            
+            if len(MTF_data) == 1:
+                    MTF_data = None
         
-            return data, None
+            return data, None, MTF_data
 
 
     def _verify_data_alignment(self, data, instrument, feed, period, price_data_path):
