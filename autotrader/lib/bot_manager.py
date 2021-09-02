@@ -122,11 +122,25 @@ class ManageBot():
                 self.managing = False
                 
             else:
-                # Refresh strategy with latest data
-                self.bot._update_strategy_data()
-                
-                # Call bot update to act on latest data
-                self.bot._update(-1)
+                for atempt in range(10):
+                    try:
+                        # Refresh strategy with latest data
+                        self.bot._update_strategy_data()
+                        
+                        # Call bot update to act on latest data
+                        self.bot._update(-1)
+                    
+                    except Exception as e:
+                        print("WARNING: The following exception was caught " +\
+                              "when updating the bot.")
+                        print(e)
+                        print("Trying again.")
+                    
+                    else:
+                        break
+                    
+                else:
+                    print("FATAL: All attempts have failed. Going to sleep.")
                 
                 # Pause an amount, depending on granularity
                 sleep_time = 0.5*self.granularity_to_seconds(self.bot.strategy_params['granularity'])
