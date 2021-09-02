@@ -193,3 +193,50 @@ def option_help(option):
     
     if option != "general":
         print("\n\nFor general help, pass 'general' to help.\n")
+    
+
+def stream_help(option=None):
+    """ 
+    Print help for autostream.
+    """
+    
+    if option == 'usage' or option is None:
+        banner = pyfiglet.figlet_format("AUTOSTREAM")
+        print(banner)
+        print("Utility to stream price data and write to text file.")
+        print("")
+        print("--------------------------------------------------------------" \
+              + "---------------")
+        print("Flag                                 Comment [short flag]")
+        print("--------------------------------------------------------------" \
+              + "---------------")
+        print("Required:") 
+        print("  --instrument 'XXX_YYY'             instrument to stream [-i]")
+        print("  --granularity 'M15'                candlestick granularity [-g]")
+        print("\nOptional:")
+        print("  --help                             show help for usage [-h]")
+        print("  --verbosity <int>                  set verbosity (0,1,2) [-v]")
+        print("  --max-candles <10>                 max number of candles to store [-N]")
+        print("  --index ''                         specify index to stream [-I]")
+        print("")
+        print("Note: if multiple instruments are requested, they must be entered")
+        print("as comma separated text with no spaces. Example:")
+        print("-i EUR_USD,USD_JPY,AUD_CAD")
+
+    elif option == 'instrument' or option == 'i':
+        print("Help for '--instrument' (-c) option:")
+        
+        print("\nExample usage:")
+        print("./AutoStream.py -c my_config_file")
+        
+    elif option == 'verbosity' or option == 'v':
+        print("Help for '--verbosity' (-v) option:")
+        print("-----------------------------------")
+        print("The verbosity flag is used to set the level of output.")
+    
+    elif option == 'index' or option == 'I':
+        print("Help for '--verbosity' (-v) option:")
+        print("-----------------------------------")
+        print("Specify an index to stream. ")
+        print("This flag takes precedence over -i if both are specified.")
+
