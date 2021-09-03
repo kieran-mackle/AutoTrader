@@ -88,6 +88,8 @@ class AutoTrader():
         self.account_id     = None
         
         self.strategies     = {}
+        self._uninitiated_strat_files = []
+        self._uninitiated_strat_dicts = []
         self.feed           = 'yahoo'
         self.include_broker = False
         self.bots_deployed  = []
@@ -115,19 +117,23 @@ class AutoTrader():
         self.scan_index = None
         self.scan_results = {}
         
-        # Define home_dir if undefined - TODO - this should be moved,
-        # but then add_strategy may not work. To get around that, 
-        # add_strategy could just be used to save the strategy config
-        # names, and then the original functionality can be moved to
-        # an internal function.
-        if self.home_dir is None:
-            self.home_dir = os.getcwd()
         
     def run(self):
         '''
         Run AutoTrader.
         '''
         
+        # Define home_dir if undefined
+        if self.home_dir is None:
+            self.home_dir = os.getcwd()
+        
+        # Load uninitiated strategies
+        for strat_dict in self._uninitiated_strat_dicts:
+            self.add_strategy(strategy_dict=strat_dict)
+        for strat_config_file in self._uninitiated_strat_files:
+            self.add_strategy(strategy_filename=strat_config_file)
+        
+        # Print help
         if self.show_help is not None:
             printout.option_help(self.show_help)
         
@@ -337,22 +343,30 @@ class AutoTrader():
                 the strategy dictionary can be passed directly.
         '''
         
-        if strategy_dict is None:
-            config_file_path = os.path.join(self.home_dir, 'config', strategy_filename)
-            new_strategy = read_yaml(config_file_path + '.yaml')
+        if self.home_dir is None:
+            # Home directory has not yet been set, postpone strategy addition
+            if strategy_filename is None:
+                self._uninitiated_strat_dicts.append(strategy_dict)
+            else:
+                self._uninitiated_strat_files.append(strategy_filename)
+            
         else:
-            new_strategy = strategy_dict
-        
-        name = new_strategy['NAME']
-        
-        if name in self.strategies:
-            print("Warning: duplicate strategy name deteced. Please check " + \
-                  "the NAME field of your strategy configuration file and " + \
-                  "make sure it is not the same as other strategies being " + \
-                  "run from this instance.")
-            print("Conflicting name:", name)
-        
-        self.strategies[name] = new_strategy
+            if strategy_dict is None:
+                config_file_path = os.path.join(self.home_dir, 'config', strategy_filename)
+                new_strategy = read_yaml(config_file_path + '.yaml')
+            else:
+                new_strategy = strategy_dict
+            
+            name = new_strategy['NAME']
+            
+            if name in self.strategies:
+                print("Warning: duplicate strategy name deteced. Please check " + \
+                      "the NAME field of your strategy configuration file and " + \
+                      "make sure it is not the same as other strategies being " + \
+                      "run from this instance.")
+                print("Conflicting name:", name)
+            
+            self.strategies[name] = new_strategy
     
     
     def backtest(self, start=None, end=None, initial_balance=1000, spread=0, 
