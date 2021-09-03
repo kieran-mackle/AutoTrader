@@ -115,7 +115,7 @@ class AutoTraderBot():
                 print("to periodic data download mode.")
                 sys.exit(0)
             
-            if interval == 'ticks':
+            if interval == 'tick':
                 stream_type = 'ticks'
             else:
                 stream_type = 'candles'

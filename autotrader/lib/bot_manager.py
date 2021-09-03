@@ -143,8 +143,11 @@ class ManageBot():
                     print("FATAL: All attempts have failed. Going to sleep.")
                 
                 # Pause an amount, depending on granularity
-                sleep_time = 0.5*self.granularity_to_seconds(self.bot.strategy_params['granularity'])
-                time.sleep(sleep_time)
+                if self.bot.strategy_params['granularity'] == 'tick':
+                    time.sleep(1)
+                else:
+                    sleep_time = 0.5*self.granularity_to_seconds(self.bot.strategy_params['granularity'])
+                    time.sleep(sleep_time)
             
     def write_bot_to_log(self):
         '''
