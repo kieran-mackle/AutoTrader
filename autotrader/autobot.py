@@ -9,7 +9,8 @@ import pytz
 import pandas as pd
 import numpy as np
 import subprocess
-from datetime import datetime, timedelta
+from shutil import copy2
+from datetime import datetime
 from autotrader.emailing import emailing
 from autotrader.lib import autodata, environment_manager
 from autotrader.lib.read_yaml import read_yaml
@@ -114,15 +115,24 @@ class AutoTraderBot():
                 print("to periodic data download mode.")
                 sys.exit(0)
             
+            if interval == 'ticks':
+                stream_type = 'ticks'
+            else:
+                stream_type = 'candles'
+            
             # Start streaming price data
-            # TODO - cannot use streamtest.py ... will need to create wrapper
-            # stream_process = subprocess.Popen(['nohup', 'python3', 'streamtest.py'])
-            # print("STREAM PROCESS ID:", stream_process.pid)
+            stream_script_path = os.path.join(self.home_dir, 'oandastream.py')
+            stream_process = subprocess.Popen(['nohup', 'python3', stream_script_path,
+                                               '-i', instrument, '-g', interval,
+                                               '-t', stream_type])
             
             # Construct stream filename
             streamfile = "{0}{1}.txt".format(interval, instrument)
+            streamfile_copy = 'copy_of_' + streamfile
             abs_streamfile = os.path.join(self.home_dir, 'price_data', streamfile)
-            print(f"Streamfile: {streamfile}")
+            self.abs_streamfile_copy = os.path.join(self.home_dir, 'price_data', streamfile_copy)
+            print("Streaming price data to {} (PID: {}).".format(streamfile, 
+                                                                 stream_process.pid))
             
             # Set self.data to use streamfile 
             self.data = abs_streamfile            
@@ -160,8 +170,6 @@ class AutoTraderBot():
         '''
         
         print("Updating strategy with latest data.")
-        
-        # TODO - add option to get dancing bears in autodata
         
         # Download new data
         new_data, _ = self._retrieve_data(self.instrument, self.feed)
@@ -285,11 +293,17 @@ class AutoTraderBot():
             if self.data_file is not None:
                 custom_data_filepath = self.data_file
                 
+                # Make copy of file to prevent read-write errors
+                copy2(custom_data_filepath, self.abs_streamfile_copy)
+                
                 if int(self.verbosity) > 1:
                     print("Using data file specified ({}).".format(custom_data_file))
-                data            = pd.read_csv(custom_data_filepath, 
+                data            = pd.read_csv(self.abs_streamfile_copy, 
                                               index_col = 0)
                 data.index = pd.to_datetime(data.index)
+                
+                # Remove copied file
+                os.remove(self.abs_streamfile_copy)
                 
                 # Placeholder for when MTF streaming is supported
                 MTF_data = None
