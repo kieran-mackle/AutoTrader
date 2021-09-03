@@ -303,8 +303,7 @@ class AutoStream():
         Assign attributes required to stream.
         '''
         
-        # TODO - pass in home_dir
-        self.home_dir       = home_dir #os.path.dirname(os.path.abspath(__file__))
+        self.home_dir       = home_dir
         self.instruments    = instrument
         self.granularity    = granularity
         self.no_candles     = no_candles
