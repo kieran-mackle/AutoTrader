@@ -75,7 +75,6 @@ class stream_record(object):
             self.data['bid']         = msg["closeoutBid"]
             self.data['ask']         = msg["closeoutAsk"]
             self.data['mid']         = (float(msg['closeoutBid']) + float(msg['closeoutAsk']))/2.0
-            print(self.data['mid'])
             
         elif msg['type'] == "HEARTBEAT":
             self.dt                  = datetime.strptime(msg['time'][:-4], '%Y-%m-%dT%H:%M:%S.%f')
@@ -186,8 +185,10 @@ class candle_builder(object):
         
         return candle
 
-def process_stream(stream, candle_builders, file_names, 
-                   temp_file_path, no_candles):
+def process_stream(stream, candle_builders, file_names, tick_files, temp_file_path, 
+                   no_candles, record_ticks=False, record_candles=True):
+    
+    # TODO - avoid using temp file name, use unique name for temp
     
     for line in stream.lines:
         # Process each update of stream
@@ -195,49 +196,82 @@ def process_stream(stream, candle_builders, file_names,
         msg     = json.loads(line)
         tick    = stream_record(msg)
         
-        for instrument in candle_builders:
+        if record_ticks and msg['type'] == 'PRICE':
+            # Check max number of lines and remove if necessary
+            f = open(tick_files[tick.data['instrument']], "r")
+            line_count = 0
+            for l in f:
+                if l != "\n":
+                    line_count += 1
+            f.close()
             
-            candle  = candle_builders[instrument].process_tick(tick)
-            
-            if candle is not None:
-                Time    = candle['start']
-                High    = round(candle['data']['high'], 5)
-                Low     = round(candle['data']['low'], 5)
-                Open    = round(candle['data']['open'], 5)
-                Close   = round(candle['data']['last'], 5)
-                
-                # Check if max number of candles has been reached and remove 
-                # older candles
-                f = open(file_names[instrument], "r")
-                line_count = 0
-                for l in f:
-                    if l != "\n":
-                        line_count += 1
-                f.close()
-                
-                if line_count >= int(no_candles):
-                    with open(file_names[instrument], "r") as original_file:
-                        with open(temp_file_path, "w+") as temp_file:  
-                            for ind, old_line in enumerate(original_file):
-                                if ind in range(1,line_count - int(no_candles) + 1):
-                                    continue
-                                else:
-                                    temp_file.write(old_line)
-                            
-                            temp_file.close()
+            if line_count >= int(no_candles):
+                with open(tick_files[tick.data['instrument']], "r") as original_file:
+                    with open(temp_file_path, "w+") as temp_file:  
+                        for ind, old_line in enumerate(original_file):
+                            if ind in range(1,line_count - int(no_candles) + 1):
+                                continue
+                            else:
+                                temp_file.write(old_line)
                         
-                        os.remove(file_names[instrument])
-                        os.replace(temp_file_path, file_names[instrument])
+                        temp_file.close()
+                    
+                    os.remove(tick_files[tick.data['instrument']])
+                    os.replace(temp_file_path, tick_files[tick.data['instrument']])
+            
+            # Write tick to file
+            f = open(tick_files[tick.data['instrument']], "a+")
+            f.write("{0}, {1}, {2}, {3}\n".format(tick.data['time'],
+                                                  tick.data['bid'],
+                                                  tick.data['ask'],
+                                                  tick.data['mid'])
+                    )
+            f.close()
+        
+        if record_candles:
+            for instrument in candle_builders:
                 
-                # Write new candle to file
-                f       = open(file_names[instrument], "a+")
-                f.write("{0}, {1}, {2}, {3}, {4}\n".format(Time, 
-                                                            Open,
-                                                            High, 
-                                                            Low, 
-                                                            Close)
-                        )
-                f.close()
+                candle  = candle_builders[instrument].process_tick(tick)
+                
+                if candle is not None:
+                    Time    = candle['start']
+                    High    = round(candle['data']['high'], 5)
+                    Low     = round(candle['data']['low'], 5)
+                    Open    = round(candle['data']['open'], 5)
+                    Close   = round(candle['data']['last'], 5)
+                    
+                    # Check if max number of candles has been reached and remove 
+                    # older candles
+                    f = open(file_names[instrument], "r")
+                    line_count = 0
+                    for l in f:
+                        if l != "\n":
+                            line_count += 1
+                    f.close()
+                    
+                    if line_count >= int(no_candles):
+                        with open(file_names[instrument], "r") as original_file:
+                            with open(temp_file_path, "w+") as temp_file:  
+                                for ind, old_line in enumerate(original_file):
+                                    if ind in range(1,line_count - int(no_candles) + 1):
+                                        continue
+                                    else:
+                                        temp_file.write(old_line)
+                                
+                                temp_file.close()
+                            
+                            os.remove(file_names[instrument])
+                            os.replace(temp_file_path, file_names[instrument])
+                    
+                    # Write new candle to file
+                    f       = open(file_names[instrument], "a+")
+                    f.write("{0}, {1}, {2}, {3}, {4}\n".format(Time, 
+                                                                Open,
+                                                                High, 
+                                                                Low, 
+                                                                Close)
+                            )
+                    f.close()
     
 
 class AutoStream():
@@ -263,7 +297,8 @@ class AutoStream():
     '''
     
     def __init__(self, home_dir, stream_config, 
-                 instrument, granularity, no_candles=10):
+                 instrument, granularity, no_candles=10,
+                 record_ticks=False, record_candles=True):
         '''
         Assign attributes required to stream.
         '''
@@ -273,6 +308,8 @@ class AutoStream():
         self.instruments    = instrument
         self.granularity    = granularity
         self.no_candles     = no_candles
+        self.record_candles = record_candles
+        self.record_ticks   = record_ticks
         
         # Add instruments to stream_config
         stream_config['instruments'] = instrument
@@ -291,32 +328,51 @@ class AutoStream():
             os.makedirs(data_dir_path)
         
         ''' Initialise candle factories '''
-        file_names      = {} 
+        file_names      = {}
+        tick_files      = {}
         candle_builders = {}
         for instrument in self.instruments.split(','):
-            filename                    = "{0}{1}.txt".format(self.granularity, 
-                                                              instrument)
-            abs_filename                = os.path.join(data_dir_path, filename)
-            file_names[instrument]      = abs_filename
-            candle_builders[instrument] = candle_builder(instrument, 
-                                                         self.granularity)
+            if self.record_candles:
+                filename                    = "{0}{1}.txt".format(self.granularity, 
+                                                                  instrument)
+                abs_filename                = os.path.join(data_dir_path, filename)
+                file_names[instrument]      = abs_filename
+                candle_builders[instrument] = candle_builder(instrument, 
+                                                             self.granularity)
+                
+                # Check if a price data file exists already
+                if not os.path.exists(file_names[instrument]):
+                    f = open(file_names[instrument], "a+")
+                    f.write("Time, Open, High, Low, Close\n")
+                    f.close()
             
-            # Check if a price data file exists already
-            if not os.path.exists(file_names[instrument]):
-                f = open(file_names[instrument], "a+")
-                f.write("Time, Open, High, Low, Close\n")
-                f.close()
+            if self.record_ticks:
+                filename                    = "{}_ticks.txt".format(instrument)
+                abs_filename                = os.path.join(data_dir_path, filename)
+                tick_files[instrument]      = abs_filename
+                
+                # Check if a price data file exists already
+                if not os.path.exists(tick_files[instrument]):
+                    f = open(tick_files[instrument], "a+")
+                    f.write("Time, Bid, Ask, Mid\n")
+                    f.close()
         
+        # Connect to stream and begin processing 
         stream = connect_to_stream(self.stream_config)
         
         for attempt in range(10):
             try:
                 process_stream(stream,
-                                candle_builders,
-                                file_names,
-                                temp_file_path,
-                                self.no_candles)
-            except:
+                               candle_builders,
+                               file_names,
+                               tick_files,
+                               temp_file_path,
+                               self.no_candles,
+                               self.record_ticks,
+                               self.record_candles)
+            except Exception as e:
+                print("Exception caught:")
+                print(e)
                 stream = connect_to_stream(self.stream_config)
             else:
                 break
