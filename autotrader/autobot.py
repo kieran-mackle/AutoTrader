@@ -300,24 +300,37 @@ class AutoTraderBot():
                     print("Using data file specified ({}).".format(custom_data_file))
                 data            = pd.read_csv(self.abs_streamfile_copy, 
                                               index_col = 0)
-                data.index = pd.to_datetime(data.index)
                 
-                # Remove copied file
-                os.remove(self.abs_streamfile_copy)
+                if len(data) > 0:
+                    data.index = pd.to_datetime(data.index)
                 
+                    # Remove copied file
+                    os.remove(self.abs_streamfile_copy)
+                    
+                else:
+                    # Stream has not had enough time to write data yet, revert 
+                    # to downloading
+                    data = getattr(self.get_data, feed.lower())(instrument,
+                                                                granularity = interval,
+                                                                count = period)
+                    
+                    if self.check_data_alignment:
+                        data = self._verify_data_alignment(data, instrument, feed, period, 
+                                                           price_data_path)
+                    
                 # Placeholder for when MTF streaming is supported
                 MTF_data = None
-
+                    
             else:            
                 MTF_data = {}
                 for granularity in interval.split(','):
                     data = getattr(self.get_data, feed.lower())(instrument,
-                                                                 granularity = granularity,
-                                                                 count=period)
+                                                                granularity = granularity,
+                                                                count=period)
                     
                     if self.check_data_alignment:
                         data = self._verify_data_alignment(data, instrument, feed, period, 
-                                                          price_data_path)
+                                                           price_data_path)
                     
                     MTF_data[granularity] = data
                 

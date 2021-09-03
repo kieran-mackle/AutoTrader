@@ -146,7 +146,7 @@ class ManageBot():
                 if self.bot.strategy_params['granularity'] == 'tick':
                     time.sleep(1)
                 else:
-                    sleep_time = 0.5*self.granularity_to_seconds(self.bot.strategy_params['granularity'])
+                    sleep_time = 0.25*self.granularity_to_seconds(self.bot.strategy_params['granularity'])
                     time.sleep(sleep_time)
             
     def write_bot_to_log(self):
