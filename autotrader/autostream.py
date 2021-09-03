@@ -9,14 +9,11 @@ Data stream function for Oanda v20 API.
 import v20
 import json
 from datetime import datetime
-from getopt import getopt
 import sys
 import calendar
 import time
 import re
 import os
-import pyfiglet
-from autotrader.lib import instrument_list
 
 
 def connect_to_stream(config):
@@ -78,6 +75,7 @@ class stream_record(object):
             self.data['bid']         = msg["closeoutBid"]
             self.data['ask']         = msg["closeoutAsk"]
             self.data['mid']         = (float(msg['closeoutBid']) + float(msg['closeoutAsk']))/2.0
+            print(self.data['mid'])
             
         elif msg['type'] == "HEARTBEAT":
             self.dt                  = datetime.strptime(msg['time'][:-4], '%Y-%m-%dT%H:%M:%S.%f')
@@ -188,8 +186,6 @@ class candle_builder(object):
         
         return candle
 
-
-
 def process_stream(stream, candle_builders, file_names, 
                    temp_file_path, no_candles):
     
@@ -244,155 +240,86 @@ def process_stream(stream, candle_builders, file_names,
                 f.close()
     
 
-def main(uo_dict, stream_config):
+class AutoStream():
     '''
-    Subscribes to stream and build candlestick price files. 
-    '''
+    AutoStream Class.
+    ------------------
     
-    instruments     = uo_dict['instrument']
-    if uo_dict["index"] is not None:
-        instruments = instrument_list.get_watchlist(uo_dict["index"])
-        instruments = ','.join(instruments)
+    Methods:
+        main(stream_config): Subscribes to stream and builds candlestick 
+        price files. 
     
-    granularity     = uo_dict['granularity']
-    no_candles      = uo_dict['max_candles']
     
-    home_dir        = os.path.dirname(os.path.abspath(__file__))
-    data_dir_path   = os.path.join(home_dir, 'price_data')
-    temp_file_path  = os.path.join(data_dir_path, "temp.txt")
-    
-    if not os.path.exists(data_dir_path):
-        # If price data directory doesn't exist, make it
-        os.makedirs(data_dir_path)
-    
-    ''' Initialise candle factories '''
-    file_names      = {} 
-    candle_builders = {}
-    for instrument in instruments.split(','):
-        filename                    = "{0}{1}.txt".format(granularity, instrument)
-        abs_filename                = os.path.join(data_dir_path, filename)
-        file_names[instrument]      = abs_filename
-        candle_builders[instrument] = candle_builder(instrument, granularity)
+    Attributes:
+        instruments : list
+            The instruments to be streamed.
         
-        # Check if a price data file exists already
-        if not os.path.exists(file_names[instrument]):
-            f = open(file_names[instrument], "a+")
-            f.write("Time, Open, High, Low, Close\n")
-            f.close()
+        granularity : str
+            The granularity of candlesticks to build from the stream.
+        
+        no_candles : int
+            The maximum number of candles to write to file.
+        
+    '''
     
-    stream = connect_to_stream(stream_config)
-    
-    # If the code below works, attempts should only count if it immediately 
-    # fails to connect. Otherwise, this will always eventaully break.
-    for attempt in range(10):
-        try:
-            process_stream(stream,
-                            candle_builders,
-                            file_names,
-                            temp_file_path,
-                            no_candles)
-        except:
-            stream = connect_to_stream(stream_config)
+    def __init__(self, home_dir, stream_config, 
+                 instrument, granularity, no_candles=10):
+        '''
+        Assign attributes required to stream.
+        '''
+        
+        # TODO - pass in home_dir
+        self.home_dir       = home_dir #os.path.dirname(os.path.abspath(__file__))
+        self.instruments    = instrument
+        self.granularity    = granularity
+        self.no_candles     = no_candles
+        
+        # Add instruments to stream_config
+        stream_config['instruments'] = instrument
+        self.stream_config  = stream_config
+        
+    def main(self):
+        '''
+        Subscribes to stream and builds candlestick price files. 
+        '''
+        
+        data_dir_path   = os.path.join(self.home_dir, 'price_data')
+        temp_file_path  = os.path.join(data_dir_path, "temp.txt")
+        
+        if not os.path.exists(data_dir_path):
+            # If price data directory doesn't exist, make it
+            os.makedirs(data_dir_path)
+        
+        ''' Initialise candle factories '''
+        file_names      = {} 
+        candle_builders = {}
+        for instrument in self.instruments.split(','):
+            filename                    = "{0}{1}.txt".format(self.granularity, 
+                                                              instrument)
+            abs_filename                = os.path.join(data_dir_path, filename)
+            file_names[instrument]      = abs_filename
+            candle_builders[instrument] = candle_builder(instrument, 
+                                                         self.granularity)
+            
+            # Check if a price data file exists already
+            if not os.path.exists(file_names[instrument]):
+                f = open(file_names[instrument], "a+")
+                f.write("Time, Open, High, Low, Close\n")
+                f.close()
+        
+        stream = connect_to_stream(self.stream_config)
+        
+        for attempt in range(10):
+            try:
+                process_stream(stream,
+                                candle_builders,
+                                file_names,
+                                temp_file_path,
+                                self.no_candles)
+            except:
+                stream = connect_to_stream(self.stream_config)
+            else:
+                break
         else:
-            break
-    else:
-            print("All attempts failed.")
-    
-
-def print_usage():
-    """ Print usage options. """
-    banner = pyfiglet.figlet_format("AUTOSTREAM")
-    print(banner)
-    print("Utility to stream price data and write to text file.")
-    print("")
-    print("--------------------------------------------------------------" \
-          + "---------------")
-    print("Flag                                 Comment [short flag]")
-    print("--------------------------------------------------------------" \
-          + "---------------")
-    print("Required:") 
-    print("  --instrument 'XXX_YYY'             instrument to stream [-i]")
-    print("  --granularity 'M15'                candlestick granularity [-g]")
-    print("\nOptional:")
-    print("  --help                             show help for usage [-h]")
-    print("  --verbosity <int>                  set verbosity (0,1,2) [-v]")
-    print("  --max-candles <10>                 max number of candles to store [-N]")
-    print("  --index ''                         specify index to stream [-I]")
-    print("")
-    print("Note: if multiple instruments are requested, they must be entered")
-    print("as comma separated text with no spaces. Example:")
-    print("-i EUR_USD,USD_JPY,AUD_CAD")
-
-
-def print_help(option):
-    ''' Print usage instructions. '''
-    
-    if option == 'instrument' or option == 'i':
-        print("Help for '--instrument' (-c) option:")
-        
-        print("\nExample usage:")
-        print("./AutoStream.py -c my_config_file")
-        
-    elif option == 'verbosity' or option == 'v':
-        print("Help for '--verbosity' (-v) option:")
-        print("-----------------------------------")
-        print("The verbosity flag is used to set the level of output.")
-    
-    elif option == 'index' or option == 'I':
-        print("Help for '--verbosity' (-v) option:")
-        print("-----------------------------------")
-        print("Specify an index to stream. ")
-        print("This flag takes precedence over -i if both are specified.")
-
-
-short_options = "i:g:v:h:N:I:"
-long_options = ['instrument=', 'granularity=', 'verbosity=', 'help=', 
-                'max_candles=', 'index=']
-
-
-if __name__ == '__main__':
-    options, r = getopt(sys.argv[1:], 
-                          short_options, 
-                          long_options
-                          )
-    
-    # Defaults
-    instrument      = None
-    index           = None
-    verbosity       = 0
-    show_help       = None
-    granularity     = None
-    max_candles     = 10
-    
-    for opt, arg in options:
-        if opt in ('-i', '--instrument'):
-            instrument = arg
-        elif opt in ('-g', '--granularity'):
-            granularity = arg
-        elif opt in ('-v', '--verbose'):
-            verbosity = arg
-        elif opt in ('-h', '--help'):
-            show_help = arg
-        elif opt in ('-N', '--max-candles'):
-            max_candles = arg
-        elif opt in ('-I', '--index'):
-            index = arg
-        
-    
-    uo_dict = {'instrument':    instrument,
-               'granularity':   granularity,
-               'verbosity':     verbosity,
-               'show_help':     show_help,
-               'max_candles':   max_candles,
-               'index':         index
-               }
-
-    if len(options) == 0:
-        print_usage()
-        
-    elif uo_dict['show_help'] is not None:
-        print_help(uo_dict['show_help'])
-        
-    else:
-        main(uo_dict)
+                print("All attempts to connect to stream failed. Exiting.")
 
