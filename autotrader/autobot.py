@@ -151,12 +151,18 @@ class AutoTraderBot():
         else:
             my_strat = strategy(params, strat_data, instrument)
             
-                
+        # Assign strategy
         self.strategy           = my_strat
         self.data               = data
         self.quote_data         = quote_data
         
         self.latest_orders      = []
+        
+        # Assign strategy attributes for development purposes
+        if self.backtest_mode:
+            self.strategy._backtesting = True
+        if interval == 'tick':
+            self.strategy._tick_data = True
         
         
         if int(self.verbosity) > 0:
