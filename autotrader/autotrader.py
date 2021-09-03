@@ -115,15 +115,19 @@ class AutoTrader():
         self.scan_index = None
         self.scan_results = {}
         
-        # Make adjustments
+        # Define home_dir if undefined - TODO - this should be moved,
+        # but then add_strategy may not work. To get around that, 
+        # add_strategy could just be used to save the strategy config
+        # names, and then the original functionality can be moved to
+        # an internal function.
         if self.home_dir is None:
             self.home_dir = os.getcwd()
-        
         
     def run(self):
         '''
         Run AutoTrader.
         '''
+        
         if self.show_help is not None:
             printout.option_help(self.show_help)
         
@@ -398,6 +402,28 @@ class AutoTrader():
         self.backtest_leverage = leverage
         self.backtest_base_currency = base_currency
     
+    
+    def configure(self, feed='yahoo', verbosity=1, notify=0, home_dir=None,
+                  include_broker=False, start_stream=False, detach_bot=False,
+                  check_data_alignment=True, allow_dancing_bears=False,
+                  account_id=None, environment='demo', show_plot=False):
+        '''
+        Configures various run settings for AutoTrader.
+        '''
+        
+        self.feed = feed
+        self.verbosity = verbosity
+        self.notify = notify
+        self.home_dir = home_dir if home_dir is not None else os.getcwd()
+        self.include_broker = include_broker
+        self.start_stream = start_stream
+        self.detach_bot = detach_bot
+        self.check_data_alignment = check_data_alignment
+        self.allow_dancing_bears = allow_dancing_bears
+        self.account_id = account_id
+        self.environment = environment
+        self.show_plot = show_plot
+        
     
     def scan(self, scan_index=None):
         '''
