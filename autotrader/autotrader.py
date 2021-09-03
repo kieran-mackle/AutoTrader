@@ -80,6 +80,7 @@ class AutoTrader():
         self.detach_bot     = False         # TODO - make this a strategy config option
         self.check_data_alignment = True
         self.allow_dancing_bears = False
+        self.use_stream     = False 
         
         # self.config         = None
         self.broker         = None
@@ -224,7 +225,7 @@ class AutoTrader():
                 print("--------------------")
                 print("Time: {}".format(datetime.now().strftime("%A, %B %d %Y, "+
                                                                   "%H:%M:%S")))
-                
+        
         ''' -------------------------------------------------------------- '''
         '''    Assign strategy to bot for each instrument in watchlist     '''
         ''' -------------------------------------------------------------- '''
@@ -418,7 +419,7 @@ class AutoTrader():
     
     
     def configure(self, feed='yahoo', verbosity=1, notify=0, home_dir=None,
-                  include_broker=False, start_stream=False, detach_bot=False,
+                  include_broker=False, use_stream=False, detach_bot=False,
                   check_data_alignment=True, allow_dancing_bears=False,
                   account_id=None, environment='demo', show_plot=False):
         '''
@@ -430,7 +431,7 @@ class AutoTrader():
         self.notify = notify
         self.home_dir = home_dir if home_dir is not None else os.getcwd()
         self.include_broker = include_broker
-        self.start_stream = start_stream
+        self.use_stream = use_stream
         self.detach_bot = detach_bot
         self.check_data_alignment = check_data_alignment
         self.allow_dancing_bears = allow_dancing_bears

@@ -8,6 +8,7 @@ import time
 import pytz
 import pandas as pd
 import numpy as np
+import subprocess
 from datetime import datetime, timedelta
 from autotrader.emailing import emailing
 from autotrader.lib import autodata, environment_manager
@@ -64,6 +65,7 @@ class AutoTraderBot():
         self.include_broker     = autotrader_attributes.include_broker
         self.check_data_alignment = autotrader_attributes.check_data_alignment
         self.allow_dancing_bears = autotrader_attributes.allow_dancing_bears
+        self.use_stream         = autotrader_attributes.use_stream
         
         self.instrument         = instrument
         self.broker             = broker
@@ -101,6 +103,16 @@ class AutoTraderBot():
         broker_config           = environment_manager.get_config(self.environment,
                                                              global_config,
                                                              self.feed)
+        
+        # Start price streaming
+        if self.use_stream:
+            # Start streaming price data
+            # stream_process = subprocess.Popen(['nohup', 'python3', 'streamtest.py'])
+            # print("STREAM PROCESS ID:", stream_process.pid)
+            
+            # Construct stream filename
+            # TODO - print that filename so I know which ID is for what
+            a = 0 
         
         self.get_data = autodata.GetData(broker_config, self.allow_dancing_bears)
         data, quote_data, MTF_data = self._retrieve_data(instrument, self.feed)
@@ -255,6 +267,8 @@ class AutoTraderBot():
             
         else:
             # Running in livetrade mode or scan mode
+            
+            # TODO - add option to use self.data_file
             
             MTF_data = {}
             for granularity in interval.split(','):
