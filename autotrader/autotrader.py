@@ -91,7 +91,7 @@ class AutoTrader():
         self._uninitiated_strat_files = []
         self._uninitiated_strat_dicts = []
         self.feed           = 'yahoo'
-        self.include_broker = False
+        self.include_broker = False         # TODO - make this a strategy config option
         self.bots_deployed  = []
         
         # Backtesting Parameters
