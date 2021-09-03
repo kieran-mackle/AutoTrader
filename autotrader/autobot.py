@@ -105,14 +105,28 @@ class AutoTraderBot():
                                                              self.feed)
         
         # Start price streaming
-        if self.use_stream:
+        if self.use_stream and self.backtest_mode is False:
+            
+            # Check how many granularities were requested
+            if len(interval.split(',')) > 1:
+                print("ERROR: streaming on multiple time frames is not yet supported.")
+                print("Specify one granularity in strategy config file, or switch")
+                print("to periodic data download mode.")
+                sys.exit(0)
+            
             # Start streaming price data
+            # TODO - cannot use streamtest.py ... will need to create wrapper
             # stream_process = subprocess.Popen(['nohup', 'python3', 'streamtest.py'])
             # print("STREAM PROCESS ID:", stream_process.pid)
             
             # Construct stream filename
-            # TODO - print that filename so I know which ID is for what
-            a = 0 
+            streamfile = "{0}{1}.txt".format(interval, instrument)
+            abs_streamfile = os.path.join(self.home_dir, 'price_data', streamfile)
+            print(f"Streamfile: {streamfile}")
+            
+            # Set self.data to use streamfile 
+            self.data = abs_streamfile            
+            
         
         self.get_data = autodata.GetData(broker_config, self.allow_dancing_bears)
         data, quote_data, MTF_data = self._retrieve_data(instrument, self.feed)
@@ -268,25 +282,36 @@ class AutoTraderBot():
         else:
             # Running in livetrade mode or scan mode
             
-            # TODO - add option to use self.data_file
-            
-            MTF_data = {}
-            for granularity in interval.split(','):
-                data = getattr(self.get_data, feed.lower())(instrument,
-                                                             granularity = granularity,
-                                                             count=period)
+            if self.data_file is not None:
+                custom_data_filepath = self.data_file
                 
-                if self.check_data_alignment:
-                    data = self._verify_data_alignment(data, instrument, feed, period, 
-                                                      price_data_path)
+                if int(self.verbosity) > 1:
+                    print("Using data file specified ({}).".format(custom_data_file))
+                data            = pd.read_csv(custom_data_filepath, 
+                                              index_col = 0)
+                data.index = pd.to_datetime(data.index)
                 
-                MTF_data[granularity] = data
-            
-            first_granularity = interval.split(',')[0]
-            data = MTF_data[first_granularity]
-            
-            if len(MTF_data) == 1:
-                    MTF_data = None
+                # Placeholder for when MTF streaming is supported
+                MTF_data = None
+
+            else:            
+                MTF_data = {}
+                for granularity in interval.split(','):
+                    data = getattr(self.get_data, feed.lower())(instrument,
+                                                                 granularity = granularity,
+                                                                 count=period)
+                    
+                    if self.check_data_alignment:
+                        data = self._verify_data_alignment(data, instrument, feed, period, 
+                                                          price_data_path)
+                    
+                    MTF_data[granularity] = data
+                
+                first_granularity = interval.split(',')[0]
+                data = MTF_data[first_granularity]
+                
+                if len(MTF_data) == 1:
+                        MTF_data = None
         
             return data, None, MTF_data
 
