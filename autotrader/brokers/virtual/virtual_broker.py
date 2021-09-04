@@ -5,6 +5,10 @@ Virtual broker.
 
 TODO: 
     - add flag to signal long positions only allowed (eg. no CFD)
+    
+Known bug:
+    - when closing multiple trades in a single candle, NAV will drop 
+      with balance.
 """
 
 import numpy as np
