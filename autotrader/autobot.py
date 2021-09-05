@@ -74,7 +74,7 @@ class AutoTraderBot():
         # Unpack strategy parameters
         interval                = strategy_config["INTERVAL"]
         period                  = strategy_config["PERIOD"]
-        risk_pc                 = strategy_config["RISK_PC"]
+        risk_pc                 = strategy_config["RISK_PC"] if 'RISK_PC' in strategy_config else 0
         sizing                  = strategy_config["SIZING"] if 'SIZING' in strategy_config else 0
         params                  = strategy_config["PARAMETERS"]
         
