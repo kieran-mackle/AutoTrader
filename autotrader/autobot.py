@@ -107,6 +107,7 @@ class AutoTraderBot():
         
         # Start price streaming
         if self.use_stream and self.backtest_mode is False:
+            # TODO - use count from strat config to set max candles
             
             # Check how many granularities were requested
             if len(interval.split(',')) > 1:
@@ -320,9 +321,9 @@ class AutoTraderBot():
                     
                 else:
                     # Stream has not had enough time to write data yet, revert 
-                    # to downloading
+                    # to downloading M1 data
                     data = getattr(self.get_data, feed.lower())(instrument,
-                                                                granularity = interval,
+                                                                granularity = 'M1',
                                                                 count = period)
                     
                     if self.check_data_alignment:
