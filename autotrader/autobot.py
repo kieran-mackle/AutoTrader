@@ -115,7 +115,7 @@ class AutoTraderBot():
                 print("to periodic data download mode.")
                 sys.exit(0)
             
-            if interval == 'tick':
+            if interval == 'tick' or interval == 'ticks':
                 stream_type = 'ticks'
             else:
                 stream_type = 'candles'
@@ -135,7 +135,7 @@ class AutoTraderBot():
                                                                  stream_process.pid))
             
             # Set self.data to use streamfile 
-            self.data = abs_streamfile            
+            self.data_file = abs_streamfile            
             
         
         self.get_data = autodata.GetData(broker_config, self.allow_dancing_bears)
