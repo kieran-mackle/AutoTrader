@@ -117,8 +117,10 @@ class AutoTraderBot():
             
             if interval == 'tick' or interval == 'ticks':
                 stream_type = 'ticks'
+                streamfile = "{}_ticks.txt".format(instrument)
             else:
                 stream_type = 'candles'
+                streamfile = "{0}{1}.txt".format(interval, instrument)
             
             # Start streaming price data
             stream_script_path = os.path.join(self.home_dir, 'oandastream.py')
@@ -127,7 +129,6 @@ class AutoTraderBot():
                                                '-t', stream_type])
             
             # Construct stream filename
-            streamfile = "{0}{1}.txt".format(interval, instrument)
             streamfile_copy = 'copy_of_' + streamfile
             abs_streamfile = os.path.join(self.home_dir, 'price_data', streamfile)
             self.abs_streamfile_copy = os.path.join(self.home_dir, 'price_data', streamfile_copy)
@@ -135,7 +136,10 @@ class AutoTraderBot():
                                                                  stream_process.pid))
             
             # Set self.data to use streamfile 
-            self.data_file = abs_streamfile            
+            self.data_file = abs_streamfile          
+            
+            # Sleep for 1 sec to allow stream to start
+            time.sleep(1)
             
         
         self.get_data = autodata.GetData(broker_config, self.allow_dancing_bears)
@@ -303,9 +307,10 @@ class AutoTraderBot():
                 copy2(custom_data_filepath, self.abs_streamfile_copy)
                 
                 if int(self.verbosity) > 1:
-                    print("Using data file specified ({}).".format(custom_data_file))
+                    print("Using data file specified ({}).".format(custom_data_filepath))
                 data            = pd.read_csv(self.abs_streamfile_copy, 
-                                              index_col = 0)
+                                              index_col = 0,
+                                              skipinitialspace=True)
                 
                 if len(data) > 0:
                     data.index = pd.to_datetime(data.index)
