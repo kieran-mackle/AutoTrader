@@ -131,8 +131,8 @@ class ManageBot():
                         self.bot._update(-1)
                     
                     except Exception as e:
-                        print("WARNING: The following exception was caught " +\
-                              "when updating the bot.")
+                        print("WARNING FROM BOT MANAGER: The following exception was caught " +\
+                              "when updating {}.".format(self.bot_name_string))
                         print(e)
                         print("Trying again.")
                     
