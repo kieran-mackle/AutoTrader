@@ -177,7 +177,7 @@ class AutoTraderBot():
         # Assign strategy attributes for development purposes
         if self.backtest_mode:
             self.strategy._backtesting = True
-        if interval == 'tick':
+        if interval.split(',')[0] == 'tick':
             self.strategy._tick_data = True
         
         
