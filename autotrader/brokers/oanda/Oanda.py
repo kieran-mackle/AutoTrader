@@ -172,13 +172,16 @@ class Oanda():
         price = self.check_precision(order_details["instrument"], 
                                      order_details["order_stop_price"])
         
+        trigger_condition = order_details["trigger_price"] if "trigger_price" in order_details else "DEFAULT"
+        
         # Need to test cases when no stop/take is provided (as None type)
         response = self.api.order.market_if_touched(accountID   = self.ACCOUNT_ID,
                                                     instrument  = order_details["instrument"],
                                                     units       = order_details["size"],
                                                     price       = str(price),
                                                     takeProfitOnFill = take_profit_details,
-                                                    stopLossOnFill = stop_loss_details
+                                                    stopLossOnFill = stop_loss_details,
+                                                    triggerCondition = trigger_condition
                                                     )
         return response
     
