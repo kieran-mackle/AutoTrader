@@ -254,10 +254,17 @@ class Oanda():
         # Check if the position is long or short
         
         # Temp code to close all positions
+        
+        # Close all long units
         response = self.api.position.close(accountID=self.ACCOUNT_ID, 
                                            instrument=instrument,
-                                           longUnits="ALL",
+                                           longUnits="ALL")
+        
+        # Close all short units
+        response = self.api.position.close(accountID=self.ACCOUNT_ID, 
+                                           instrument=instrument,
                                            shortUnits="ALL")
+        
         
         # TODO - the code below makes no sense currently; specifically, 
         # position.long.Units ????
