@@ -80,7 +80,8 @@ class AutoTrader():
         self.detach_bot     = False         # TODO - make this a strategy config option
         self.check_data_alignment = True
         self.allow_dancing_bears = False
-        self.use_stream     = False 
+        self.use_stream     = False
+        self.MTF_initialisation = False
         
         # self.config         = None
         self.broker         = None
@@ -421,9 +422,45 @@ class AutoTrader():
     def configure(self, feed='yahoo', verbosity=1, notify=0, home_dir=None,
                   include_broker=False, use_stream=False, detach_bot=False,
                   check_data_alignment=True, allow_dancing_bears=False,
-                  account_id=None, environment='demo', show_plot=False):
+                  account_id=None, environment='demo', show_plot=False,
+                  MTF_initialisation=False):
         '''
+        AutoTrader Run Configuration
+        -------------------------------
+        
         Configures various run settings for AutoTrader.
+        
+            Parameters:
+                feed (str): the data feed to be used (eg. Yahoo, Oanda).
+                
+                verbosity (int): the verbosity of AutoTrader (0, 1 or 2).
+                
+                notify (int): the level of email notification (0, 1 or 2).
+                
+                home_dir (str): the project home directory.
+                
+                include_broker (bool): set to True to assign broker to strategy
+                attributes.
+                
+                use_stream (bool): set to True to use price stream as data feed.
+                
+                detach_bot (bool): set to True to spawn new thread for each bot
+                deployed.
+                
+                check_data_alignment (bool): verify time of latest candle in
+                data recieved against current time.
+                
+                allow_dancing_bears (bool): allow incomplete candles to be 
+                passed to strategy.
+                
+                account_id (str): the brokerage account ID to use in this instance.
+                
+                environment (str): the trading environment of this instance.
+                
+                show_plot (bool): automatically display plot of results.
+                
+                MTF_initialisation (bool): only download mutliple time frame 
+                data when initialising the strategy, rather than every update.
         '''
         
         self.feed = feed
@@ -438,6 +475,7 @@ class AutoTrader():
         self.account_id = account_id
         self.environment = environment
         self.show_plot = show_plot
+        self.MTF_initialisation = MTF_initialisation
         
     
     def scan(self, scan_index=None):
