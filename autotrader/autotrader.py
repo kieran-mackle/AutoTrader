@@ -285,7 +285,7 @@ class AutoTrader():
                         # Send bot to bot manager to monitor stream
                         print("Passing bot to bot manager...")
                         bot_name_string = "{}_{}_{}".format(strategy.replace(' ',''),
-                                                            self.strategies[strategy]['INTERVAL'],
+                                                            self.strategies[strategy]['INTERVAL'].split(',')[0],
                                                             instrument)
                         ManageBot(bot, self.home_dir, bot_name_string)
                     else:
