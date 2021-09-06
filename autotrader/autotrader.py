@@ -35,11 +35,13 @@ class AutoTrader():
     """
     AutoTrader: A Python-Based Development Platform For Automated Trading Systems.
     ------------------------------------------------------------------------------
+    Website: https://kieran-mackle.github.io/AutoTrader/
     
-    Kieran Mackle
+    GitHub: https://github.com/kieran-mackle/AutoTrader
     
-    Version 0.4.x
+    Author: Kieran Mackle
     
+    Version: 0.4.x
 
     Attributes
     ----------
