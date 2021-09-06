@@ -6,7 +6,7 @@
 
 <p align="center">
   <a href="https://pypi.org/project/autotrader">
-    <img src="https://img.shields.io/pypi/v/autotrader.svg?color=blue&style=for-the-badge" alt="AutoTrader version" width="120" height="30" >
+    <img src="https://img.shields.io/pypi/v/autotrader.svg?color=skyblue&style=for-the-badge" alt="AutoTrader version" width="120" height="30" >
   </a>
   
   <a href="https://pypi.org/project/autotrader">
