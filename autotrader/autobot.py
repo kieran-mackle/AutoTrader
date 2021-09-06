@@ -67,6 +67,7 @@ class AutoTraderBot():
         self.check_data_alignment = autotrader_attributes.check_data_alignment
         self.allow_dancing_bears = autotrader_attributes.allow_dancing_bears
         self.use_stream         = autotrader_attributes.use_stream
+        self.MTF_initialisation = autotrader_attributes.MTF_initialisation
         
         self.instrument         = instrument
         self.broker             = broker
@@ -142,6 +143,10 @@ class AutoTraderBot():
             # Sleep for 1 sec to allow stream to start
             time.sleep(1)
             
+        
+        if self.MTF_initialisation:
+            # Only retrieve MTF data once upon initialisation 
+            self.MTF_data = None
         
         self.get_data = autodata.GetData(broker_config, self.allow_dancing_bears)
         data, quote_data, MTF_data = self._retrieve_data(instrument, self.feed)
@@ -331,6 +336,14 @@ class AutoTraderBot():
                                                            price_data_path)
                     
                 # Placeholder for when MTF streaming is supported
+                if self.MTF_initialisation:
+                    if self.MTF_data is None:
+                        # Download MTF data
+                        MTF_data = {}
+                        # TODO - fill in the rest here ... Also below
+                        # will need to add a filter for when tick data is the first 
+                        # granularity in interval
+                        
                 MTF_data = None
                     
             else:            
