@@ -34,28 +34,72 @@ from autotrader.lib.bot_manager import ManageBot
 class AutoTrader():
     """
     AutoTrader: A Python-Based Development Platform For Automated Trading Systems.
+    ------------------------------------------------------------------------------
     
     Kieran Mackle
     
-    Version 0.4.X
+    Version 0.4.x
     
 
     Attributes
     ----------
-    config_file : str
-        The strategy configuration file.
+    Note: many of the following attributes are set from the methods of AutoTrader.
     
+    feed : str 
+        The data feed to be used (eg. Yahoo, Oanda).
+                
     verbosity : int
-        The code verbosity.
+        The verbosity of AutoTrader (0, 1 or 2).
     
     notify : int
-         The emailing verbosity of the code.
+        The level of email notification (0, 1 or 2).
     
+    home_dir : str 
+        The project home directory.
+    
+    include_broker : bool 
+        Set to True to assign broker to strategy attributes.
+    
+    use_stream : bool 
+        Set to True to use price stream as data feed.
+    
+    detach_bot : bool 
+        Set to True to spawn new thread for each bot deployed.
+    
+    check_data_alignment : bool
+        Verify time of latest candle in data recieved against current time.
+    
+    allow_dancing_bears : bool
+        Allow incomplete candles to be passed to strategy.
+    
+    account_id : str
+        The brokerage account ID to use in this instance.
+    
+    environment : str
+        The trading environment of this instance.
+    
+    show_plot : bool
+        Automatically display plot of results.
+    
+    MTF_initialisation : bool
+        Only download mutliple time frame data when initialising the strategy, 
+        rather than every update.
+
 
     Methods
     -------
     run():
         Runs AutoTrader.
+    
+    configure(feed='yahoo', verbosity=1, notify=0, home_dir=None,
+              include_broker=False, use_stream=False, detach_bot=False,
+              check_data_alignment=True, allow_dancing_bears=False,
+              account_id=None, environment='demo', show_plot=False,
+              MTF_initialisation=False):
+        Configures various run settings for AutoTrader.
+    
+    add_strategy(strategy_filename=None, strategy_dict=None)
+        Adds a strategy to AutoTrader. 
     
     plot_backtest(bot=None):
         Plots backtest results of an AutoTrader Bot.
