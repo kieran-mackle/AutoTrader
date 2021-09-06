@@ -1,4 +1,20 @@
-# AutoTrader
+<p align="center">
+    <img src="https://github.com/kieran-mackle/AutoTrader/blob/gh-pages/_includes/svg/logo.svg" alt="Image" width="150" height="100" />
+</p>
+
+<h1 align="center">AutoTrader</h1>
+
+<p align="center">
+  <a href="https://pypi.org/project/autotrader">
+    <img src="https://img.shields.io/pypi/v/autotrader.svg?color=blue&style=for-the-badge" alt="AutoTrader version" width="120" height="30" >
+  </a>
+  
+  <a href="https://pypi.org/project/autotrader">
+    <img src="https://img.shields.io/pypi/dd/autotrader.svg?color=skyblue&style=for-the-badge" alt="PyPI downloads" width="160" height="30" >
+  </a>
+</p>
+
+
 AutoTrader is an event-driven platform intended to help in the development, optimisation and live deployment of automated trading systems. 
 From simple indicator-based strategies, to complex non-directional hedging strategies, AutoTrader can do it all. If you prefer a more hands-on 
 approach to trading, AutoTrader can also assist you by notifying you of price behaviour, ensuring you never miss a signal again.
