@@ -334,7 +334,9 @@ class AutoTraderBot():
                 
                 if len(data) > 0:
                     # TODO - use count to replace 0 above
-                    data.index = pd.to_datetime(data.index)
+                    data.index = pd.to_datetime(data.index, 
+                                                infer_datetime_format=True,
+                                                errors='ignore')
                     
                     # Remove copied file
                     os.remove(self.abs_streamfile_copy)
