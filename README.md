@@ -1,5 +1,7 @@
 <p align="center">
-    <img src="https://user-images.githubusercontent.com/60687606/132320916-23445f43-dfdc-4949-9881-e18f622605d2.png" alt="Image" width="15%" />
+  <a href="https://kieran-mackle.github.io/AutoTrader/">
+    <img src="https://user-images.githubusercontent.com/60687606/132320916-23445f43-dfdc-4949-9881-e18f622605d2.png" alt="AutoTrader Logo" width="15%" >
+  </a>
 </p>
 
 <h1 align="center">AutoTrader</h1>
