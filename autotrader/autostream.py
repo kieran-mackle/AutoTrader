@@ -154,109 +154,6 @@ class candle_builder(object):
         
         return candle
 
-def process_stream(stream, candle_builders, file_names, tick_files, temp_file_path, 
-                   no_candles, record_ticks=False, record_candles=True):
-    
-    # TODO - avoid using temp file name, use unique name for temp
-    
-    for line in stream.lines:
-        # Process each update of stream
-        line    = line.decode('utf-8')
-        msg     = json.loads(line)
-        tick    = stream_record(msg)
-        
-        # Add logic to pass new ticks / candles directly to strategy 
-        
-        # Add exception handling methods 
-        
-        # If file is deleted for some reason, create it again
-        
-        if record_ticks and msg['type'] == 'PRICE':
-            
-            # TODO - the below is repeated code: clean it up
-            # If the price data file doesn't already exist, initialise it
-            # This is an edge case when the file may accidentally be deleted
-            # if not os.path.exists(tick_files[tick.data['instrument']]):
-            #     f = open(tick_files[tick.data['instrument']], "a+")
-            #     f.write("Time, Bid, Ask, Mid\n")
-            #     f.close()
-            
-            # Check max number of lines and remove if necessary
-            f = open(tick_files[tick.data['instrument']], "r")
-            line_count = 0
-            for l in f:
-                if l != "\n":
-                    line_count += 1
-            f.close()
-            
-            if line_count >= int(no_candles):
-                with open(tick_files[tick.data['instrument']], "r") as original_file:
-                    with open(temp_file_path, "w+") as temp_file:  
-                        for ind, old_line in enumerate(original_file):
-                            if ind in range(1,line_count - int(no_candles) + 1):
-                                continue
-                            else:
-                                temp_file.write(old_line)
-                        
-                        temp_file.close()
-                    
-                    # Rename cleaned temp file to original file name
-                    os.replace(temp_file_path, tick_files[tick.data['instrument']])
-            
-            # Write latest tick to file
-            f = open(tick_files[tick.data['instrument']], "a+")
-            f.write("{0}, {1}, {2}, {3}\n".format(tick.data['time'],
-                                                  tick.data['bid'],
-                                                  tick.data['ask'],
-                                                  tick.data['mid'])
-                    )
-            f.close()
-        
-        if record_candles:
-            for instrument in candle_builders:
-                
-                candle  = candle_builders[instrument].process_tick(tick)
-                
-                if candle is not None:
-                    Time    = candle['start']
-                    High    = round(candle['data']['high'], 5)
-                    Low     = round(candle['data']['low'], 5)
-                    Open    = round(candle['data']['open'], 5)
-                    Close   = round(candle['data']['last'], 5)
-                    
-                    # Check if max number of candles has been reached and remove 
-                    # older candles
-                    f = open(file_names[instrument], "r")
-                    line_count = 0
-                    for l in f:
-                        if l != "\n":
-                            line_count += 1
-                    f.close()
-                    
-                    if line_count >= int(no_candles):
-                        with open(file_names[instrument], "r") as original_file:
-                            with open(temp_file_path, "w+") as temp_file:  
-                                for ind, old_line in enumerate(original_file):
-                                    if ind in range(1,line_count - int(no_candles) + 1):
-                                        continue
-                                    else:
-                                        temp_file.write(old_line)
-                                
-                                temp_file.close()
-                            
-                            os.remove(file_names[instrument])
-                            os.replace(temp_file_path, file_names[instrument])
-                    
-                    # Write new candle to file
-                    f       = open(file_names[instrument], "a+")
-                    f.write("{0}, {1}, {2}, {3}, {4}\n".format(Time, 
-                                                                Open,
-                                                                High, 
-                                                                Low, 
-                                                                Close)
-                            )
-                    f.close()
-    
 
 class AutoStream():
     '''
@@ -348,7 +245,7 @@ class AutoStream():
         
         for attempt in range(10):
             try:
-                process_stream(stream,
+                self.process_stream(stream,
                                candle_builders,
                                file_names,
                                tick_files,
@@ -395,4 +292,111 @@ class AutoStream():
         
         except Exception as e:
             print("Caught exception when connecting to stream\n" + str(e)) 
+    
+    
+    def process_stream(stream, candle_builders, file_names, tick_files, temp_file_path, 
+                   no_candles, record_ticks=False, record_candles=True):
+        '''
+        Processes stream based on run settings.
+        '''
+        
+        # TODO - avoid using temp file name, use unique name for temp
+        
+        for line in stream.lines:
+            # Process each update of stream
+            line    = line.decode('utf-8')
+            msg     = json.loads(line)
+            tick    = stream_record(msg)
+            
+            # Add logic to pass new ticks / candles directly to strategy 
+            
+            # Add exception handling methods 
+            
+            # If file is deleted for some reason, create it again
+            
+            if record_ticks and msg['type'] == 'PRICE':
+                
+                # TODO - the below is repeated code: clean it up
+                # If the price data file doesn't already exist, initialise it
+                # This is an edge case when the file may accidentally be deleted
+                # if not os.path.exists(tick_files[tick.data['instrument']]):
+                #     f = open(tick_files[tick.data['instrument']], "a+")
+                #     f.write("Time, Bid, Ask, Mid\n")
+                #     f.close()
+                
+                # Check max number of lines and remove if necessary
+                f = open(tick_files[tick.data['instrument']], "r")
+                line_count = 0
+                for l in f:
+                    if l != "\n":
+                        line_count += 1
+                f.close()
+                
+                if line_count >= int(no_candles):
+                    with open(tick_files[tick.data['instrument']], "r") as original_file:
+                        with open(temp_file_path, "w+") as temp_file:  
+                            for ind, old_line in enumerate(original_file):
+                                if ind in range(1,line_count - int(no_candles) + 1):
+                                    continue
+                                else:
+                                    temp_file.write(old_line)
+                            
+                            temp_file.close()
+                        
+                        # Rename cleaned temp file to original file name
+                        os.replace(temp_file_path, tick_files[tick.data['instrument']])
+                
+                # Write latest tick to file
+                f = open(tick_files[tick.data['instrument']], "a+")
+                f.write("{0}, {1}, {2}, {3}\n".format(tick.data['time'],
+                                                      tick.data['bid'],
+                                                      tick.data['ask'],
+                                                      tick.data['mid'])
+                        )
+                f.close()
+            
+            if record_candles:
+                for instrument in candle_builders:
+                    
+                    candle  = candle_builders[instrument].process_tick(tick)
+                    
+                    if candle is not None:
+                        Time    = candle['start']
+                        High    = round(candle['data']['high'], 5)
+                        Low     = round(candle['data']['low'], 5)
+                        Open    = round(candle['data']['open'], 5)
+                        Close   = round(candle['data']['last'], 5)
+                        
+                        # Check if max number of candles has been reached and remove 
+                        # older candles
+                        f = open(file_names[instrument], "r")
+                        line_count = 0
+                        for l in f:
+                            if l != "\n":
+                                line_count += 1
+                        f.close()
+                        
+                        if line_count >= int(no_candles):
+                            with open(file_names[instrument], "r") as original_file:
+                                with open(temp_file_path, "w+") as temp_file:  
+                                    for ind, old_line in enumerate(original_file):
+                                        if ind in range(1,line_count - int(no_candles) + 1):
+                                            continue
+                                        else:
+                                            temp_file.write(old_line)
+                                    
+                                    temp_file.close()
+                                
+                                os.remove(file_names[instrument])
+                                os.replace(temp_file_path, file_names[instrument])
+                        
+                        # Write new candle to file
+                        f       = open(file_names[instrument], "a+")
+                        f.write("{0}, {1}, {2}, {3}, {4}\n".format(Time, 
+                                                                    Open,
+                                                                    High, 
+                                                                    Low, 
+                                                                    Close)
+                                )
+                        f.close()
 
