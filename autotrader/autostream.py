@@ -17,9 +17,20 @@ import os
 
 
 class stream_record(object):
-    ''' Creates a stream record '''
+    ''' 
+    Creates a stream record.
+    
+    Attributes
+    ----------
+        data : dict
+            A dictionary containing information of the tick; instrument, time,
+            bid, ask and mid.
+        
+        record_type : str
+            The type of stream record: either PRICE or HEARTBEAT
+    '''
+    
     def __init__(self, msg):
-        self.record_type    = None
         self.data           = {}
         self.record_type    = msg['type']
         
