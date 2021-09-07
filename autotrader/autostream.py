@@ -197,6 +197,12 @@ def process_stream(stream, candle_builders, file_names, tick_files, temp_file_pa
         msg     = json.loads(line)
         tick    = stream_record(msg)
         
+        # Add logic to pass new ticks / candles directly to strategy 
+        
+        # Add exception handling methods 
+        
+        # If file is deleted for some reason, create it again
+        
         if record_ticks and msg['type'] == 'PRICE':
             
             # TODO - the below is repeated code: clean it up
@@ -328,6 +334,8 @@ class AutoStream():
         '''
         Subscribes to stream and builds candlestick price files. 
         '''
+        
+        # TODO - do not start stream if it is already running
         
         data_dir_path   = os.path.join(self.home_dir, 'price_data')
         temp_file_path  = os.path.join(data_dir_path, "temp.txt")
