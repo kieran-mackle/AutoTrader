@@ -46,21 +46,6 @@ def connect_to_stream(config):
         print("Caught exception when connecting to stream\n" + str(e)) 
 
 
-def granularity_to_seconds(granularity):
-    ''' Converts a granularity to time in seconds '''
-    mfact = {'S': 1,
-             'M': 60,
-             'H': 3600,
-             'D': 86400,
-             }
-
-    f, n    = re.match("(?P<f>[SMHD])(?:(?P<n>\d+)|)", granularity).groups()
-    n       = n if n else 1
-    seconds = mfact[f] * int(n)
-    
-    return seconds
-
-
 class stream_record(object):
     ''' Creates a stream record '''
     def __init__(self, msg):
@@ -91,7 +76,7 @@ class candle_builder(object):
             granularity. 
         '''
         self.instrument     = instrument
-        self.duration       = granularity_to_seconds(granularity)
+        self.duration       = self.granularity_to_seconds(granularity)
         self.granularity    = granularity
         self.data           = None
         self.start          = None
@@ -128,7 +113,20 @@ class candle_builder(object):
         
         return self.data.copy()
     
-
+    def granularity_to_seconds(granularity):
+        ''' Converts a granularity to time in seconds '''
+        mfact = {'S': 1,
+                 'M': 60,
+                 'H': 3600,
+                 'D': 86400,
+                 }
+    
+        f, n    = re.match("(?P<f>[SMHD])(?:(?P<n>\d+)|)", granularity).groups()
+        n       = n if n else 1
+        seconds = mfact[f] * int(n)
+        
+        return seconds
+    
     def process_tick(self, tick):
         ''' Processes tick into candle '''
         if tick.record_type == 'HEARTBEAT':
