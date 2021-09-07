@@ -29,6 +29,7 @@ setuptools.setup(
         "PyYAML",
         "bokeh >= 2.3.1",
         "scipy",
+        "yfinance",
         ],
     setup_requires=[
             'setuptools_git',
