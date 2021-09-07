@@ -402,6 +402,12 @@ class AutoTraderBot():
                 # Running in periodic-download mode
                 MTF_data = {}
                 for granularity in interval.split(','):
+                    if granularity == "tick":
+                        print("Warning: cannot download historic tick data. " + \
+                              "Please change candlestick granularity in " + \
+                              "strategy configuration.")
+                        sys.exit(0)
+                        
                     data = getattr(self.get_data, feed.lower())(instrument,
                                                                 granularity = granularity,
                                                                 count=period)
