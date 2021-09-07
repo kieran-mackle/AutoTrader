@@ -14,6 +14,7 @@ import calendar
 import time
 import re
 import os
+import pandas as pd
 
 
 class stream_record(object):
@@ -79,7 +80,6 @@ class candle_builder(object):
                                            "volume" : 1
                                             }
                        }
-
 
     def seconds_in_time(self, e):
         ''' Converts a timestamp to datetime object. '''
@@ -172,8 +172,7 @@ class AutoStream():
     ------------------
     
     Methods:
-        main(stream_config): Subscribes to stream and builds candlestick 
-        price files. 
+        main(): Subscribes to stream and builds candlestick price files. 
     
     
     Attributes:
@@ -205,6 +204,7 @@ class AutoStream():
         # Add instruments to stream_config
         stream_config['instruments'] = instrument
         self.stream_config  = stream_config
+        
         
     def main(self):
         '''
@@ -411,3 +411,11 @@ class AutoStream():
                                 )
                         f.close()
 
+    def create_dataframe(self,):
+        '''
+        Creates a Pandas dataframe from ...
+        '''
+        
+        df = pd.DataFrame()
+        
+        return df
