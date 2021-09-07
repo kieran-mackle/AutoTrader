@@ -111,7 +111,7 @@ class ManageBot():
                 self.managing = False
             
             elif os.path.exists(self.killfile):
-                print("\nKillfile detected. All bots will be terminated.")
+                print("\nKillfile detected. Bot will be terminated.")
                 self.bot.strategy.exit_strategy(-1)
                 
                 # Remove bot from log
