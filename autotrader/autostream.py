@@ -16,36 +16,6 @@ import re
 import os
 
 
-def connect_to_stream(config):
-    ''' Connects to Oanda streaming API '''
-    ACCESS_TOKEN    = config["ACCESS_TOKEN"]
-    port            = config["PORT"]
-    ACCOUNT_ID      = config["ACCOUNT_ID"]
-    STREAM_API      = "stream-fxpractice.oanda.com"
-    instruments     = config["instruments"]
-    
-    streamAPI       = v20.Context(hostname = STREAM_API,
-                                  token = ACCESS_TOKEN, 
-                                  port = port)
-    
-    try:
-        response = streamAPI.pricing.stream(accountID = ACCOUNT_ID, 
-                                            instruments = instruments,
-                                            snapshot = True
-                                            )
-        if response.status != 200:
-            print("Warning:")
-            print(response.reason)
-            # TODO - beware of sys.exit(0)
-            sys.exit(0)
-            
-        else:
-            return response
-    
-    except Exception as e:
-        print("Caught exception when connecting to stream\n" + str(e)) 
-
-
 class stream_record(object):
     ''' Creates a stream record '''
     def __init__(self, msg):
@@ -374,7 +344,7 @@ class AutoStream():
                     f.close()
         
         # Connect to stream and begin processing 
-        stream = connect_to_stream(self.stream_config)
+        stream = self.connect_to_stream(self.stream_config)
         
         for attempt in range(10):
             try:
@@ -389,9 +359,40 @@ class AutoStream():
             except Exception as e:
                 print("Exception caught:")
                 print(e)
-                stream = connect_to_stream(self.stream_config)
+                stream = self.connect_to_stream(self.stream_config)
             else:
                 break
         else:
                 print("All attempts failed. Exiting.")
+                
+    
+    def connect_to_stream(config):
+        ''' Connects to Oanda streaming API '''
+        ACCESS_TOKEN    = config["ACCESS_TOKEN"]
+        port            = config["PORT"]
+        ACCOUNT_ID      = config["ACCOUNT_ID"]
+        STREAM_API      = "stream-fxpractice.oanda.com"
+        instruments     = config["instruments"]
+        
+        streamAPI       = v20.Context(hostname = STREAM_API,
+                                      token = ACCESS_TOKEN, 
+                                      port = port)
+        
+        # TODO - try 3 times
+        try:
+            response = streamAPI.pricing.stream(accountID = ACCOUNT_ID, 
+                                                instruments = instruments,
+                                                snapshot = True
+                                                )
+            if response.status != 200:
+                print("Warning:")
+                print(response.reason)
+                # TODO - beware of sys.exit(0)
+                sys.exit(0)
+                
+            else:
+                return response
+        
+        except Exception as e:
+            print("Caught exception when connecting to stream\n" + str(e)) 
 
