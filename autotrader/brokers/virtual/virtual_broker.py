@@ -112,20 +112,21 @@ class Broker():
         position_value  = abs(size) * current_price * HCF
         margin_required = self.calculate_margin(position_value)
         
-        if size > 0:
-            spread_cost = 0.5*self.spread * pip_value
-        else:
-            spread_cost = -0.5*self.spread * pip_value
+        spread_cost = abs(size) * self.spread * pip_value
+        spread_shift = 0.5 * np.sign(size) * self.spread * pip_value
         
         if margin_required < self.margin_available:
             # Fill order
             new_position = self.pending_positions[order_no]
             new_position['time_filled'] = candle.name
             if limit_price is None:
-                new_position['entry_price'] = candle.Open + spread_cost
+                new_position['entry_price'] = candle.Open + spread_shift
             else:
-                new_position['entry_price'] = limit_price + spread_cost
+                new_position['entry_price'] = limit_price + spread_shift
             self.open_positions[order_no] = new_position
+            
+            # Subtract spread cost
+            self.NAV -= spread_cost
             
         else:
             self.cancelled_orders[order_no] = self.pending_positions[order_no]
