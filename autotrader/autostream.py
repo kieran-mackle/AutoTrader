@@ -36,6 +36,7 @@ def connect_to_stream(config):
         if response.status != 200:
             print("Warning:")
             print(response.reason)
+            # TODO - beware of sys.exit(0)
             sys.exit(0)
             
         else:
