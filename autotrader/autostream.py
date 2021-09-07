@@ -353,6 +353,10 @@ class AutoStream():
                     f = open(file_names[instrument], "a+")
                     f.write("Time, Open, High, Low, Close\n")
                     f.close()
+                else:
+                    # File already exists, so stream is already running.
+                    print("Stream is already running.")
+                    sys.exit(0)
             
             if self.record_ticks:
                 filename                    = "{}_ticks.txt".format(instrument)
