@@ -201,10 +201,10 @@ def process_stream(stream, candle_builders, file_names, tick_files, temp_file_pa
             # TODO - the below is repeated code: clean it up
             # If the price data file doesn't already exist, initialise it
             # This is an edge case when the file may accidentally be deleted
-            if not os.path.exists(tick_files[tick.data['instrument']]):
-                f = open(tick_files[tick.data['instrument']], "a+")
-                f.write("Time, Bid, Ask, Mid\n")
-                f.close()
+            # if not os.path.exists(tick_files[tick.data['instrument']]):
+            #     f = open(tick_files[tick.data['instrument']], "a+")
+            #     f.write("Time, Bid, Ask, Mid\n")
+            #     f.close()
             
             # Check max number of lines and remove if necessary
             f = open(tick_files[tick.data['instrument']], "r")
