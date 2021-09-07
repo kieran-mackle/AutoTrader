@@ -216,10 +216,10 @@ def process_stream(stream, candle_builders, file_names, tick_files, temp_file_pa
                         
                         temp_file.close()
                     
-                    os.remove(tick_files[tick.data['instrument']])
+                    # Rename cleaned temp file to original file name
                     os.replace(temp_file_path, tick_files[tick.data['instrument']])
             
-            # Write tick to file
+            # Write latest tick to file
             f = open(tick_files[tick.data['instrument']], "a+")
             f.write("{0}, {1}, {2}, {3}\n".format(tick.data['time'],
                                                   tick.data['bid'],
@@ -339,7 +339,7 @@ class AutoStream():
                 candle_builders[instrument] = candle_builder(instrument, 
                                                              self.granularity)
                 
-                # Check if a price data file exists already
+                # If the price data file doesn't already exist, initialise it
                 if not os.path.exists(file_names[instrument]):
                     f = open(file_names[instrument], "a+")
                     f.write("Time, Open, High, Low, Close\n")
@@ -350,7 +350,7 @@ class AutoStream():
                 abs_filename                = os.path.join(data_dir_path, filename)
                 tick_files[instrument]      = abs_filename
                 
-                # Check if a price data file exists already
+                # If the price data file doesn't already exist, initialise it
                 if not os.path.exists(tick_files[instrument]):
                     f = open(tick_files[instrument], "a+")
                     f.write("Time, Bid, Ask, Mid\n")
@@ -376,5 +376,5 @@ class AutoStream():
             else:
                 break
         else:
-                print("All attempts to connect to stream failed. Exiting.")
+                print("All attempts failed. Exiting.")
 

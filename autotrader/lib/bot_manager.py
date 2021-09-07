@@ -5,9 +5,8 @@
 import threading
 import time
 import os
-
-# Not sure if the while loop should be in the class, or just in the script 
-# being run...
+import sys
+import traceback
 
 
 class ManageBot():
@@ -130,11 +129,27 @@ class ManageBot():
                         # Call bot update to act on latest data
                         self.bot._update(-1)
                     
-                    except Exception as e:
+                    except BaseException as ex:
+                        # Get current system exception
+                        ex_type, ex_value, ex_traceback = sys.exc_info()
+                    
+                        # Extract unformatter stack traces as tuples
+                        trace_back = traceback.extract_tb(ex_traceback)
+                    
+                        # Format stacktrace
+                        stack_trace = list()
+                    
+                        for trace in trace_back:
+                            trade_string = "File : %s , Line : %d, " % (trace[0], trace[1]) + \
+                                           "Func.Name : %s, Message : %s" % (trace[2], trace[3])
+                            stack_trace.append(trade_string)
+                        
                         print("WARNING FROM BOT MANAGER: The following exception was caught " +\
                               "when updating {}.".format(self.bot_name_string))
-                        print(e)
-                        print("Trying again.")
+                        print("Exception type : %s " % ex_type.__name__)
+                        print("Exception message : %s" %ex_value)
+                        print("Stack trace : %s" %stack_trace)
+                        print("  Trying again.")
                     
                     else:
                         break

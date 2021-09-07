@@ -146,7 +146,7 @@ class AutoTraderBot():
             # Set self.data to use streamfile 
             self.data_file = abs_streamfile          
             
-            # Sleep for 1 sec to allow stream to start
+            # Sleep for 1 sec to allow stream to start and create file
             time.sleep(1)
             
         
