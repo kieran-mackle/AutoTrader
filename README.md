@@ -1,5 +1,5 @@
 <p align="center">
-    <img src="https://github.com/kieran-mackle/AutoTrader/blob/gh-pages/_includes/svg/logo.svg" alt="Image" width="150" height="100" />
+    <img src="https://user-images.githubusercontent.com/60687606/132320916-23445f43-dfdc-4949-9881-e18f622605d2.png" alt="Image" width="15%" />
 </p>
 
 <h1 align="center">AutoTrader</h1>
