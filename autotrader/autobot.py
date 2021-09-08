@@ -185,7 +185,8 @@ class AutoTraderBot():
                              granularity = stream_granularity,
                              record_ticks = record_ticks, 
                              record_candles = record_candles,
-                             no_candles = no_candles)
+                             no_candles = no_candles,
+                             bot = self)
         
         stream_thread = threading.Thread(target = self.AS.start, 
                                          args=(), daemon=False)
