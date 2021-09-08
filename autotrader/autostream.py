@@ -227,16 +227,20 @@ class AutoStream():
         stream_config['instruments'] = instrument
         self.stream_config  = stream_config
         
-        # check that one of tick or candle recording is set, or else dont run
+        # Perform initialisation checks
+        checks_passed = True
+        if not record_candles and not record_ticks:
+            print("Please specify whether to record ticks, candles or both "+\
+                  "using the record_ticks and record_candles attributes.")
+            checks_passed = False
         
-        # TODO - keep track of active streams, hmm
-        # Not if the stream is used to pass data to the bot... 
-        # IE. only if write_to_file is True...
-        # Each bot has its own stream, for one instrument
+        if record_candles and granularity is None:
+            print("Please provide a candlestick granularity when streaming candles.")
+            checks_passed = False
         
-        # Check that a granularity is provided when recording candles
-        
-        # self.main()
+        if checks_passed:
+            # Proceed to run stream
+            self.main()
         
         
     def main(self):
@@ -278,7 +282,6 @@ class AutoStream():
                     filename                    = "{}_ticks.txt".format(instrument)
                     abs_filename                = os.path.join(data_dir_path, filename)
                     tick_filenames[instrument]  = abs_filename
-                    
         
         # Connect to stream and begin processing 
         stream = self.connect_to_stream(self.stream_config)
@@ -355,7 +358,6 @@ class AutoStream():
             # TODO - Add exception handling methods for datetime errors
             
             if self.record_ticks and msg['type'] == 'PRICE':
-                
                 # Create tick df from stream record
                 new_tick = {'Bid': tick.data['bid'], 
                             'Ask': tick.data['ask'], 
@@ -376,6 +378,7 @@ class AutoStream():
                 
                 # Write to file
                 if self.write_to_file:
+                    # TODO - preprocess time index column to convert to datetime
                     self.tick_data.index.name = 'Time'
                     self.tick_data.to_csv(tick_filenames[tick.data['instrument']])
             
