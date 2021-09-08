@@ -203,8 +203,8 @@ class AutoStream():
     '''
     
     def __init__(self, home_dir, stream_config, 
-                 instrument, granularity, no_candles=10,
-                 record_ticks=False, record_candles=True,
+                 instrument, granularity=None, no_candles=10,
+                 record_ticks=False, record_candles=False,
                  bot=None, write_to_file=False):
         '''
         Assign attributes required to stream.
@@ -229,7 +229,12 @@ class AutoStream():
         
         # check that one of tick or candle recording is set, or else dont run
         
-        # TODO - keep track of active streams 
+        # TODO - keep track of active streams, hmm
+        # Not if the stream is used to pass data to the bot... 
+        # IE. only if write_to_file is True...
+        # Each bot has its own stream, for one instrument
+        
+        # Check that a granularity is provided when recording candles
         
         # self.main()
         
@@ -295,7 +300,7 @@ class AutoStream():
                 break
         else:
                 print("All attempts failed. Exiting.")
-                
+    
     
     def connect_to_stream(self, config):
         ''' Connects to Oanda streaming API '''
@@ -347,7 +352,7 @@ class AutoStream():
             msg     = json.loads(line)
             tick    = stream_record(msg)
             
-            # Add exception handling methods 
+            # TODO - Add exception handling methods for datetime errors
             
             if self.record_ticks and msg['type'] == 'PRICE':
                 
@@ -365,14 +370,14 @@ class AutoStream():
                 if len(self.tick_data) > self.no_candles:
                     self.tick_data = self.tick_data.iloc[-self.no_candles:, :]
                 
-                # Update bot - TODO - move this into a method
+                # Update bot
                 if self.bot is not None:
                     self.update_bot()
                 
                 # Write to file
                 if self.write_to_file:
+                    self.tick_data.index.name = 'Time'
                     self.tick_data.to_csv(tick_filenames[tick.data['instrument']])
-                
             
             if self.record_candles:
                 for instrument in candle_builders:
@@ -396,7 +401,7 @@ class AutoStream():
                         if len(self.candle_data) > self.no_candles:
                             self.candle_data = self.candle_data.iloc[-self.no_candles:, :]
                         
-                        # Update bot - TODO - move this into a method
+                        # Update bot
                         if self.bot is not None:
                             # Careful, now in a for instrument loop, need to update 
                             # only the right bot
@@ -404,6 +409,7 @@ class AutoStream():
                         
                         # Write to file
                         if self.write_to_file:
+                            self.candle_data.index.name = 'Time'
                             self.candle_data.to_csv(candle_filenames[instrument])
                         
     
