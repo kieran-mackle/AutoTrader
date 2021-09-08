@@ -339,25 +339,37 @@ class AutoTraderBot():
                 # Set data equal to provided base_data
                 if base_data is not None:
                     data = base_data
-                else:
-                    print("Stream data has not been recieved yet. Reverting " +\
-                          "to download M1 data.")
-                    data = getattr(self.get_data, feed.lower())(instrument,
-                                                                granularity = 'M1',
-                                                                count = period)
                     
-                    if self.check_data_alignment:
-                        data = self._verify_data_alignment(data, instrument, feed, period, 
-                                                           price_data_path)
-                
-                if len(interval.split(',')) > 1:
-                    # Fetch MTF data
-                    MTF_data = {self.base_interval: data}
-                    
-                    if self.MTF_initialisation:
-                        # Download MTF data for strategy initialisation only
-                        if self.MTF_data is None:
-                            # MTF_data has not been retrieved yet
+                    if len(interval.split(',')) > 1:
+                        # Fetch MTF data
+                        MTF_data = {self.base_interval: data}
+                        
+                        if self.MTF_initialisation:
+                            # Download MTF data for strategy initialisation only
+                            if self.MTF_data is None:
+                                # MTF_data has not been retrieved yet
+                                for granularity in self.MTF_intervals:
+                                    data = getattr(self.get_data, feed.lower())(instrument,
+                                                                                granularity = granularity,
+                                                                                count=period)
+                                    
+                                    if self.check_data_alignment:
+                                        data = self._verify_data_alignment(data, instrument, feed, period, 
+                                                                           price_data_path)
+                                    
+                                    MTF_data[granularity] = data
+                                
+                                self.MTF_data = MTF_data
+                                
+                            else:
+                                # MTF_data already exists, reuse
+                                MTF_data = self.MTF_data
+                                
+                                # Replace base_interval data with latest data
+                                MTF_data[self.base_interval] = data
+                                
+                        else:
+                            # Download MTF data each update
                             for granularity in self.MTF_intervals:
                                 data = getattr(self.get_data, feed.lower())(instrument,
                                                                             granularity = granularity,
@@ -368,32 +380,25 @@ class AutoTraderBot():
                                                                        price_data_path)
                                 
                                 MTF_data[granularity] = data
-                            
-                            self.MTF_data = MTF_data
-                            
-                        else:
-                            # MTF_data already exists, reuse
-                            MTF_data = self.MTF_data
-                            
-                            # Replace base_interval data with latest data
-                            MTF_data[self.base_interval] = data
-                            
+                                
                     else:
-                        # Download MTF data each update
-                        for granularity in self.MTF_intervals:
-                            data = getattr(self.get_data, feed.lower())(instrument,
-                                                                        granularity = granularity,
-                                                                        count=period)
-                            
-                            if self.check_data_alignment:
-                                data = self._verify_data_alignment(data, instrument, feed, period, 
-                                                                   price_data_path)
-                            
-                            MTF_data[granularity] = data
-                            
+                        # There is only one timeframe of data
+                        MTF_data = None
                 else:
-                    # There is only one timeframe of data
+                    print("Stream data has not been recieved yet.")
+                    print("Passing NoneType as data.")
+                    
+                    data = None
                     MTF_data = None
+                    
+                    # data = getattr(self.get_data, feed.lower())(instrument,
+                    #                                             granularity = 'M1',
+                    #                                             count = period)
+                    
+                    # if self.check_data_alignment:
+                    #     data = self._verify_data_alignment(data, instrument, feed, period, 
+                    #                                        price_data_path)
+                
             
             elif self.data_file is not None:
                 # Using price stream data file
