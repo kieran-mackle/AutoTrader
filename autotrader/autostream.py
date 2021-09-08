@@ -15,7 +15,6 @@ import time
 import re
 import os
 import pandas as pd
-import threading
 
 
 class stream_record(object):
@@ -245,6 +244,7 @@ class AutoStream():
         '''
         Starts stream if all checks have passed.
         '''
+
         if self.checks_passed:
             # Proceed to run stream
             self.main()

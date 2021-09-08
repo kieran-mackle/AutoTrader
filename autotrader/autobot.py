@@ -187,7 +187,7 @@ class AutoTraderBot():
                              record_candles = record_candles,
                              no_candles = no_candles)
         
-        stream_thread = threading.Thread(target = self.AS.start(), 
+        stream_thread = threading.Thread(target = self.AS.start, 
                                          args=(), daemon=False)
         print('Spawning new thread to stream data.')
         stream_thread.start()
