@@ -355,70 +355,71 @@ class AutoStream():
         Processes stream based on run settings.
         '''
         
-        for line in stream.lines:
-            # Process each update of stream
-            line    = line.decode('utf-8')
-            msg     = json.loads(line)
-            tick    = stream_record(msg)
-            
-            if self.record_ticks and msg['type'] == 'PRICE':
-                # Create tick df from stream record
-                new_tick = {'Bid': tick.data['bid'], 
-                            'Ask': tick.data['ask'], 
-                            'Mid': tick.data['mid']}
-                latest_tick = pd.DataFrame(new_tick, 
-                                           index=[tick.data['time']])
+        while not os.path.exists('stopstream'):
+            for line in stream.lines:
+                # Process each update of stream
+                line    = line.decode('utf-8')
+                msg     = json.loads(line)
+                tick    = stream_record(msg)
                 
-                # Update tick_data with latest tick
-                self.tick_data = self.tick_data.append(latest_tick)
-                
-                # Check if the length has been exceeded
-                if len(self.tick_data) > self.no_candles:
-                    self.tick_data = self.tick_data.iloc[-self.no_candles:, :]
-                
-                # TODO - preprocess time index column to convert to datetime
-                # And add exception handling methods for datetime errors
-                
-                # Update bot
-                if self.update_bot:
-                    self.update_bot_data(self.tick_data)
-                
-                # Write to file
-                if self.write_to_file:
-                    self.tick_data.index.name = 'Time'
-                    self.tick_data.to_csv(tick_filenames[tick.data['instrument']])
-            
-            
-            if self.record_candles:
-                for instrument in candle_builders:
+                if self.record_ticks and msg['type'] == 'PRICE':
+                    # Create tick df from stream record
+                    new_tick = {'Bid': tick.data['bid'], 
+                                'Ask': tick.data['ask'], 
+                                'Mid': tick.data['mid']}
+                    latest_tick = pd.DataFrame(new_tick, 
+                                               index=[tick.data['time']])
                     
-                    candle  = candle_builders[instrument].process_tick(tick)
+                    # Update tick_data with latest tick
+                    self.tick_data = self.tick_data.append(latest_tick)
                     
-                    if candle is not None:
+                    # Check if the length has been exceeded
+                    if len(self.tick_data) > self.no_candles:
+                        self.tick_data = self.tick_data.iloc[-self.no_candles:, :]
+                    
+                    # TODO - preprocess time index column to convert to datetime
+                    # And add exception handling methods for datetime errors
+                    
+                    # Update bot
+                    if self.update_bot:
+                        self.update_bot_data(self.tick_data)
+                    
+                    # Write to file
+                    if self.write_to_file:
+                        self.tick_data.index.name = 'Time'
+                        self.tick_data.to_csv(tick_filenames[tick.data['instrument']])
+                
+                
+                if self.record_candles:
+                    for instrument in candle_builders:
                         
-                        # Create candle df from stream record
-                        new_candle = {'High': candle['data']['high'], 
-                                      'Low': candle['data']['low'], 
-                                      'Open': candle['data']['open'],
-                                      'Close': candle['data']['last']}
-                        latest_candle = pd.DataFrame(new_candle, 
-                                                     index=[candle['start']])
+                        candle  = candle_builders[instrument].process_tick(tick)
                         
-                        # Update candle_data with latest candle
-                        self.candle_data = self.candle_data.append(latest_candle)
-                        
-                        # Check if the length has been exceeded
-                        if len(self.candle_data) > self.no_candles:
-                            self.candle_data = self.candle_data.iloc[-self.no_candles:, :]
-                        
-                        # Update bot
-                        if self.update_bot:
-                            self.update_bot_data(self.candle_data)
-                        
-                        # Write to file
-                        if self.write_to_file:
-                            self.candle_data.index.name = 'Time'
-                            self.candle_data.to_csv(candle_filenames[instrument])
+                        if candle is not None:
+                            
+                            # Create candle df from stream record
+                            new_candle = {'High': candle['data']['high'], 
+                                          'Low': candle['data']['low'], 
+                                          'Open': candle['data']['open'],
+                                          'Close': candle['data']['last']}
+                            latest_candle = pd.DataFrame(new_candle, 
+                                                         index=[candle['start']])
+                            
+                            # Update candle_data with latest candle
+                            self.candle_data = self.candle_data.append(latest_candle)
+                            
+                            # Check if the length has been exceeded
+                            if len(self.candle_data) > self.no_candles:
+                                self.candle_data = self.candle_data.iloc[-self.no_candles:, :]
+                            
+                            # Update bot
+                            if self.update_bot:
+                                self.update_bot_data(self.candle_data)
+                            
+                            # Write to file
+                            if self.write_to_file:
+                                self.candle_data.index.name = 'Time'
+                                self.candle_data.to_csv(candle_filenames[instrument])
                         
     
     def update_bot_data(self, data):
