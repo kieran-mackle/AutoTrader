@@ -189,7 +189,7 @@ class AutoTraderBot():
         stream_thread = threading.Thread(target = self.AS.start(), 
                                          args=(), daemon=False)
         print('Spawning new thread to stream data.')
-        stream_thread.start
+        stream_thread.start()
         
     
     def _recieve_stream_data(self):
@@ -332,11 +332,10 @@ class AutoTraderBot():
         
         else:
             ' ~~~~~~~~~~ Running in livetrade mode or scan mode ~~~~~~~~~~~~~ '
-            # TODO - check over conditionals below. What happens when base_data 
-            # is none, because the stream hasn't picked up any data yet? And 
-            # the base interval is ticks?
             
             if base_data is not None:
+                # data has been passed in from external source
+                
                 # Set data equal to provided base_data
                 data = base_data
                 
@@ -381,11 +380,9 @@ class AutoTraderBot():
                             
                             MTF_data[granularity] = data
                             
-                            
-                    if len(MTF_data) == 1:
-                        # There is only one timeframe of data
-                        MTF_data = None
-                
+                else:
+                    # There is only one timeframe of data
+                    MTF_data = None
             
             elif self.data_file is not None:
                 # Using price stream data file

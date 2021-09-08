@@ -15,6 +15,7 @@ import time
 import re
 import os
 import pandas as pd
+import threading
 
 
 class stream_record(object):
@@ -244,7 +245,6 @@ class AutoStream():
         '''
         Starts stream if all checks have passed.
         '''
-        
         if self.checks_passed:
             # Proceed to run stream
             self.main()
@@ -255,7 +255,6 @@ class AutoStream():
         '''
         
         data_dir_path   = os.path.join(self.home_dir, 'price_data')
-        temp_file_path  = os.path.join(data_dir_path, "temp.txt")
         
         # Initialise tick DataFrame
         if self.record_ticks:
@@ -390,8 +389,7 @@ class AutoStream():
                 
                 # Update bot
                 if self.update_bot:
-                    print("Updating bot data")
-                    # self.update_bot_data(self.tick_data)
+                    self.update_bot_data(self.tick_data)
                 
                 # Write to file
                 if self.write_to_file:
