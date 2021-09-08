@@ -205,7 +205,7 @@ class AutoStream():
     def __init__(self, home_dir, stream_config, 
                  instrument, granularity=None, no_candles=10,
                  record_ticks=False, record_candles=False,
-                 bot=None, write_to_file=False):
+                 bot=None, update_bot=False, write_to_file=False):
         '''
         Assign attributes required to stream.
         '''
@@ -217,6 +217,7 @@ class AutoStream():
         self.record_candles = record_candles
         self.record_ticks   = record_ticks
         self.bot            = bot
+        self.update_bot     = update_bot
         self.write_to_file  = write_to_file
         
         # Runtime attributes
@@ -237,7 +238,7 @@ class AutoStream():
         if record_candles and granularity is None:
             print("Please provide a candlestick granularity when streaming candles.")
             self.checks_passed = False
-
+            
     
     def start(self):
         '''
@@ -379,8 +380,8 @@ class AutoStream():
                 # And add exception handling methods for datetime errors
                 
                 # Update bot
-                if self.bot is not None:
-                    self.update_bot(self.tick_data)
+                if self.update_bot:
+                    self.update_bot_data(self.tick_data)
                 
                 # Write to file
                 if self.write_to_file:
@@ -411,8 +412,8 @@ class AutoStream():
                             self.candle_data = self.candle_data.iloc[-self.no_candles:, :]
                         
                         # Update bot
-                        if self.bot is not None:
-                            self.update_bot(self.candle_data)
+                        if self.update_bot:
+                            self.update_bot_data(self.candle_data)
                         
                         # Write to file
                         if self.write_to_file:
@@ -420,7 +421,7 @@ class AutoStream():
                             self.candle_data.to_csv(candle_filenames[instrument])
                         
     
-    def update_bot(self, data):
+    def update_bot_data(self, data):
         '''
         Sends update signal to bot for latest data.
         '''

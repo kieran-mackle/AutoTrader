@@ -121,6 +121,16 @@ class ManageBot():
                 self.managing = False
                 
             else:
+                # No termination signal detected, proceed to manage
+                
+                # TODO - set AutoStream.update_bot to true, now that the bot
+                # has been recieved and is ready to trade
+                # Will need to check if streaming is happening ... either from
+                # here, or from a method in autobot
+                
+                # TODO - Also want to be able to kill the stream when the bot 
+                # is killed, maybe...
+                
                 for atempt in range(10):
                     try:
                         # Refresh strategy with latest data

@@ -71,16 +71,16 @@ class AutoTraderBot():
         self.use_stream         = autotrader_attributes.use_stream
         self.MTF_initialisation = autotrader_attributes.MTF_initialisation
         
+        # Assign local attributes
         self.instrument         = instrument
         self.broker             = broker
         
-        # Unpack strategy parameters
+        # Unpack strategy parameters and assign to strategy_params
         interval                = strategy_config["INTERVAL"]
         period                  = strategy_config["PERIOD"]
         risk_pc                 = strategy_config["RISK_PC"] if 'RISK_PC' in strategy_config else 0
         sizing                  = strategy_config["SIZING"] if 'SIZING' in strategy_config else 0
         params                  = strategy_config["PARAMETERS"]
-        
         strategy_params                 = params
         strategy_params['granularity']  = interval
         strategy_params['risk_pc']      = risk_pc
@@ -98,19 +98,21 @@ class AutoTraderBot():
         strat_spec.loader.exec_module(strategy_module)
         strategy                = getattr(strategy_module, strat_name)
         
-        # Get data
+        # Get broker configuration 
         global_config_fp = os.path.join(self.home_dir, 'config', 'GLOBAL.yaml')
         if os.path.isfile(global_config_fp):
             global_config = read_yaml(global_config_fp)
         else:
             global_config = None
-        broker_config           = environment_manager.get_config(self.environment,
-                                                             global_config,
-                                                             self.feed)
-        
+        broker_config  = environment_manager.get_config(self.environment,
+                                                        global_config,
+                                                        self.feed)
+   
         # Start price streaming
         if self.use_stream and self.backtest_mode is False:
-            # TODO - use count from strat config to set max candles
+            
+            # TODO - will eventually need to set AS.update_bot = True so that
+            # stream starts sending data to here
             
             # Code will be something like this ...
             # stream_config = 0
@@ -172,8 +174,10 @@ class AutoTraderBot():
             
         
         if self.MTF_initialisation:
-            # Only retrieve MTF data once upon initialisation 
+            # Only retrieve MTF_data once upon initialisation and store
+            # instantiation MTF_data
             self.MTF_data = None
+        
         
         self.get_data = autodata.GetData(broker_config, self.allow_dancing_bears)
         data, quote_data, MTF_data = self._retrieve_data(instrument, self.feed)
@@ -188,12 +192,13 @@ class AutoTraderBot():
         else:
             my_strat = strategy(params, strat_data, instrument)
             
-        # Assign strategy
+            
+        # Assign strategy to local attributes
         self.strategy           = my_strat
         self.data               = data
         self.quote_data         = quote_data
-        
         self.latest_orders      = []
+        
         
         # Assign strategy attributes for development purposes
         if self.backtest_mode:
@@ -201,11 +206,11 @@ class AutoTraderBot():
         if interval.split(',')[0] == 'tick':
             self.strategy._tick_data = True
         
-        
         if int(self.verbosity) > 0:
                 print("AutoTraderBot assigned to analyse {}".format(instrument),
                       "on {} timeframe using {}.".format(self.strategy_params['granularity'],
                                                          strategy_config['NAME']))
+    
     
     def _update_strategy_data(self, data=None):
         '''
