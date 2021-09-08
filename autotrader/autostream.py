@@ -176,6 +176,13 @@ class AutoStream():
     
     
     Attributes:
+        home_dir : str
+            The path of the home directory. If writing stream to file, it will
+            be written to home_dir/price_data.
+        
+        stream_config : dict
+            Dictionary containing stream configuration information.
+        
         instruments : list
             The instruments to be streamed.
         
