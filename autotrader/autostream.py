@@ -197,7 +197,7 @@ class AutoStream():
     def __init__(self, home_dir, stream_config, 
                  instrument, granularity, no_candles=10,
                  record_ticks=False, record_candles=True,
-                 bot=None, update_bot=False):
+                 bot=None, update_bot=False, write_to_file=False):
         '''
         Assign attributes required to stream.
         '''
@@ -210,6 +210,11 @@ class AutoStream():
         self.record_ticks   = record_ticks
         self.bot            = bot
         self.update_bot     = update_bot
+        self.write_to_file  = write_to_file
+        
+        # Runtime attributes
+        self.tick_data      = None
+        self.candle_data    = None
         
         # Add instruments to stream_config
         stream_config['instruments'] = instrument
@@ -228,40 +233,53 @@ class AutoStream():
         data_dir_path   = os.path.join(self.home_dir, 'price_data')
         temp_file_path  = os.path.join(data_dir_path, "temp.txt")
         
-        if not os.path.exists(data_dir_path):
-            # If price data directory doesn't exist, make it
-            os.makedirs(data_dir_path)
+        # Initialise tick DataFrame
+        if self.record_ticks:
+            self.tick_data = pd.DataFrame()
         
-        ''' Initialise candle factories '''
-        file_names      = {}
-        tick_files      = {}
-        candle_builders = {}
-        for instrument in self.instruments.split(','):
-            if self.record_candles:
-                filename                    = "{0}{1}.txt".format(self.granularity, 
-                                                                  instrument)
-                abs_filename                = os.path.join(data_dir_path, filename)
-                file_names[instrument]      = abs_filename
-                candle_builders[instrument] = candle_builder(instrument, 
-                                                             self.granularity)
-                
-                # If the price data file doesn't already exist, initialise it
-                if not os.path.exists(file_names[instrument]):
-                    f = open(file_names[instrument], "a+")
-                    f.write("Time, Open, High, Low, Close\n")
-                    f.close()
-
+        # Initialise candle DataFrame
+        if self.record_candles:
+            self.candle_data = pd.DataFrame()
+        
+        
+        # Initialise text file processing
+        if self.write_to_file:
+            if not os.path.exists(data_dir_path):
+                # The price_data directory doesn't exist, make it
+                os.makedirs(data_dir_path)
+        
+            # TODO - the below hasnt been checked yet 
             
-            if self.record_ticks:
-                filename                    = "{}_ticks.txt".format(instrument)
-                abs_filename                = os.path.join(data_dir_path, filename)
-                tick_files[instrument]      = abs_filename
+            # Initialise candle factories
+            file_names      = {}
+            tick_files      = {}
+            candle_builders = {}
+            for instrument in self.instruments.split(','):
+                if self.record_candles:
+                    filename                    = "{0}{1}.txt".format(self.granularity, 
+                                                                      instrument)
+                    abs_filename                = os.path.join(data_dir_path, filename)
+                    file_names[instrument]      = abs_filename
+                    candle_builders[instrument] = candle_builder(instrument, 
+                                                                 self.granularity)
+                    
+                    # # If the price data file doesn't already exist, initialise it
+                    # if not os.path.exists(file_names[instrument]):
+                    #     f = open(file_names[instrument], "a+")
+                    #     f.write("Time, Open, High, Low, Close\n")
+                    #     f.close()
+    
                 
-                # If the price data file doesn't already exist, initialise it
-                if not os.path.exists(tick_files[instrument]):
-                    f = open(tick_files[instrument], "a+")
-                    f.write("Time, Bid, Ask, Mid\n")
-                    f.close()
+                if self.record_ticks:
+                    filename                    = "{}_ticks.txt".format(instrument)
+                    abs_filename                = os.path.join(data_dir_path, filename)
+                    tick_files[instrument]      = abs_filename
+                    
+                    # # If the price data file doesn't already exist, initialise it
+                    # if not os.path.exists(tick_files[instrument]):
+                    #     f = open(tick_files[instrument], "a+")
+                    #     f.write("Time, Bid, Ask, Mid\n")
+                    #     f.close()
         
         # Connect to stream and begin processing 
         stream = self.connect_to_stream(self.stream_config)
@@ -298,23 +316,30 @@ class AutoStream():
                                       token = ACCESS_TOKEN, 
                                       port = port)
         
-        # TODO - try 3 times
-        try:
-            response = streamAPI.pricing.stream(accountID = ACCOUNT_ID, 
-                                                instruments = instruments,
-                                                snapshot = True
-                                                )
-            if response.status != 200:
-                print("Warning:")
-                print(response.reason)
-                # TODO - beware of sys.exit(0)
-                sys.exit(0)
-                
+        # TODO - double check the below logic... what does the first break do
+        for attempt in range(3):
+            try:
+                response = streamAPI.pricing.stream(accountID = ACCOUNT_ID, 
+                                                    instruments = instruments,
+                                                    snapshot = True
+                                                    )
+                if response.status != 200:
+                    print("Warning:")
+                    print(response.reason)
+                    break
+                    
+                else:
+                    return response
+            
+            except Exception as e:
+                print("Caught exception when connecting to stream\n" + str(e))
+            
             else:
-                return response
-        
-        except Exception as e:
-            print("Caught exception when connecting to stream\n" + str(e)) 
+                break
+            
+        else:
+            print("All attempts to connect to stream failed. Exiting.")
+            sys.exit(0)
     
     
     def process_stream(stream, candle_builders, file_names, tick_files, temp_file_path, 
