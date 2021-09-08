@@ -130,6 +130,9 @@ class ManageBot():
                 # No termination signal detected, proceed to manage
                 for atempt in range(10):
                     try:
+                        # do not run the update here unless self.use_stream is false,
+                        # otherwise autostream will automatically update the bot
+                        
                         # Refresh strategy with latest data
                         self.bot._update_strategy_data()
                         
@@ -171,9 +174,6 @@ class ManageBot():
                 else:
                     sleep_time = 0.25*self.granularity_to_seconds(base_granularity)
                     time.sleep(sleep_time)
-            
-            # TODO - Also want to be able to kill the stream when the bot 
-            # is killed, maybe... if so, os.system(touch stopstream) in home_dir
             
             
     def write_bot_to_log(self):
