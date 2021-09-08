@@ -356,7 +356,7 @@ class AutoStream():
         print("Processing stream. To stop streaming, create file named " +\
               "stopstream in the home directory.")
         print("Home directory: ", self.home_dir)
-        
+
         for line in stream.lines:
             
             # First check for stop file
@@ -395,7 +395,7 @@ class AutoStream():
                 if self.write_to_file:
                     self.tick_data.index.name = 'Time'
                     self.tick_data.to_csv(tick_filenames[tick.data['instrument']])
-            
+                
             if self.record_candles:
                 for instrument in candle_builders:
                     
