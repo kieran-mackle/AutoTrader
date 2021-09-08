@@ -122,69 +122,7 @@ class AutoTraderBot():
             
             # Start stream
             self._initiate_stream()
-            
-            
-            # TODO - will eventually need to set AS.update_bot = True so that
-            # stream starts sending data to here
-            
-            # Code will be something like this ...
-            # stream_config = 0
-            # ticks = 0
-            # candles = 0
-            # stream_granularity = 0
-            # no_candles = period
-            
-            # AS = AutoStream(self.home_dir, 
-            #                 stream_config, 
-            #                 instrument, 
-            #                 granularity = stream_granularity,
-            #                 record_ticks = ticks, 
-            #                 record_candles = candles,
-            #                 no_candles=no_candles)
-            
-            # stream_thread = threading.Thread(target = AS.start(), 
-            #                                  args=(), daemon=False)
-            # stream_thread.start
-            
-            # TODO - note that current implementation will only stream base
-            # interval (first granularity listed)
-            
-            # # Check how many granularities were requested
-            # if len(interval.split(',')) > 1:
-            #     base_interval = interval.split(',')[0]
-            #     self.base_interval = base_interval
-            #     self.MTF_intervals = interval.split(',')[1:]
-            # else:
-            #     self.base_interval = None
-            #     self.MTF_intervals = []
-                
-            
-            # if base_interval == 'tick' or base_interval == 'ticks':
-            #     stream_type = 'ticks'
-            #     streamfile = "{}_ticks.txt".format(instrument)
-            # else:
-            #     stream_type = 'candles'
-            #     streamfile = "{0}{1}.txt".format(base_interval, instrument)
-            
-            # Start streaming price data
-            # stream_script_path = os.path.join(self.home_dir, 'oandastream.py')
-            # stream_process = subprocess.Popen(['nohup', 'python3', stream_script_path,
-            #                                    '-i', instrument, '-g', base_interval,
-            #                                    '-t', stream_type])
-            
-            # Construct stream filename
-            # streamfile_copy = 'copy_of_' + streamfile
-            # abs_streamfile = os.path.join(self.home_dir, 'price_data', streamfile)
-            # self.abs_streamfile_copy = os.path.join(self.home_dir, 'price_data', streamfile_copy)
-            # print("Streaming price data to {} (PID: {}).".format(streamfile, 
-            #                                                      stream_process.pid))
-            
-            # Set self.data to use streamfile 
-            # self.data_file = abs_streamfile
-            
-            # Sleep for 1 sec to allow stream to start and create file
-            # time.sleep(1)
-            
+
         
         if self.MTF_initialisation:
             # Only retrieve MTF_data once upon initialisation and store
@@ -224,12 +162,11 @@ class AutoTraderBot():
                       "on {} timeframe using {}.".format(self.strategy_params['granularity'],
                                                          strategy_config['NAME']))
     
+    
     def _initiate_stream(self):
         '''
         Spawns AutoStream into a new thread.
         '''
-        # TODO - will eventually need to set AS.update_bot = True so that
-        # stream starts sending data to here
         
         record_ticks = False
         record_candles = False
@@ -261,12 +198,10 @@ class AutoTraderBot():
         and autostream.
         '''
         
-        # TODO - if data is None or len(data) == 0
-        
-        # Download new data
+        # Retrieve new data
         new_data, _, MTF_data = self._retrieve_data(self.instrument, 
                                                     self.feed,
-                                                    base_data = None)
+                                                    base_data = data)
         
         # Check for MTF_data
         if MTF_data is None:

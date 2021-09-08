@@ -129,7 +129,7 @@ class ManageBot():
                 # here, or from a method in autobot
                 
                 # TODO - Also want to be able to kill the stream when the bot 
-                # is killed, maybe...
+                # is killed, maybe... if so, os.system(touch stopstream) in home_dir
                 
                 for atempt in range(10):
                     try:
