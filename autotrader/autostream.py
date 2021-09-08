@@ -450,7 +450,7 @@ class AutoStream():
         Sends updated data to bot.
         '''
         
-        # Only pass data if len(data) > 0d
+        # Only pass data if len(data) > 0
         if len(data) > 0:
             # Refresh strategy with latest data
             self.bot._update_strategy_data(data)

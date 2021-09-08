@@ -207,6 +207,10 @@ class AutoTraderBot():
         and autostream.
         '''
         
+        if data is not None:
+            # Update data attribute (for livetrade compatibility)
+            self.data = data
+        
         # Retrieve new data
         new_data, _, MTF_data = self._retrieve_data(self.instrument, 
                                                     self.feed,
