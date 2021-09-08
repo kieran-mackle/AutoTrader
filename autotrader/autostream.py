@@ -14,6 +14,7 @@ import calendar
 import time
 import re
 import os
+import traceback
 import pandas as pd
 
 
@@ -298,10 +299,26 @@ class AutoStream():
                                     candle_builders,
                                     candle_filenames,
                                     tick_filenames)
-            except Exception as e:
-                print("Exception caught:")
-                print(e)
+            except BaseException as ex:
+                ex_type, ex_value, ex_traceback = sys.exc_info()
+                        
+                # Extract unformatter stack traces as tuples
+                trace_back = traceback.extract_tb(ex_traceback)
+            
+                # Format stacktrace
+                stack_trace = list()
+            
+                for trace in trace_back:
+                    trade_string = "File : %s , Line : %d, " % (trace[0], trace[1]) + \
+                                   "Func.Name : %s, Message : %s" % (trace[2], trace[3])
+                    stack_trace.append(trade_string)
                 
+                print("WARNING FROM AUTOSTREAM: The following exception was caught:")
+                print("Exception type : %s " % ex_type.__name__)
+                print("Exception message : %s" %ex_value)
+                print("Stack trace : %s" %stack_trace)
+                print("  Trying again.")
+                            
                 # Re-connect to stream
                 stream = self.connect_to_stream(self.stream_config)
             else:
