@@ -355,6 +355,9 @@ class AutoStream():
         Processes stream based on run settings.
         '''
         
+        print("Processing stream. To stop streaming, create file named " +\
+              "stopstream in the home directory.")
+        
         while not os.path.exists('stopstream'):
             for line in stream.lines:
                 # Process each update of stream
@@ -424,12 +427,14 @@ class AutoStream():
     
     def update_bot_data(self, data):
         '''
-        Sends update signal to bot for latest data.
+        Sends updated data to bot.
         '''
-        # TODO - verify what is put here - this makes bot manager redundant ?
-        # Also, pass the data directly to self.bot.strategy, instead of making
-        # bot retrieve again?
-        # Pass data to the method below, so that the bot updates the data
+        
+        # TODO - how will this interfere with bot manager?
+        
+        # Only pass data if len(data) > 0d
+        if len(data) == 0:
+            data = None
         
         # Refresh strategy with latest data
         self.bot._update_strategy_data(data)
