@@ -205,7 +205,7 @@ class AutoStream():
     def __init__(self, home_dir, stream_config, 
                  instrument, granularity, no_candles=10,
                  record_ticks=False, record_candles=True,
-                 bot=None, update_bot=False, write_to_file=False):
+                 bot=None, write_to_file=False):
         '''
         Assign attributes required to stream.
         '''
@@ -217,7 +217,6 @@ class AutoStream():
         self.record_candles = record_candles
         self.record_ticks   = record_ticks
         self.bot            = bot
-        self.update_bot     = update_bot
         self.write_to_file  = write_to_file
         
         # Runtime attributes
@@ -303,7 +302,6 @@ class AutoStream():
                                file_names,
                                tick_files,
                                temp_file_path,
-                               self.no_candles,
                                self.record_ticks,
                                self.record_candles)
             except Exception as e:
@@ -355,7 +353,7 @@ class AutoStream():
     
     
     def process_stream(self, stream, candle_builders, file_names, tick_files, 
-                       temp_file_path, no_candles, record_ticks=False, 
+                       temp_file_path, record_ticks=False, 
                        record_candles=True):
         '''
         Processes stream based on run settings.
@@ -377,58 +375,33 @@ class AutoStream():
             
             if record_ticks and msg['type'] == 'PRICE':
                 
-                # TODO - the below is repeated code: clean it up
-                # If the price data file doesn't already exist, initialise it
-                # This is an edge case when the file may accidentally be deleted
-                # if not os.path.exists(tick_files[tick.data['instrument']]):
-                #     f = open(tick_files[tick.data['instrument']], "a+")
-                #     f.write("Time, Bid, Ask, Mid\n")
-                #     f.close()
-                
-                
-                # Update dataframe using latest tick
-                tick_data = 0
-                
                 # Create tick df from stream record
-                latest_tick = pd.DataFrame()
+                new_tick = {'Bid': tick.data['bid'], 
+                            'Ask': tick.data['ask'], 
+                            'Mid': tick.data['mid']}
+                latest_tick = pd.DataFrame(new_tick, 
+                                           index=[tick.data['time']])
                 
-                tick_data = tick_data.append(latest_tick)
+                # Update tick_data with latest tick
+                self.tick_data = self.tick_data.append(latest_tick)
                 
-                # Need to check if the length has been exceeded
-                if len(self.tick_data) > no_candles:
-                    tick_data = tick_data.iloc[len(tick_data):, :]
+                # Check if the length has been exceeded
+                if len(self.tick_data) > self.no_candles:
+                    self.tick_data = self.tick_data.iloc[-self.no_candles:, :]
                 
+                # Update bot - TODO - move this into a method
+                if self.bot is not None:
+                    # TODO - verify what is put here - this makes bot manager redundant
+                    # Refresh strategy with latest data
+                    self.bot._update_strategy_data()
+                    
+                    # Call bot update to act on latest data
+                    self.bot._update(-1)
                 
-                # Check max number of lines and remove if necessary
-                f = open(tick_files[tick.data['instrument']], "r")
-                line_count = 0
-                for l in f:
-                    if l != "\n":
-                        line_count += 1
-                f.close()
+                # Write to file
+                if self.write_to_file:
+                    self.tick_data.to_csv(tick_files[tick.data['instrument']])
                 
-                if line_count >= int(no_candles):
-                    with open(tick_files[tick.data['instrument']], "r") as original_file:
-                        with open(temp_file_path, "w+") as temp_file:  
-                            for ind, old_line in enumerate(original_file):
-                                if ind in range(1,line_count - int(no_candles) + 1):
-                                    continue
-                                else:
-                                    temp_file.write(old_line)
-                            
-                            temp_file.close()
-                        
-                        # Rename cleaned temp file to original file name
-                        os.replace(temp_file_path, tick_files[tick.data['instrument']])
-                
-                # Write latest tick to file
-                f = open(tick_files[tick.data['instrument']], "a+")
-                f.write("{0}, {1}, {2}, {3}\n".format(tick.data['time'],
-                                                      tick.data['bid'],
-                                                      tick.data['ask'],
-                                                      tick.data['mid'])
-                        )
-                f.close()
             
             if record_candles:
                 for instrument in candle_builders:
@@ -436,44 +409,35 @@ class AutoStream():
                     candle  = candle_builders[instrument].process_tick(tick)
                     
                     if candle is not None:
-                        Time    = candle['start']
-                        High    = round(candle['data']['high'], 5)
-                        Low     = round(candle['data']['low'], 5)
-                        Open    = round(candle['data']['open'], 5)
-                        Close   = round(candle['data']['last'], 5)
                         
-                        # Check if max number of candles has been reached and remove 
-                        # older candles
-                        f = open(file_names[instrument], "r")
-                        line_count = 0
-                        for l in f:
-                            if l != "\n":
-                                line_count += 1
-                        f.close()
+                        # Create candle df from stream record
+                        new_candle = {'High': candle['data']['high'], 
+                                      'Low': candle['data']['low'], 
+                                      'Open': candle['data']['open'],
+                                      'Close': candle['data']['last']}
+                        latest_candle = pd.DataFrame(new_candle, 
+                                                     index=[candle['start']])
                         
-                        if line_count >= int(no_candles):
-                            with open(file_names[instrument], "r") as original_file:
-                                with open(temp_file_path, "w+") as temp_file:  
-                                    for ind, old_line in enumerate(original_file):
-                                        if ind in range(1,line_count - int(no_candles) + 1):
-                                            continue
-                                        else:
-                                            temp_file.write(old_line)
-                                    
-                                    temp_file.close()
-                                
-                                os.remove(file_names[instrument])
-                                os.replace(temp_file_path, file_names[instrument])
+                        # Update candle_data with latest candle
+                        self.candle_data = self.candle_data.append(latest_candle)
                         
-                        # Write new candle to file
-                        f       = open(file_names[instrument], "a+")
-                        f.write("{0}, {1}, {2}, {3}, {4}\n".format(Time, 
-                                                                    Open,
-                                                                    High, 
-                                                                    Low, 
-                                                                    Close)
-                                )
-                        f.close()
+                        # Check if the length has been exceeded
+                        if len(self.candle_data) > self.no_candles:
+                            self.candle_data = self.candle_data.iloc[-self.no_candles:, :]
+                        
+                        # Update bot - TODO - move this into a method
+                        if self.bot is not None:
+                            # TODO - verify what is put here - this makes bot manager redundant
+                            # Refresh strategy with latest data
+                            self.bot._update_strategy_data()
+                            
+                            # Call bot update to act on latest data
+                            self.bot._update(-1)
+                        
+                        # Write to file
+                        if self.write_to_file:
+                            self.candle_data.to_csv(file_names[instrument])
+                        
 
     def write_to_file(self):
         '''
