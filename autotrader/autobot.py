@@ -9,11 +9,13 @@ import pytz
 import pandas as pd
 import numpy as np
 import subprocess
+import threading
 from shutil import copy2
 from datetime import datetime
 from autotrader.emailing import emailing
 from autotrader.lib import autodata, environment_manager
 from autotrader.lib.read_yaml import read_yaml
+from autotrader.autostream import AutoStream
 
 
 class AutoTraderBot():
@@ -110,6 +112,25 @@ class AutoTraderBot():
         if self.use_stream and self.backtest_mode is False:
             # TODO - use count from strat config to set max candles
             
+            # Code will be something like this ...
+            # stream_config = 0
+            # ticks = 0
+            # candles = 0
+            # stream_granularity = 0
+            # no_candles = period
+            
+            # AS = AutoStream(self.home_dir, 
+            #                 stream_config, 
+            #                 instrument, 
+            #                 granularity = stream_granularity,
+            #                 record_ticks = ticks, 
+            #                 record_candles = candles,
+            #                 no_candles=no_candles)
+            
+            # stream_thread = threading.Thread(target = AS.start(), 
+            #                                  args=(), daemon=False)
+            # stream_thread.start
+            
             # TODO - note that current implementation will only stream base
             # interval (first granularity listed)
             
@@ -191,6 +212,8 @@ class AutoTraderBot():
         Method to update strategy with latest data. Called by the bot manager
         and autostream.
         '''
+        
+        # TODO - if data is None or len(data) == 0
         
         if data is None:
             # Download new data
