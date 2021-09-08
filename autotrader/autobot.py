@@ -178,19 +178,27 @@ class AutoTraderBot():
         stream_granularity = self.base_interval
         no_candles = self.strategy_params['period']
         
-        AS = AutoStream(self.home_dir, 
-                        self.stream_config, 
-                        self.instrument, 
-                        granularity = stream_granularity,
-                        record_ticks = record_ticks, 
-                        record_candles = record_candles,
-                        no_candles = no_candles)
+        self.AS = AutoStream(self.home_dir, 
+                             self.stream_config, 
+                             self.instrument, 
+                             granularity = stream_granularity,
+                             record_ticks = record_ticks, 
+                             record_candles = record_candles,
+                             no_candles = no_candles)
         
-        stream_thread = threading.Thread(target = AS.start(), 
+        stream_thread = threading.Thread(target = self.AS.start(), 
                                          args=(), daemon=False)
         print('Spawning new thread to stream data.')
         stream_thread.start
         
+    
+    def _recieve_stream_data(self):
+        '''
+        Method to tell AutoStream to send data to bot. Called from bot manager.
+        '''
+        # TODO - not sure if this will work, since AS is in a new thread?
+        
+        self.AS.update_bot = True
     
     def _update_strategy_data(self, data=None):
         '''

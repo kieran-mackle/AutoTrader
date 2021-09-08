@@ -127,9 +127,7 @@ class ManageBot():
                 # has been recieved and is ready to trade
                 # Will need to check if streaming is happening ... either from
                 # here, or from a method in autobot
-                
-                # TODO - Also want to be able to kill the stream when the bot 
-                # is killed, maybe... if so, os.system(touch stopstream) in home_dir
+                self.bot._recieve_stream_data()
                 
                 for atempt in range(10):
                     try:
@@ -174,6 +172,10 @@ class ManageBot():
                 else:
                     sleep_time = 0.25*self.granularity_to_seconds(base_granularity)
                     time.sleep(sleep_time)
+            
+            # TODO - Also want to be able to kill the stream when the bot 
+            # is killed, maybe... if so, os.system(touch stopstream) in home_dir
+            
             
     def write_bot_to_log(self):
         '''
