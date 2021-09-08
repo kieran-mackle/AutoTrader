@@ -275,7 +275,7 @@ class AutoTrader():
             else:
                 print("AutoTrader Livetrade")
                 print("--------------------")
-                print("Time: {}".format(datetime.now().strftime("%A, %B %d %Y, "+
+                print("Time: {}\n".format(datetime.now().strftime("%A, %B %d %Y, "+
                                                                   "%H:%M:%S")))
         
         ''' -------------------------------------------------------------- '''
