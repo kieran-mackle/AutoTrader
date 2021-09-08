@@ -192,6 +192,14 @@ class AutoStream():
         no_candles : int
             The maximum number of candles to write to file.
         
+        record_ticks : bool
+            Flag to capture tick data.
+        
+        record_candles : bool
+            Flag to capture candlestick data.
+        
+        write_to_file : bool
+            Flag to write streamed data to csv files.
     '''
     
     def __init__(self, home_dir, stream_config, 
@@ -248,7 +256,7 @@ class AutoStream():
                 # The price_data directory doesn't exist, make it
                 os.makedirs(data_dir_path)
         
-            # TODO - the below hasnt been checked yet 
+            # TODO - the below hasnt been double checked yet 
             
             # Initialise candle factories
             file_names      = {}
@@ -342,8 +350,9 @@ class AutoStream():
             sys.exit(0)
     
     
-    def process_stream(stream, candle_builders, file_names, tick_files, temp_file_path, 
-                   no_candles, record_ticks=False, record_candles=True):
+    def process_stream(stream, candle_builders, file_names, tick_files, 
+                       temp_file_path, no_candles, record_ticks=False, 
+                       record_candles=True):
         '''
         Processes stream based on run settings.
         '''
