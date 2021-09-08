@@ -189,7 +189,8 @@ class AutoStream():
     
     def __init__(self, home_dir, stream_config, 
                  instrument, granularity, no_candles=10,
-                 record_ticks=False, record_candles=True):
+                 record_ticks=False, record_candles=True,
+                 bot=None, update_bot=False):
         '''
         Assign attributes required to stream.
         '''
@@ -200,6 +201,8 @@ class AutoStream():
         self.no_candles     = no_candles
         self.record_candles = record_candles
         self.record_ticks   = record_ticks
+        self.bot            = bot
+        self.update_bot     = update_bot
         
         # Add instruments to stream_config
         stream_config['instruments'] = instrument
@@ -211,7 +214,9 @@ class AutoStream():
         Subscribes to stream and builds candlestick price files. 
         '''
         
-        # TODO - do not start stream if it is already running
+        # TODO - do not start stream if it is already running - be careful,
+        # this is only appropriate if we are reading from a file, but if the 
+        # data is being stored locally in the class instance, it will need it
         
         data_dir_path   = os.path.join(self.home_dir, 'price_data')
         temp_file_path  = os.path.join(data_dir_path, "temp.txt")
@@ -325,6 +330,8 @@ class AutoStream():
             
             # If file is deleted for some reason, create it again
             
+            # TODO - create empty df for tick and candle df's, not sure where
+            
             if record_ticks and msg['type'] == 'PRICE':
                 
                 # TODO - the below is repeated code: clean it up
@@ -334,6 +341,20 @@ class AutoStream():
                 #     f = open(tick_files[tick.data['instrument']], "a+")
                 #     f.write("Time, Bid, Ask, Mid\n")
                 #     f.close()
+                
+                
+                # Update dataframe using latest tick
+                tick_data = 0
+                
+                # Create tick df from stream record
+                latest_tick = pd.DataFrame()
+                
+                tick_data = tick_data.append(latest_tick)
+                
+                # Need to check if the length has been exceeded
+                if len(tick_data) > no_candles:
+                    tick_data = tick_data.iloc[len(tick_data):, :]
+                
                 
                 # Check max number of lines and remove if necessary
                 f = open(tick_files[tick.data['instrument']], "r")
@@ -410,6 +431,11 @@ class AutoStream():
                                                                     Close)
                                 )
                         f.close()
+
+    def write_to_file(self):
+        '''
+        Write data to the filepath provided.
+        '''
 
     def create_dataframe(self,):
         '''
