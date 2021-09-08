@@ -365,13 +365,7 @@ class AutoStream():
             msg     = json.loads(line)
             tick    = stream_record(msg)
             
-            # Add logic to pass new ticks / candles directly to strategy 
-            
             # Add exception handling methods 
-            
-            # If file is deleted for some reason, create it again
-            
-            # TODO - create empty df for tick and candle df's, not sure where
             
             if record_ticks and msg['type'] == 'PRICE':
                 
@@ -391,12 +385,7 @@ class AutoStream():
                 
                 # Update bot - TODO - move this into a method
                 if self.bot is not None:
-                    # TODO - verify what is put here - this makes bot manager redundant
-                    # Refresh strategy with latest data
-                    self.bot._update_strategy_data()
-                    
-                    # Call bot update to act on latest data
-                    self.bot._update(-1)
+                    self.update_bot()
                 
                 # Write to file
                 if self.write_to_file:
@@ -427,28 +416,25 @@ class AutoStream():
                         
                         # Update bot - TODO - move this into a method
                         if self.bot is not None:
-                            # TODO - verify what is put here - this makes bot manager redundant
-                            # Refresh strategy with latest data
-                            self.bot._update_strategy_data()
-                            
-                            # Call bot update to act on latest data
-                            self.bot._update(-1)
+                            # Careful, now in a for instrument loop, need to update 
+                            # only the right bot
+                            self.update_bot()
                         
                         # Write to file
                         if self.write_to_file:
                             self.candle_data.to_csv(file_names[instrument])
                         
-
-    def write_to_file(self):
+    
+    def update_bot(self):
         '''
-        Write data to the filepath provided.
+        Sends update signal to bot for latest data.
         '''
-
-    def create_dataframe(self,):
-        '''
-        Creates a Pandas dataframe from ...
-        '''
+        # TODO - verify what is put here - this makes bot manager redundant
+        # Also, pass the data directly to self.bot.strategy, instead of making
+        # bot retrieve again?
         
-        df = pd.DataFrame()
+        # Refresh strategy with latest data
+        self.bot._update_strategy_data()
         
-        return df
+        # Call bot update to act on latest data
+        self.bot._update(-1)
