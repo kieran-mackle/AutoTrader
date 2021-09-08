@@ -117,7 +117,7 @@ class AutoTraderBot():
                 self.base_interval = interval.split(',')[0]
                 self.MTF_intervals = interval.split(',')[1:]
             else:
-                self.base_interval = None
+                self.base_interval = interval
                 self.MTF_intervals = []
             
             # Start stream
@@ -174,6 +174,7 @@ class AutoTraderBot():
             record_ticks = True
         else:
             record_candles = True
+        
         
         stream_granularity = self.base_interval
         no_candles = self.strategy_params['period']
@@ -332,11 +333,22 @@ class AutoTraderBot():
         else:
             ' ~~~~~~~~~~ Running in livetrade mode or scan mode ~~~~~~~~~~~~~ '
             
-            if base_data is not None:
-                # data has been passed in from external source
+            if self.use_stream:
+                # Streaming data
                 
                 # Set data equal to provided base_data
-                data = base_data
+                if base_data is not None:
+                    data = base_data
+                else:
+                    print("Stream data has not been recieved yet. Reverting " +\
+                          "to download M1 data.")
+                    data = getattr(self.get_data, feed.lower())(instrument,
+                                                                granularity = 'M1',
+                                                                count = period)
+                    
+                    if self.check_data_alignment:
+                        data = self._verify_data_alignment(data, instrument, feed, period, 
+                                                           price_data_path)
                 
                 if len(interval.split(',')) > 1:
                     # Fetch MTF data
@@ -472,7 +484,7 @@ class AutoTraderBot():
                     if granularity == "tick":
                         print("Warning: cannot download historic tick data. " + \
                               "Please change candlestick granularity in " + \
-                              "strategy configuration.")
+                              "strategy configuration. Exiting.")
                         sys.exit(0)
                         
                     data = getattr(self.get_data, feed.lower())(instrument,
