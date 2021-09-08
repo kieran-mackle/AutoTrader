@@ -277,19 +277,19 @@ class AutoTrader():
         '''    Assign strategy to bot for each instrument in watchlist     '''
         ''' -------------------------------------------------------------- '''
         for strategy in self.strategies:
-                for instrument in self.strategies[strategy]['WATCHLIST']:
-                    bot = AutoTraderBot(instrument, self.strategies[strategy],
-                                            self.broker, self)
-                    
-                    if self.detach_bot is True and self.backtest_mode is False:
-                        # Send bot to bot manager to monitor stream
-                        print("Passing bot to bot manager...")
-                        bot_name_string = "{}_{}_{}".format(strategy.replace(' ',''),
-                                                            self.strategies[strategy]['INTERVAL'].split(',')[0],
-                                                            instrument)
-                        ManageBot(bot, self.home_dir, bot_name_string)
-                    else:
-                        self.bots_deployed.append(bot)
+            for instrument in self.strategies[strategy]['WATCHLIST']:
+                bot = AutoTraderBot(instrument, self.strategies[strategy],
+                                        self.broker, self)
+                
+                if self.detach_bot is True and self.backtest_mode is False:
+                    # Send bot to bot manager to monitor stream
+                    print("Passing bot to bot manager...")
+                    bot_name_string = "{}_{}_{}".format(strategy.replace(' ',''),
+                                                        self.strategies[strategy]['INTERVAL'].split(',')[0],
+                                                        instrument)
+                    ManageBot(bot, self.home_dir, bot_name_string)
+                else:
+                    self.bots_deployed.append(bot)
                     
         
         ''' -------------------------------------------------------------- '''
