@@ -292,7 +292,7 @@ class AutoTrader():
                     bot_name_string = "{}_{}_{}".format(strategy.replace(' ',''),
                                                         self.strategies[strategy]['INTERVAL'].split(',')[0],
                                                         instrument)
-                    ManageBot(bot, self.home_dir, bot_name_string)
+                    ManageBot(bot, self.home_dir, bot_name_string, self.use_stream)
                 else:
                     self.bots_deployed.append(bot)
                     

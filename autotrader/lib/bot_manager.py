@@ -52,11 +52,12 @@ class ManageBot():
     
     """
     
-    def __init__(self, bot, home_dir, bot_name_string):
+    def __init__(self, bot, home_dir, bot_name_string, use_stream):
         
         self.bot = bot
         self.home_dir = home_dir
         self.managing = True
+        self.use_stream = use_stream
         
         self.active_bots_dir = os.path.join(home_dir, 'active_bots')
         self.active_bot_path = os.path.join(self.active_bots_dir, bot_name_string)
@@ -93,6 +94,11 @@ class ManageBot():
         # Add bot to log
         self.write_bot_to_log()
         
+        # Signal that bot is ready to recieve data from stream
+        if self.use_stream:
+            self.bot._recieve_stream_data()
+        
+        # Manage
         while self.managing:
             
             # First check for any termination signals
@@ -122,13 +128,6 @@ class ManageBot():
                 
             else:
                 # No termination signal detected, proceed to manage
-                
-                # TODO - set AutoStream.update_bot to true, now that the bot
-                # has been recieved and is ready to trade
-                # Will need to check if streaming is happening ... either from
-                # here, or from a method in autobot
-                self.bot._recieve_stream_data()
-                
                 for atempt in range(10):
                     try:
                         # Refresh strategy with latest data
