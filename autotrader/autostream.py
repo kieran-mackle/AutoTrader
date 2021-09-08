@@ -229,6 +229,8 @@ class AutoStream():
         
         # check that one of tick or candle recording is set, or else dont run
         
+        # TODO - keep track of active streams 
+        
         # self.main()
         
         
@@ -236,10 +238,6 @@ class AutoStream():
         '''
         Subscribes to stream and builds candlestick price files. 
         '''
-        
-        # TODO - do not start stream if it is already running - be careful,
-        # this is only appropriate if we are reading from a file, but if the 
-        # data is being stored locally in the class instance, it will need it
         
         data_dir_path   = os.path.join(self.home_dir, 'price_data')
         temp_file_path  = os.path.join(data_dir_path, "temp.txt")
@@ -252,45 +250,30 @@ class AutoStream():
         if self.record_candles:
             self.candle_data = pd.DataFrame()
         
-        
         # Initialise text file processing
         if self.write_to_file:
             if not os.path.exists(data_dir_path):
                 # The price_data directory doesn't exist, make it
                 os.makedirs(data_dir_path)
         
-            # TODO - the below hasnt been double checked yet 
-            
             # Initialise candle factories
-            file_names      = {}
-            tick_files      = {}
+            candle_filenames = {}
+            tick_filenames = {}
             candle_builders = {}
             for instrument in self.instruments.split(','):
                 if self.record_candles:
                     filename                    = "{0}{1}.txt".format(self.granularity, 
                                                                       instrument)
                     abs_filename                = os.path.join(data_dir_path, filename)
-                    file_names[instrument]      = abs_filename
+                    candle_filenames[instrument] = abs_filename
                     candle_builders[instrument] = candle_builder(instrument, 
                                                                  self.granularity)
-                    
-                    # # If the price data file doesn't already exist, initialise it
-                    # if not os.path.exists(file_names[instrument]):
-                    #     f = open(file_names[instrument], "a+")
-                    #     f.write("Time, Open, High, Low, Close\n")
-                    #     f.close()
-    
                 
                 if self.record_ticks:
                     filename                    = "{}_ticks.txt".format(instrument)
                     abs_filename                = os.path.join(data_dir_path, filename)
-                    tick_files[instrument]      = abs_filename
+                    tick_filenames[instrument]  = abs_filename
                     
-                    # # If the price data file doesn't already exist, initialise it
-                    # if not os.path.exists(tick_files[instrument]):
-                    #     f = open(tick_files[instrument], "a+")
-                    #     f.write("Time, Bid, Ask, Mid\n")
-                    #     f.close()
         
         # Connect to stream and begin processing 
         stream = self.connect_to_stream(self.stream_config)
@@ -299,14 +282,14 @@ class AutoStream():
             try:
                 self.process_stream(stream,
                                candle_builders,
-                               file_names,
-                               tick_files,
-                               temp_file_path,
-                               self.record_ticks,
-                               self.record_candles)
+                               candle_filenames,
+                               tick_filenames,
+                               temp_file_path)
             except Exception as e:
                 print("Exception caught:")
                 print(e)
+                
+                # Re-connect to stream
                 stream = self.connect_to_stream(self.stream_config)
             else:
                 break
@@ -326,7 +309,7 @@ class AutoStream():
                                       token = ACCESS_TOKEN, 
                                       port = port)
         
-        # TODO - double check the below logic... what does the first break do
+        # Connect to the stream
         for attempt in range(3):
             try:
                 response = streamAPI.pricing.stream(accountID = ACCOUNT_ID, 
@@ -352,9 +335,8 @@ class AutoStream():
             sys.exit(0)
     
     
-    def process_stream(self, stream, candle_builders, file_names, tick_files, 
-                       temp_file_path, record_ticks=False, 
-                       record_candles=True):
+    def process_stream(self, stream, candle_builders, candle_filenames, tick_filenames, 
+                       temp_file_path):
         '''
         Processes stream based on run settings.
         '''
@@ -367,7 +349,7 @@ class AutoStream():
             
             # Add exception handling methods 
             
-            if record_ticks and msg['type'] == 'PRICE':
+            if self.record_ticks and msg['type'] == 'PRICE':
                 
                 # Create tick df from stream record
                 new_tick = {'Bid': tick.data['bid'], 
@@ -389,10 +371,10 @@ class AutoStream():
                 
                 # Write to file
                 if self.write_to_file:
-                    self.tick_data.to_csv(tick_files[tick.data['instrument']])
+                    self.tick_data.to_csv(tick_filenames[tick.data['instrument']])
                 
             
-            if record_candles:
+            if self.record_candles:
                 for instrument in candle_builders:
                     
                     candle  = candle_builders[instrument].process_tick(tick)
@@ -422,7 +404,7 @@ class AutoStream():
                         
                         # Write to file
                         if self.write_to_file:
-                            self.candle_data.to_csv(file_names[instrument])
+                            self.candle_data.to_csv(candle_filenames[instrument])
                         
     
     def update_bot(self):
@@ -432,6 +414,7 @@ class AutoStream():
         # TODO - verify what is put here - this makes bot manager redundant
         # Also, pass the data directly to self.bot.strategy, instead of making
         # bot retrieve again?
+        # Pass data to the method below, so that the bot updates the data
         
         # Refresh strategy with latest data
         self.bot._update_strategy_data()
