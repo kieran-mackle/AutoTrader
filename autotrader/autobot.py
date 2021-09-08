@@ -226,9 +226,6 @@ class AutoTraderBot():
         Retrieves price data from AutoData.
         '''
     
-        # TODO - include logic for when base_data is not None - ie. pass that 
-        # through
-    
         interval    = self.strategy_params['granularity']
         period      = self.strategy_params['period']
         price_data_path = os.path.join(self.home_dir, 'price_data')
@@ -335,9 +332,63 @@ class AutoTraderBot():
         
         else:
             ' ~~~~~~~~~~ Running in livetrade mode or scan mode ~~~~~~~~~~~~~ '
+            # TODO - check over conditionals below. What happens when base_data 
+            # is none, because the stream hasn't picked up any data yet? And 
+            # the base interval is ticks?
             
-            if self.data_file is not None:
-                # Using price stream data
+            if base_data is not None:
+                # Set data equal to provided base_data
+                data = base_data
+                
+                if len(interval.split(',')) > 1:
+                    # Fetch MTF data
+                    MTF_data = {self.base_interval: data}
+                    
+                    if self.MTF_initialisation:
+                        # Download MTF data for strategy initialisation only
+                        if self.MTF_data is None:
+                            # MTF_data has not been retrieved yet
+                            for granularity in self.MTF_intervals:
+                                data = getattr(self.get_data, feed.lower())(instrument,
+                                                                            granularity = granularity,
+                                                                            count=period)
+                                
+                                if self.check_data_alignment:
+                                    data = self._verify_data_alignment(data, instrument, feed, period, 
+                                                                       price_data_path)
+                                
+                                MTF_data[granularity] = data
+                            
+                            self.MTF_data = MTF_data
+                            
+                        else:
+                            # MTF_data already exists, reuse
+                            MTF_data = self.MTF_data
+                            
+                            # Replace base_interval data with latest data
+                            MTF_data[self.base_interval] = data
+                            
+                    else:
+                        # Download MTF data each update
+                        for granularity in self.MTF_intervals:
+                            data = getattr(self.get_data, feed.lower())(instrument,
+                                                                        granularity = granularity,
+                                                                        count=period)
+                            
+                            if self.check_data_alignment:
+                                data = self._verify_data_alignment(data, instrument, feed, period, 
+                                                                   price_data_path)
+                            
+                            MTF_data[granularity] = data
+                            
+                            
+                    if len(MTF_data) == 1:
+                        # There is only one timeframe of data
+                        MTF_data = None
+                
+            
+            elif self.data_file is not None:
+                # Using price stream data file
                 
                 custom_data_filepath = self.data_file
                 
