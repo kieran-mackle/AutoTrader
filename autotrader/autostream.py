@@ -355,8 +355,6 @@ class AutoStream():
             msg     = json.loads(line)
             tick    = stream_record(msg)
             
-            # TODO - Add exception handling methods for datetime errors
-            
             if self.record_ticks and msg['type'] == 'PRICE':
                 # Create tick df from stream record
                 new_tick = {'Bid': tick.data['bid'], 
@@ -372,15 +370,18 @@ class AutoStream():
                 if len(self.tick_data) > self.no_candles:
                     self.tick_data = self.tick_data.iloc[-self.no_candles:, :]
                 
+                # TODO - preprocess time index column to convert to datetime
+                # And add exception handling methods for datetime errors
+                
                 # Update bot
                 if self.bot is not None:
-                    self.update_bot()
+                    self.update_bot(self.tick_data)
                 
                 # Write to file
                 if self.write_to_file:
-                    # TODO - preprocess time index column to convert to datetime
                     self.tick_data.index.name = 'Time'
                     self.tick_data.to_csv(tick_filenames[tick.data['instrument']])
+            
             
             if self.record_candles:
                 for instrument in candle_builders:
@@ -406,9 +407,7 @@ class AutoStream():
                         
                         # Update bot
                         if self.bot is not None:
-                            # Careful, now in a for instrument loop, need to update 
-                            # only the right bot
-                            self.update_bot()
+                            self.update_bot(self.candle_data)
                         
                         # Write to file
                         if self.write_to_file:
@@ -416,17 +415,17 @@ class AutoStream():
                             self.candle_data.to_csv(candle_filenames[instrument])
                         
     
-    def update_bot(self):
+    def update_bot(self, data):
         '''
         Sends update signal to bot for latest data.
         '''
-        # TODO - verify what is put here - this makes bot manager redundant
+        # TODO - verify what is put here - this makes bot manager redundant ?
         # Also, pass the data directly to self.bot.strategy, instead of making
         # bot retrieve again?
         # Pass data to the method below, so that the bot updates the data
         
         # Refresh strategy with latest data
-        self.bot._update_strategy_data()
+        self.bot._update_strategy_data(data)
         
         # Call bot update to act on latest data
         self.bot._update(-1)

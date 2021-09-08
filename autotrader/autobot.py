@@ -186,19 +186,24 @@ class AutoTraderBot():
                       "on {} timeframe using {}.".format(self.strategy_params['granularity'],
                                                          strategy_config['NAME']))
     
-    def _update_strategy_data(self):
+    def _update_strategy_data(self, data=None):
         '''
-        Method to update strategy with latest data. Called by the bot manager.
+        Method to update strategy with latest data. Called by the bot manager
+        and autostream.
         '''
         
-        # Download new data
-        new_data, _, MTF_data = self._retrieve_data(self.instrument, self.feed)
-        
-        # Check for MTF_data
-        if MTF_data is None:
-            strat_data = new_data
+        if data is None:
+            # Download new data
+            new_data, _, MTF_data = self._retrieve_data(self.instrument, self.feed)
+            
+            # Check for MTF_data
+            if MTF_data is None:
+                strat_data = new_data
+            else:
+                strat_data = MTF_data
         else:
-            strat_data = MTF_data
+            # TODO - need to introduce way to include MTF data...
+            strat_data = data
         
         # Update strategy with new data
         self.strategy.initialise_strategy(strat_data)
