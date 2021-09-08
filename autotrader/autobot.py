@@ -196,7 +196,6 @@ class AutoTraderBot():
         '''
         Method to tell AutoStream to send data to bot. Called from bot manager.
         '''
-        # TODO - not sure if this will work, since AS is in a new thread?
         
         self.AS.update_bot = True
     

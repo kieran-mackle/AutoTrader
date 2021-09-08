@@ -433,14 +433,10 @@ class AutoStream():
         Sends updated data to bot.
         '''
         
-        # TODO - how will this interfere with bot manager?
-        
         # Only pass data if len(data) > 0d
-        if len(data) == 0:
-            data = None
-        
-        # Refresh strategy with latest data
-        self.bot._update_strategy_data(data)
-        
-        # Call bot update to act on latest data
-        self.bot._update(-1)
+        if len(data) > 0:
+            # Refresh strategy with latest data
+            self.bot._update_strategy_data(data)
+            
+            # Call bot update to act on latest data
+            self.bot._update(-1)

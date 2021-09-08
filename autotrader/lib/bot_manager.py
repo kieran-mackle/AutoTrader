@@ -128,52 +128,53 @@ class ManageBot():
                 
             else:
                 # No termination signal detected, proceed to manage
-                for atempt in range(10):
-                    try:
-                        # do not run the update here unless self.use_stream is false,
-                        # otherwise autostream will automatically update the bot
-                        
-                        # Refresh strategy with latest data
-                        self.bot._update_strategy_data()
-                        
-                        # Call bot update to act on latest data
-                        self.bot._update(-1)
-                    
-                    except BaseException as ex:
-                        # Get current system exception
-                        ex_type, ex_value, ex_traceback = sys.exc_info()
-                    
-                        # Extract unformatter stack traces as tuples
-                        trace_back = traceback.extract_tb(ex_traceback)
-                    
-                        # Format stacktrace
-                        stack_trace = list()
-                    
-                        for trace in trace_back:
-                            trade_string = "File : %s , Line : %d, " % (trace[0], trace[1]) + \
-                                           "Func.Name : %s, Message : %s" % (trace[2], trace[3])
-                            stack_trace.append(trade_string)
-                        
-                        print("WARNING FROM BOT MANAGER: The following exception was caught " +\
-                              "when updating {}.".format(self.bot_name_string))
-                        print("Exception type : %s " % ex_type.__name__)
-                        print("Exception message : %s" %ex_value)
-                        print("Stack trace : %s" %stack_trace)
-                        print("  Trying again.")
-                    
-                    else:
-                        break
-                    
-                else:
-                    print("FATAL: All attempts have failed. Going to sleep.")
                 
-                # Pause an amount, depending on granularity
-                base_granularity = self.bot.strategy_params['granularity'].split(',')[0]
-                if base_granularity == 'tick':
-                    time.sleep(1)
-                else:
-                    sleep_time = 0.25*self.granularity_to_seconds(base_granularity)
-                    time.sleep(sleep_time)
+                if not self.use_stream:
+                    # Periodic update mode
+                    for atempt in range(10):
+                        try:
+                            # Refresh strategy with latest data
+                            self.bot._update_strategy_data()
+                            
+                            # Call bot update to act on latest data
+                            self.bot._update(-1)
+                        
+                        except BaseException as ex:
+                            # Get current system exception
+                            ex_type, ex_value, ex_traceback = sys.exc_info()
+                        
+                            # Extract unformatter stack traces as tuples
+                            trace_back = traceback.extract_tb(ex_traceback)
+                        
+                            # Format stacktrace
+                            stack_trace = list()
+                        
+                            for trace in trace_back:
+                                trade_string = "File : %s , Line : %d, " % (trace[0], trace[1]) + \
+                                               "Func.Name : %s, Message : %s" % (trace[2], trace[3])
+                                stack_trace.append(trade_string)
+                            
+                            print("WARNING FROM BOT MANAGER: The following exception was caught " +\
+                                  "when updating {}.".format(self.bot_name_string))
+                            print("Exception type : %s " % ex_type.__name__)
+                            print("Exception message : %s" %ex_value)
+                            print("Stack trace : %s" %stack_trace)
+                            print("  Trying again.")
+                        
+                        else:
+                            break
+                        
+                    else:
+                        print("FATAL: All attempts have failed. Going to sleep.")
+                    
+                    # Pause an amount, depending on granularity
+                    base_granularity = self.bot.strategy_params['granularity'].split(',')[0]
+                    if base_granularity == 'tick':
+                        time.sleep(1)
+                    else:
+                        sleep_time = 0.25*self.granularity_to_seconds(base_granularity)
+                        time.sleep(sleep_time)
+
             
             
     def write_bot_to_log(self):
