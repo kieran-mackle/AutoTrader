@@ -128,6 +128,7 @@ class AutoTrader():
         self.allow_dancing_bears = False
         self.use_stream     = False
         self.MTF_initialisation = False
+        self.stream_config  = None
         
         # self.config         = None
         self.broker         = None
@@ -243,6 +244,10 @@ class AutoTrader():
         broker_config = environment_manager.get_config(self.environment,
                                                        global_config,
                                                        self.feed)
+        
+        # Construct stream_config dict
+        if self.use_stream:
+            self.stream_config = broker_config
         
         if self.account_id is not None:
             # Overwrite default account in global config

@@ -69,6 +69,7 @@ class AutoTraderBot():
         self.check_data_alignment = autotrader_attributes.check_data_alignment
         self.allow_dancing_bears = autotrader_attributes.allow_dancing_bears
         self.use_stream         = autotrader_attributes.use_stream
+        self.stream_config      = autotrader_attributes.stream_config
         self.MTF_initialisation = autotrader_attributes.MTF_initialisation
         
         # Assign local attributes
@@ -110,7 +111,19 @@ class AutoTraderBot():
    
         # Start price streaming
         if self.use_stream and self.backtest_mode is False:
+            
+            # Check how many granularities were requested
+            if len(interval.split(',')) > 1:
+                self.base_interval = interval.split(',')[0]
+                self.MTF_intervals = interval.split(',')[1:]
+            else:
+                self.base_interval = None
+                self.MTF_intervals = []
+            
+            # Start stream
             self._initiate_stream()
+            
+            
             # TODO - will eventually need to set AS.update_bot = True so that
             # stream starts sending data to here
             
@@ -218,42 +231,28 @@ class AutoTraderBot():
         # TODO - will eventually need to set AS.update_bot = True so that
         # stream starts sending data to here
         
-        # Check how many granularities were requested
-        if len(interval.split(',')) > 1:
-            base_interval = interval.split(',')[0]
-            self.base_interval = base_interval
-            self.MTF_intervals = interval.split(',')[1:]
+        record_ticks = False
+        record_candles = False
+        if self.base_interval == 'tick' or self.base_interval == 'ticks':
+            record_ticks = True
         else:
-            self.base_interval = None
-            self.MTF_intervals = []
-            
+            record_candles = True
         
-        if base_interval == 'tick' or base_interval == 'ticks':
-            stream_type = 'ticks'
-            streamfile = "{}_ticks.txt".format(instrument)
-        else:
-            stream_type = 'candles'
-            streamfile = "{0}{1}.txt".format(base_interval, instrument)
-        
-        stream_config = 0
-        ticks = 0
-        candles = 0
-        stream_granularity = 0
-        no_candles = period
+        stream_granularity = self.base_interval
+        no_candles = self.strategy_params['period']
         
         AS = AutoStream(self.home_dir, 
-                        stream_config, 
-                        instrument, 
+                        self.stream_config, 
+                        self.instrument, 
                         granularity = stream_granularity,
-                        record_ticks = ticks, 
-                        record_candles = candles,
-                        no_candles=no_candles)
+                        record_ticks = record_ticks, 
+                        record_candles = record_candles,
+                        no_candles = no_candles)
         
         stream_thread = threading.Thread(target = AS.start(), 
-                                          args=(), daemon=False)
+                                         args=(), daemon=False)
         print('Spawning new thread to stream data.')
         stream_thread.start
-        
         
     
     def _update_strategy_data(self, data=None):
