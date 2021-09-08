@@ -228,20 +228,25 @@ class AutoStream():
         self.stream_config  = stream_config
         
         # Perform initialisation checks
-        checks_passed = True
+        self.checks_passed = True
         if not record_candles and not record_ticks:
             print("Please specify whether to record ticks, candles or both "+\
                   "using the record_ticks and record_candles attributes.")
-            checks_passed = False
+            self.checks_passed = False
         
         if record_candles and granularity is None:
             print("Please provide a candlestick granularity when streaming candles.")
-            checks_passed = False
+            self.checks_passed = False
+
+    
+    def start(self):
+        '''
+        Starts stream if all checks have passed.
+        '''
         
-        if checks_passed:
+        if self.checks_passed:
             # Proceed to run stream
             self.main()
-        
         
     def main(self):
         '''
