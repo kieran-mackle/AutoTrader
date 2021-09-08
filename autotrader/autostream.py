@@ -94,7 +94,7 @@ class candle_builder(object):
         
         return self.data.copy()
     
-    def granularity_to_seconds(granularity):
+    def granularity_to_seconds(self, granularity):
         ''' Converts a granularity to time in seconds '''
         mfact = {'S': 1,
                  'M': 60,
@@ -228,6 +228,10 @@ class AutoStream():
         stream_config['instruments'] = instrument
         self.stream_config  = stream_config
         
+        # check that one of tick or candle recording is set, or else dont run
+        
+        # self.main()
+        
         
     def main(self):
         '''
@@ -312,7 +316,7 @@ class AutoStream():
                 print("All attempts failed. Exiting.")
                 
     
-    def connect_to_stream(config):
+    def connect_to_stream(self, config):
         ''' Connects to Oanda streaming API '''
         ACCESS_TOKEN    = config["ACCESS_TOKEN"]
         port            = config["PORT"]
@@ -350,14 +354,12 @@ class AutoStream():
             sys.exit(0)
     
     
-    def process_stream(stream, candle_builders, file_names, tick_files, 
+    def process_stream(self, stream, candle_builders, file_names, tick_files, 
                        temp_file_path, no_candles, record_ticks=False, 
                        record_candles=True):
         '''
         Processes stream based on run settings.
         '''
-        
-        # TODO - avoid using temp file name, use unique name for temp
         
         for line in stream.lines:
             # Process each update of stream
@@ -393,7 +395,7 @@ class AutoStream():
                 tick_data = tick_data.append(latest_tick)
                 
                 # Need to check if the length has been exceeded
-                if len(tick_data) > no_candles:
+                if len(self.tick_data) > no_candles:
                     tick_data = tick_data.iloc[len(tick_data):, :]
                 
                 
