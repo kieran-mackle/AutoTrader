@@ -401,15 +401,14 @@ class AutoStream():
                 if len(self.tick_data) > self.no_candles:
                     self.tick_data = self.tick_data.iloc[-self.no_candles:, :]
                 
-                # TODO - preprocess time index column to convert to datetime
-                # And add exception handling methods for datetime errors
-                
                 # Update bot
                 if self.update_bot:
                     self.update_bot_data(self.tick_data)
                 
                 # Write to file
                 if self.write_to_file:
+                    # TODO - preprocess time index column to convert to datetime
+                    # And add exception handling methods for datetime errors 
                     self.tick_data.index.name = 'Time'
                     self.tick_data.to_csv(tick_filenames[tick.data['instrument']])
                 
