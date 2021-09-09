@@ -43,7 +43,7 @@ class Oanda():
         for atempt in range(5):
             try:
                 # Attempt basic task to check connection
-                self.api.account.get(account_id=self.ACCOUNT_ID)
+                self.api.account.get(accountID=self.ACCOUNT_ID)
             
             except BaseException as ex:
                 # Error has occurred
@@ -71,7 +71,6 @@ class Oanda():
                                        port = self.port)
             
             else:
-                print("  Connection successful.")
                 break
             
         else:
