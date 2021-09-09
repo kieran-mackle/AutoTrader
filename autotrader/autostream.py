@@ -313,7 +313,7 @@ class AutoStream():
                                    "Func.Name : %s, Message : %s" % (trace[2], trace[3])
                     stack_trace.append(trade_string)
                 
-                print("WARNING FROM AUTOSTREAM: The following exception was caught:")
+                print("WARNING FROM AUTOSTREAM ({}): The following exception was caught:".format(self.instruments))
                 print("Exception type : %s " % ex_type.__name__)
                 print("Exception message : %s" %ex_value)
                 print("Stack trace : %s" %stack_trace)
