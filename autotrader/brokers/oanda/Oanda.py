@@ -16,21 +16,36 @@ import numpy as np
 class Oanda():
     def __init__(self, oanda_config, utils):
         ''' Create v20 context. '''
-        API             = oanda_config["API"]
-        ACCESS_TOKEN    = oanda_config["ACCESS_TOKEN"]
-        port            = oanda_config["PORT"]
+        self.API             = oanda_config["API"]
+        self.ACCESS_TOKEN    = oanda_config["ACCESS_TOKEN"]
+        self.port            = oanda_config["PORT"]
         self.ACCOUNT_ID = oanda_config["ACCOUNT_ID"]
-        self.api        = v20.Context(hostname=API, 
-                                      token=ACCESS_TOKEN, 
-                                      port=port)
+        self.api        = v20.Context(hostname = self.API, 
+                                      token = self.ACCESS_TOKEN, 
+                                      port = self.port)
         
-        STREAM_API      = "stream-fxpractice.oanda.com"
-        self.stream     = v20.Context(hostname=STREAM_API, 
-                                      token=ACCESS_TOKEN, 
-                                      port=443)
+        self.STREAM_API = "stream-fxpractice.oanda.com"
+        self.stream     = v20.Context(hostname = self.STREAM_API, 
+                                      token = self.ACCESS_TOKEN, 
+                                      port = self.port)
         
         self.open_positions     = {}
         
+    
+    def connect_to_api(self):
+        '''
+        Connects to Oanda v20 REST API.
+        '''
+        
+        # TODO - first check if the connection is live already
+        # can then just call this method at the start of everything else, as 
+        # it will act as a check and corrector in one.
+        # Try a basic api request, eg. basic account details, and see if that 
+        # fails. If it does, likely a connection error, so reconnect.
+        
+        self.api = v20.Context(hostname = self.API, 
+                               token = self.ACCESS_TOKEN, 
+                               port = self.port)
     
     def get_price(self, instrument, **dummy_inputs):
         ''' Returns current price (bid+ask) and home conversion factors.'''
