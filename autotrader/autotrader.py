@@ -128,6 +128,7 @@ class AutoTrader():
         self.allow_dancing_bears = False
         self.use_stream     = False
         self.MTF_initialisation = False
+        self.stream_config  = None
         
         # self.config         = None
         self.broker         = None
@@ -244,6 +245,10 @@ class AutoTrader():
                                                        global_config,
                                                        self.feed)
         
+        # Construct stream_config dict
+        if self.use_stream:
+            self.stream_config = broker_config
+        
         if self.account_id is not None:
             # Overwrite default account in global config
             broker_config['ACCOUNT_ID'] = self.account_id
@@ -270,26 +275,26 @@ class AutoTrader():
             else:
                 print("AutoTrader Livetrade")
                 print("--------------------")
-                print("Time: {}".format(datetime.now().strftime("%A, %B %d %Y, "+
+                print("Time: {}\n".format(datetime.now().strftime("%A, %B %d %Y, "+
                                                                   "%H:%M:%S")))
         
         ''' -------------------------------------------------------------- '''
         '''    Assign strategy to bot for each instrument in watchlist     '''
         ''' -------------------------------------------------------------- '''
         for strategy in self.strategies:
-                for instrument in self.strategies[strategy]['WATCHLIST']:
-                    bot = AutoTraderBot(instrument, self.strategies[strategy],
-                                            self.broker, self)
-                    
-                    if self.detach_bot is True and self.backtest_mode is False:
-                        # Send bot to bot manager to monitor stream
-                        print("Passing bot to bot manager...")
-                        bot_name_string = "{}_{}_{}".format(strategy.replace(' ',''),
-                                                            self.strategies[strategy]['INTERVAL'].split(',')[0],
-                                                            instrument)
-                        ManageBot(bot, self.home_dir, bot_name_string)
-                    else:
-                        self.bots_deployed.append(bot)
+            for instrument in self.strategies[strategy]['WATCHLIST']:
+                bot = AutoTraderBot(instrument, self.strategies[strategy],
+                                        self.broker, self)
+                
+                if self.detach_bot is True and self.backtest_mode is False:
+                    # Send bot to bot manager to monitor stream
+                    print("Passing bot to bot manager...")
+                    bot_name_string = "{}_{}_{}".format(strategy.replace(' ',''),
+                                                        self.strategies[strategy]['INTERVAL'].split(',')[0],
+                                                        instrument)
+                    ManageBot(bot, self.home_dir, bot_name_string, self.use_stream)
+                else:
+                    self.bots_deployed.append(bot)
                     
         
         ''' -------------------------------------------------------------- '''

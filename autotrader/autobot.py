@@ -9,11 +9,13 @@ import pytz
 import pandas as pd
 import numpy as np
 import subprocess
+import threading
 from shutil import copy2
 from datetime import datetime
 from autotrader.emailing import emailing
 from autotrader.lib import autodata, environment_manager
 from autotrader.lib.read_yaml import read_yaml
+from autotrader.autostream import AutoStream
 
 
 class AutoTraderBot():
@@ -67,18 +69,19 @@ class AutoTraderBot():
         self.check_data_alignment = autotrader_attributes.check_data_alignment
         self.allow_dancing_bears = autotrader_attributes.allow_dancing_bears
         self.use_stream         = autotrader_attributes.use_stream
+        self.stream_config      = autotrader_attributes.stream_config
         self.MTF_initialisation = autotrader_attributes.MTF_initialisation
         
+        # Assign local attributes
         self.instrument         = instrument
         self.broker             = broker
         
-        # Unpack strategy parameters
+        # Unpack strategy parameters and assign to strategy_params
         interval                = strategy_config["INTERVAL"]
         period                  = strategy_config["PERIOD"]
         risk_pc                 = strategy_config["RISK_PC"] if 'RISK_PC' in strategy_config else 0
         sizing                  = strategy_config["SIZING"] if 'SIZING' in strategy_config else 0
         params                  = strategy_config["PARAMETERS"]
-        
         strategy_params                 = params
         strategy_params['granularity']  = interval
         strategy_params['risk_pc']      = risk_pc
@@ -96,63 +99,36 @@ class AutoTraderBot():
         strat_spec.loader.exec_module(strategy_module)
         strategy                = getattr(strategy_module, strat_name)
         
-        # Get data
+        # Get broker configuration 
         global_config_fp = os.path.join(self.home_dir, 'config', 'GLOBAL.yaml')
         if os.path.isfile(global_config_fp):
             global_config = read_yaml(global_config_fp)
         else:
             global_config = None
-        broker_config           = environment_manager.get_config(self.environment,
-                                                             global_config,
-                                                             self.feed)
-        
+        broker_config  = environment_manager.get_config(self.environment,
+                                                        global_config,
+                                                        self.feed)
+   
         # Start price streaming
         if self.use_stream and self.backtest_mode is False:
-            # TODO - use count from strat config to set max candles
-            
-            # TODO - note that current implementation will only stream base
-            # interval (first granularity listed)
             
             # Check how many granularities were requested
             if len(interval.split(',')) > 1:
-                base_interval = interval.split(',')[0]
-                self.base_interval = base_interval
+                self.base_interval = interval.split(',')[0]
                 self.MTF_intervals = interval.split(',')[1:]
             else:
-                self.base_interval = None
+                self.base_interval = interval
                 self.MTF_intervals = []
-                
             
-            if base_interval == 'tick' or base_interval == 'ticks':
-                stream_type = 'ticks'
-                streamfile = "{}_ticks.txt".format(instrument)
-            else:
-                stream_type = 'candles'
-                streamfile = "{0}{1}.txt".format(base_interval, instrument)
-            
-            # Start streaming price data
-            stream_script_path = os.path.join(self.home_dir, 'oandastream.py')
-            stream_process = subprocess.Popen(['nohup', 'python3', stream_script_path,
-                                               '-i', instrument, '-g', base_interval,
-                                               '-t', stream_type])
-            
-            # Construct stream filename
-            streamfile_copy = 'copy_of_' + streamfile
-            abs_streamfile = os.path.join(self.home_dir, 'price_data', streamfile)
-            self.abs_streamfile_copy = os.path.join(self.home_dir, 'price_data', streamfile_copy)
-            print("Streaming price data to {} (PID: {}).".format(streamfile, 
-                                                                 stream_process.pid))
-            
-            # Set self.data to use streamfile 
-            self.data_file = abs_streamfile          
-            
-            # Sleep for 1 sec to allow stream to start and create file
-            time.sleep(1)
-            
+            # Start stream
+            self._initiate_stream()
+
         
         if self.MTF_initialisation:
-            # Only retrieve MTF data once upon initialisation 
+            # Only retrieve MTF_data once upon initialisation and store
+            # instantiation MTF_data
             self.MTF_data = None
+        
         
         self.get_data = autodata.GetData(broker_config, self.allow_dancing_bears)
         data, quote_data, MTF_data = self._retrieve_data(instrument, self.feed)
@@ -167,12 +143,13 @@ class AutoTraderBot():
         else:
             my_strat = strategy(params, strat_data, instrument)
             
-        # Assign strategy
+            
+        # Assign strategy to local attributes
         self.strategy           = my_strat
         self.data               = data
         self.quote_data         = quote_data
-        
         self.latest_orders      = []
+        
         
         # Assign strategy attributes for development purposes
         if self.backtest_mode:
@@ -180,19 +157,64 @@ class AutoTraderBot():
         if interval.split(',')[0] == 'tick':
             self.strategy._tick_data = True
         
-        
         if int(self.verbosity) > 0:
                 print("AutoTraderBot assigned to analyse {}".format(instrument),
                       "on {} timeframe using {}.".format(self.strategy_params['granularity'],
                                                          strategy_config['NAME']))
     
-    def _update_strategy_data(self):
+    
+    def _initiate_stream(self):
         '''
-        Method to update strategy with latest data. Called by the bot manager.
+        Spawns AutoStream into a new thread.
         '''
         
-        # Download new data
-        new_data, _, MTF_data = self._retrieve_data(self.instrument, self.feed)
+        record_ticks = False
+        record_candles = False
+        if self.base_interval == 'tick' or self.base_interval == 'ticks':
+            record_ticks = True
+        else:
+            record_candles = True
+        
+        
+        stream_granularity = self.base_interval
+        no_candles = self.strategy_params['period']
+        
+        self.AS = AutoStream(self.home_dir, 
+                             self.stream_config, 
+                             self.instrument, 
+                             granularity = stream_granularity,
+                             record_ticks = record_ticks, 
+                             record_candles = record_candles,
+                             no_candles = no_candles,
+                             bot = self)
+        
+        stream_thread = threading.Thread(target = self.AS.start, 
+                                         args=(), daemon=False)
+        print('Spawning new thread to stream data.')
+        stream_thread.start()
+        
+    
+    def _recieve_stream_data(self):
+        '''
+        Method to tell AutoStream to send data to bot. Called from bot manager.
+        '''
+        
+        self.AS.update_bot = True
+    
+    def _update_strategy_data(self, data=None):
+        '''
+        Method to update strategy with latest data. Called by the bot manager
+        and autostream.
+        '''
+        
+        if data is not None:
+            # Update data attribute (for livetrade compatibility)
+            self.data = data
+        
+        # Retrieve new data
+        new_data, _, MTF_data = self._retrieve_data(self.instrument, 
+                                                    self.feed,
+                                                    base_data = data)
         
         # Check for MTF_data
         if MTF_data is None:
@@ -204,7 +226,7 @@ class AutoTraderBot():
         self.strategy.initialise_strategy(strat_data)
         
     
-    def _retrieve_data(self, instrument, feed):
+    def _retrieve_data(self, instrument, feed, base_data = None):
         '''
         Retrieves price data from AutoData.
         '''
@@ -316,8 +338,75 @@ class AutoTraderBot():
         else:
             ' ~~~~~~~~~~ Running in livetrade mode or scan mode ~~~~~~~~~~~~~ '
             
-            if self.data_file is not None:
-                # Using price stream data
+            if self.use_stream:
+                # Streaming data
+                
+                # Set data equal to provided base_data
+                if base_data is not None:
+                    data = base_data
+                    
+                    if len(interval.split(',')) > 1:
+                        # Fetch MTF data
+                        MTF_data = {self.base_interval: data}
+                        
+                        if self.MTF_initialisation:
+                            # Download MTF data for strategy initialisation only
+                            if self.MTF_data is None:
+                                # MTF_data has not been retrieved yet
+                                for granularity in self.MTF_intervals:
+                                    data = getattr(self.get_data, feed.lower())(instrument,
+                                                                                granularity = granularity,
+                                                                                count=period)
+                                    
+                                    if self.check_data_alignment:
+                                        data = self._verify_data_alignment(data, instrument, feed, period, 
+                                                                           price_data_path)
+                                    
+                                    MTF_data[granularity] = data
+                                
+                                self.MTF_data = MTF_data
+                                
+                            else:
+                                # MTF_data already exists, reuse
+                                MTF_data = self.MTF_data
+                                
+                                # Replace base_interval data with latest data
+                                MTF_data[self.base_interval] = data
+                                
+                        else:
+                            # Download MTF data each update
+                            for granularity in self.MTF_intervals:
+                                data = getattr(self.get_data, feed.lower())(instrument,
+                                                                            granularity = granularity,
+                                                                            count=period)
+                                
+                                if self.check_data_alignment:
+                                    data = self._verify_data_alignment(data, instrument, feed, period, 
+                                                                       price_data_path)
+                                
+                                MTF_data[granularity] = data
+                                
+                    else:
+                        # There is only one timeframe of data
+                        MTF_data = None
+                else:
+                    print("Stream data has not been recieved yet.")
+                    print("Passing NoneType as data.")
+                    
+                    data = None
+                    MTF_data = None
+                    
+                    # data = getattr(self.get_data, feed.lower())(instrument,
+                    #                                             granularity = 'M1',
+                    #                                             count = period)
+                    
+                    # if self.check_data_alignment:
+                    #     data = self._verify_data_alignment(data, instrument, feed, period, 
+                    #                                        price_data_path)
+                
+            
+            elif self.data_file is not None:
+                # Using price stream data file
                 
                 custom_data_filepath = self.data_file
                 
@@ -405,7 +494,7 @@ class AutoTraderBot():
                     if granularity == "tick":
                         print("Warning: cannot download historic tick data. " + \
                               "Please change candlestick granularity in " + \
-                              "strategy configuration.")
+                              "strategy configuration. Exiting.")
                         sys.exit(0)
                         
                     data = getattr(self.get_data, feed.lower())(instrument,

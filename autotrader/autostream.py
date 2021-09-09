@@ -14,57 +14,25 @@ import calendar
 import time
 import re
 import os
-
-
-def connect_to_stream(config):
-    ''' Connects to Oanda streaming API '''
-    ACCESS_TOKEN    = config["ACCESS_TOKEN"]
-    port            = config["PORT"]
-    ACCOUNT_ID      = config["ACCOUNT_ID"]
-    STREAM_API      = "stream-fxpractice.oanda.com"
-    instruments     = config["instruments"]
-    
-    streamAPI       = v20.Context(hostname = STREAM_API,
-                                  token = ACCESS_TOKEN, 
-                                  port = port)
-    
-    try:
-        response = streamAPI.pricing.stream(accountID = ACCOUNT_ID, 
-                                            instruments = instruments,
-                                            snapshot = True
-                                            )
-        if response.status != 200:
-            print("Warning:")
-            print(response.reason)
-            # TODO - beware of sys.exit(0)
-            sys.exit(0)
-            
-        else:
-            return response
-    
-    except Exception as e:
-        print("Caught exception when connecting to stream\n" + str(e)) 
-
-
-def granularity_to_seconds(granularity):
-    ''' Converts a granularity to time in seconds '''
-    mfact = {'S': 1,
-             'M': 60,
-             'H': 3600,
-             'D': 86400,
-             }
-
-    f, n    = re.match("(?P<f>[SMHD])(?:(?P<n>\d+)|)", granularity).groups()
-    n       = n if n else 1
-    seconds = mfact[f] * int(n)
-    
-    return seconds
+import traceback
+import pandas as pd
 
 
 class stream_record(object):
-    ''' Creates a stream record '''
+    ''' 
+    Creates a stream record.
+    
+    Attributes
+    ----------
+        data : dict
+            A dictionary containing information of the tick; instrument, time,
+            bid, ask and mid.
+        
+        record_type : str
+            The type of stream record: either PRICE or HEARTBEAT
+    '''
+    
     def __init__(self, msg):
-        self.record_type    = None
         self.data           = {}
         self.record_type    = msg['type']
         
@@ -91,7 +59,7 @@ class candle_builder(object):
             granularity. 
         '''
         self.instrument     = instrument
-        self.duration       = granularity_to_seconds(granularity)
+        self.duration       = self.granularity_to_seconds(granularity)
         self.granularity    = granularity
         self.data           = None
         self.start          = None
@@ -114,7 +82,6 @@ class candle_builder(object):
                                             }
                        }
 
-
     def seconds_in_time(self, e):
         ''' Converts a timestamp to datetime object. '''
         w   = time.gmtime(e)
@@ -128,7 +95,20 @@ class candle_builder(object):
         
         return self.data.copy()
     
-
+    def granularity_to_seconds(self, granularity):
+        ''' Converts a granularity to time in seconds '''
+        mfact = {'S': 1,
+                 'M': 60,
+                 'H': 3600,
+                 'D': 86400,
+                 }
+    
+        f, n    = re.match("(?P<f>[SMHD])(?:(?P<n>\d+)|)", granularity).groups()
+        n       = n if n else 1
+        seconds = mfact[f] * int(n)
+        
+        return seconds
+    
     def process_tick(self, tick):
         ''' Processes tick into candle '''
         if tick.record_type == 'HEARTBEAT':
@@ -186,103 +166,6 @@ class candle_builder(object):
         
         return candle
 
-def process_stream(stream, candle_builders, file_names, tick_files, temp_file_path, 
-                   no_candles, record_ticks=False, record_candles=True):
-    
-    # TODO - avoid using temp file name, use unique name for temp
-    
-    for line in stream.lines:
-        # Process each update of stream
-        line    = line.decode('utf-8')
-        msg     = json.loads(line)
-        tick    = stream_record(msg)
-        
-        if record_ticks and msg['type'] == 'PRICE':
-            
-            # TODO - the below is repeated code: clean it up
-            # If the price data file doesn't already exist, initialise it
-            # This is an edge case when the file may accidentally be deleted
-            # if not os.path.exists(tick_files[tick.data['instrument']]):
-            #     f = open(tick_files[tick.data['instrument']], "a+")
-            #     f.write("Time, Bid, Ask, Mid\n")
-            #     f.close()
-            
-            # Check max number of lines and remove if necessary
-            f = open(tick_files[tick.data['instrument']], "r")
-            line_count = 0
-            for l in f:
-                if l != "\n":
-                    line_count += 1
-            f.close()
-            
-            if line_count >= int(no_candles):
-                with open(tick_files[tick.data['instrument']], "r") as original_file:
-                    with open(temp_file_path, "w+") as temp_file:  
-                        for ind, old_line in enumerate(original_file):
-                            if ind in range(1,line_count - int(no_candles) + 1):
-                                continue
-                            else:
-                                temp_file.write(old_line)
-                        
-                        temp_file.close()
-                    
-                    # Rename cleaned temp file to original file name
-                    os.replace(temp_file_path, tick_files[tick.data['instrument']])
-            
-            # Write latest tick to file
-            f = open(tick_files[tick.data['instrument']], "a+")
-            f.write("{0}, {1}, {2}, {3}\n".format(tick.data['time'],
-                                                  tick.data['bid'],
-                                                  tick.data['ask'],
-                                                  tick.data['mid'])
-                    )
-            f.close()
-        
-        if record_candles:
-            for instrument in candle_builders:
-                
-                candle  = candle_builders[instrument].process_tick(tick)
-                
-                if candle is not None:
-                    Time    = candle['start']
-                    High    = round(candle['data']['high'], 5)
-                    Low     = round(candle['data']['low'], 5)
-                    Open    = round(candle['data']['open'], 5)
-                    Close   = round(candle['data']['last'], 5)
-                    
-                    # Check if max number of candles has been reached and remove 
-                    # older candles
-                    f = open(file_names[instrument], "r")
-                    line_count = 0
-                    for l in f:
-                        if l != "\n":
-                            line_count += 1
-                    f.close()
-                    
-                    if line_count >= int(no_candles):
-                        with open(file_names[instrument], "r") as original_file:
-                            with open(temp_file_path, "w+") as temp_file:  
-                                for ind, old_line in enumerate(original_file):
-                                    if ind in range(1,line_count - int(no_candles) + 1):
-                                        continue
-                                    else:
-                                        temp_file.write(old_line)
-                                
-                                temp_file.close()
-                            
-                            os.remove(file_names[instrument])
-                            os.replace(temp_file_path, file_names[instrument])
-                    
-                    # Write new candle to file
-                    f       = open(file_names[instrument], "a+")
-                    f.write("{0}, {1}, {2}, {3}, {4}\n".format(Time, 
-                                                                Open,
-                                                                High, 
-                                                                Low, 
-                                                                Close)
-                            )
-                    f.close()
-    
 
 class AutoStream():
     '''
@@ -290,11 +173,17 @@ class AutoStream():
     ------------------
     
     Methods:
-        main(stream_config): Subscribes to stream and builds candlestick 
-        price files. 
+        main(): Subscribes to stream and builds candlestick price files. 
     
     
     Attributes:
+        home_dir : str
+            The path of the home directory. If writing stream to file, it will
+            be written to home_dir/price_data.
+        
+        stream_config : dict
+            Dictionary containing stream configuration information.
+        
         instruments : list
             The instruments to be streamed.
         
@@ -304,11 +193,20 @@ class AutoStream():
         no_candles : int
             The maximum number of candles to write to file.
         
+        record_ticks : bool
+            Flag to capture tick data.
+        
+        record_candles : bool
+            Flag to capture candlestick data.
+        
+        write_to_file : bool
+            Flag to write streamed data to csv files.
     '''
     
     def __init__(self, home_dir, stream_config, 
-                 instrument, granularity, no_candles=10,
-                 record_ticks=False, record_candles=True):
+                 instrument, granularity=None, no_candles=10,
+                 record_ticks=False, record_candles=False,
+                 bot=None, update_bot=False, write_to_file=False):
         '''
         Assign attributes required to stream.
         '''
@@ -319,10 +217,38 @@ class AutoStream():
         self.no_candles     = no_candles
         self.record_candles = record_candles
         self.record_ticks   = record_ticks
+        self.bot            = bot
+        self.update_bot     = update_bot
+        self.write_to_file  = write_to_file
+        
+        # Runtime attributes
+        self.tick_data      = None
+        self.candle_data    = None
         
         # Add instruments to stream_config
         stream_config['instruments'] = instrument
         self.stream_config  = stream_config
+        
+        # Perform initialisation checks
+        self.checks_passed = True
+        if not record_candles and not record_ticks:
+            print("Please specify whether to record ticks, candles or both "+\
+                  "using the record_ticks and record_candles attributes.")
+            self.checks_passed = False
+        
+        if record_candles and granularity is None:
+            print("Please provide a candlestick granularity when streaming candles.")
+            self.checks_passed = False
+            
+    
+    def start(self):
+        '''
+        Starts stream if all checks have passed.
+        '''
+
+        if self.checks_passed:
+            # Proceed to run stream
+            self.main()
         
     def main(self):
         '''
@@ -330,62 +256,203 @@ class AutoStream():
         '''
         
         data_dir_path   = os.path.join(self.home_dir, 'price_data')
-        temp_file_path  = os.path.join(data_dir_path, "temp.txt")
         
-        if not os.path.exists(data_dir_path):
-            # If price data directory doesn't exist, make it
-            os.makedirs(data_dir_path)
+        # Initialise tick DataFrame
+        if self.record_ticks:
+            self.tick_data = pd.DataFrame()
         
-        ''' Initialise candle factories '''
-        file_names      = {}
-        tick_files      = {}
+        # Initialise candle DataFrame
+        if self.record_candles:
+            self.candle_data = pd.DataFrame()
+        
+        # Initialise text file processing
+        candle_filenames = {}
+        tick_filenames = {}
         candle_builders = {}
-        for instrument in self.instruments.split(','):
-            if self.record_candles:
-                filename                    = "{0}{1}.txt".format(self.granularity, 
-                                                                  instrument)
-                abs_filename                = os.path.join(data_dir_path, filename)
-                file_names[instrument]      = abs_filename
-                candle_builders[instrument] = candle_builder(instrument, 
-                                                             self.granularity)
+        
+        if self.write_to_file:
+            if not os.path.exists(data_dir_path):
+                # The price_data directory doesn't exist, make it
+                os.makedirs(data_dir_path)
+        
+            # Initialise candle factories
+            for instrument in self.instruments.split(','):
+                if self.record_candles:
+                    filename                    = "{0}{1}.txt".format(self.granularity, 
+                                                                      instrument)
+                    abs_filename                = os.path.join(data_dir_path, filename)
+                    candle_filenames[instrument] = abs_filename
+                    candle_builders[instrument] = candle_builder(instrument, 
+                                                                 self.granularity)
                 
-                # If the price data file doesn't already exist, initialise it
-                if not os.path.exists(file_names[instrument]):
-                    f = open(file_names[instrument], "a+")
-                    f.write("Time, Open, High, Low, Close\n")
-                    f.close()
-
-            
-            if self.record_ticks:
-                filename                    = "{}_ticks.txt".format(instrument)
-                abs_filename                = os.path.join(data_dir_path, filename)
-                tick_files[instrument]      = abs_filename
-                
-                # If the price data file doesn't already exist, initialise it
-                if not os.path.exists(tick_files[instrument]):
-                    f = open(tick_files[instrument], "a+")
-                    f.write("Time, Bid, Ask, Mid\n")
-                    f.close()
+                if self.record_ticks:
+                    filename                    = "{}_ticks.txt".format(instrument)
+                    abs_filename                = os.path.join(data_dir_path, filename)
+                    tick_filenames[instrument]  = abs_filename
         
         # Connect to stream and begin processing 
-        stream = connect_to_stream(self.stream_config)
+        stream = self.connect_to_stream(self.stream_config)
         
-        for attempt in range(10):
+        for attempt in range(3):
             try:
-                process_stream(stream,
-                               candle_builders,
-                               file_names,
-                               tick_files,
-                               temp_file_path,
-                               self.no_candles,
-                               self.record_ticks,
-                               self.record_candles)
-            except Exception as e:
-                print("Exception caught:")
-                print(e)
-                stream = connect_to_stream(self.stream_config)
+                self.process_stream(stream,
+                                    candle_builders,
+                                    candle_filenames,
+                                    tick_filenames)
+            except BaseException as ex:
+                ex_type, ex_value, ex_traceback = sys.exc_info()
+                        
+                # Extract unformatter stack traces as tuples
+                trace_back = traceback.extract_tb(ex_traceback)
+            
+                # Format stacktrace
+                stack_trace = list()
+            
+                for trace in trace_back:
+                    trade_string = "File : %s , Line : %d, " % (trace[0], trace[1]) + \
+                                   "Func.Name : %s, Message : %s" % (trace[2], trace[3])
+                    stack_trace.append(trade_string)
+                
+                print("WARNING FROM AUTOSTREAM: The following exception was caught:")
+                print("Exception type : %s " % ex_type.__name__)
+                print("Exception message : %s" %ex_value)
+                print("Stack trace : %s" %stack_trace)
+                print("  Trying again.")
+                            
+                # Re-connect to stream
+                stream = self.connect_to_stream(self.stream_config)
             else:
                 break
         else:
                 print("All attempts failed. Exiting.")
+    
+    
+    def connect_to_stream(self, config):
+        ''' Connects to Oanda streaming API '''
+        ACCESS_TOKEN    = config["ACCESS_TOKEN"]
+        port            = config["PORT"]
+        ACCOUNT_ID      = config["ACCOUNT_ID"]
+        STREAM_API      = "stream-fxpractice.oanda.com"
+        instruments     = config["instruments"]
+        
+        streamAPI       = v20.Context(hostname = STREAM_API,
+                                      token = ACCESS_TOKEN, 
+                                      port = port)
+        
+        # Connect to the stream
+        for attempt in range(3):
+            try:
+                response = streamAPI.pricing.stream(accountID = ACCOUNT_ID, 
+                                                    instruments = instruments,
+                                                    snapshot = True
+                                                    )
+                if response.status != 200:
+                    print("Warning:")
+                    print(response.reason)
+                    break
+                    
+                else:
+                    return response
+            
+            except Exception as e:
+                print("Caught exception when connecting to stream\n" + str(e))
+            
+            else:
+                break
+            
+        else:
+            print("All attempts to connect to stream failed. Exiting.")
+            sys.exit(0)
+    
+    
+    def process_stream(self, stream, candle_builders, candle_filenames, tick_filenames):
+        '''
+        Processes stream based on run settings.
+        '''
+        
+        print("Processing stream. To stop streaming, create file named " +\
+              "stopstream in the home directory.")
+        print("Home directory: ", self.home_dir)
 
+        for line in stream.lines:
+            
+            # First check for stop file
+            if os.path.exists('stopstream'):
+                print("Stop file deteced. Stream stopping.")
+                break
+            
+            # Process each update of stream
+            line    = line.decode('utf-8')
+            msg     = json.loads(line)
+            tick    = stream_record(msg)
+            
+            if self.record_ticks and msg['type'] == 'PRICE':
+                # Create tick df from stream record
+                new_tick = {'Bid': tick.data['bid'], 
+                            'Ask': tick.data['ask'], 
+                            'Mid': tick.data['mid']}
+                latest_tick = pd.DataFrame(new_tick, 
+                                           index=[tick.data['time']])
+                
+                # Update tick_data with latest tick
+                self.tick_data = self.tick_data.append(latest_tick)
+                
+                # Check if the length has been exceeded
+                if len(self.tick_data) > self.no_candles:
+                    self.tick_data = self.tick_data.iloc[-self.no_candles:, :]
+                
+                # Update bot
+                if self.update_bot:
+                    self.update_bot_data(self.tick_data)
+                
+                # Write to file
+                if self.write_to_file:
+                    # TODO - preprocess time index column to convert to datetime
+                    # And add exception handling methods for datetime errors 
+                    self.tick_data.index.name = 'Time'
+                    self.tick_data.to_csv(tick_filenames[tick.data['instrument']])
+                
+            if self.record_candles:
+                for instrument in candle_builders:
+                    
+                    candle  = candle_builders[instrument].process_tick(tick)
+                    
+                    if candle is not None:
+                        
+                        # Create candle df from stream record
+                        new_candle = {'High': candle['data']['high'], 
+                                      'Low': candle['data']['low'], 
+                                      'Open': candle['data']['open'],
+                                      'Close': candle['data']['last']}
+                        latest_candle = pd.DataFrame(new_candle, 
+                                                     index=[candle['start']])
+                        
+                        # Update candle_data with latest candle
+                        self.candle_data = self.candle_data.append(latest_candle)
+                        
+                        # Check if the length has been exceeded
+                        if len(self.candle_data) > self.no_candles:
+                            self.candle_data = self.candle_data.iloc[-self.no_candles:, :]
+                        
+                        # Update bot
+                        if self.update_bot:
+                            self.update_bot_data(self.candle_data)
+                        
+                        # Write to file
+                        if self.write_to_file:
+                            self.candle_data.index.name = 'Time'
+                            self.candle_data.to_csv(candle_filenames[instrument])
+            
+
+    def update_bot_data(self, data):
+        '''
+        Sends updated data to bot.
+        '''
+        
+        # Only pass data if len(data) > 0
+        if len(data) > 0:
+            # Refresh strategy with latest data
+            self.bot._update_strategy_data(data)
+            
+            # Call bot update to act on latest data
+            self.bot._update(-1)
