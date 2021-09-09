@@ -313,13 +313,14 @@ class AutoStream():
                                    "Func.Name : %s, Message : %s" % (trace[2], trace[3])
                     stack_trace.append(trade_string)
                 
-                print("WARNING FROM AUTOSTREAM ({}): The following exception was caught:".format(self.instruments))
+                print("\nWARNING FROM AUTOSTREAM ({}): The following exception was caught:".format(self.instruments))
                 print("Exception type : %s " % ex_type.__name__)
                 print("Exception message : %s" %ex_value)
                 print("Stack trace : %s" %stack_trace)
                 print("  Trying again.")
                             
                 # Re-connect to stream
+                time.sleep(3)
                 stream = self.connect_to_stream(self.stream_config)
             else:
                 break
@@ -370,7 +371,7 @@ class AutoStream():
         Processes stream based on run settings.
         '''
         
-        print("Processing stream. To stop streaming, create file named " +\
+        print("\nProcessing stream. To stop streaming, create file named " +\
               "stopstream in the home directory.")
         print("Home directory: ", self.home_dir)
 
