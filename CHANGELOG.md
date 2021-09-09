@@ -6,6 +6,9 @@
 - Data time alginment can optionally be disabled
 - Various plotting improvements
 
+### 0.4.13
+- Added 3 second sleep when reconnecting to Oanda API
+
 ### 0.4.12
 - fix typo in connection check
 
