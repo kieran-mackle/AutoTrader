@@ -6,6 +6,10 @@
 - Data time alginment can optionally be disabled
 - Various plotting improvements
 
+### 0.4.11
+- Added connection check to Oanda module
+
+
 ### 0.4.10
 - Major improvements to AutoStream
 - Livetrade with data updates directly from stream
