@@ -6,6 +6,9 @@
 - Data time alginment can optionally be disabled
 - Various plotting improvements
 
+### 0.4.12
+- fix typo in connection check
+
 ### 0.4.11
 - Added connection check to Oanda module
 
