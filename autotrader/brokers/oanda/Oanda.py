@@ -77,9 +77,22 @@ class Oanda():
         else:
             print("FATAL: All attempts to connect to Oanda API have failed.")
         
+        
+    def get_NAV(self):
+        ''' Returns Net Asset Value of account. '''
+        
+        self.check_connection()
+        
+        response = self.api.account.get(accountID=self.ACCOUNT_ID)
+        
+        return response.body["account"].NAV
+    
     
     def get_price(self, instrument, **dummy_inputs):
         ''' Returns current price (bid+ask) and home conversion factors.'''
+        
+        self.check_connection()
+        
         response = self.api.pricing.get(accountID = self.ACCOUNT_ID, 
                                    instruments = instrument
                                    )
@@ -98,6 +111,9 @@ class Oanda():
     
     def get_pending_orders(self, instrument=None):
         ''' Get all pending orders in the account. '''
+        
+        self.check_connection()
+        
         response = self.api.order.list_pending(accountID = self.ACCOUNT_ID, 
                                           instrument=instrument)
         
@@ -134,11 +150,16 @@ class Oanda():
     
     def cancel_pending_order(self, order_id):
         ''' Cancels pending order by ID. '''
+        
+        self.check_connection()
+        
         self.api.order.cancel(accountID = self.ACCOUNT_ID, 
                               orderSpecifier=str(order_id))
     
     def get_open_positions(self, instrument = None):
         ''' Gets the current positions open on the account. '''
+        
+        self.check_connection()
         
         response = self.api.trade.list_open(accountID=self.ACCOUNT_ID)
         
@@ -178,6 +199,8 @@ class Oanda():
         Parses order_details dict and handles order.
         '''
         
+        self.check_connection()
+        
         if order_details["order_type"] == 'market':
             response = self.place_market_order(order_details)
         elif order_details["order_type"] == 'stop-limit':
@@ -195,6 +218,9 @@ class Oanda():
         
     def place_market_order(self, order_details):
         ''' Places market order. '''
+        
+        self.check_connection()
+        
         stop_loss_details = self.get_stop_loss_details(order_details)
         take_profit_details = self.get_take_profit_details(order_details)
         
@@ -211,6 +237,9 @@ class Oanda():
         Places MarketIfTouchedOrder with Oanda.
         https://developer.oanda.com/rest-live-v20/order-df/
         '''
+        
+        self.check_connection()
+        
         stop_loss_details = self.get_stop_loss_details(order_details)
         take_profit_details = self.get_take_profit_details(order_details)
         
@@ -233,11 +262,15 @@ class Oanda():
     
     def place_limit_order(self, order_details):
         ''' (NOT YET IMPLEMENTED) PLaces limit order. '''
-        return
+        
+        self.check_connection()
+        
 
     def get_stop_loss_details(self, order_details):
         ''' Constructs stop loss details dictionary. '''
         # https://developer.oanda.com/rest-live-v20/order-df/#OrderType
+        
+        self.check_connection()
         
         if order_details["stop_type"] is not None:
             price = self.check_precision(order_details["instrument"], 
@@ -256,6 +289,10 @@ class Oanda():
     
     def get_take_profit_details(self, order_details):
         ''' Constructs take profit details dictionary. '''
+        
+        self.check_connection()
+        
+        
         if order_details["take_profit"] is not None:
             price = self.check_precision(order_details["instrument"], 
                                          order_details["take_profit"])
@@ -267,6 +304,9 @@ class Oanda():
 
     def get_data(self, pair, period, interval):
         # print("Getting data for {}".format(pair))
+        
+        self.check_connection()
+        
         response    = self.api.instrument.candles(pair,
                                              granularity = interval,
                                              count = period,
@@ -280,6 +320,9 @@ class Oanda():
     
     def get_balance(self):
         ''' Returns account balance. '''
+        
+        self.check_connection()
+        
         response = self.api.account.get(accountID=self.ACCOUNT_ID)
         
         return response.body["account"].balance
@@ -287,6 +330,9 @@ class Oanda():
     
     def get_summary(self):
         ''' Returns account summary. '''
+        
+        self.check_connection()
+        
         # response = self.api.account.get(accountID=self.ACCOUNT_ID)
         response = self.api.account.summary(accountID=self.ACCOUNT_ID)
         # print(response.body['account'])
@@ -297,6 +343,9 @@ class Oanda():
     def close_position(self, instrument, long_units=None, short_units=None,
                        **dummy_inputs):
         ''' Closes all open positions on an instrument. '''
+        
+        self.check_connection()
+        
         # Check if the position is long or short
         
         # Temp code to close all positions
@@ -346,6 +395,9 @@ class Oanda():
     
     def get_precision(self, pair):
         ''' Returns the allowable precision for a given pair '''
+        
+        self.check_connection()
+        
         response = self.api.account.instruments(accountID = self.ACCOUNT_ID, 
                                                 instruments = pair)
         
@@ -378,6 +430,8 @@ class Oanda():
         ''' Attempts to construct the latest candle when there is a delay in the 
             api feed.
         '''
+        
+        self.check_connection()
         
         granularity_details = self.deconstruct_granularity(granularity)
         secs = granularity_details['seconds']
@@ -429,6 +483,9 @@ class Oanda():
     
     
     def get_historical_data(self, pair, interval, from_time, to_time):
+        
+        self.check_connection()
+        
         response        = self.api.instrument.candles(pair,
                                                       granularity = interval,
                                                       fromTime = from_time,
@@ -536,7 +593,3 @@ class Oanda():
         
         return reduced_granularity
     
-    def get_NAV(self):
-        ''' Returns Net Asset Value of account. '''
-        response = self.api.account.get(accountID=self.ACCOUNT_ID)
-        return response.body["account"].NAV
