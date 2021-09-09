@@ -11,6 +11,8 @@ from autotrader.brokers.oanda import utils
 import datetime
 import pandas as pd
 import numpy as np
+import traceback
+import sys
 
 
 class Oanda():
@@ -32,20 +34,49 @@ class Oanda():
         self.open_positions     = {}
         
     
-    def connect_to_api(self):
+    def check_connection(self):
         '''
-        Connects to Oanda v20 REST API.
+        Connects to Oanda v20 REST API. An initial call is performed to check
+        for a timeout error.
         '''
         
-        # TODO - first check if the connection is live already
-        # can then just call this method at the start of everything else, as 
-        # it will act as a check and corrector in one.
-        # Try a basic api request, eg. basic account details, and see if that 
-        # fails. If it does, likely a connection error, so reconnect.
+        for atempt in range(5):
+            try:
+                # Attempt basic task to check connection
+                self.api.account.get(account_id=self.ACCOUNT_ID)
+            
+            except BaseException as ex:
+                # Error has occurred
+                ex_type, ex_value, ex_traceback = sys.exc_info()
+            
+                # Extract unformatter stack traces as tuples
+                trace_back = traceback.extract_tb(ex_traceback)
+            
+                # Format stacktrace
+                stack_trace = list()
+            
+                for trace in trace_back:
+                    trade_string = "File : %s , Line : %d, " % (trace[0], trace[1]) + \
+                                   "Func.Name : %s, Message : %s" % (trace[2], trace[3])
+                    stack_trace.append(trade_string)
+                
+                print("WARNING FROM OANDA API: The following exception was caught.")
+                print("Exception type : %s " % ex_type.__name__)
+                print("Exception message : %s" %ex_value)
+                print("Stack trace : %s" %stack_trace)
+                print("  Attempting to reconnect to Oanda v20 API.")
+                
+                self.api = v20.Context(hostname = self.API, 
+                                       token = self.ACCESS_TOKEN, 
+                                       port = self.port)
+            
+            else:
+                print("  Connection successful.")
+                break
+            
+        else:
+            print("FATAL: All attempts to connect to Oanda API have failed.")
         
-        self.api = v20.Context(hostname = self.API, 
-                               token = self.ACCESS_TOKEN, 
-                               port = self.port)
     
     def get_price(self, instrument, **dummy_inputs):
         ''' Returns current price (bid+ask) and home conversion factors.'''
