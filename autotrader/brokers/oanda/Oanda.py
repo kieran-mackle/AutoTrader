@@ -13,7 +13,7 @@ import pandas as pd
 import numpy as np
 import traceback
 import sys
-
+import time
 
 class Oanda():
     def __init__(self, oanda_config, utils):
@@ -60,15 +60,17 @@ class Oanda():
                                    "Func.Name : %s, Message : %s" % (trace[2], trace[3])
                     stack_trace.append(trade_string)
                 
-                print("WARNING FROM OANDA API: The following exception was caught.")
+                print("\nWARNING FROM OANDA API: The following exception was caught.")
                 print("Exception type : %s " % ex_type.__name__)
                 print("Exception message : %s" %ex_value)
                 print("Stack trace : %s" %stack_trace)
                 print("  Attempting to reconnect to Oanda v20 API.")
                 
-                self.api = v20.Context(hostname = self.API, 
-                                       token = self.ACCESS_TOKEN, 
-                                       port = self.port)
+                time.sleep(3)
+                api = v20.Context(hostname = self.API, 
+                                  token = self.ACCESS_TOKEN, 
+                                  port = self.port)
+                self.api = api
             
             else:
                 break
