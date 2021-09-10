@@ -124,13 +124,25 @@ def ema(data, period=14, smoothing=2):
     
     return ema
 
-# def true_range(high, low, close, period=14):
-#     high_low = high - low
-#     high_close = np.abs(high - close)
-#     low_close = np.abs(low - close)
+
+def true_range(data, period=14):
+    high_low = data['High'] - data['Low']
+    high_close = np.abs(data['High'] - data['Close'].shift())
+    low_close = np.abs(data['Low'] - data['Close'].shift())
     
+    ranges = pd.concat([high_low, high_close, low_close], axis=1)
+    true_range = np.max(ranges, axis=1)
     
-#     return
+    return true_range
+
+
+def atr(data, period=14):
+    
+    tr = true_range(data, period)
+    
+    atr = tr.rolling(period).sum()/period
+    
+    return atr
 
 def crossover(list_1, list_2):
     ''' 
