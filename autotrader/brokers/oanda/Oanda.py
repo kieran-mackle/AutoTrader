@@ -40,7 +40,7 @@ class Oanda():
         for a timeout error.
         '''
         
-        for atempt in range(5):
+        for atempt in range(10):
             try:
                 # Attempt basic task to check connection
                 self.api.account.get(accountID=self.ACCOUNT_ID)
@@ -61,6 +61,7 @@ class Oanda():
                     stack_trace.append(trade_string)
                 
                 print("\nWARNING FROM OANDA API: The following exception was caught.")
+                print("Time: {}".format(datetime.datetime.now().strftime("%b %d %H:%M:%S")))
                 print("Exception type : %s " % ex_type.__name__)
                 print("Exception message : %s" %ex_value)
                 print("Stack trace : %s" %stack_trace)

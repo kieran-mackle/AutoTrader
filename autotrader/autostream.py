@@ -314,6 +314,7 @@ class AutoStream():
                     stack_trace.append(trade_string)
                 
                 print("\nWARNING FROM AUTOSTREAM ({}): The following exception was caught:".format(self.instruments))
+                print("Time: {}".format(datetime.now().strftime("%b %d %H:%M:%S")))
                 print("Exception type : %s " % ex_type.__name__)
                 print("Exception message : %s" %ex_value)
                 print("Stack trace : %s" %stack_trace)
@@ -349,6 +350,7 @@ class AutoStream():
                                                     )
                 if response.status != 200:
                     print("Warning:")
+                    print("Time: {}".format(datetime.now().strftime("%b %d %H:%M:%S")))
                     print(response.reason)
                     break
                     
