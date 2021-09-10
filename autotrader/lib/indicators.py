@@ -144,6 +144,10 @@ def atr(data, period=14):
     
     return atr
 
+
+def rsi():
+    return
+
 def crossover(list_1, list_2):
     ''' 
     Returns a list of length len(list_1) with 1 when list_1 crosses above
