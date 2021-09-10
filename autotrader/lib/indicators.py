@@ -121,6 +121,13 @@ def ema(data, period=14, smoothing=2):
         
     return ema
 
+# def true_range(high, low, close, period=14):
+#     high_low = high - low
+#     high_close = np.abs(high - close)
+#     low_close = np.abs(low - close)
+    
+    
+#     return
 
 def crossover(list_1, list_2):
     ''' 
