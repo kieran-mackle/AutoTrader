@@ -118,7 +118,10 @@ def ema(data, period=14, smoothing=2):
     
     for price in data[period:]:
         ema.append((price * (smoothing / (1 + period))) + ema[-1] * (1 - (smoothing / (1 + period))))
-        
+    
+    for i in range(period):
+        ema.insert(0, np.nan)
+    
     return ema
 
 # def true_range(high, low, close, period=14):
