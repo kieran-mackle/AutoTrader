@@ -116,7 +116,7 @@ class AutoTrader():
         self.home_dir       = None
         self.order_summary_fp = None
         
-        self.verbosity      = 0
+        self.verbosity      = 1
         self.notify         = 0
         self.email_params   = None
         self.show_help      = None
