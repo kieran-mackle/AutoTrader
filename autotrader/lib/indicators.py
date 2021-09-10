@@ -111,15 +111,15 @@ def sma(data, period=14):
     
     return sma_list
 
-# def ema(data, period):
+
+def ema(data, period=14, smoothing=2):
     
-#     sma_list = []
+    ema = [sum(data[:period]) / period]
     
-#     for i in range(len(data)):
-#         average = sum(data[i-period+1:i+1])/period
-#         sma_list.append(average)
-    
-#     return sma_list
+    for price in data[period:]:
+        ema.append((price * (smoothing / (1 + period))) + ema[-1] * (1 - (smoothing / (1 + period))))
+        
+    return ema
 
 
 def crossover(list_1, list_2):
