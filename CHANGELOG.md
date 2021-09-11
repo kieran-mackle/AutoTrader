@@ -6,6 +6,13 @@
 - Data time alginment can optionally be disabled
 - Various plotting improvements
 
+### 0.4.14
+- Ability to suspend bots and stream when livetrading. This is useful for 
+  weekends / closed trading period, where trading is not possible, but you
+  do not wish to kill an active bot.
+- Various stream connection improvements
+- Docstring improvements
+
 ### 0.4.13
 - Added 3 second sleep when reconnecting to Oanda API
 
