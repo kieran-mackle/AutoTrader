@@ -1,11 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-AutoPlot
-----------
-Automated plotting script.
-"""
-
 import pandas as pd
 import numpy as np
 import os
@@ -28,13 +20,33 @@ from math import pi
 
 class AutoPlot():
     '''
-    AutoPlot.
-    
     Attributes
     ----------
     data : df
-        The base data.
+        The base data used to plot candles. Required upon instantiation.
+    
+    max_inis_over : int
+        The maximum number of indicators to overlay onto the candlestick plot.
+    
+    max_indis_below : int
+        The maximum number of indicators to plot on new figures below the main
+        candlestick plot.
+    
+    fig_tools : str
+        A comma separated string of Bokeh plotting tools.
         
+    ohlc_height : int
+        The height of the candlestick plot in pixels.
+    
+    ohlc_width : int
+        The width of the candlestick plot in pixels.
+        
+    top_fig_height : int
+        The height of the figure above the candlestick plot in pixels.
+    
+    bottom_fig_height : int
+        The height of the figures below the candlestick plot in pixels.
+
 
     Methods
     -------
