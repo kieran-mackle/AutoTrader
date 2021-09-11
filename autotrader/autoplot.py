@@ -55,9 +55,14 @@ class AutoPlot():
         plotting.
     
     add_tool(tool_name):
-        Add bokeh tool to plot.
+        Add bokeh tool to plot. This adds the tool_name string to the fig_tools
+        attribute.
+    
+    plot(backtest_dict=None, cumulative_PL=None, indicators=None, instrument=None, show_fig=True):
+        Creates a plot.
     
     '''
+    
     def __init__(self, data):
         self.max_indis_over     = 3
         self.max_indis_below    = 2
