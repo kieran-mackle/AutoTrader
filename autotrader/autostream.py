@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+
 """
 AutoStream
 -----------
@@ -220,6 +221,8 @@ class AutoStream():
         self.bot            = bot
         self.update_bot     = update_bot
         self.write_to_file  = write_to_file
+        self.killfile       = os.path.join(home_dir, 'stopstream')
+        self.suspendfile    = os.path.join(home_dir, 'suspendstream')
         
         # Runtime attributes
         self.tick_data      = None
@@ -367,6 +370,11 @@ class AutoStream():
             print("All attempts to connect to stream failed. Exiting.")
             sys.exit(0)
     
+    def suspend(self):
+        while os.path.exists(self.suspendfile):
+            pass
+        
+        # TODO - Reconnect to stream, likely has timed out
     
     def process_stream(self, stream, candle_builders, candle_filenames, tick_filenames):
         '''
@@ -374,15 +382,23 @@ class AutoStream():
         '''
         
         print("\nProcessing stream. To stop streaming, create file named " +\
-              "stopstream in the home directory.")
+              "stopstream in the home directory. Alternatively, create " +\
+              "a file called suspendstream to pause the stream. Then, " +\
+              "delete this file to resume streaming.")
         print("Home directory: ", self.home_dir)
 
         for line in stream.lines:
             
             # First check for stop file
-            if os.path.exists('stopstream'):
+            if os.path.exists(self.killfile):
                 print("Stop file deteced. Stream stopping.")
                 break
+            
+            # Next check for suspend file
+            if os.path.exists(self.suspendfile):
+                print("Suspending stream.")
+                self.suspend()
+                print("Resuming stream.")
             
             # Process each update of stream
             line    = line.decode('utf-8')

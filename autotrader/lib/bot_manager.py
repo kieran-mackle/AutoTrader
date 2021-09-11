@@ -62,6 +62,7 @@ class ManageBot():
         self.active_bots_dir = os.path.join(home_dir, 'active_bots')
         self.active_bot_path = os.path.join(self.active_bots_dir, bot_name_string)
         self.killfile = os.path.join(self.home_dir, 'killbots')
+        self.suspendfile = os.path.join(self.home_dir, 'suspendbots')
         
         # Create name string
         self.bot_name_string = bot_name_string
@@ -125,6 +126,11 @@ class ManageBot():
                 
                 # End management
                 self.managing = False
+            
+            elif os.path.exists(self.suspendfile):
+                print("\nSuspending {} bot.".format(self.bot_name_string))
+                self.suspend()
+                print("Resuming {} bot.".format(self.bot_name_string))
                 
             else:
                 # No termination signal detected, proceed to manage
@@ -175,7 +181,9 @@ class ManageBot():
                         sleep_time = 0.25*self.granularity_to_seconds(base_granularity)
                         time.sleep(sleep_time)
 
-            
+    def suspend(self):
+        while os.path.exists(self.suspendfile):
+            pass    
             
     def write_bot_to_log(self):
         '''
