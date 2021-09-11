@@ -1,14 +1,6 @@
-# -*- coding: utf-8 -*-
-"""
-
-Dedicated data retrieval class.
-
-"""
-
 import pandas as pd
 import v20
 import yfinance as yf
-
 
 class GetData():
     """
