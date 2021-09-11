@@ -650,7 +650,7 @@ def build_multiplier_grid(origin, direction, multiplier, no_levels, precision, s
     levels = [i for i in range(1, no_levels + 1)]
 
     pos_levels = [round(origin + direction*spacing*i, precision) for i in levels]
-    neg_spaces = [spacing*multiplier**(i-1) for i in levels]
+    neg_spaces = [spacing*multiplier**(i) for i in levels]
     neg_levels = []
     prev_neg_level = origin
     for i in range(len(levels)):
