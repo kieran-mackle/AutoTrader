@@ -294,12 +294,11 @@ class AutoStream():
                     tick_filenames[instrument]  = abs_filename
         
         # Connect to stream and begin processing 
-        stream = self.connect_to_stream(self.stream_config)
+        self.connect_to_stream(self.stream_config)
         
-        for attempt in range(3):
+        for attempt in range(30):
             try:
-                self.process_stream(stream,
-                                    candle_builders,
+                self.process_stream(candle_builders,
                                     candle_filenames,
                                     tick_filenames)
             except BaseException as ex:
@@ -325,11 +324,11 @@ class AutoStream():
                             
                 # Re-connect to stream
                 time.sleep(3)
-                stream = self.connect_to_stream(self.stream_config)
+                self.connect_to_stream(self.stream_config)
             else:
                 break
         else:
-                print("All attempts failed. Exiting.")
+                print("All attempts failed. Stopping stream.")
     
     
     def connect_to_stream(self, config):
@@ -345,7 +344,7 @@ class AutoStream():
                                       port = port)
         
         # Connect to the stream
-        for attempt in range(3):
+        for attempt in range(5):
             try:
                 response = streamAPI.pricing.stream(accountID = ACCOUNT_ID, 
                                                     instruments = instruments,
@@ -358,11 +357,11 @@ class AutoStream():
                     break
                     
                 else:
-                    return response
+                    self.stream = response
             
             except Exception as e:
                 print("Caught exception when connecting to stream\n" + str(e))
-            
+                time.sleep(3)
             else:
                 break
             
@@ -376,7 +375,7 @@ class AutoStream():
         
         # TODO - Reconnect to stream, likely has timed out
     
-    def process_stream(self, stream, candle_builders, candle_filenames, tick_filenames):
+    def process_stream(self, candle_builders, candle_filenames, tick_filenames):
         '''
         Processes stream based on run settings.
         '''
@@ -387,7 +386,7 @@ class AutoStream():
               "delete this file to resume streaming.")
         print("Home directory: ", self.home_dir)
 
-        for line in stream.lines:
+        for line in self.stream.lines:
             
             # First check for stop file
             if os.path.exists(self.killfile):
