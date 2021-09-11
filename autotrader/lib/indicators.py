@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-Custom indicators
-
+Custom indicators library.
 """
-import talib as ta
+
+from finta import TA
 import numpy as np
 import pandas as pd
 
@@ -11,8 +11,7 @@ import pandas as pd
 def supertrend(data, period = 10, ATR_multiplier = 3.0):
     ''' Based on the SuperTrend indicator by KivancOzbilgic on TradingView '''
     hl2             = (data.High.values + data.Low.values) / 2
-    true_range      = ta.TRANGE(data.High.values, data.Low.values, data.Close.values)
-    atr             = ta.SMA(true_range, timeperiod=period)
+    atr             = TA.ATR(data, period)
     source          = hl2
     
     up              = source - (ATR_multiplier*atr)
@@ -79,7 +78,7 @@ def supertrend(data, period = 10, ATR_multiplier = 3.0):
 
 def stoch_rsi(data, K_period=3, D_period=3, RSI_length=14, Stochastic_length=14):
 
-    rsi1 = ta.RSI(data, timeperiod = RSI_length)
+    rsi1 = TA.RSI(data, period=RSI_length)
     stoch = stochastic(rsi1, rsi1, rsi1, Stochastic_length)
     
     K = sma(stoch, K_period)
@@ -119,7 +118,7 @@ def ema(data, period=14, smoothing=2):
     for price in data[period:]:
         ema.append((price * (smoothing / (1 + period))) + ema[-1] * (1 - (smoothing / (1 + period))))
     
-    for i in range(period):
+    for i in range(period-1):
         ema.insert(0, np.nan)
     
     return ema
@@ -260,7 +259,7 @@ def bullish_engulfing(data, detection = None):
     body_low        = np.minimum(data.Close.values, data.Open.values)
     body            = body_high - body_low
     
-    body_avg        = ta.EMA(body, body_len)
+    body_avg        = ema(body, body_len)
     short_body      = body < body_avg
     long_body       = body > body_avg
     up_shadow       = data.High.values - body_high
@@ -335,7 +334,7 @@ def bearish_engulfing(data, detection = None):
     body_low        = np.minimum(data.Close.values, data.Open.values)
     body            = body_high - body_low
     
-    body_avg        = ta.EMA(body, body_len)
+    body_avg        = ema(body, body_len)
     short_body      = body < body_avg
     long_body       = body > body_avg
     up_shadow       = data.High.values - body_high
@@ -403,17 +402,19 @@ def find_swings(data, use_body = False):
     '''
         Locates the recent swings in price and returns a rolling list of 
         swing prices.
-        
     '''
+    
+    # TODO - include resampling option to find swings on higher timeframe
+    
     # use_body flag currently not implemented. Idea is to use body close/open
     # instead of high/low (wicks) of candle for swings.
     
     # oc2     = (data.Open.values + data.Close.values)/2
     hl2     = (data.High.values + data.Low.values)/2
     n       = 2
-    ema     = ta.EMA(hl2, n)
+    EMA     = ema(hl2, n)
     
-    grad    = np.gradient(ema)
+    grad    = np.gradient(EMA)
     
     swings   = np.zeros(len(grad))
     for i in range(1, len(grad)):

@@ -30,6 +30,7 @@ setuptools.setup(
         "bokeh >= 2.3.1",
         "scipy",
         "yfinance",
+        "finta"
         ],
     setup_requires=[
             'setuptools_git',
