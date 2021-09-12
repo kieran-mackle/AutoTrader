@@ -59,9 +59,6 @@ class AutoTrader():
     home_dir : str 
         The project home directory.
     
-    include_broker : bool 
-        Set to True to assign broker to strategy attributes.
-    
     use_stream : bool 
         Set to True to use price stream as data feed.
     
@@ -95,7 +92,7 @@ class AutoTrader():
         Runs AutoTrader.
     
     configure(feed='yahoo', verbosity=1, notify=0, home_dir=None,
-              include_broker=False, use_stream=False, detach_bot=False,
+              use_stream=False, detach_bot=False,
               check_data_alignment=True, allow_dancing_bears=False,
               account_id=None, environment='demo', show_plot=False,
               MTF_initialisation=False):
@@ -124,7 +121,7 @@ class AutoTrader():
         self.show_plot      = False
         
         # Livetrade Parameters
-        self.detach_bot     = False         # TODO - make this a strategy config option
+        self.detach_bot     = False
         self.check_data_alignment = True
         self.allow_dancing_bears = False
         self.use_stream     = False
@@ -140,7 +137,6 @@ class AutoTrader():
         self._uninitiated_strat_files = []
         self._uninitiated_strat_dicts = []
         self.feed           = 'yahoo'
-        self.include_broker = False         # TODO - make this a strategy config option
         self.bots_deployed  = []
         
         # Backtesting Parameters
@@ -471,7 +467,7 @@ class AutoTrader():
     
     
     def configure(self, feed='yahoo', verbosity=1, notify=0, home_dir=None,
-                  include_broker=False, use_stream=False, detach_bot=False,
+                  use_stream=False, detach_bot=False,
                   check_data_alignment=True, allow_dancing_bears=False,
                   account_id=None, environment='demo', show_plot=False,
                   MTF_initialisation=False):
@@ -489,9 +485,6 @@ class AutoTrader():
                 notify (int): the level of email notification (0, 1 or 2).
                 
                 home_dir (str): the project home directory.
-                
-                include_broker (bool): set to True to assign broker to strategy
-                attributes.
                 
                 use_stream (bool): set to True to use price stream as data feed.
                 
@@ -518,7 +511,6 @@ class AutoTrader():
         self.verbosity = verbosity
         self.notify = notify
         self.home_dir = home_dir if home_dir is not None else os.getcwd()
-        self.include_broker = include_broker
         self.use_stream = use_stream
         self.detach_bot = detach_bot
         self.check_data_alignment = check_data_alignment

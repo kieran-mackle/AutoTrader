@@ -65,7 +65,6 @@ class AutoTraderBot():
         self.feed               = autotrader_attributes.feed
         self.data_file          = autotrader_attributes.data_file
         self.optimise_mode      = autotrader_attributes.optimise_mode
-        self.include_broker     = autotrader_attributes.include_broker
         self.check_data_alignment = autotrader_attributes.check_data_alignment
         self.allow_dancing_bears = autotrader_attributes.allow_dancing_bears
         self.use_stream         = autotrader_attributes.use_stream
@@ -138,7 +137,10 @@ class AutoTraderBot():
         else:
             strat_data = MTF_data
         
-        if self.include_broker:
+        
+        # Instantiate Strategy
+        include_broker = strategy_config['INCLUDE_BROKER'] if 'INCLUDE_BROKER' in strategy_config else False
+        if include_broker:
             my_strat = strategy(params, strat_data, instrument, self.broker, self.broker_utils)
         else:
             my_strat = strategy(params, strat_data, instrument)
