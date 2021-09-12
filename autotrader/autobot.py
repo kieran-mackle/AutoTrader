@@ -122,21 +122,21 @@ class AutoTraderBot():
             # Start stream
             self._initiate_stream()
 
-        
+        # Multiple time-frame initialisation option
         if self.MTF_initialisation:
             # Only retrieve MTF_data once upon initialisation and store
             # instantiation MTF_data
             self.MTF_data = None
         
-        
+        # Data retrieval
         self.get_data = autodata.GetData(broker_config, self.allow_dancing_bears)
         data, quote_data, MTF_data = self._retrieve_data(instrument, self.feed)
         
+        # Data assignment
         if MTF_data is None:
             strat_data = data
         else:
             strat_data = MTF_data
-        
         
         # Instantiate Strategy
         include_broker = strategy_config['INCLUDE_BROKER'] if 'INCLUDE_BROKER' in strategy_config else False
@@ -145,15 +145,13 @@ class AutoTraderBot():
         else:
             my_strat = strategy(params, strat_data, instrument)
             
-            
         # Assign strategy to local attributes
         self.strategy           = my_strat
         self.data               = data
         self.quote_data         = quote_data
         self.latest_orders      = []
         
-        
-        # Assign strategy attributes for development purposes
+        # Assign strategy attributes for tick-based strategy development
         if self.backtest_mode:
             self.strategy._backtesting = True
         if interval.split(',')[0] == 'tick':
