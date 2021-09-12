@@ -8,7 +8,6 @@ import time
 import pytz
 import pandas as pd
 import numpy as np
-import subprocess
 import threading
 from shutil import copy2
 from datetime import datetime
