@@ -45,7 +45,7 @@ class AutoTrader():
 
     Attributes
     ----------
-    Note: many of the following attributes are set from the methods of AutoTrader.
+    Note: many of the following attributes are set from the configure method of AutoTrader.
     
     feed : str 
         The data feed to be used (eg. Yahoo, Oanda).
@@ -66,7 +66,8 @@ class AutoTrader():
         Set to True to use price stream as data feed.
     
     detach_bot : bool 
-        Set to True to spawn new thread for each bot deployed.
+        Set to True to spawn new thread for each bot deployed. Bots will then
+        continue to trade until a termination signal is recieved from the strategy.
     
     check_data_alignment : bool
         Verify time of latest candle in data recieved against current time.
@@ -130,7 +131,6 @@ class AutoTrader():
         self.MTF_initialisation = False
         self.stream_config  = None
         
-        # self.config         = None
         self.broker         = None
         self.broker_utils   = None
         self.environment    = 'demo'
