@@ -250,7 +250,7 @@ class AutoTrader():
             broker_config['ACCOUNT_ID'] = self.account_id
         
         self._assign_broker(broker_config)
-        self.configure_emailing(global_config)
+        self._configure_emailing(global_config)
         
         if self.backtest_mode:
             starting_balance = self.broker.get_balance()
@@ -777,7 +777,7 @@ class AutoTrader():
         self.broker_utils = utils
     
     
-    def configure_emailing(self, global_config):
+    def _configure_emailing(self, global_config):
         '''
         Configure email settings.
         '''
