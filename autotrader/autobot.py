@@ -592,6 +592,15 @@ class AutoTraderBot():
                 self._process_signal(order_signal_dict, i, self.data, 
                                     self.quote_data, self.instrument)
         
+        # TODO - implement the following
+        # else:
+        #     signal_type = order_signal_dict["signal_type"] if "signal_type" in order_signal_dict else None
+            
+        #     if signal_type == 'deployment':
+        #         # Strategy deployment signal
+        #         runfile = os.path.join(self.home_dir, order_signal_dict['runfile'])
+        #         os.system("nohup python3 {} &".format(runfile))
+        
         if int(self.verbosity) > 1:
             if len(self.latest_orders) > 0:
                 for order in self.latest_orders:
