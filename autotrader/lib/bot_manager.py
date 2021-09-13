@@ -83,6 +83,8 @@ class ManageBot():
             print("To kill bot, delete from bots_deployed directory.")
             print("Alternatively create file named 'killbots' in the home_dir" \
                   + " to kill all bots.\n")
+            print("You can also suspend a bot by creating a 'suspendbots' file." \
+                  + " Deleting this file will then resume the bots.")
             thread.start()
         else:
             print("Notice: Bot has already been deployed. Exiting.")
