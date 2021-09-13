@@ -383,6 +383,16 @@ class AutoTraderBot():
                             
                     else:
                         # Download MTF data each update
+                        # TODO - only download at allowed time intervals based on granularity
+                        # for granularity in self.MTF_intervals:
+                        #     if datetime.now() > time_to_download[granularity]:
+                        #         # Update MTF data
+                        #         # Download ...
+                                
+                        #         # Update newx time_to_download
+                        #         time_to_download[granularity] = next_candle(granularity)
+                                
+                        
                         for granularity in self.MTF_intervals:
                             data = getattr(self.get_data, feed.lower())(instrument,
                                                                         granularity = granularity,
