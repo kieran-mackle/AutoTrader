@@ -112,9 +112,17 @@ class AutoTraderBot():
             
             # Check how many granularities were requested
             if len(interval.split(',')) > 1:
+                # MTF strategy
                 self.base_interval = interval.split(',')[0]
                 self.MTF_intervals = interval.split(',')[1:]
+                
+                # Initiate time_to_download dict
+                self.time_to_download = {}
+                for granularity in self.MTF_intervals:
+                    self.time_to_download[granularity] = datetime.now(tz=pytz.utc)
+                
             else:
+                # Single timeframe strategy
                 self.base_interval = interval
                 self.MTF_intervals = []
             
@@ -383,26 +391,23 @@ class AutoTraderBot():
                             
                     else:
                         # Download MTF data each update
-                        # TODO - only download at allowed time intervals based on granularity
-                        # for granularity in self.MTF_intervals:
-                        #     if datetime.now() > time_to_download[granularity]:
-                        #         # Update MTF data
-                        #         # Download ...
-                                
-                        #         # Update newx time_to_download
-                        #         time_to_download[granularity] = next_candle(granularity)
-                                
-                        
                         for granularity in self.MTF_intervals:
-                            data = getattr(self.get_data, feed.lower())(instrument,
-                                                                        granularity = granularity,
-                                                                        count=period)
+                            if datetime.now(tz=pytz.utc) > self.time_to_download[granularity]:
+                                # Update MTF data
+                                data = getattr(self.get_data, feed.lower())(instrument,
+                                                                            granularity = granularity,
+                                                                            count=period)
                             
-                            if self.check_data_alignment:
-                                data = self._verify_data_alignment(data, instrument, feed, period, 
-                                                                   price_data_path)
-                            
-                            MTF_data[granularity] = data
+                                if self.check_data_alignment:
+                                    data = self._verify_data_alignment(data, instrument, feed, period, 
+                                                                       price_data_path)
+                                
+                                # Append to MTF_data
+                                MTF_data[granularity] = data
+                                
+                                # Update next time_to_download
+                                self.time_to_download[granularity] = self._next_candle_open(granularity)
+                                
                             
                 else:
                     # There is only one timeframe of data
@@ -790,7 +795,18 @@ class AutoTraderBot():
             # Bot is trading
             self.broker.place_order(order_details)
             self.latest_orders.append(order_details)
-            
+    
+    def _next_candle_open(self, granularity):
+        '''
+        Returns the UTC datetime object corresponding to the open time of the 
+        next candle.
+        '''
+        
+        current_ts = datetime.now(tz=pytz.utc).timestamp()
+        granularity_in_seconds = self.broker_utils.interval_to_seconds(granularity)
+        next_candle_open_ts = granularity_in_seconds * np.ceil(current_ts / granularity_in_seconds)
+        
+        return datetime.fromtimestamp(next_candle_open_ts, tz=pytz.utc)
             
 
     def create_backtest_summary(self, balance, NAV, margin):
