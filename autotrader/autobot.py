@@ -229,7 +229,11 @@ class AutoTraderBot():
         '''
         Retrieves price data from AutoData.
         '''
-    
+        
+        # TODO - add time checks to download MTF data when streaming, to prevent
+        # downloading eg. 4 hour candles once every second. Instead, keep track 
+        # of time, and only download every eg. 4 hours
+        
         interval    = self.strategy_params['granularity']
         period      = self.strategy_params['period']
         price_data_path = os.path.join(self.home_dir, 'price_data')
@@ -592,7 +596,7 @@ class AutoTraderBot():
                 self._process_signal(order_signal_dict, i, self.data, 
                                     self.quote_data, self.instrument)
         
-        # TODO - implement the following
+        # TODO - implement the following, maybe
         # else:
         #     signal_type = order_signal_dict["signal_type"] if "signal_type" in order_signal_dict else None
             
