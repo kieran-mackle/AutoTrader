@@ -297,6 +297,7 @@ class AutoStream():
         self.connect_to_stream(self.stream_config)
         
         for attempt in range(30):
+            # TODO - reset attempt count each time a successful attempt is made
             try:
                 self.process_stream(candle_builders,
                                     candle_filenames,

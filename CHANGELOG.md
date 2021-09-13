@@ -6,6 +6,9 @@
 - Data time alginment can optionally be disabled
 - Various plotting improvements
 
+### 0.4.15
+- Improved exception handling
+
 ### 0.4.14
 - Ability to suspend bots and stream when livetrading. This is useful for 
   weekends / closed trading period, where trading is not possible, but you
