@@ -296,8 +296,7 @@ class AutoStream():
         # Connect to stream and begin processing 
         self.connect_to_stream(self.stream_config)
         
-        for attempt in range(30):
-            # TODO - reset attempt count each time a successful attempt is made
+        while True:
             try:
                 self.process_stream(candle_builders,
                                     candle_filenames,
@@ -323,13 +322,9 @@ class AutoStream():
                 print("Stack trace : %s" %stack_trace)
                 print("  Trying again.")
                             
-                # Re-connect to stream
+                # Sleep and attempt to re-connect to stream
                 time.sleep(3)
                 self.connect_to_stream(self.stream_config)
-            else:
-                break
-        else:
-                print("All attempts failed. Stopping stream.")
     
     
     def connect_to_stream(self, config):
