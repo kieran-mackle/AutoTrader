@@ -139,7 +139,7 @@ class ManageBot():
                 
                 if not self.use_stream:
                     # Periodic update mode
-                    for atempt in range(10):
+                    for atempt in range(3):
                         try:
                             # Refresh strategy with latest data
                             self.bot._update_strategy_data()
@@ -178,7 +178,7 @@ class ManageBot():
                     # Pause an amount, depending on granularity
                     base_granularity = self.bot.strategy_params['granularity'].split(',')[0]
                     if base_granularity == 'tick':
-                        time.sleep(1)
+                        time.sleep(3)
                     else:
                         sleep_time = 0.25*self.granularity_to_seconds(base_granularity)
                         time.sleep(sleep_time)
