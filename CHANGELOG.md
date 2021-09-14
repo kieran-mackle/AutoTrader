@@ -6,6 +6,10 @@
 - Data time alginment can optionally be disabled
 - Various plotting improvements
 
+### 0.4.16
+- Stream will run indefinitely until manually stopped, to ensure bots using 
+stream will not be prematurely terminated
+
 ### 0.4.15
 - Improved exception handling
 
@@ -24,7 +28,6 @@
 
 ### 0.4.11
 - Added connection check to Oanda module
-
 
 ### 0.4.10
 - Major improvements to AutoStream
