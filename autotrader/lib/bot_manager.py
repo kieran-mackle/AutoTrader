@@ -114,6 +114,11 @@ class ManageBot():
             
             elif not os.path.exists(self.active_bot_path):
                 print("\nBot file deleted. Bot will be terminated.")
+                
+                if self.use_stream:
+                    # Sleep for 5 seconds to allow for any residual stream actions 
+                    time.sleep(5)
+                    
                 self.bot.strategy.exit_strategy(-1)
                 
                 # End management
@@ -121,6 +126,11 @@ class ManageBot():
             
             elif os.path.exists(self.killfile):
                 print("\nKillfile detected. Bot will be terminated.")
+                
+                if self.use_stream:
+                    # Sleep for 5 seconds to allow for any residual stream actions 
+                    time.sleep(5)
+                    
                 self.bot.strategy.exit_strategy(-1)
                 
                 # Remove bot from log
