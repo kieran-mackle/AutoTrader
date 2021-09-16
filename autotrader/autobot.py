@@ -630,7 +630,8 @@ class AutoTraderBot():
                                                                   order['order_price'])
                     print(order_string)
             else:
-                print("No signal detected.")
+                print("{}: No signal detected ({}).".format(datetime.now().strftime("%b %d %H:%M:%S"),
+                                                            self.instrument))
         
         # Check for orders placed and/or scan hits
         if int(self.notify) > 0 and self.backtest_mode is False:
