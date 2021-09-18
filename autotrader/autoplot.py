@@ -800,24 +800,26 @@ class AutoPlot():
                      active_scroll  = linked_fig.tools[1],
                      x_range        = linked_fig.x_range)
         
-        histcolour = []
-        for i in range(len(macd_data['histogram'])):
-            if np.isnan(macd_data['histogram'][i]):
-                histcolour.append('lightblue')
-            else:
-                if macd_data['histogram'][i] < 0:
-                    histcolour.append('red')
-                else:
-                    histcolour.append('lightblue')
-        
         # Add glyphs
         fig.line(x_range, macd_data['macd'], line_color = 'blue')
         fig.line(x_range, macd_data['signal'], line_color = 'red')
-        fig.quad(top = macd_data['histogram'],
-                 bottom = 0,
-                 left = x_range - 0.3,
-                 right = x_range + 0.3,
-                 fill_color = histcolour)
+        if 'histogram' in macd_data:
+            histcolour = []
+            for i in range(len(macd_data['histogram'])):
+                if np.isnan(macd_data['histogram'][i]):
+                    histcolour.append('lightblue')
+                else:
+                    if macd_data['histogram'][i] < 0:
+                        histcolour.append('red')
+                    else:
+                        histcolour.append('lightblue')
+                        
+            fig.quad(top = macd_data['histogram'],
+                     bottom = 0,
+                     left = x_range - 0.3,
+                     right = x_range + 0.3,
+                     fill_color = histcolour)
+            
         if 'crossvals' in macd_data:
             fig.scatter(x_range,
                         macd_data['crossvals'],
