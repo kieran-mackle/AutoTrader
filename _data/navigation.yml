@@ -21,6 +21,8 @@ Documentation:
     children:
       - title: AutoTrader
         url: /docs/autotrader
+      - title: AutoBot
+        url: /docs/autobot
       - title: Strategy Files
         url: /docs/strategies
   - title: Broker API's

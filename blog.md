@@ -10,6 +10,5 @@ articles:
 key: blog-index
 ---
 
-Stay tuned! Blog posts coming soon. 
 
-<!-- Looking for more posts? Go to the [Archive](blog/archive). -->
+Looking for more posts? Go to the [Archive](blog/archive).
