@@ -238,10 +238,6 @@ class AutoTraderBot():
         Retrieves price data from AutoData.
         '''
         
-        # TODO - add time checks to download MTF data when streaming, to prevent
-        # downloading eg. 4 hour candles once every second. Instead, keep track 
-        # of time, and only download every eg. 4 hours
-        
         interval    = self.strategy_params['granularity']
         period      = self.strategy_params['period']
         price_data_path = os.path.join(self.home_dir, 'price_data')
