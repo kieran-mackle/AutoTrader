@@ -184,7 +184,7 @@ class AutoTraderBot():
         
         
         stream_granularity = self.base_interval
-        no_candles = self.strategy_params['period']
+        self.no_candles = self.strategy_params['period']
         
         self.AS = AutoStream(self.home_dir, 
                              self.stream_config, 
@@ -192,7 +192,7 @@ class AutoTraderBot():
                              granularity = stream_granularity,
                              record_ticks = record_ticks, 
                              record_candles = record_candles,
-                             no_candles = no_candles,
+                             no_candles = self.no_candles,
                              bot = self)
         
         stream_thread = threading.Thread(target = self.AS.start, 
@@ -427,7 +427,6 @@ class AutoTraderBot():
                                    skipinitialspace=True)
                 
                 if len(data) > 0:
-                    # TODO - use count to replace 0 above
                     data.index = pd.to_datetime(data.index, 
                                                 infer_datetime_format=True,
                                                 errors='ignore')
@@ -447,7 +446,6 @@ class AutoTraderBot():
                                                            price_data_path)
                 
                 # Fetch MTF data
-                # TODO - wrap below in conditional if len(intervals) > 1
                 MTF_data = {self.base_interval: data}
                 
                 if self.MTF_initialisation:
