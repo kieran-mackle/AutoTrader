@@ -22,7 +22,7 @@ Start by importing the appropriate packages and modules. First, we import [AutoP
 class. Next, we import GetData, to make getting price data convenient. Finally, we import our technical analysis packages - namely,
 the custom AutoTrader indicators ([crossover](../../../docs/indicators#crossover), [cross_values](../../../docs/indicators#cross-value)) and the technical analysis module of [finta](https://github.com/peerchemist/finta).
 
-```
+```py
 from autotrader.autoplot import AutoPlot
 from autotrader.lib.autodata import GetData
 from autotrader.lib.indicators import crossover, cross_values
@@ -34,7 +34,7 @@ Next, GetData is instantiated so that we can download some price data. Note that
 default, so we do not need to pass any configuration into GetData to instantiate it. However, if you want to use data from
 one of the [supported brokers](../../../docs/brokers), you would need to pass in the appropriate configuration file. 
 
-```
+```py
 # Instantiate GetData class
 get_data = GetData()
 
@@ -49,7 +49,7 @@ data = get_data.yahoo(instrument, '1h',
 Now that we have price data, we can move on to the technical analysis side of things. In this example, we plot the 200 period
 exponential moving average, MACD, and MACD crossovers. 
 
-```
+```py
 # Calculate indicators
 ema = TA.EMA(data, 200)
 
@@ -64,7 +64,7 @@ Next, we need to construct a dictionary containing the indicators we wish to plo
 AutoPlot with the indicator names, types and data. Take a look at the [AutoPlot documentation](../../../docs/autoplot#indicator-specification) for more information. Finally, we instantiate AutoPlot with the main OHLC data to be plotted,
 then use the `plot` method to pass in the indicators dictionary and indicator name. 
 
-```
+```py
 # Construct indicators dictionary
 indicators = {'MACD (12/26/9)': {'type': 'MACD',
                                  'macd': MACD_df.MACD,
