@@ -387,6 +387,7 @@ class AutoStream():
             # First check for stop file
             if os.path.exists(self.killfile):
                 print("Stop file deteced. Stream stopping.")
+                # TODO - is break the correct?
                 break
             
             # Next check for suspend file
