@@ -6,6 +6,9 @@
 - Data time alginment can optionally be disabled
 - Various plotting improvements
 
+### 0.4.17
+- Stream will check instrument of tick data to attempt to fix price bug
+
 ### 0.4.16
 - Stream will run indefinitely until manually stopped, to ensure bots using 
 stream will not be prematurely terminated
