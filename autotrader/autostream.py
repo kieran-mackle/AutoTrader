@@ -400,7 +400,7 @@ class AutoStream():
             msg     = json.loads(line)
             tick    = stream_record(msg)
             
-            if self.record_ticks and msg['type'] == 'PRICE':
+            if self.record_ticks and msg['type'] == 'PRICE' and tick.data['instrument'] == self.instruments:
                 # Create tick df from stream record
                 new_tick = {'Bid': tick.data['bid'], 
                             'Ask': tick.data['ask'], 
