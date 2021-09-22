@@ -369,8 +369,6 @@ class AutoStream():
         while os.path.exists(self.suspendfile):
             pass
         
-        # TODO - Reconnect to stream, likely has timed out
-    
     def process_stream(self, candle_builders, candle_filenames, tick_filenames):
         '''
         Processes stream based on run settings.
