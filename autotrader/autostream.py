@@ -223,6 +223,7 @@ class AutoStream():
         self.write_to_file  = write_to_file
         self.killfile       = os.path.join(home_dir, 'stopstream')
         self.suspendfile    = os.path.join(home_dir, 'suspendstream')
+        self.stopstream     = False
         
         # Runtime attributes
         self.tick_data      = None
@@ -296,7 +297,7 @@ class AutoStream():
         # Connect to stream and begin processing 
         self.connect_to_stream(self.stream_config)
         
-        while True:
+        while True and not self.stopstream:
             try:
                 self.process_stream(candle_builders,
                                     candle_filenames,
@@ -385,7 +386,8 @@ class AutoStream():
             # First check for stop file
             if os.path.exists(self.killfile):
                 print("Stop file deteced. Stream stopping.")
-                # TODO - is break the correct?
+                self.stopstream = True
+                
                 break
             
             # Next check for suspend file
