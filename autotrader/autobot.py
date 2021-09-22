@@ -392,7 +392,7 @@ class AutoTraderBot():
                                 # Update MTF data
                                 data = getattr(self.get_data, feed.lower())(instrument,
                                                                             granularity = granularity,
-                                                                            count=period)
+                                                                            count = period)
                             
                                 if self.check_data_alignment:
                                     data = self._verify_data_alignment(data, instrument, feed, period, 
@@ -403,6 +403,13 @@ class AutoTraderBot():
                                 
                                 # Update next time_to_download
                                 self.time_to_download[granularity] = self._next_candle_open(granularity)
+                            
+                            else:
+                                # Use previously downloaded MTF data
+                                MTF_data[granularity] = self.MTF_data[granularity]
+                        
+                        # Update self.MTF_data with latest MTF data
+                        self.MTF_data = MTF_data
                                 
                             
                 else:
