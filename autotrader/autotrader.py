@@ -521,13 +521,20 @@ class AutoTrader():
         self.MTF_initialisation = MTF_initialisation
         
     
-    def scan(self, scan_index=None):
+    def scan(self, strategy_filename=None, scan_index=None):
         '''
         Configure AutoTrader scan. 
             
             Parameters:
+                strategy_filename (str): prefix of yaml strategy
+                configuration file, located in home_dir/config.
+                    
                 scan_index (str): index to scan.
         '''
+        
+        # If a strategy is provided here, add it
+        if strategy_filename is not None:
+            self.add_strategy(strategy_filename)
         
         # If scan index provided, use that. Else, use strategy watchlist
         if scan_index is not None:
