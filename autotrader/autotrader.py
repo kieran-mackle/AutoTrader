@@ -546,10 +546,9 @@ class AutoTrader():
         else:
             scan_index = 'Strategy watchlist'
             
-        
         self.scan_mode = True
         self.scan_index = scan_index
-    
+        self.check_data_alignment = False
     
     def plot_backtest(self, bot=None):
         '''
@@ -776,9 +775,15 @@ class AutoTrader():
                 
                 
         else:
-            utils_module    = importlib.import_module('autotrader.brokers.{}.utils'.format(self.feed.lower()))
-            utils           = utils_module.Utils()
-            broker          = Oanda.Oanda(broker_config, utils)
+            
+            if self.feed.lower() == 'yahoo':
+                utils_module    = importlib.import_module('autotrader.brokers.virtual.utils')
+                utils           = utils_module.Utils()
+                broker          = None
+            else:
+                utils_module    = importlib.import_module('autotrader.brokers.{}.utils'.format(self.feed.lower()))
+                utils           = utils_module.Utils()
+                broker          = Oanda.Oanda(broker_config, utils) # TODO - generalise away from Oanda
         
         self.broker = broker
         self.broker_utils = utils
