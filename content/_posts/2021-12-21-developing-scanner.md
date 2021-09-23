@@ -103,7 +103,7 @@ being detected correctly.
 ![Supertrend Scan Indicator](/AutoTrader/assets/images/supertrend-scan-indicator.png "Supertrend Scan Indicator")
 
 
-# Building a Strategy
+# Building the Scanner
 To use this indicator to recieve scan notifications, we need to build it into an AutoTrader strategy. Since we have already 
 built the indicator, building the strategy will be easy - it is the exact same logic. This is provided in the code below.
 Head over to the [tutorials](../../../tutorials/strategy) or [strategy documentation](../../../docs/strategies) if you need a little more explanation.
@@ -162,19 +162,75 @@ class SuperTrendScan:
 ```
 
 ## Configuration
+
+### Strategy configuration
 We also need to write a strategy configuration file. This will tell AutoTrader which instruments to apply the strategy
 to.
 
-```py
+```yaml
+NAME: 'SuperTrend Scanner'
+MODULE: 'alt_supertrend'
+CLASS: 'SuperTrendScan'
+INTERVAL: '1h'
+PERIOD: 300
+RISK_PC: 1.5
+SIZING: 'risk'
+PARAMETERS:
+  ema_period: 200
+  candle_tol: 5
+
+WATCHLIST: ['EURUSD=X',
+            'AUDCAD=X',
+            'EURJPY=X',
+            'EURAUD=X',
+            'AUDJPY=X']
 ```
+
+### Global configuration
+To recieve emails each time the scan gets a hit, we also need to provide an email address (you will also need to set
+up a [host email account](../../../tutorials/host-email)). The most convenient way to do this is by creating a 
+[global configuration](../../../docs/configuration-global) file. That way, you can use the same email address for 
+future strategies. The global configuration file will look something like this:
+
+```yaml
+EMAILING:
+  HOST_ACCOUNT:
+    email: "host_email@gmail.com"
+    password: "password123"
+  MAILING_LIST:
+    FirstName_LastName: 
+      title: "Mr"
+      email: "your_personal_email@gmail.com"
+```
+
 
 ## Run File
 Finally, we can construct a run file, to pass our strategy to AutoTrader and run the scan.
 
+```py
+'''
+AutoScan Demonstration
+----------------------
+'''
+
+# Import AutoTrader
+from autotrader.autotrader import AutoTrader
+
+# Create AutoTrader instance
+at = AutoTrader()
+at.scan('supertrend')
+at.run()
+```
+
 
 ## Automated Running
+Unless you are happy to run the scan script manually for as long as you use the scan, you need to automate it.
+After all, that is part of of what makes algo-trading so appealing! Although there are a number of ways to do this,
+a relatively simple and effective way is to use a [cron job](https://en.wikipedia.org/wiki/Cron). 
 
-
+```
+0 */1 * * 1-5 ~/home_dir/run_scan.py
+```
 
 
 # The Final Code
@@ -225,3 +281,12 @@ indicator_dict = {'Supertrend': {'type': 'Supertrend',
 ap = AutoPlot(data)
 ap.plot(indicators=indicator_dict, instrument=instrument)
 ```
+
+
+## Sample Scan Hit
+When the scan detects a hit, an email will be sent to the one provided in the global 
+configuration file. This email will look something like the one below.
+
+
+
+
