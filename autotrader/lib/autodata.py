@@ -1,6 +1,7 @@
 import pandas as pd
 import v20
 import yfinance as yf
+from datetime import datetime, timedelta
 
 class GetData():
     """
@@ -163,7 +164,7 @@ class GetData():
         
         max_candles     = 5000
         
-        my_int          = self.granularity_to_seconds(granularity)
+        my_int          = self.granularity_to_seconds(granularity, 'oanda')
         end_time        = to_time - my_int
         partial_from    = from_time
         response        = self.api.instrument.candles(instrument,
@@ -235,27 +236,42 @@ class GetData():
         
         return dataframe
     
-    def granularity_to_seconds(self, granularity):
+    def granularity_to_seconds(self, granularity, feed):
         '''Converts the granularity to time in seconds'''
-        letter = granularity[0]
         
-        if len(granularity) > 1:
-            number = float(granularity[1:])
-        else:
-            number = 1
-        
-        conversions = {'S': 1,
-                       'M': 60,
-                       'H': 60*60,
-                       'D': 60*60*24
-                       }
-        
-        my_int = conversions[letter] * number
+        if feed.lower() == 'oanda':
+            letter = granularity[0]
+            
+            if len(granularity) > 1:
+                number = float(granularity[1:])
+            else:
+                number = 1
+            
+            conversions = {'S': 1,
+                           'M': 60,
+                           'H': 60*60,
+                           'D': 60*60*24
+                           }
+            
+            my_int = conversions[letter] * number
+            
+        elif feed.lower() == 'yahoo':
+            # Note: will not work for week or month granularities
+            
+            letter = granularity[-1]
+            number = float(granularity[:-1])
+            
+            conversions = {'m': 60,
+                           'h': 60*60,
+                           'd': 60*60*24
+                           }
+            
+            my_int = conversions[letter] * number
         
         return my_int
     
-    
-    def yahoo(self, instrument, granularity=None, start_time=None, end_time=None):
+
+    def yahoo(self, instrument, granularity=None, count=None, start_time=None, end_time=None):
         '''
             Retrieves historical price data from yahoo finance. 
             
@@ -277,6 +293,13 @@ class GetData():
                     2. Intraday data cannot exceed 60 days.
         
         '''
+        
+        if count is not None:
+            # Convert count to start and end dates (currently assumes end=now)
+            end = datetime.now()
+            
+            start = end - timedelta(seconds=self.granularity_to_seconds(granularity, 'yahoo')*count)
+            
         
         data = yf.download(tickers  = instrument, 
                            start    = start_time, 
