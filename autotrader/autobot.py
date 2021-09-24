@@ -671,7 +671,7 @@ class AutoTraderBot():
             if int(self.verbosity) > 0 or \
                 int(self.notify) == 0:
                 if len(self.scan_results) == 0:
-                    print("No hits detected.")
+                    print("{}: No hits detected.".format(self.instrument))
                 else:
                     print(self.scan_results)
             
