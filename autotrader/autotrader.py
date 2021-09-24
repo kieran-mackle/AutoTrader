@@ -543,7 +543,8 @@ class AutoTrader():
         
         # If scan index provided, use that. Else, use strategy watchlist
         if scan_index is not None:
-            self.scan_watchlist = instrument_list.get_watchlist(scan_index)
+            self.scan_watchlist = instrument_list.get_watchlist(scan_index,
+                                                                self.feed)
 
         else:
             scan_index = 'Strategy watchlist'
