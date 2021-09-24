@@ -1,26 +1,42 @@
 ---
 title: Developing a Scanner to Automatically get Notified of Trending Markets
-tags: features
+tags: AutoScan
 ---
 
-This post will act as a tutorial of sorts, going through the process you may use to develop a market scanner using AutoTrader's
-scan mode. The example in this post is intended for forex markets, but could be extended to any other market. 
+This post will act as a tutorial of sorts, going through the process you may use to 
+develop a market scanner using AutoTrader's scan mode. By the end of this post, you
+will have a market scanner which will notify you of trending markets. This is perfect
+for traders who prefer to trade manually, but would like to automate some aspect of 
+their trading, such as filtering instruments to trade for the day.
 
-We will use the GBP/NZD forex pair as an example, performing our analysis on the hourly timeframe. 
+
+The example in this post is intended for forex markets, but could be extended to 
+any other market by modifying the strategy/scan watchlist. The GBP/NZD forex pair 
+will be used throughout to develop the code, but the scanner will eventaully be run on 
+all major forex pairs. The technical analysis
+will be performed on daily candlestick data. The Yahoo Finance API will be used
+so that you can run this code straight out of the box, but if you plan to use this
+scanner for trading with one of AutoTrader's [supported brokers](../../../docs/brokers),
+you can easily (and should) switch the data feed.
+
+As with many of the code presented on this website, the code can be found in the 
+[demo repository](https://github.com/kieran-mackle/autotrader-demo/).
+
 
 
 # Getting Started
 First, we need to build a custom indicator that acts as a flag for our scan. 
 
-Since we want to be notified of trending markets, this indicator will return a value of `1` when the market begins an uptrend, and
-`-1` when it begins a downtrend.
+Since we want to be notified of trending markets, this indicator will return a value 
+of `1` when the market begins an uptrend, and `-1` when it begins a downtrend.
 
 
 ## The Underlying Strategy
 To build our trend notification indicator, we will rely on the [supertrend indicator](../../../docs/indicators#supertrend)
 and a 200 period exponential moving average for confluence. A uptrend will be signalled as beginning when the supertrend 
-indicator changes from a downtrend to an uptrend, while price is above the 200 EMA. The opposite is true for a downtrend signal.
-Enough words! Let's use IndiView to visualise this strategy (check out a previous blog post to learn more about IndiView [here](../17/using-indiview.html)).
+indicator changes from a downtrend to an uptrend, while price is above the 200 EMA. The opposite is true for a downtrend 
+signal. Enough words! Let's use IndiView to visualise this strategy (check out a previous blog post to learn more about 
+IndiView [here](../17/using-indiview.html)).
 
 
 ### IndiView script
@@ -34,7 +50,7 @@ from finta import TA
 get_data = GetData()
 
 instrument = 'GBPNZD=X'
-data = get_data.yahoo(instrument, '1h', 
+data = get_data.yahoo(instrument, '1d', 
                       start_time='2020-01-01', 
                       end_time='2020-02-01')
 
@@ -106,7 +122,8 @@ being detected correctly.
 # Building the Scanner
 To use this indicator to recieve scan notifications, we need to build it into an AutoTrader strategy. Since we have already 
 built the indicator, building the strategy will be easy - it is the exact same logic. This is provided in the code below.
-Head over to the [tutorials](../../../tutorials/strategy) or [strategy documentation](../../../docs/strategies) if you need a little more explanation.
+Head over to the [tutorials](../../../tutorials/strategy) or [strategy documentation](../../../docs/strategies) if you need 
+a little more explanation.
 
 ```py
 # Package import
@@ -171,7 +188,7 @@ to.
 NAME: 'SuperTrend Scanner'
 MODULE: 'alt_supertrend'
 CLASS: 'SuperTrendScan'
-INTERVAL: '1h'
+INTERVAL: '1d'
 PERIOD: 300
 RISK_PC: 1.5
 SIZING: 'risk'
@@ -206,6 +223,10 @@ EMAILING:
 
 ## Run File
 Finally, we can construct a run file, to pass our strategy to AutoTrader and run the scan.
+Note that to activate email notifications, you will also have to use the `configure` method
+of AutoTrader to specify the notify verbosity. You can do this by adding `at.configure(notify=1)`
+after creating the AutoTrader instance.
+
 
 ```py
 '''
@@ -226,66 +247,62 @@ at.run()
 ## Automated Running
 Unless you are happy to run the scan script manually for as long as you use the scan, you need to automate it.
 After all, that is part of of what makes algo-trading so appealing! Although there are a number of ways to do this,
-a relatively simple and effective way is to use a [cron job](https://en.wikipedia.org/wiki/Cron). 
+a relatively simple and effective way is to use a [cron job](https://en.wikipedia.org/wiki/Cron). The cron snippet
+below will run the scanner run file at 7 AM on every day from Monday through to Friday. 
 
 ```
-0 */1 * * 1-5 ~/home_dir/run_scan.py
-```
-
-
-# The Final Code
-The code below contains everything from above.
-
-
-```
-from autotrader.autoplot import AutoPlot
-from autotrader.lib.autodata import GetData
-from autotrader.lib.indicators import supertrend
-from finta import TA
-import numpy as np
-
-get_data = GetData()
-
-instrument = 'GBPNZD=X'
-data = get_data.yahoo(instrument, '1h', 
-                      start_time='2020-01-01', 
-                      end_time='2020-02-01')
-
-ema200 = TA.EMA(data, 200)
-st_df  = supertrend(data, period = 12, ATR_multiplier = 2)
-
-
-signals = np.zeros(len(data))
-for i in range(len(signals)):
-    if data.Close[i] > ema200[i] and \
-    st_df.trend[i] == 1 and \
-    st_df.trend[i-1] == -1:
-        # Start of uptrend
-        signals[i] = 1
-    
-    elif data.Close[i] < ema200[i] and \
-    st_df.trend[i] == -1 and \
-    st_df.trend[i-1] == 1:
-        # Start of uptrend
-        signals[i] = -1
-        
-
-indicator_dict = {'Supertrend': {'type': 'Supertrend',
-                                  'data': st_df},
-                  'EMA (200)': {'type': 'MA',
-                          'data': ema200},
-                  'Signal': {'type': 'below',
-                             'data': signals}
-                  }
-
-ap = AutoPlot(data)
-ap.plot(indicators=indicator_dict, instrument=instrument)
+0 7 * * 1-5 ~/home_dir/run_scan.py
 ```
 
 
-## Sample Scan Hit
-When the scan detects a hit, an email will be sent to the one provided in the global 
-configuration file. This email will look something like the one below.
+
+# Sample Scan Hit
+When the scan detects a hit, a message containing the details of the hit will
+be printed to the command window. If you have set `notify` to above `0`, you 
+will also be sent an email. 
+
+## Command window message
+Running the scanner on the forex major pairs, the following output was produced. As you can
+see, short signals were detected for EUR/USD, GBP/USD, AUD/USD and NZD/USD. A long
+signal was also detected for USD/CAD. Clearly there is some strong movement in the US dollar!
+
+```
+EURUSD=X: Short signal detected.
+USDJPY=X: No signal detected.
+GBPUSD=X: Short signal detected.
+AUDUSD=X: Short signal detected.
+USDCAD=X: Long signal detected.
+USDCHF=X: No signal detected.
+NZDUSD=X: Short signal detected.
+```
+
+## Email message
+With a value of `notify` set to `1` or greater, emails will be sent for each of 
+the signals detected above. For example, the following email was sent for EUR/USD.
+
+> Dear Mr Mackle,
+>
+> This is an automated message to notify you of a recent match in a market scan 
+> you are running. The details of the scan are as follows.
+>
+> Time of scan: 12:32:23.
+>
+> Scan strategy: SuperTrend.
+>
+> Scan index: major.
+>
+> The results from the scan are shown in the table below.
+> 
+> | Pair | Signal Price | Size | Stop Loss | Take Profit |
+> | ----- | ------- | ---- | ---- | --- |
+> | EURUSD=X | 1.17426  |Short | None | None |
+>
+>
+> All the best in your trading endeavours,
+>
+> AutoTrader
+
+
 
 
 
