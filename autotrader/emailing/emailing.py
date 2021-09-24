@@ -304,15 +304,25 @@ def send_scan_results(scan_results, scan_details, mailing_list, host_email):
                     size    = scan_results[pair]['size']
                     entry   = scan_results[pair]['entry'] 
                     stop    = scan_results[pair]['stop']
+                    if stop is None:
+                        stop = 'None'
+                    else:
+                        stop = round(stop, 5)
+
                     take    = scan_results[pair]['take']
+                    if take is None:
+                        take = 'None'
+                    else:
+                        take = round(take, 5)
+                        
                     signal  = scan_results[pair]['signal']
                     
                     f.write('<tr>\n')
-                    f.write('<td>{}/{}</td>\n'.format(pair[:3], pair[-3:]))
+                    f.write('<td>{}</td>\n'.format(pair))
                     f.write('<td>{}</td>\n'.format(round(entry, 5)))
                     f.write('<td>{}</td>\n'.format(signal*size))
-                    f.write('<td>{}</td>\n'.format(round(stop, 5)))
-                    f.write('<td>{}</td>\n'.format(round(take, 5)))
+                    f.write('<td>{}</td>\n'.format(stop))
+                    f.write('<td>{}</td>\n'.format(take))
                     f.write('</tr>\n')
                     
                 f.write('</tbody>')

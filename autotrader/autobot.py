@@ -686,18 +686,18 @@ class AutoTraderBot():
                     self.email_params['host_email'] is not None:
                     # There was a scanner hit and email information is provided
                     emailing.send_scan_results(self.scan_results, 
-                                                scan_details, 
-                                                self.email_params['mailing_list'],
-                                                self.email_params['host_email'])
+                                               scan_details, 
+                                               self.email_params['mailing_list'],
+                                               self.email_params['host_email'])
                 elif int(self.notify) > 1 and \
                     self.email_params['mailing_list'] is not None and \
                     self.email_params['host_email'] is not None:
                     # There was no scan hit, but notify set > 1, so send email
                     # regardless.
                     emailing.send_scan_results(self.scan_results, 
-                                                scan_details, 
-                                                self.email_params['mailing_list'],
-                                                self.email_params['host_email'])
+                                               scan_details, 
+                                               self.email_params['mailing_list'],
+                                               self.email_params['host_email'])
                     
     
     def _update_backtest(self, i):
