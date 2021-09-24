@@ -296,10 +296,8 @@ class GetData():
         
         if count is not None:
             # Convert count to start and end dates (currently assumes end=now)
-            end = datetime.now()
-            
-            start = end - timedelta(seconds=self.granularity_to_seconds(granularity, 'yahoo')*count)
-            
+            end_time = datetime.now()
+            start_time = end_time - timedelta(seconds=self.granularity_to_seconds(granularity, 'yahoo')*count)
         
         data = yf.download(tickers  = instrument, 
                            start    = start_time, 
