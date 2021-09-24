@@ -671,12 +671,12 @@ class AutoTraderBot():
             if int(self.verbosity) > 0 or \
                 int(self.notify) == 0:
                 if len(self.scan_results) == 0:
-                    print("{}: No hits detected.".format(self.instrument))
+                    print("{}: No signal detected.".format(self.instrument))
                 else:
                     # Scan detected hits
                     for instrument in self.scan_results:
                         signal = self.scan_results[instrument]['signal']
-                        signal_type = 'long' if signal == 1 else 'short'
+                        signal_type = 'Long' if signal == 1 else 'Short'
                         print(f"{instrument}: {signal_type} signal detected.")
             
             if int(self.notify) > 0:
