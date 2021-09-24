@@ -790,7 +790,7 @@ class AutoTrader():
             if self.feed.lower() == 'yahoo':
                 utils_module    = importlib.import_module('autotrader.brokers.virtual.utils')
                 utils           = utils_module.Utils()
-                broker          = None
+                broker          = Broker(broker_config, utils)
             else:
                 utils_module    = importlib.import_module('autotrader.brokers.{}.utils'.format(self.feed.lower()))
                 utils           = utils_module.Utils()
