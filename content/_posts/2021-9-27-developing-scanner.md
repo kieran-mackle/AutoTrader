@@ -326,12 +326,37 @@ PARAMETERS:
 ```
 
 In the code above, our tolerance is set to 3, meaning that we will get the signal up to 3 candles 
-after it first occurs. Now let's add the logic to the strategy module.
+after it first occurs. Now let's add the logic to the strategy module. We will use two custom
+indicators from the [AutoTrader library](../../../docs/indicators): candles_since_signal
+and rolling_signal. The first of these will count how many candles have passed since the last
+signal, and the second returns a list which maintains the previous signal received.
 
+
+```py
+# Candles since last signal
+self.candles_since_signal = candles_between_crosses(self.signals)
+
+# Rolling signal list
+self.rolling_signal = rolling_signal_list(self.signals)
 ```
 
+Now, we can use these indicators in our signal generation function:
+
+```py
+if self.rolling_signal[i] == 1 and \
+   self.candles_since_signal[i] < self.params['candle_tol']:
+    # Start of uptrend
+    signal = 1
+
+elif self.rolling_signal[i] == -1 and \
+    self.candles_since_signal[i] < self.params['candle_tol']:
+    # Start of downtrend
+    signal = -1
+
+else:
+    signal = 0
 ```
 
-
-
+Now we can run the scanner again, and capture any signals that have occured within 
+our candle count tolerance!
 
