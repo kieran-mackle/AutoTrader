@@ -11,4 +11,4 @@ key: blog-index
 ---
 
 
-Looking for more posts? Go to the [Archive](blog/archive).
+Looking for more posts? Go to the [Archive](archive).
