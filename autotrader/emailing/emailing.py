@@ -317,10 +317,13 @@ def send_scan_results(scan_results, scan_details, mailing_list, host_email):
                         
                     signal  = scan_results[pair]['signal']
                     
+                    if size == 0:
+                        size = 'Long' if signal == 1 else 'Short'
+                    
                     f.write('<tr>\n')
                     f.write('<td>{}</td>\n'.format(pair))
                     f.write('<td>{}</td>\n'.format(round(entry, 5)))
-                    f.write('<td>{}</td>\n'.format(signal*size))
+                    f.write('<td>{}</td>\n'.format(size))
                     f.write('<td>{}</td>\n'.format(stop))
                     f.write('<td>{}</td>\n'.format(take))
                     f.write('</tr>\n')

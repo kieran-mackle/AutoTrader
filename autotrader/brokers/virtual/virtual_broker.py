@@ -451,8 +451,8 @@ class Broker():
                 positiveHCF = 1/conversion_data
         else:
             # Allow calling get_price as placeholder for livetrading
-            ask = 1
-            bid = 1
+            ask = data.Close[i]
+            bid = data.Close[i]
             negativeHCF = 1
             positiveHCF = 1
         
