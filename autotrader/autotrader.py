@@ -270,7 +270,7 @@ class AutoTrader():
                 print("  To:   ", datetime.strftime(self.data_end,'%d/%m/%Y %H:%M'))
                 # print("  Instruments: ", self.watchlist)
             elif self.scan_mode:
-                print("AutoScan:")
+                print("AutoTrader - AutoScan")
                 print("Time: {}".format(datetime.now().strftime("%A, %B %d %Y, "+
                                                                   "%H:%M:%S")))
             else:

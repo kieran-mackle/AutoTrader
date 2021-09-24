@@ -673,7 +673,11 @@ class AutoTraderBot():
                 if len(self.scan_results) == 0:
                     print("{}: No hits detected.".format(self.instrument))
                 else:
-                    print(self.scan_results)
+                    # Scan detected hits
+                    for instrument in self.scan_results:
+                        signal = self.scan_results[instrument]['signal']
+                        signal_type = 'long' if signal == 1 else 'short'
+                        print(f"{instrument}: {signal_type} signal detected.")
             
             if int(self.notify) > 0:
                 # Emailing requested
