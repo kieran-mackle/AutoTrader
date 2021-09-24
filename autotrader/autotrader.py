@@ -160,6 +160,7 @@ class AutoTrader():
         # Scan Parameters
         self.scan_mode = False
         self.scan_index = None
+        self.scan_watchlist = None
         self.scan_results = {}
         
         
@@ -177,6 +178,10 @@ class AutoTrader():
             self.add_strategy(strategy_dict=strat_dict)
         for strat_config_file in self._uninitiated_strat_files:
             self.add_strategy(strategy_filename=strat_config_file)
+        
+        if self.scan_watchlist is not None:
+            # Scan watchlist has not overwritten strategy watchlist
+            self._update_strategy_watchlist()
         
         # Print help
         if self.show_help is not None:
@@ -538,17 +543,22 @@ class AutoTrader():
         
         # If scan index provided, use that. Else, use strategy watchlist
         if scan_index is not None:
-            scan_watchlist = instrument_list.get_watchlist(scan_index)
-            
-            # Update strategy watchlist
-            for strategy in self.strategies:
-                self.strategies[strategy]['WATCHLIST'] = scan_watchlist
+            self.scan_watchlist = instrument_list.get_watchlist(scan_index)
+
         else:
             scan_index = 'Strategy watchlist'
             
         self.scan_mode = True
         self.scan_index = scan_index
         self.check_data_alignment = False
+    
+    
+    def _update_strategy_watchlist(self):
+        ''' Updates the watchlist of each strategy with the scan watchlist. '''
+        
+        for strategy in self.strategies:
+            self.strategies[strategy]['WATCHLIST'] = self.scan_watchlist
+    
     
     def plot_backtest(self, bot=None):
         '''
