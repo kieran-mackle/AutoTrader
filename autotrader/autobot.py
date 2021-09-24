@@ -166,7 +166,7 @@ class AutoTraderBot():
         
         if int(self.verbosity) > 0:
                 print("AutoTraderBot assigned to analyse {}".format(instrument),
-                      "on {} timeframe using {}.".format(self.strategy_params['granularity'],
+                      "on {} timeframe using {}.\n".format(self.strategy_params['granularity'],
                                                          strategy_config['NAME']))
     
     
