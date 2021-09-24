@@ -194,7 +194,6 @@ RISK_PC: 1.5
 SIZING: 'risk'
 PARAMETERS:
   ema_period: 200
-  candle_tol: 5
 
 WATCHLIST: ['EURUSD=X',
             'AUDCAD=X',
@@ -303,6 +302,35 @@ the signals detected above. For example, the following email was sent for EUR/US
 > AutoTrader
 
 
+# A Useful Modification
+*The modified strategy is named 'alt_supertrend.py' in the [demo repository](https://github.com/kieran-mackle/autotrader-demo/)*
+Perhaps you slept in a little bit late one day and missed a signal from the scanner. When
+the scanner runs the next day, you will not be notified of that trend, since the indicator
+developed above only pings on the first candle of a new trend being detected. But what if 
+we are happy to get into the trend a little bit late? 
+
+To make it such that we receive a signal even a few candles late, lets add a candle tolerance
+parameter to our strategy. Our strategy configuration file will then look something like this:
+
+```yaml
+NAME: 'SuperTrend Scanner'
+MODULE: 'alt_supertrend'
+CLASS: 'SuperTrendScan'
+INTERVAL: '1d'
+PERIOD: 300
+RISK_PC: 1.5
+SIZING: 'risk'
+PARAMETERS:
+  ema_period: 200
+  candle_tol: 3
+```
+
+In the code above, our tolerance is set to 3, meaning that we will get the signal up to 3 candles 
+after it first occurs. Now let's add the logic to the strategy module.
+
+```
+
+```
 
 
 
