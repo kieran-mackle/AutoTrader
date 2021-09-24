@@ -6,7 +6,7 @@ Function to parse scan request and return watchlist.
 """
 import sys
 
-def get_watchlist(index):
+def get_watchlist(index, feed):
     '''
     This code is currently in development.
     
@@ -42,37 +42,72 @@ def get_watchlist(index):
     
     elif index == 'major':
         ''' Returns major currency pairs. '''
-        watchlist = ['EUR_USD', 
-                     'USD_JPY', 
-                     'GBP_USD', 
-                     'AUD_USD', 
-                     'USD_CAD', 
-                     'USD_CHF', 
-                     'NZD_USD'
-                     ]
+        if feed.lower() == 'oanda':
+            watchlist = ['EUR_USD', 
+                         'USD_JPY', 
+                         'GBP_USD', 
+                         'AUD_USD', 
+                         'USD_CAD', 
+                         'USD_CHF', 
+                         'NZD_USD'
+                         ]
+            
+        elif feed.lower() == 'yahoo':
+            watchlist = ['EURUSD=X', 
+                         'USDJPY=X', 
+                         'GBPUSD=X', 
+                         'AUDUSD=X', 
+                         'USDCAD=X', 
+                         'USDCHF=X', 
+                         'NZDUSD=X'
+                         ]
         
     elif index == 'minor':
         ''' Returns minor currency pairs. '''
-        watchlist = ['EUR_GBP',
-                     'EUR_AUD',
-                     'EUR_CAD',
-                     'EUR_CHF',
-                     'EUR_JPY',
-                     'EUR_NZD',
-                     'GBP_JPY',
-                     'GBP_AUD',
-                     'GBP_CAD',
-                     'GBP_CHF',
-                     'GBP_NZD',
-                     'AUD_CAD',
-                     'AUD_CHF',
-                     'AUD_JPY',
-                     'AUD_NZD',
-                     'CAD_CHF',
-                     'CAD_JPY',
-                     'CHF_JPY',
-                     'NZD_CHF',
-                     'NZD_JPY']
+        
+        if feed.lower() == 'oanda':
+            watchlist = ['EUR_GBP',
+                         'EUR_AUD',
+                         'EUR_CAD',
+                         'EUR_CHF',
+                         'EUR_JPY',
+                         'EUR_NZD',
+                         'GBP_JPY',
+                         'GBP_AUD',
+                         'GBP_CAD',
+                         'GBP_CHF',
+                         'GBP_NZD',
+                         'AUD_CAD',
+                         'AUD_CHF',
+                         'AUD_JPY',
+                         'AUD_NZD',
+                         'CAD_CHF',
+                         'CAD_JPY',
+                         'CHF_JPY',
+                         'NZD_CHF',
+                         'NZD_JPY']
+            
+        elif feed.lower() == 'yahoo':
+            watchlist = ['EURGBP=X',
+                         'EURAUD=X',
+                         'EURCAD=X',
+                         'EURCHF=X',
+                         'EURJPY=X',
+                         'EURNZD=X',
+                         'GBPJPY=X',
+                         'GBPAUD=X',
+                         'GBPCAD=X',
+                         'GBPCHF=X',
+                         'GBPNZD=X',
+                         'AUDCAD=X',
+                         'AUDCHF=X',
+                         'AUDJPY=X',
+                         'AUDNZD=X',
+                         'CADCHF=X',
+                         'CADJPY=X',
+                         'CHFJPY=X',
+                         'NZDCHF=X',
+                         'NZDJPY=X']
     
     elif index == 'exotic':
         ''' Returns exotic currency pairs. '''
