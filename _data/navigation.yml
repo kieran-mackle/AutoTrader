@@ -17,7 +17,7 @@ header:
 
 
 Documentation:
-  - title: Core Functions
+  - title: Core Modules
     children:
       - title: AutoTrader
         url: /docs/autotrader
