@@ -271,7 +271,7 @@ class AutoTrader():
                 # print("  Instruments: ", self.watchlist)
             elif self.scan_mode:
                 print("AutoTrader - AutoScan")
-                print("Time: {}".format(datetime.now().strftime("%A, %B %d %Y, "+
+                print("Time: {}\n".format(datetime.now().strftime("%A, %B %d %Y, "+
                                                                   "%H:%M:%S")))
             else:
                 print("AutoTrader Livetrade")
