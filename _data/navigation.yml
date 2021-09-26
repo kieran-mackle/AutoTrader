@@ -72,10 +72,10 @@ Tutorials:
       
   - title: Miscellaneous
     children:
-      - title: Setting up email notifications
-        url: /tutorials/host-email
       - title: Getting Help
         url: /tutorials/help
+      - title: Setting up email notifications
+        url: /tutorials/host-email
 
 Features:
   - title: Features
