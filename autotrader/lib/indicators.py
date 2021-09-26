@@ -208,19 +208,20 @@ def candles_between_crosses(cross_list):
     
     
     Behaviour:
-    in:  [0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1]
-    out: [0, 0, 1, 1, 2, 3, 4, 1, 2, 3, 4, 5, 6]
+    in:  [0, 0, 1, 0, 0, 0, -1, 0, 0, 0, 0, 0, 1]
+    out: [1, 2, 0, 1, 2, 3,  0, 1, 2, 3, 4, 5, 0]
     '''
     
     count = 0
-    count_list = [count, count]
+    count_list = []
     
-    for i in range(1, len(cross_list)-1):
+    for i in range(len(cross_list)):
 
         if cross_list[i] == 0:
+            # Change in signal - reset count
             count += 1
         else:
-            count = 1
+            count = 0
         
         count_list.append(count)
     
