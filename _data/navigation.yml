@@ -69,12 +69,13 @@ Tutorials:
         url: /tutorials/optimisation
       - title: Going Live
         url: /tutorials/live-trading
-      - title: Getting Help
-        url: /tutorials/help
+      
   - title: Miscellaneous
     children:
       - title: Setting up email notifications
         url: /tutorials/host-email
+      - title: Getting Help
+        url: /tutorials/help
 
 Features:
   - title: Features
