@@ -476,6 +476,16 @@ def rolling_signal_list(signals):
         
         return rolling_signals
 
+def unroll_signal_list(signals):
+    ''' Unrolls a signal list. '''
+    new_list = np.zeros(len(signals))
+    
+    for i in range(len(signals)):
+        if signals[i] != signals[i-1]:
+            new_list[i] = signals[i]
+    
+    return new_list
+
 
 def merge_signals(signal_1, signal_2):
      ''' 
