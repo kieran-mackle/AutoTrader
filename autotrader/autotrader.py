@@ -368,6 +368,13 @@ class AutoTrader():
                     ap._plot_multibot_backtest(self.multibot_backtest_results, 
                                               NAV,
                                               cpl_dict)
+        
+        elif self.scan_mode and self.show_plot:
+            # Show plots for scanned instruments
+            for bot in self.bots_deployed:
+                ap = autoplot.AutoPlot(bot.data)
+                ap.plot(indicators = bot.strategy.indicators, 
+                        instrument = bot.instrument)
 
     def _clear_strategies(self):
         '''
