@@ -163,6 +163,8 @@ class AutoTrader():
         self.scan_watchlist = None
         self.scan_results = {}
         
+        # Plotting
+        self._custom_ap_settings = False
         
     def run(self):
         '''
@@ -372,7 +374,7 @@ class AutoTrader():
         elif self.scan_mode and self.show_plot:
             # Show plots for scanned instruments
             for bot in self.bots_deployed:
-                ap = autoplot.AutoPlot(bot.data)
+                ap = self._instantiate_autoplot(bot.data)
                 ap.plot(indicators = bot.strategy.indicators, 
                         instrument = bot.instrument)
 
@@ -389,7 +391,42 @@ class AutoTrader():
         '''
         
         self.bots_deployed = []
+    
+    def plot_settings(self, max_indis_over=3, max_indis_below=2,
+                      fig_tools="pan,wheel_zoom,box_zoom,undo,redo,reset,save,crosshair",
+                      ohlc_height=400, ohlc_width=800, top_fig_height=150,
+                      bottom_fig_height=150):
+        ''' Configures settings for AutoPlot. '''
         
+        # Set flag for custom settings
+        self._custom_ap_settings = True
+        
+        # Assign attributes
+        self.max_indis_over     = max_indis_over
+        self.max_indis_below    = max_indis_below
+        self.fig_tools          = fig_tools
+        self.ohlc_height        = ohlc_height
+        self.ohlc_width         = ohlc_width
+        self.top_fig_height     = top_fig_height
+        self.bottom_fig_height  = bottom_fig_height
+    
+    def _instantiate_autoplot(self, data):
+        ''' Creates instance of AutoPlot. '''
+        
+        # Create nominal instance
+        ap = autoplot.AutoPlot(data)
+        
+        if self._custom_ap_settings:
+            # Assign attributes
+            ap.max_indis_over     = self.max_indis_over
+            ap.max_indis_below    = self.max_indis_below
+            ap.fig_tools          = self.fig_tools
+            ap.ohlc_height        = self.ohlc_height
+            ap.ohlc_width         = self.ohlc_width
+            ap.top_fig_height     = self.top_fig_height
+            ap.bottom_fig_height  = self.bottom_fig_height
+        
+        return ap
     
     def add_strategy(self, strategy_filename=None, 
                      strategy_dict=None):
