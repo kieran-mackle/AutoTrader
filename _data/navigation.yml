@@ -23,36 +23,41 @@ Documentation:
         url: /docs/autotrader
       - title: AutoBot
         url: /docs/autobot
-      - title: Strategy Files
-        url: /docs/strategies
+      - title: AutoPlot
+        url: /docs/autoplot
+      - title: AutoStream
+        url: /docs/autostream
+
   - title: Broker API's
     children:
       - title: Virtual Broker
         url: /docs/brokers-virtual
       - title: Oanda
         url: /docs/brokers-oanda
-  - title: Configuration Files
+
+  - title: User-Input Files
     children:
+      - title: Strategy Module
+        url: /docs/strategies
       - title: Global Configuration
         url: /docs/configuration-global
       - title: Strategy Configuration
         url: /docs/configuration-strategy
+
   - title: Utility Functions
     children:
-      - title: Emailing utilities
-        url: /docs/emailing
-      - title: AutoPlot
-        url: /docs/autoplot
-      - title: AutoStream
-        url: /docs/autostream
-      - title: Logging
-        url: /docs/logging
       - title: AutoData
         url: /docs/autodata
+      - title: Emailing utilities
+        url: /docs/emailing
       - title: Indicators Library
         url: /docs/indicators
       - title: Environment Manager
         url: /docs/environment-manager
+      - title: Bot Manager
+        url: /docs/bot-manager
+      - title: Logging
+        url: /docs/logging
 
 Tutorials:
   - title: Quick Start Guide
