@@ -6,6 +6,10 @@
 - Data time alginment can optionally be disabled
 - Various plotting improvements
 
+### 0.4.19
+- Plotting enhancements
+- Improvements to scan mode
+
 ### 0.4.18
 - various stream fixes
 
