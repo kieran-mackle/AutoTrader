@@ -56,8 +56,6 @@ Documentation:
         url: /docs/environment-manager
       - title: Bot Manager
         url: /docs/bot-manager
-      - title: Logging
-        url: /docs/logging
 
 Tutorials:
   - title: Quick Start Guide
