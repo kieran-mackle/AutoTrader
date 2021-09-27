@@ -304,6 +304,7 @@ the signals detected above. For example, the following email was sent for EUR/US
 
 # A Useful Modification
 *The modified strategy is named 'alt_supertrend.py' in the [demo repository](https://github.com/kieran-mackle/autotrader-demo/)*
+
 Perhaps you slept in a little bit late one day and missed a signal from the scanner. When
 the scanner runs the next day, you will not be notified of that trend, since the indicator
 developed above only pings on the first candle of a new trend being detected. But what if 
