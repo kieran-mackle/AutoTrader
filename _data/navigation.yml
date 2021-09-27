@@ -35,7 +35,7 @@ Documentation:
       - title: Oanda
         url: /docs/brokers-oanda
 
-  - title: User-Input Files
+  - title: User Input Files
     children:
       - title: Strategy Module
         url: /docs/strategies
