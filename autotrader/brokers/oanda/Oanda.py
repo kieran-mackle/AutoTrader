@@ -347,7 +347,7 @@ class Oanda():
         self.check_connection()
         
         response = self.api.position.get(instrument = instrument, 
-                                         accountID = self.account_id)
+                                         accountID = self.ACCOUNT_ID)
         
         return response.body['position']
     
