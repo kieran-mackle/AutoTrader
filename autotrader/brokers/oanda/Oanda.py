@@ -341,6 +341,16 @@ class Oanda():
         
         return response
     
+    def get_position(self, instrument):
+        ''' Gets position from Oanda. '''
+        
+        self.check_connection()
+        
+        response = self.api.position.get(instrument = instrument, 
+                                         accountID = self.account_id)
+        
+        return response.body['position']
+    
     
     def close_position(self, instrument, long_units=None, short_units=None,
                        **dummy_inputs):
