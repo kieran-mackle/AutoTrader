@@ -24,7 +24,7 @@ A basic level of experience with Python is recommended for using AutoTrader, but
 aims to make using it as easy as possible with detailed tutorials.
 
 ## Features
-- [Backtesting](https://kieran-mackle.github.io/AutoTrader/tutorials/backtesting), featuring multiple order types (market, limit, stop-limit, trailing stops, etc.) and the ability to trade multiple instruments and multiple strategies in the same backtest against the same broker
+- [Backtesting](https://kieran-mackle.github.io/AutoTrader/tutorials/backtesting), featuring multiple order types (market, limit, stop-limit, trailing stops, etc.) and the ability to **trade multiple instruments and multiple strategies in the same backtest against the same broker**
 - [Integrated data feeds](https://kieran-mackle.github.io/AutoTrader/tutorials/price-data), such as Yahoo Finance (via [yfinance](https://pypi.org/project/yfinance/)) and Oanda v20 REST API
 - [Automated interactive visualisation](https://kieran-mackle.github.io/AutoTrader/interactive-visualisation) using [Bokeh](https://bokeh.org/)
 - [Built-in parameter optimisation](https://kieran-mackle.github.io/AutoTrader/tutorials/optimisation) using [scipy](https://docs.scipy.org/doc/scipy/reference/optimize.html)
