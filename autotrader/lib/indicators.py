@@ -8,11 +8,16 @@ import numpy as np
 import pandas as pd
 
 
-def supertrend(data, period = 10, ATR_multiplier = 3.0):
+def supertrend(data, period = 10, ATR_multiplier = 3.0, source='hl2'):
     ''' Based on the SuperTrend indicator by KivancOzbilgic on TradingView '''
-    hl2             = (data.High.values + data.Low.values) / 2
+    
+    if source == 'hl2':
+        source = (data.High.values + data.Low.values) / 2
+    elif source == 'ema':
+        source = TA.EMA(data, period)
+    
+    # Calculate ATR
     atr             = TA.ATR(data, period)
-    source          = hl2
     
     up              = source - (ATR_multiplier*atr)
     up_list         = [up[0]]
