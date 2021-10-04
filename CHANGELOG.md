@@ -6,6 +6,9 @@
 - Data time alginment can optionally be disabled
 - Various plotting improvements
 
+### 0.4.21
+- Added generic emailing method 'send_message' to easily send custom emails
+
 ### 0.4.20
 - Added position retrieval from Oanda
 
