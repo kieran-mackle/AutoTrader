@@ -373,3 +373,37 @@ def send_scan_results(scan_results, scan_details, mailing_list, host_email):
         
         # Delete html file
         os.remove(email_message_path)
+
+
+def send_message(mailing_list, host_email, message):
+    '''
+    A method to email a generic message.
+    
+    Parameters:
+        mailing_list (dict): a dictionary containing email contacts.
+        
+        host_email (dict): a dictionary containing the account details of the 
+        host email account.
+        
+        message (str): the message to be sent.
+    
+    Refer to the AutoTrader documentation for more information:
+    https://kieran-mackle.github.io/AutoTrader/docs/configuration-global#emailing
+    '''
+
+    # Email configuration settings
+    sender_email = host_email['email']
+    password = host_email['password']
+    
+    for person in mailing_list:
+        receiver_email  = mailing_list[person]['email']
+
+        # Create secure connection with server and send email
+        context = ssl.create_default_context()
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=context) as server:
+            server.login(sender_email, password)
+            server.sendmail(sender_email, 
+                            receiver_email, 
+                            message
+                            )
+            
