@@ -404,6 +404,5 @@ def send_message(mailing_list, host_email, message):
             server.login(sender_email, password)
             server.sendmail(sender_email, 
                             receiver_email, 
-                            message
-                            )
+                            message)
             
