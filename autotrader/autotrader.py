@@ -29,7 +29,7 @@ from autotrader.lib.read_yaml import read_yaml
 from autotrader import autoplot
 from autotrader.autobot import AutoTraderBot
 from autotrader.lib.bot_manager import ManageBot
-
+import time
 
 class AutoTrader():
     """
@@ -377,6 +377,7 @@ class AutoTrader():
                 ap = self._instantiate_autoplot(bot.data)
                 ap.plot(indicators = bot.strategy.indicators, 
                         instrument = bot.instrument)
+                time.sleep(0.3)
 
     def _clear_strategies(self):
         '''
