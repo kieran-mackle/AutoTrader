@@ -37,7 +37,27 @@ def get_watchlist(index, feed):
                      'AUD_USD', 
                      'USD_CAD', 
                      'USD_CHF', 
-                     'NZD_USD'
+                     'NZD_USD',
+                     'EUR_GBP',
+                     'EUR_AUD',
+                     'EUR_CAD',
+                     'EUR_CHF',
+                     'EUR_JPY',
+                     'EUR_NZD',
+                     'GBP_JPY',
+                     'GBP_AUD',
+                     'GBP_CAD',
+                     'GBP_CHF',
+                     'GBP_NZD',
+                     'AUD_CAD',
+                     'AUD_CHF',
+                     'AUD_JPY',
+                     'AUD_NZD',
+                     'CAD_CHF',
+                     'CAD_JPY',
+                     'CHF_JPY',
+                     'NZD_CHF',
+                     'NZD_JPY',
                      ]
     
     elif index == 'major':
