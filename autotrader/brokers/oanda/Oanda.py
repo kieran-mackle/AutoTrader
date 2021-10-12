@@ -605,3 +605,12 @@ class Oanda():
         
         return reduced_granularity
     
+    def get_orderbook(self, instrument):
+        ''' Returns the order book of the instrument specified. '''
+        
+        response = self.api.instrument.order_book(instrument)
+        
+        return response
+        
+        
+    
