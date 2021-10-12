@@ -610,7 +610,6 @@ class Oanda():
         
         response = self.api.instrument.order_book(instrument)
         
-        return response
         return response.body['orderBook']
         
     def get_position_book(self, instrument):
