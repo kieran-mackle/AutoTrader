@@ -40,6 +40,8 @@ class Oanda():
         for a timeout error.
         '''
         
+        # TODO - improve this - currently doubles the poll rate
+        
         for atempt in range(10):
             try:
                 # Attempt basic task to check connection
