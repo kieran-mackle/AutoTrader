@@ -571,7 +571,7 @@ class AutoTrader():
         self.MTF_initialisation = MTF_initialisation
         
     
-    def scan(self, strategy_filename=None, scan_index=None):
+    def scan(self, strategy_filename=None, strategy_dict=None, scan_index=None):
         '''
         Configure AutoTrader scan. 
             
@@ -585,6 +585,8 @@ class AutoTrader():
         # If a strategy is provided here, add it
         if strategy_filename is not None:
             self.add_strategy(strategy_filename)
+        elif strategy_dict is not None:
+            self.add_strategy(strategy_dict=strategy_dict)
         
         # If scan index provided, use that. Else, use strategy watchlist
         if scan_index is not None:
