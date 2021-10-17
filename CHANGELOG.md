@@ -6,6 +6,9 @@
 - Data time alginment can optionally be disabled
 - Various plotting improvements
 
+### 0.4.22
+- Fix: added small pause between opening new plot from scan results to 
+
 ### 0.4.21
 - Added generic emailing method 'send_message' to easily send custom emails
 
