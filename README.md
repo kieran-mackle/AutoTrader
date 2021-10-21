@@ -33,6 +33,7 @@ aims to make using it as easy as possible with detailed tutorials.
 - [Live trading](https://kieran-mackle.github.io/AutoTrader/supported-api) through [Oanda v20 REST API](https://developer.oanda.com/rest-live-v20/introduction/) (with support for more brokers coming soon!)
 - [Email notification system](https://kieran-mackle.github.io/AutoTrader/docs/emailing)
 - [Detailed documenation and tutorials](https://kieran-mackle.github.io/AutoTrader/tutorials/getting-autotrader)
+- [Repository](https://github.com/kieran-mackle/autotrader-demo) of example strategies
 
 ## Installation
 AutoTrader can be installed using pip:
