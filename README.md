@@ -17,7 +17,7 @@
 </p>
 
 
-AutoTrader is an event-driven platform intended to help in the development, optimisation and live deployment of automated trading systems. 
+AutoTrader is Python-based platform intended to help in the development, optimisation and deployment of automated trading systems. 
 From simple indicator-based strategies, to complex non-directional hedging strategies, AutoTrader can do it all. If you prefer a more hands-on 
 approach to trading, AutoTrader can also assist you by notifying you of price behaviour, ensuring you never miss a signal again.
 A basic level of experience with Python is recommended for using AutoTrader, but the [website](https://kieran-mackle.github.io/AutoTrader) 
