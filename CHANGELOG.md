@@ -6,6 +6,9 @@
 - Data time alginment can optionally be disabled
 - Various plotting improvements
 
+### 0.4.23
+- Fix: rounding of position sizing in broker utils
+
 ### 0.4.22
 - Fix: added small pause between opening new plot from scan results to 
 
