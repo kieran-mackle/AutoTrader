@@ -17,14 +17,14 @@
 </p>
 
 
-AutoTrader is an event-driven platform intended to help in the development, optimisation and live deployment of automated trading systems. 
+AutoTrader is Python-based platform intended to help in the development, optimisation and deployment of automated trading systems. 
 From simple indicator-based strategies, to complex non-directional hedging strategies, AutoTrader can do it all. If you prefer a more hands-on 
 approach to trading, AutoTrader can also assist you by notifying you of price behaviour, ensuring you never miss a signal again.
 A basic level of experience with Python is recommended for using AutoTrader, but the [website](https://kieran-mackle.github.io/AutoTrader) 
 aims to make using it as easy as possible with detailed tutorials.
 
 ## Features
-- [Backtesting](https://kieran-mackle.github.io/AutoTrader/tutorials/backtesting), featuring multiple order types (market, limit, stop-limit, trailing stops, etc.) and the ability to **trade multiple instruments and multiple strategies in the same backtest against the same broker**
+- [Backtesting](https://kieran-mackle.github.io/AutoTrader/tutorials/backtesting), featuring multiple order types (market, limit, stop-limit, trailing stops, etc.) and the ability to **trade multiple instruments, multiple timeframes, and multiple strategies in the same backtest, against the same broker**
 - [Integrated data feeds](https://kieran-mackle.github.io/AutoTrader/tutorials/price-data), such as Yahoo Finance (via [yfinance](https://pypi.org/project/yfinance/)) and Oanda v20 REST API
 - [Automated interactive visualisation](https://kieran-mackle.github.io/AutoTrader/interactive-visualisation) using [Bokeh](https://bokeh.org/)
 - [Built-in parameter optimisation](https://kieran-mackle.github.io/AutoTrader/tutorials/optimisation) using [scipy](https://docs.scipy.org/doc/scipy/reference/optimize.html)
@@ -33,6 +33,7 @@ aims to make using it as easy as possible with detailed tutorials.
 - [Live trading](https://kieran-mackle.github.io/AutoTrader/supported-api) through [Oanda v20 REST API](https://developer.oanda.com/rest-live-v20/introduction/) (with support for more brokers coming soon!)
 - [Email notification system](https://kieran-mackle.github.io/AutoTrader/docs/emailing)
 - [Detailed documenation and tutorials](https://kieran-mackle.github.io/AutoTrader/tutorials/getting-autotrader)
+- [Repository](https://github.com/kieran-mackle/autotrader-demo) of example strategies
 
 ## Installation
 AutoTrader can be installed using pip:
