@@ -75,7 +75,7 @@ class BrokerUtils:
             else:
                 quote_risk      = amount_risked / HCF
                 price_per_pip   = quote_risk / pip_stop_distance
-                units           = round(price_per_pip / pip_value)
+                units           = price_per_pip / pip_value
         
         return units
     
