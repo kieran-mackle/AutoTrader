@@ -30,6 +30,8 @@ Documentation:
 
   - title: Broker API's
     children:
+      - title: Broker Interface
+        url: /docs/brokers-interface
       - title: Virtual Broker
         url: /docs/brokers-virtual
       - title: Oanda
