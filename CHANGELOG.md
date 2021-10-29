@@ -6,6 +6,9 @@
 - Data time alginment can optionally be disabled
 - Various plotting improvements
 
+### 0.4.24
+- Added pip location method to Oanda API module
+
 ### 0.4.23
 - Fix: rounding of position sizing in broker utils
 
