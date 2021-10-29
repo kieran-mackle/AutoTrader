@@ -6,6 +6,9 @@
 - Data time alginment can optionally be disabled
 - Various plotting improvements
 
+### 0.4.27
+- Feature: added trade unit precision method to oanda
+
 ### 0.4.26
 - Changed links on pypi
 
