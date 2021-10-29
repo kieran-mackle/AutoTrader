@@ -621,3 +621,11 @@ class Oanda():
         
         return response.body['positionBook']
     
+    def get_pip_location(self, instrument):
+        ''' Returns the pip location of the requested instrument. '''
+        
+        response = self.api.account.instruments(self.ACCOUNT_ID, 
+                                                instruments=instrument)
+        
+        return response.body['instruments'][0].pipLocation
+    
