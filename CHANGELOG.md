@@ -6,6 +6,9 @@
 - Data time alginment can optionally be disabled
 - Various plotting improvements
 
+### 0.4.25
+- Added website/github link on pypi
+
 ### 0.4.24
 - Added pip location method to Oanda API module
 

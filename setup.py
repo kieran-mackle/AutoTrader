@@ -5,15 +5,16 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name='autotrader',
-    version='0.4.24',
+    version='0.4.25',
     author='Kieran Mackle',
     author_email='kemackle98@gmail.com',
     description="A Python-based platform for developing, optimising and deploying automated trading systems.",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url='https://kieran-mackle.github.io/AutoTrader/',
+    url='https://github.com/kieran-mackle/AutoTrader',
     project_urls={
         "Bug Tracker": "https://github.com/kieran-mackle/AutoTrader/issues",
+        "Website": "https://kieran-mackle.github.io/AutoTrader/",
     },
     classifiers=[
         "Programming Language :: Python :: 3",
