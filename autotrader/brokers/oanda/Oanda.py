@@ -629,3 +629,10 @@ class Oanda():
         
         return response.body['instruments'][0].pipLocation
     
+    def get_trade_unit_precision(self, instrument):
+        ''' Returns the trade unit precision for the requested instrument. '''
+        
+        response = self.api.account.instruments(self.ACCOUNT_ID, 
+                                                instruments=instrument)
+        
+        return response.body['instruments'][0].tradeUnitsPrecision
