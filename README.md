@@ -8,13 +8,19 @@
 
 <p align="center">
   <a href="https://pypi.org/project/autotrader">
-    <img src="https://img.shields.io/pypi/v/autotrader.svg?color=skyblue&style=for-the-badge" alt="AutoTrader version" width="120" height="30" >
+    <img src="https://img.shields.io/pypi/v/autotrader.svg?color=blue&style=plastic" alt="Latest version" width=95 height=20>
   </a>
   
-  <a href="https://pypi.org/project/autotrader">
-    <img src="https://img.shields.io/pypi/dd/autotrader.svg?color=skyblue&style=for-the-badge" alt="PyPI downloads" width="160" height="30" >
+  <a href="https://pepy.tech/project/autotrader">
+    <img src="https://pepy.tech/badge/autotrader" alt="Total downloads" >
   </a>
+  
+  <a href="https://pepy.tech/project/autotrader">
+    <img src="https://pepy.tech/badge/autotrader/week" alt="Monthly downloads" >
+  </a>
+
 </p>
+
 
 
 AutoTrader is Python-based platform intended to help in the development, optimisation and deployment of automated trading systems. 
