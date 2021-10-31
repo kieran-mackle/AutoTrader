@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-Created on Wed Jun 23 10:19:44 2021
-
-@author: kieran
-"""
+'''
+Module: lib.email_manager
+Purpose: Email utility module
+Author: Kieran Mackle
+'''
 
 from getopt import getopt
 import sys

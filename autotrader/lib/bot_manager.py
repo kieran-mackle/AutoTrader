@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+'''
+Module: lib.bot_manager
+Purpose: AutoBot manager module
+Author: Kieran Mackle
+'''
 
 # import autostream
 import threading

@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-Function to parse scan request and return watchlist.
+'''
+Module: lib.instrument_list
+Purpose: Returns instrument list of indices
+Author: Kieran Mackle
+'''
 
-"""
 import sys
 
 def get_watchlist(index, feed):

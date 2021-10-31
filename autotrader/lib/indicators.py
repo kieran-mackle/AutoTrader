@@ -1,7 +1,10 @@
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-Custom indicators library.
-"""
+'''
+Module: lib.indicators
+Purpose: AutoTrader custom indicators library
+Author: Kieran Mackle
+'''
 
 from finta import TA
 import numpy as np

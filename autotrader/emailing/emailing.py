@@ -1,9 +1,10 @@
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-Created on Sun May  2 17:18:38 2021
-
-@author: kemac
-"""
+'''
+Module: lib.emailing
+Purpose: AutoTrader email communications module
+Author: Kieran Mackle
+'''
 
 # Email
 import smtplib, ssl
