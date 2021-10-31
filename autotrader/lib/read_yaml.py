@@ -1,4 +1,10 @@
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+'''
+Module: lib.read_yaml
+Purpose: YAML file reading utility
+Author: Kieran Mackle
+'''
 
 import yaml
 

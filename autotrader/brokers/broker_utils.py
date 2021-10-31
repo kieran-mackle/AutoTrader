@@ -1,8 +1,10 @@
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-Broker Utilities SuperClass
-
-"""
+'''
+Module: brokers.broker_utils
+Purpose: Broker utilities superclass
+Author: Kieran Mackle
+'''
 
 import pandas as pd
 import numpy as np

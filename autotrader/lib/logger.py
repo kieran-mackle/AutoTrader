@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-Logging script. Writes log file.
-"""
+'''
+Module: lib.logger
+Purpose: AutoTrader backtest log file writer (redundant)
+Author: Kieran Mackle
+'''
+
 from datetime import datetime
 import glob
 import os  

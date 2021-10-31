@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-AutoTrader Help
-"""
+'''
+Module: lib.printout
+Purpose: AutoTrader help printout module
+Author: Kieran Mackle
+'''
 
 import pyfiglet
 
