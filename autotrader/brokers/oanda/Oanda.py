@@ -1,10 +1,10 @@
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-
-Oanda API Wrapper
-=================
-
-"""
+'''
+Module: brokers.oanda.Oanda
+Purpose: AutoTrader broker wrapper script for Oanda v20 REST API
+Author: Kieran Mackle
+'''
 
 import v20
 from autotrader.brokers.oanda import utils

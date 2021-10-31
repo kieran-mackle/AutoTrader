@@ -1,3 +1,11 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+'''
+Module: AutoPlot
+Purpose: Automated plotting module
+Author: Kieran Mackle
+'''
+
 import pandas as pd
 import numpy as np
 import os

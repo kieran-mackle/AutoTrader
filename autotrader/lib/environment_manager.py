@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-Created on Wed Jul  7 12:39:11 2021
-
-@author: kieran
-"""
+'''
+Module: lib.environment_manager
+Purpose: Construct configuration dictionary based on trading environment
+Author: Kieran Mackle
+'''
 
 def get_config(environment, global_config, feed):
     '''

@@ -1,3 +1,11 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+'''
+Module: lib.autodata
+Purpose: Automated data retrieval module
+Author: Kieran Mackle
+'''
+
 import pandas as pd
 import v20
 import yfinance as yf

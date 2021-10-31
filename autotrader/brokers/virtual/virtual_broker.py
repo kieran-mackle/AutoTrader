@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-Virtual broker.
+'''
+Module: brokers.virtual.virtual_broker
+Purpose: AutoTrader virtual broker for backtesting
+Author: Kieran Mackle
 
 TODO: 
     - add flag to signal long positions only allowed (eg. no CFD)
@@ -9,7 +11,7 @@ TODO:
 Known bug:
     - when closing multiple trades in a single candle, NAV will drop 
       with balance.
-"""
+'''
 
 import numpy as np
 

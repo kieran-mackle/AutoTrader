@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+'''
+Module: AutoStream
+Purpose: Data stream function for Oanda v20 API.
+Author: Kieran Mackle
+'''
 
-"""
-AutoStream
------------
-Data stream function for Oanda v20 API.
-"""
 
 import v20
 import json

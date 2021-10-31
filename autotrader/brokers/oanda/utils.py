@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-
-Utility functions for Oanda.
-----------------------------
-
-"""
+'''
+Module: brokers.oanda.utils
+Purpose: Utility functions for Oanda broker wrapper
+Author: Kieran Mackle
+'''
 
 import pandas as pd
 from datetime import datetime, timedelta

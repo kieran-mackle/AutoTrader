@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+'''
+Module: AutoBot
+Purpose: trading bot deplyed by AutoTrader
+Author: Kieran Mackle
+'''
 
 import sys
 import os
@@ -19,7 +24,7 @@ from autotrader.autostream import AutoStream
 
 class AutoTraderBot():
     '''
-    AutoTrader Bot.
+    AutoTrader Bot
     ---------------
     
     Attributes

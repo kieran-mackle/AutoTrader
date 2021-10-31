@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-
-Utilities for virtual broker.
-
-"""
+'''
+Module: brokers.virtual.utils
+Purpose: Utility functions for virtual broker 
+Author: Kieran Mackle
+'''
 
 from autotrader.brokers.broker_utils import BrokerUtils
 
