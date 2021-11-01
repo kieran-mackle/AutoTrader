@@ -50,6 +50,8 @@ Documentation:
     children:
       - title: AutoData
         url: /docs/autodata
+      - title: Broker utilities
+        url: /docs/broker-utils
       - title: Emailing utilities
         url: /docs/emailing
       - title: Indicators Library
