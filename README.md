@@ -68,8 +68,9 @@ and answer these questions.
 
 [![MACD-backtest-demo](https://user-images.githubusercontent.com/60687606/128127659-bf81fdd2-c246-4cd1-b86d-ef624cac50a7.png)](https://kieran-mackle.github.io/AutoTrader/interactive-visualisation)
 
-## License
+## Legal 
+### License
 AutoTrader is licensed under the [GNU General Public License v3.0](https://www.gnu.org/licenses/gpl-3.0.en.html).
 
-## Disclaimer
+### Disclaimer
 Never risk money you cannot afford to lose. Always test your strategies on a paper trading account before taking it live.
