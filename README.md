@@ -53,11 +53,10 @@ pip install autotrader --upgrade
 ```
 
 ## Documentation
-AutoTrader is well documented on the [project website](https://kieran-mackle.github.io/AutoTrader/docs).
+AutoTrader is well documented on the [project website](https://kieran-mackle.github.io/AutoTrader/docs). There is also a detailed [Quick Start Guide](https://kieran-mackle.github.io/AutoTrader/tutorials/getting-autotrader).
 
-There is also a detailed [Quick Start Guide](https://kieran-mackle.github.io/AutoTrader/tutorials/getting-autotrader).
-
-Examples can be found in the [demo repository](https://github.com/kieran-mackle/autotrader-demo).
+### Example Strategies
+Example strategies can be found in the [demo repository](https://github.com/kieran-mackle/autotrader-demo). You can also request your own strategy to be added [here](https://github.com/kieran-mackle/autotrader-demo/issues/new?assignees=&labels=&template=strategy-request.md&title=%5BSTRATEGY+REQUEST%5D).
 
 
 ## Demo Chart
