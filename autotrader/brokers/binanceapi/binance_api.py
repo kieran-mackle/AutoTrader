@@ -1,15 +1,12 @@
 # -*- coding: utf-8 -*-
 """
-
 Binance API Wrapper
 =================
-
 """
 
 from binance.client import Client
 # from binance import ThreadedWebsocketManager
 from binance.exceptions import BinanceAPIException, BinanceOrderException
-
 
 
 class Binance():
@@ -93,12 +90,19 @@ class Binance():
     def get_data(self, pair, period, interval):
         ''' Gets candlestick price data. '''
     
-    def get_balance(self):
-        ''' Returns account balance. '''
+    def get_balance(self, instrument=None):
+        ''' Returns account balance of instrument. '''
+        
+        instrument = self.base_currency if instrument is None else instrument
+        
         
     
     def get_summary(self):
         ''' Returns account summary. '''
+        response = self.client.get_account()
+        
+        return response
+        
     
     def get_position(self, instrument):
         ''' Gets position from Oanda. '''
