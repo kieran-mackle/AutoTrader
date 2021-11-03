@@ -84,10 +84,7 @@ class Binance():
         
     
     def place_stop_limit_order(self, order_details):
-        '''
-        Places MarketIfTouchedOrder with Oanda.
-        https://developer.oanda.com/rest-live-v20/order-df/
-        '''
+        ''' Places a stop-limit order. '''
         
     
     def place_limit_order(self, order_details):
@@ -126,22 +123,12 @@ class Binance():
     
         return response
     
+    
     def get_position(self, instrument):
         ''' Gets position from Oanda. '''
     
     def close_position(self, instrument, long_units=None, short_units=None,
                        **dummy_inputs):
-        ''' Closes all open positions on an instrument. '''
+        ''' Closes all open trades on an instrument. '''
         
-    
-    def get_precision(self, pair):
-        ''' Returns the allowable precision for a given pair '''
-    
-    def check_precision(self, pair, price):
-        ''' Modify a price based on required ordering precision for pair. ''' 
-    
-    def check_response(self, response):
-        ''' Checks API response (currently only for placing orders) '''
-    
-    
     
