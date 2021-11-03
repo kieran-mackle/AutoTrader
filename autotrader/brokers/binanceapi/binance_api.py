@@ -49,8 +49,13 @@ class Binance():
         ''' Returns Net Asset Value of account. '''
         
     
-    def get_price(self, instrument, **dummy_inputs):
+    def get_price(self, instrument, **kwargs):
         ''' Returns current price (bid+ask) and home conversion factors.'''
+        
+        response = self.client.get_symbol_ticker(symbol=instrument)
+        
+        return response
+    
     
     def get_pending_orders(self, instrument=None):
         ''' Get all pending orders in the account. '''
