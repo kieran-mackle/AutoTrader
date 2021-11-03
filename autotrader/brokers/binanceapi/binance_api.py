@@ -18,7 +18,7 @@ class Binance():
         self.client = Client(API_KEY, SECRET_KEY)
         self.client.API_URL = binance_config["API_URL"]
         
-        self.base_currency = 'BNB'
+        self.base_asset = 'BNB'
         
     
     def _create_order(self, instrument, order_type, order_side, size, price=None):
@@ -57,8 +57,12 @@ class Binance():
         return response
     
     
-    def get_pending_orders(self, instrument=None):
+    def get_pending_orders(self, symbol=None):
         ''' Get all pending orders in the account. '''
+        
+        response = self.client.get_open_orders(symbol=symbol)
+        
+        return response
     
     def cancel_pending_order(self, order_id):
         ''' Cancels pending order by ID. '''
@@ -97,12 +101,12 @@ class Binance():
     def get_data(self, pair, period, interval):
         ''' Gets candlestick price data. '''
     
-    def get_balance(self, instrument=None):
+    def get_balance(self, asset=None):
         ''' Returns account balance of instrument. '''
         
-        instrument = self.base_currency if instrument is None else instrument
+        asset = self.base_asset if asset is None else asset
         
-        response = self.client.get_asset_balance(asset = instrument)
+        response = self.client.get_asset_balance(asset = asset)
         
         return response
     
