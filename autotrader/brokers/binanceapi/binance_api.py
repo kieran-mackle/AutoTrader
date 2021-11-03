@@ -18,6 +18,8 @@ class Binance():
         self.client = Client(API_KEY, SECRET_KEY)
         self.client.API_URL = binance_config["API_URL"]
         
+        self.base_currency = 'BNB'
+        
     
     def _create_order(self, instrument, order_type, order_side, size, price=None):
         '''
@@ -95,7 +97,9 @@ class Binance():
         
         instrument = self.base_currency if instrument is None else instrument
         
+        response = self.client.get_asset_balance(asset = instrument)
         
+        return response
     
     def get_summary(self):
         ''' Returns account summary. '''
