@@ -50,7 +50,7 @@ class Binance():
         
     
     def get_price(self, instrument, **kwargs):
-        ''' Returns current price (bid+ask) and home conversion factors.'''
+        ''' Returns current price.'''
         
         response = self.client.get_symbol_ticker(symbol=instrument)
         
@@ -66,6 +66,9 @@ class Binance():
     
     def cancel_pending_order(self, order_id):
         ''' Cancels pending order by ID. '''
+        response = self.client.cancel_order(symbol='ETHUSDT', orderId=order_id)
+        
+        return response
     
     def get_open_positions(self, instrument = None):
         ''' Gets the current positions open on the account. '''
@@ -100,6 +103,7 @@ class Binance():
 
     def get_data(self, pair, period, interval):
         ''' Gets candlestick price data. '''
+        
     
     def get_balance(self, asset=None):
         ''' Returns account balance of instrument. '''
