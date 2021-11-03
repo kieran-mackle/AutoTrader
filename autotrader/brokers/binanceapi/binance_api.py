@@ -120,6 +120,11 @@ class Binance():
         
         return response
         
+    def get_symbol_info(self, symbol):
+        ''' Returns information about the symbol. '''
+        response = self.client.get_symbol_info(symbol)
+    
+        return response
     
     def get_position(self, instrument):
         ''' Gets position from Oanda. '''
@@ -137,4 +142,6 @@ class Binance():
     
     def check_response(self, response):
         ''' Checks API response (currently only for placing orders) '''
+    
+    
     
