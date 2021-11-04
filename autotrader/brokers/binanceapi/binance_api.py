@@ -21,6 +21,24 @@ class Binance():
         self.base_asset = 'BNB'
         
     
+    '''
+    Order details:
+        order_details["direction"]
+        order_details["order_type"]
+        order_details["order_time"]     = datetime_stamp
+        order_details["strategy"]       = self.strategy.name
+        order_details["instrument"]     = instrument
+        order_details["size"]           = signal*size
+        order_details["order_price"]    = order_price
+        order_details["HCF"]            = HCF
+        order_details["granularity"]    = self.strategy_params['granularity']
+        order_details["stop_distance"]  = stop_distance
+        order_details["stop_loss"]      = stop_price
+        order_details["take_profit"]    = take_profit
+        order_details["stop_type"]      = stop_type
+        order_details["related_orders"] = order_signal_dict['related_orders']
+    '''    
+    
     def _create_order(self, instrument, order_type, order_side, size, price=None):
         '''
         Creates order.
@@ -82,6 +100,13 @@ class Binance():
     def place_market_order(self, order_details):
         ''' Places market order. '''
         
+        instrument = order_details["instrument"]
+        order_side = 'BUY' if order_details["direction"] == 1 else 'SELL'
+        size = order_details["size"]
+        
+        response = self.client.create_order(symbol=instrument, side=order_side, type='MARKET', quantity=size)
+        
+        return response
     
     def place_stop_limit_order(self, order_details):
         ''' Places a stop-limit order. '''
