@@ -21,24 +21,46 @@ class Binance():
         self.base_asset = 'BNB'
         
     
-    '''
-    Order details:
-        order_details["direction"]
-        order_details["order_type"]
-        order_details["order_time"]     = datetime_stamp
-        order_details["strategy"]       = self.strategy.name
-        order_details["instrument"]     = instrument
-        order_details["size"]           = signal*size
-        order_details["order_price"]    = order_price
-        order_details["HCF"]            = HCF
-        order_details["granularity"]    = self.strategy_params['granularity']
-        order_details["stop_distance"]  = stop_distance
-        order_details["stop_loss"]      = stop_price
-        order_details["take_profit"]    = take_profit
-        order_details["stop_type"]      = stop_type
-        order_details["related_orders"] = order_signal_dict['related_orders']
-    '''    
     
+    
+    
+    def place_order(self, order_details):
+        '''
+        Parses order_details dict and handles order, as passed from AutoBot.
+        
+        input order_details is a dictionary containing the following:
+            order_details["direction"]          Direction of order (-1 or 1)
+            order_details["order_type"]         Order type (market, limit, stop-limit)
+            order_details["order_time"]         Order time (datetime)
+            order_details["strategy"]           Parent strategy name
+            order_details["instrument"]         Instrument
+            order_details["size"]               Order position size (tradeable units)
+            order_details["order_price"]        Order price
+            order_details["HCF"]                Home conversion factor
+            order_details["stop_loss"]          Stop loss price
+            order_details["stop_distance"]      Stop loss distance in pips
+            order_details["stop_type"]          Stop loss type (limit, trailing)
+            order_details["take_profit"]        Take profit price
+            order_details["take_distance"]      Take profit distance in pips
+            order_details["related_orders"]     Related order ID's
+        '''
+    
+    
+        if order_details["order_type"] == 'market':
+            response = self.place_market_order(order_details)
+        elif order_details["order_type"] == 'stop-limit':
+            response = self.place_stop_limit_order(order_details)
+        elif order_details["order_type"] == 'limit':
+            response = self.place_limit_order(order_details)
+        else:
+            print("Order type not recognised.")
+            return    
+        
+        # TODO - add check
+        
+        return response
+    
+        
     def _create_order(self, instrument, order_type, order_side, size, price=None):
         '''
         Creates order.
@@ -92,11 +114,6 @@ class Binance():
         ''' Gets the current positions open on the account. '''
         
     
-    def place_order(self, order_details):
-        '''
-        Parses order_details dict and handles order.
-        '''
-        
     def place_market_order(self, order_details):
         ''' Places market order. '''
         
