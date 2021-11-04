@@ -22,10 +22,6 @@ class Binance():
         
         self.base_asset = 'BNB'
         
-    
-    
-    
-    
     def place_order(self, order_details):
         '''
         Parses order_details dict and handles order, as passed from AutoBot.
@@ -38,6 +34,8 @@ class Binance():
             order_details["instrument"]         Instrument
             order_details["size"]               Order position size (tradeable units)
             order_details["order_price"]        Order price
+            order_details["order_limit_price"]  Limit order price
+            order_details["order_stop_price"]   Stop limit order price
             order_details["HCF"]                Home conversion factor
             order_details["stop_loss"]          Stop loss price
             order_details["stop_distance"]      Stop loss distance in pips
@@ -46,14 +44,30 @@ class Binance():
             order_details["take_distance"]      Take profit distance in pips
             order_details["related_orders"]     Related order ID's
         '''
-    
-    
+        
+        instrument = order_details["instrument"]
+        order_side = 'BUY' if order_details["direction"] == 1 else 'SELL'
+        size = order_details["size"]
+        
         if order_details["order_type"] == 'market':
-            response = self.place_market_order(order_details)
+            response = self._create_order(instrument = instrument,
+                                          order_type = 'MARKET',
+                                          order_side = order_side,
+                                          size = size)
+            
         elif order_details["order_type"] == 'stop-limit':
-            response = self.place_stop_limit_order(order_details)
+            # TODO - below not yet implemented
+            response = self._create_order(instrument = instrument,
+                                          order_type = 'OCO',
+                                          order_side = order_side,
+                                          size = size)
+            
         elif order_details["order_type"] == 'limit':
-            response = self.place_limit_order(order_details)
+            response = self._create_order(instrument = instrument,
+                                          order_type = 'LIMIT',
+                                          order_side = order_side,
+                                          size = size, 
+                                          price = order_details["order_limit_price"])
         else:
             print("Order type not recognised.")
             return    
@@ -62,17 +76,18 @@ class Binance():
         
         return response
     
-        
-    def _create_order(self, instrument, order_type, order_side, size, price=None):
+    
+    def _create_order(self, instrument, order_type, order_side, size, 
+                      price=None, time_in_force=None):
         '''
-        Creates order.
+        Sends order to Binance.
         '''
         
         try:
             response = self.client.create_order(symbol = instrument,
                                                 side = order_side,
                                                 type = order_type,
-                                                timeInForce = 'GTC',
+                                                timeInForce = time_in_force,
                                                 quantity = size,
                                                 price = price)
         
@@ -116,23 +131,8 @@ class Binance():
         ''' Gets the current positions open on the account. '''
         
     
-    def place_market_order(self, order_details):
-        ''' Places market order. '''
-        
-        instrument = order_details["instrument"]
-        order_side = 'BUY' if order_details["direction"] == 1 else 'SELL'
-        size = order_details["size"]
-        
-        response = self.client.create_order(symbol=instrument, side=order_side, type='MARKET', quantity=size)
-        
-        return response
-    
     def place_stop_limit_order(self, order_details):
         ''' Places a stop-limit order. '''
-        
-    
-    def place_limit_order(self, order_details):
-        ''' (NOT YET IMPLEMENTED) PLaces limit order. '''
         
 
     def get_stop_loss_details(self, order_details):
