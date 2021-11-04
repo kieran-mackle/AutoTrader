@@ -1,8 +1,10 @@
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-Binance API Wrapper
-=================
-"""
+'''
+Module: brokers.binanceapi.binance_api
+Purpose: AutoTrader broker wrapper script for Binance API
+Author: Kieran Mackle
+'''
 
 from binance.client import Client
 # from binance import ThreadedWebsocketManager
