@@ -19,7 +19,7 @@ Although AutoTrader is a completely free-to-use software package, I feel that th
 In the interest of maintaining an edge, I will not be revealing the details of my strategy. However, I will provide the following generalities:
 - the characteristics of the algorithm change depending on market conditions (ie. ranging or trending)
 - The strategy is portfolio-based.
-- I will be trading currencies and indices 
+- I will be trading FX currencies and indices 
 - all trades and orders are placed through AutoTrader, but trades will be supervised daily to ensure expected behaviour.
 - all trades have clearly defined entries and exits. Outside of the price range defined by these points, the bot trading the strategy will be terminated.
 - position sizes are calculated based on risk management principles.
