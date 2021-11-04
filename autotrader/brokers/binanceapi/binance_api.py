@@ -22,6 +22,9 @@ class Binance():
         
         self.base_asset = 'BNB'
         
+        # TODO - flag spot vs. margin trading
+        
+        
     def place_order(self, order_details):
         '''
         Parses order_details dict and handles order, as passed from AutoBot.
