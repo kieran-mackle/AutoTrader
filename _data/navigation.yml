@@ -23,6 +23,8 @@ Documentation:
         url: /docs/autotrader
       - title: AutoBot
         url: /docs/autobot
+      - title: AutoData
+        url: /docs/autodata
       - title: AutoPlot
         url: /docs/autoplot
       - title: AutoStream
@@ -48,11 +50,9 @@ Documentation:
 
   - title: Utility Functions
     children:
-      - title: AutoData
-        url: /docs/autodata
-      - title: Broker utilities
+      - title: Broker Utilities
         url: /docs/broker-utils
-      - title: Emailing utilities
+      - title: Emailing Utilities
         url: /docs/emailing
       - title: Indicators Library
         url: /docs/indicators
