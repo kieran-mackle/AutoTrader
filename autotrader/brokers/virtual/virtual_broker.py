@@ -393,11 +393,6 @@ class Broker():
     def get_open_positions(self, instruments=None):
         ''' Returns the open positions in the account. '''
         
-        # TODO - this currently returns open trades, not positions 
-        # (self.open_positions is a misnomer). To improve, conglomerate oepn 
-        # trades into a single position.
-        
-        # TODO - Check type(instruments)
         if instruments is None:
             # No specific instrument requested, get all open
             instruments = []
@@ -409,34 +404,21 @@ class Broker():
                 # Single instrument provided, put into list
                 instruments = [instruments]
         
-        # if len(self.open_positions) > 4:
-        #     hello = 1
-        
         open_positions = {}
-        
-        # " New development "
-        # if instruments is None:
-        #     get_all_instruments = 0
-        
-        # for order_no in self.open_positions:
         for instrument in instruments:
             # First get open trades
             open_trades = self.get_open_trades(instrument)
             
-            long_units = 0
-            long_PL = 0
-            long_margin = 0
-            short_units = 0
-            short_PL = 0
-            short_margin = 0
-            total_margin = 0
-            trade_IDs = []
-            
             if len(open_trades) > 0:
                 # Trades exist for current instrument, collate
-                
-                # Need to calculate total size of position, total value of 
-                # position currently, average entry price, etc.
+                long_units = 0
+                long_PL = 0
+                long_margin = 0
+                short_units = 0
+                short_PL = 0
+                short_margin = 0
+                total_margin = 0
+                trade_IDs = []
                 
                 for order_no in open_trades:
                     trade_IDs.append(order_no)
@@ -452,31 +434,19 @@ class Broker():
                         short_PL += open_trades[order_no]['unrealised_PL']
                         short_margin += open_trades[order_no]['margin_required']
             
-            # Construct instrument position dict
-            instrument_position = {'long_units': long_units,
-                                    'long_PL': long_PL,
-                                    'long_margin': long_margin,
-                                    'short_units': short_units,
-                                    'short_PL': short_PL,
-                                    'short_margin': short_margin,
-                                    'total_margin': total_margin,
-                                    'trade_IDs': trade_IDs}
-            
-            # Append position dict to open_positions dict
-            open_positions[instrument] = instrument_position
+                # Construct instrument position dict
+                instrument_position = {'long_units': long_units,
+                                        'long_PL': long_PL,
+                                        'long_margin': long_margin,
+                                        'short_units': short_units,
+                                        'short_PL': short_PL,
+                                        'short_margin': short_margin,
+                                        'total_margin': total_margin,
+                                        'trade_IDs': trade_IDs}
+                
+                # Append position dict to open_positions dict
+                open_positions[instrument] = instrument_position
                         
-        # " New development "
-        
-        
-        # if instruments is not None:
-        #     # Specific instruments requested
-        #     for order_no in self.open_positions:
-        #         if self.open_positions[order_no]['instrument'] in instruments:
-        #             open_positions[order_no] = self.open_positions[order_no]
-        # else:
-        #     # Return all currently open positions
-        #     open_positions = self.open_positions.copy()
-        
         return open_positions
     
     def get_cancelled_orders(self, instrument = None):
