@@ -372,10 +372,12 @@ class Broker():
         open_positions = {}
         
         if instruments is not None:
+            # Specific instruments requested
             for order_no in self.open_positions:
                 if self.open_positions[order_no]['instrument'] in instruments:
                     open_positions[order_no] = self.open_positions[order_no]
         else:
+            # Return all currently open positions
             open_positions = self.open_positions.copy()
         
         return open_positions
