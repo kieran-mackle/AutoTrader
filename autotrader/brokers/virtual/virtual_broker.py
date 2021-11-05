@@ -260,8 +260,12 @@ class Broker():
                         entry_price = self.open_positions[order_no]['entry_price']
                         price       = candle.Close
                         HCF         = self.open_positions[order_no]['HCF']
-                        position_value = size*(price - entry_price)*HCF
-                        unrealised_PL += position_value
+                        trade_PL    = size*(price - entry_price)*HCF
+                        unrealised_PL += trade_PL
+                        
+                        # Update PL of trade
+                        self.open_positions[order_no]['last_price'] = price
+                        self.open_positions[order_no]['unrealised_PL'] = trade_PL
                 
                 else:
                     # Short trade
@@ -285,8 +289,11 @@ class Broker():
                         entry_price = self.open_positions[order_no]['entry_price']
                         price       = candle.Close
                         HCF         = self.open_positions[order_no]['HCF']
-                        position_value = size*(price - entry_price)*HCF
-                        unrealised_PL += position_value
+                        trade_PL    = size*(price - entry_price)*HCF
+                        unrealised_PL += trade_PL
+                        
+                        # Update PL of trade
+                        self.open_positions[order_no]['unrealised_PL'] = trade_PL
         
         # Update margin available
         self.update_margin(candle.Close)
@@ -396,22 +403,23 @@ class Broker():
         
         open_positions = {}
         
-        # if instruments is None:
-        #     get_all_instruments = 0
+        " New development "
+        # # if instruments is None:
+        # #     get_all_instruments = 0
         
-        # for order_no in self.open_positions:
-        for instrument in instruments:
-            # First get open trades
-            open_trades = self.get_open_trades(instrument)
+        # # for order_no in self.open_positions:
+        # for instrument in instruments:
+        #     # First get open trades
+        #     open_trades = self.get_open_trades(instrument)
             
-            # if len(open_trades) > 0:
-                # Trades exist for current instrument, collate
+        #     # if len(open_trades) > 0:
+        #         # Trades exist for current instrument, collate
                 
-                # Need to calculate total size of position, total value of 
-                # position currently, average entry price, etc.
+        #         # Need to calculate total size of position, total value of 
+        #         # position currently, average entry price, etc.
                 
-                # for order_no in open_trades:
-                    
+        #         # for order_no in open_trades:
+        " New development "
         
         
         if instruments is not None:
