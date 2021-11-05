@@ -239,6 +239,7 @@ class Broker():
         for order_no in open_position_orders:
             if self.open_positions[order_no]['instrument'] == instrument:
                 if self.open_positions[order_no]['size'] > 0:
+                    # Long trade
                     if self.open_positions[order_no]['stop_loss'] is not None and \
                         candle.Low < self.open_positions[order_no]['stop_loss']:
                         # Stop loss hit
@@ -263,19 +264,23 @@ class Broker():
                         unrealised_PL += position_value
                 
                 else:
+                    # Short trade
                     if self.open_positions[order_no]['stop_loss'] is not None and \
                         candle.High > self.open_positions[order_no]['stop_loss']:
+                        # Stop loss hit
                         self.close_position(self.open_positions[order_no]['instrument'], 
                                             candle, 
                                             self.open_positions[order_no]['stop_loss'],
                                             order_no)
                     elif self.open_positions[order_no]['take_profit'] is not None and \
                         candle.Low < self.open_positions[order_no]['take_profit']:
+                        # Take Profit hit
                         self.close_position(self.open_positions[order_no]['instrument'], 
                                             candle, 
                                             self.open_positions[order_no]['take_profit'],
                                             order_no)
                     else:
+                        # Position is still open, update value of holding
                         size        = self.open_positions[order_no]['size']
                         entry_price = self.open_positions[order_no]['entry_price']
                         price       = candle.Close
