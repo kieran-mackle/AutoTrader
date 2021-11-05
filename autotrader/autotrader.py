@@ -306,10 +306,12 @@ class AutoTrader():
         if int(self.verbosity) > 0 and self.backtest_mode:
             print("\nTrading...")
         
-        # TODO - add check that data ranges are consistent across bots
-        # For now, assume correct and use first bot.
         if not self.detach_bot:
             start_range, end_range = self.bots_deployed[0]._get_iteration_range()
+            
+            # TODO - check that data ranges are consistent across bots
+            
+            
             for i in range(start_range, end_range):
                 
                 # Update each bot with latest data to generate signal
