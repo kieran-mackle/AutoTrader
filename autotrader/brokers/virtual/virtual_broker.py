@@ -398,74 +398,84 @@ class Broker():
         # trades into a single position.
         
         # TODO - Check type(instruments)
+        if instruments is None:
+            # No specific instrument requested, get all open
+            instruments = []
+            for order_no in self.open_positions: 
+                instruments.append(self.open_positions[order_no]['instrument'])
+        else:
+            # Non-None input provided, check type
+            if type(instruments) is str:
+                # Single instrument provided, put into list
+                instruments = [instruments]
         
-        if len(self.open_positions) > 4:
-            hello = 1
+        # if len(self.open_positions) > 4:
+        #     hello = 1
         
         open_positions = {}
         
-        " New development "
-        # # if instruments is None:
-        # #     get_all_instruments = 0
+        # " New development "
+        # if instruments is None:
+        #     get_all_instruments = 0
         
-        # # for order_no in self.open_positions:
-        # for instrument in instruments:
-        #     # First get open trades
-        #     open_trades = self.get_open_trades(instrument)
+        # for order_no in self.open_positions:
+        for instrument in instruments:
+            # First get open trades
+            open_trades = self.get_open_trades(instrument)
             
-        #     long_units = 0
-        #     long_PL = 0
-        #     long_margin = 0
-        #     short_units = 0
-        #     short_PL = 0
-        #     short_margin = 0
-        #     total_margin = 0
-        #     trade_IDs = []
+            long_units = 0
+            long_PL = 0
+            long_margin = 0
+            short_units = 0
+            short_PL = 0
+            short_margin = 0
+            total_margin = 0
+            trade_IDs = []
             
-        #     if len(open_trades) > 0:
-        #         # Trades exist for current instrument, collate
+            if len(open_trades) > 0:
+                # Trades exist for current instrument, collate
                 
-        #         # Need to calculate total size of position, total value of 
-        #         # position currently, average entry price, etc.
+                # Need to calculate total size of position, total value of 
+                # position currently, average entry price, etc.
                 
-        #         for order_no in open_trades:
-        #             trade_IDs.append(order_no)
-        #             total_margin += open_trades[order_no]['margin_required']
-        #             if open_trades[order_no]['size'] > 0:
-        #                 # Long trade
-        #                 long_units += open_trades[order_no]['size']
-        #                 long_PL += open_trades[order_no]['unrealised_PL']
-        #                 long_margin += open_trades[order_no]['margin_required']
-        #             else:
-        #                 # Short trade
-        #                 short_units += open_trades[order_no]['size']
-        #                 short_PL += open_trades[order_no]['unrealised_PL']
-        #                 short_margin += open_trades[order_no]['margin_required']
+                for order_no in open_trades:
+                    trade_IDs.append(order_no)
+                    total_margin += open_trades[order_no]['margin_required']
+                    if open_trades[order_no]['size'] > 0:
+                        # Long trade
+                        long_units += open_trades[order_no]['size']
+                        long_PL += open_trades[order_no]['unrealised_PL']
+                        long_margin += open_trades[order_no]['margin_required']
+                    else:
+                        # Short trade
+                        short_units += open_trades[order_no]['size']
+                        short_PL += open_trades[order_no]['unrealised_PL']
+                        short_margin += open_trades[order_no]['margin_required']
             
-        #     # Construct instrument position dict
-        #     instrument_position = {'long_units': long_units,
-        #                            'long_PL': long_PL,
-        #                            'long_margin': long_margin,
-        #                            'short_units': short_units,
-        #                            'short_PL': short_PL,
-        #                            'short_margin': short_margin,
-        #                            'total_margin': total_margin,
-        #                            'trade_IDs': trade_IDs}
+            # Construct instrument position dict
+            instrument_position = {'long_units': long_units,
+                                    'long_PL': long_PL,
+                                    'long_margin': long_margin,
+                                    'short_units': short_units,
+                                    'short_PL': short_PL,
+                                    'short_margin': short_margin,
+                                    'total_margin': total_margin,
+                                    'trade_IDs': trade_IDs}
             
-        #     # Append position dict to open_positions dict
-        #     open_positions[instrument] = instrument_position
+            # Append position dict to open_positions dict
+            open_positions[instrument] = instrument_position
                         
-        " New development "
+        # " New development "
         
         
-        if instruments is not None:
-            # Specific instruments requested
-            for order_no in self.open_positions:
-                if self.open_positions[order_no]['instrument'] in instruments:
-                    open_positions[order_no] = self.open_positions[order_no]
-        else:
-            # Return all currently open positions
-            open_positions = self.open_positions.copy()
+        # if instruments is not None:
+        #     # Specific instruments requested
+        #     for order_no in self.open_positions:
+        #         if self.open_positions[order_no]['instrument'] in instruments:
+        #             open_positions[order_no] = self.open_positions[order_no]
+        # else:
+        #     # Return all currently open positions
+        #     open_positions = self.open_positions.copy()
         
         return open_positions
     
