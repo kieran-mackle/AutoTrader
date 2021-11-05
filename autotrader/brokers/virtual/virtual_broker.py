@@ -370,12 +370,12 @@ class Broker():
             # Specific instruments requested
             for order_no in self.open_positions:
                 if self.open_positions[order_no]['instrument'] in instruments:
-                    open_positions[order_no] = self.open_positions[order_no]
+                    open_trades[order_no] = self.open_positions[order_no]
         else:
             # Return all currently open positions
-            open_positions = self.open_positions.copy()
+            open_trades = self.open_positions.copy()
         
-        return open_positions
+        return open_trades
     
     def get_open_positions(self, instruments=None):
         ''' Returns the open positions in the account. '''
@@ -384,16 +384,29 @@ class Broker():
         # (self.open_positions is a misnomer). To improve, conglomerate oepn 
         # trades into a single position.
         
+        # TODO - Check type(instruments)
+        
         if len(self.open_positions) > 4:
             hello = 1
         
         open_positions = {}
         
-        if instruments is None:
-            get_all_instruments = 0
+        # if instruments is None:
+        #     get_all_instruments = 0
         
-        for order_no in self.open_positions:
+        # for order_no in self.open_positions:
+        for instrument in instruments:
+            # First get open trades
+            open_trades = self.get_open_trades(instrument)
             
+            # if len(open_trades) > 0:
+                # Trades exist for current instrument, collate
+                
+                # Need to calculate total size of position, total value of 
+                # position currently, average entry price, etc.
+                
+                # for order_no in open_trades:
+                    
         
         
         if instruments is not None:
