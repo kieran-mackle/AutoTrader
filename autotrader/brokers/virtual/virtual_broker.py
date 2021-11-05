@@ -264,10 +264,8 @@ class Broker():
                         unrealised_PL += trade_PL
                         
                         # Update PL of trade
-                        trade_value = abs(size) * price * HCF
                         self.open_positions[order_no]['last_price'] = price
                         self.open_positions[order_no]['unrealised_PL'] = trade_PL
-                        self.open_positions[order_no]['trade_value'] = trade_value
                 
                 else:
                     # Short trade
@@ -295,10 +293,8 @@ class Broker():
                         unrealised_PL += trade_PL
                         
                         # Update PL of trade
-                        trade_value = abs(size) * price * HCF
                         self.open_positions[order_no]['last_price'] = price
                         self.open_positions[order_no]['unrealised_PL'] = trade_PL
-                        self.open_positions[order_no]['trade_value'] = trade_value
         
         # Update margin available
         self.update_margin(candle.Close)
@@ -521,6 +517,9 @@ class Broker():
             position_value  = abs(size) * close_price * HCF
             margin_required = self.calculate_margin(position_value)
             margin_used     += margin_required
+            
+            # Update margin required in trade dict
+            self.open_positions['order_no']['margin_required'] = margin_required
         
         self.margin_available = self.portfolio_balance - margin_used
 
