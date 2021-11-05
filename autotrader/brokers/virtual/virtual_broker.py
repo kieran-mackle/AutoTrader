@@ -362,7 +362,7 @@ class Broker():
     def cancel_pending_order(self, order_id):
         self.pending_positions.pop(order_id, 0)
     
-    def get_open_positions(self, instrument=None):
+    def get_open_positions(self, instruments=None):
         ''' Returns the open positions in the account. '''
         
         # TODO - this currently returns open trades, not positions 
@@ -371,9 +371,9 @@ class Broker():
         
         open_positions = {}
         
-        if instrument is not None:
+        if instruments is not None:
             for order_no in self.open_positions:
-                if self.open_positions[order_no]['instrument'] == instrument:
+                if self.open_positions[order_no]['instrument'] in instruments:
                     open_positions[order_no] = self.open_positions[order_no]
         else:
             open_positions = self.open_positions.copy()
