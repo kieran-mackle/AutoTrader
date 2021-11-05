@@ -365,6 +365,10 @@ class Broker():
     def get_open_positions(self, instrument=None):
         ''' Returns the open positions in the account. '''
         
+        # TODO - this currently returns open trades, not positions 
+        # (self.open_positions is a misnomer). To improve, conglomerate oepn 
+        # trades into a single position.
+        
         open_positions = {}
         
         if instrument is not None:
