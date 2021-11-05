@@ -362,6 +362,21 @@ class Broker():
     def cancel_pending_order(self, order_id):
         self.pending_positions.pop(order_id, 0)
     
+    def get_open_trades(self, instruments=None):
+        ''' Returns open trades for the specified instrument. '''
+        open_trades = {}
+        
+        if instruments is not None:
+            # Specific instruments requested
+            for order_no in self.open_positions:
+                if self.open_positions[order_no]['instrument'] in instruments:
+                    open_positions[order_no] = self.open_positions[order_no]
+        else:
+            # Return all currently open positions
+            open_positions = self.open_positions.copy()
+        
+        return open_positions
+    
     def get_open_positions(self, instruments=None):
         ''' Returns the open positions in the account. '''
         
@@ -369,7 +384,17 @@ class Broker():
         # (self.open_positions is a misnomer). To improve, conglomerate oepn 
         # trades into a single position.
         
+        if len(self.open_positions) > 4:
+            hello = 1
+        
         open_positions = {}
+        
+        if instruments is None:
+            get_all_instruments = 0
+        
+        for order_no in self.open_positions:
+            
+        
         
         if instruments is not None:
             # Specific instruments requested
