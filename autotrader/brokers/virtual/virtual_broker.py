@@ -404,21 +404,47 @@ class Broker():
         open_positions = {}
         
         " New development "
-        # # if instruments is None:
-        # #     get_all_instruments = 0
+        # if instruments is None:
+        #     get_all_instruments = 0
         
-        # # for order_no in self.open_positions:
-        # for instrument in instruments:
-        #     # First get open trades
-        #     open_trades = self.get_open_trades(instrument)
+        # for order_no in self.open_positions:
+        for instrument in instruments:
+            # First get open trades
+            open_trades = self.get_open_trades(instrument)
             
-        #     # if len(open_trades) > 0:
-        #         # Trades exist for current instrument, collate
+            long_units = 0
+            long_PL = 0
+            short_units = 0
+            short_PL = 0
+            trade_IDs = []
+            
+            if len(open_trades) > 0:
+                # Trades exist for current instrument, collate
                 
-        #         # Need to calculate total size of position, total value of 
-        #         # position currently, average entry price, etc.
+                # Need to calculate total size of position, total value of 
+                # position currently, average entry price, etc.
                 
-        #         # for order_no in open_trades:
+                for order_no in open_trades:
+                    trade_IDs.append(order_no)
+                    if open_trades[order_no]['size'] > 0:
+                        # Long trade
+                        long_units += open_trades[order_no]['size']
+                        long_PL += open_trades[order_no]['unrealised_PL']
+                    else:
+                        # Short trade
+                        short_units += open_trades[order_no]['size']
+                        short_PL += open_trades[order_no]['unrealised_PL']
+            
+            # Construct instrument position dict
+            instrument_position = {'long_units': long_units,
+                                   'long_PL': long_PL,
+                                   'short_units': short_units,
+                                   'short_PL': short_PL,
+                                   'trade_IDs': trade_IDs}
+            
+            # Append position dict to open_positions dict
+            open_positions[instrument] = instrument_position
+                        
         " New development "
         
         
