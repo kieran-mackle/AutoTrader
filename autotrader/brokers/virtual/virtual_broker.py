@@ -297,7 +297,7 @@ class Broker():
                         self.open_positions[order_no]['unrealised_PL'] = trade_PL
         
         # Update margin available
-        self.update_margin(candle.Close)
+        self.update_margin()
         
         # Update unrealised P/L
         self.unrealised_PL = unrealised_PL
@@ -495,15 +495,16 @@ class Broker():
         return margin
     
     
-    def update_margin(self, close_price):
+    def update_margin(self):
         ''' Updates margin available in account. '''
         
         margin_used = 0
         for order_no in self.open_positions:
             size            = self.open_positions[order_no]['size']
             HCF             = self.open_positions[order_no]['HCF']
-            # HCF should be updated for current time.
-            position_value  = abs(size) * close_price * HCF
+            last_price      = self.open_positions[order_no]['last_price']
+            # TODO - HCF should be updated for current time.
+            position_value  = abs(size) * last_price * HCF
             margin_required = self.calculate_margin(position_value)
             margin_used     += margin_required
             
