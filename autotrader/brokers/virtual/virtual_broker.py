@@ -528,7 +528,7 @@ class Broker():
             margin_used     += margin_required
             
             # Update margin required in trade dict
-            self.open_positions['order_no']['margin_required'] = margin_required
+            self.open_positions[order_no]['margin_required'] = margin_required
         
         self.margin_available = self.portfolio_balance - margin_used
 
