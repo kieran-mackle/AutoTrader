@@ -304,13 +304,13 @@ class AutoTrader():
         '''                  Analyse price data using strategy             '''
         ''' -------------------------------------------------------------- '''
         if int(self.verbosity) > 0 and self.backtest_mode:
+            # Check data lengths of each bot
+            self._check_bot_data()
+            
             print("\nTrading...")
         
         if not self.detach_bot:
             start_range, end_range = self.bots_deployed[0]._get_iteration_range()
-            
-            # TODO - check that data ranges are consistent across bots
-            
             
             for i in range(start_range, end_range):
                 
