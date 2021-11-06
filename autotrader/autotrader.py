@@ -304,12 +304,14 @@ class AutoTrader():
         '''                  Analyse price data using strategy             '''
         ''' -------------------------------------------------------------- '''
         if int(self.verbosity) > 0 and self.backtest_mode:
+            # Check data lengths of each bot
+            self._check_bot_data()
+            
             print("\nTrading...")
         
-        # TODO - add check that data ranges are consistent across bots
-        # For now, assume correct and use first bot.
         if not self.detach_bot:
             start_range, end_range = self.bots_deployed[0]._get_iteration_range()
+            
             for i in range(start_range, end_range):
                 
                 # Update each bot with latest data to generate signal
@@ -368,8 +370,8 @@ class AutoTrader():
                     
                     ap = autoplot.AutoPlot(bot.data)
                     ap._plot_multibot_backtest(self.multibot_backtest_results, 
-                                              NAV,
-                                              cpl_dict)
+                                               NAV,
+                                               cpl_dict)
         
         elif self.scan_mode and self.show_plot:
             # Show plots for scanned instruments
@@ -1220,6 +1222,36 @@ class AutoTrader():
         
         return objective
     
+    
+    def _check_bot_data(self):
+        ''' Function to compare lengths of bot data. '''
+        
+        data_lengths = [len(bot.data) for bot in self.bots_deployed]
+        
+        if min(data_lengths) != np.mean(data_lengths):
+            print("Warning: mismatched data lengths detected. Correcting via row reduction.")
+            self._normalise_bot_data()
+    
+    def _normalise_bot_data(self):
+        ''' 
+        Function to normalise the data of mutliple bots so that their
+        indexes are equal, allowing backtesting.
+        '''
+        
+        # Construct list of bot data
+        data = [bot.data for bot in self.bots_deployed]
+        
+        for i, dat in enumerate(data):
+            comm_index = dat.index
+            for j, dat_2 in enumerate(data):
+                comm_index = comm_index.intersection(dat_2.index)
+            
+            # Adjust bot data using common indexes
+            adj_data = dat[dat.index.isin(comm_index)]
+            
+            # Re-assign bot data
+            self.bots_deployed[i]._replace_data(adj_data)
+        
     
 
 if __name__ == '__main__':

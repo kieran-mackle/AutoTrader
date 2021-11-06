@@ -861,3 +861,9 @@ class AutoTraderBot():
 
         return start_range, end_range
     
+    def _replace_data(self, data):
+        ''' Function to replace the data assigned locally and to the strategy. '''
+        
+        self.data = data
+        self.strategy.data = data
+    

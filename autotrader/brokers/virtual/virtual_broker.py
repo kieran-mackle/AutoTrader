@@ -7,6 +7,8 @@ Author: Kieran Mackle
 
 TODO: 
     - add flag to signal long positions only allowed (eg. no CFD)
+    - include long_units and short_units in trade dictionaries
+    - rename variables to clarify (eg. open_positions -> open_trades, etc)
     
 Known bug:
     - when closing multiple trades in a single candle, NAV will drop 
@@ -75,8 +77,8 @@ class Broker():
         self.NAV                = 0
         self.unrealised_PL      = 0
         self.utils              = utils
-    
-    
+        
+
     def place_order(self, order_details):
         '''
             Place order with broker.
@@ -131,8 +133,9 @@ class Broker():
             self.NAV -= spread_cost
             
         else:
-            self.cancelled_orders[order_no] = self.pending_positions[order_no]
-    
+            # Cancel order
+            cancel_reason = "Insufficient margin"
+            self.cancel_pending_order(order_no, cancel_reason)
     
     def update_positions(self, candle, instrument):
         ''' 
@@ -186,6 +189,8 @@ class Broker():
                                         )
                     opened_positions += 1 # To remove from pending orders
                     closing_orders.append(order_no)
+                elif self.pending_positions[order_no]['order_type'] == 'reduce':
+                    self.reduce_position(self.pending_positions[order_no])
         
                 
         # Remove position from pending positions
@@ -239,6 +244,7 @@ class Broker():
         for order_no in open_position_orders:
             if self.open_positions[order_no]['instrument'] == instrument:
                 if self.open_positions[order_no]['size'] > 0:
+                    # Long trade
                     if self.open_positions[order_no]['stop_loss'] is not None and \
                         candle.Low < self.open_positions[order_no]['stop_loss']:
                         # Stop loss hit
@@ -259,32 +265,46 @@ class Broker():
                         entry_price = self.open_positions[order_no]['entry_price']
                         price       = candle.Close
                         HCF         = self.open_positions[order_no]['HCF']
-                        position_value = size*(price - entry_price)*HCF
-                        unrealised_PL += position_value
+                        trade_PL    = size*(price - entry_price)*HCF
+                        unrealised_PL += trade_PL
+                        
+                        # Update PL of trade
+                        self.open_positions[order_no]['last_price'] = price
+                        self.open_positions[order_no]['last_time'] = candle.name
+                        self.open_positions[order_no]['unrealised_PL'] = trade_PL
                 
                 else:
+                    # Short trade
                     if self.open_positions[order_no]['stop_loss'] is not None and \
                         candle.High > self.open_positions[order_no]['stop_loss']:
+                        # Stop loss hit
                         self.close_position(self.open_positions[order_no]['instrument'], 
                                             candle, 
                                             self.open_positions[order_no]['stop_loss'],
                                             order_no)
                     elif self.open_positions[order_no]['take_profit'] is not None and \
                         candle.Low < self.open_positions[order_no]['take_profit']:
+                        # Take Profit hit
                         self.close_position(self.open_positions[order_no]['instrument'], 
                                             candle, 
                                             self.open_positions[order_no]['take_profit'],
                                             order_no)
                     else:
+                        # Position is still open, update value of holding
                         size        = self.open_positions[order_no]['size']
                         entry_price = self.open_positions[order_no]['entry_price']
                         price       = candle.Close
                         HCF         = self.open_positions[order_no]['HCF']
-                        position_value = size*(price - entry_price)*HCF
-                        unrealised_PL += position_value
+                        trade_PL    = size*(price - entry_price)*HCF
+                        unrealised_PL += trade_PL
+                        
+                        # Update PL of trade
+                        self.open_positions[order_no]['last_price'] = price
+                        self.open_positions[order_no]['last_time'] = candle.name
+                        self.open_positions[order_no]['unrealised_PL'] = trade_PL
         
         # Update margin available
-        self.update_margin(candle.Close)
+        self.update_margin()
         
         # Update unrealised P/L
         self.unrealised_PL = unrealised_PL
@@ -333,13 +353,98 @@ class Broker():
         closed_position['profit'] = net_profit
         closed_position['balance'] = self.portfolio_balance
         closed_position['exit_price'] = exit_price
-        closed_position['exit_time'] = candle.name
+        if candle is None:
+            closed_position['exit_time'] = self.open_positions[order_no]['last_time']
+        else:
+            closed_position['exit_time'] = candle.name 
         
         # Add to closed positions dictionary
         self.closed_positions[order_no] = closed_position
         
         # Remove position from open positions
         self.open_positions.pop(order_no, 0)
+        
+        # Update maximum drawdown
+        self.update_MDD()
+    
+    def reduce_position(self, order_details):
+        ''' Reduces the position of the specified instrument by FIFO. '''
+        
+        'WARNING: THIS METHOD IS NOT READY TO BE USED YET'
+        
+        # Consired long vs. short units to be reduced
+        
+        instrument = order_details['instrument']
+        reduction_size = order_details['size']
+        
+        # Get open trades for instrument
+        open_trades = self.get_open_trades(instrument)
+        open_trade_IDs = list(open_trades.keys())
+        
+        # Determine how many trades must be closed
+        # speficy how many long or short units to close
+        # For now, assume that there is only a long position to be reduced
+        
+        # TODO - add longUnits and shortUnits to open_positions dict for 
+        # greater control
+        # Also rename open_positions to open_trades
+        
+        units_to_reduce = reduction_size
+        # Modify existing trades until there are no more units to reduce
+        while units_to_reduce > 0:
+            for order_no in open_trade_IDs:
+                if units_to_reduce > open_trades[order_no]['size']:
+                    # Entire trade must be closed
+                    last_price = open_trades[order_no]['last_price']
+                    self.close_trade(order_no = order_no, exit_price=last_price)
+                    
+                    # Update units_to_reduce
+                    # TODO - check sign
+                    units_to_reduce -= self.closed_positions[order_no]['size']
+                    
+                else:
+                    # Partially close trade
+                    self.partial_trade_close(order_no, units_to_reduce)
+                    
+                    # Update units_to_reduce
+                    units_to_reduce = 0
+                    
+    
+    def partial_trade_close(self, trade_ID, units):
+        ''' Partially closes a trade. '''
+        entry_price = self.open_positions[trade_ID]['entry_price']
+        size        = self.open_positions[trade_ID]['size']
+        HCF         = self.open_positions[trade_ID]['HCF']
+        last_price  = self.open_positions[trade_ID]['last_price']
+        remaining_size = size-units
+        
+        # Update portfolio with profit/loss
+        gross_PL    = units*(last_price - entry_price)*HCF
+        open_trade_value    = abs(units)*entry_price*HCF
+        close_trade_value   = abs(units)*last_price*HCF
+        commission  = (self.commission/100) * (open_trade_value + close_trade_value)
+        net_profit  = gross_PL - commission
+        
+        self.add_funds(net_profit)
+        
+        if net_profit > 0:
+            self.profitable_trades += 1
+        
+        # Add trade to closed positions
+        closed_position = self.open_positions[trade_ID].copy()
+        closed_position['size'] = units
+        closed_position['profit'] = net_profit
+        closed_position['balance'] = self.portfolio_balance
+        closed_position['exit_price'] = last_price
+        closed_position['exit_time'] = self.open_positions[trade_ID]['last_time']
+        
+        # Add to closed positions dictionary
+        partial_trade_close_ID = self.total_trades + 1
+        self.closed_positions[partial_trade_close_ID] = closed_position
+        self.total_trades += 1
+        
+        # Modify remaining portion of trade
+        self.open_positions[trade_ID]['size'] = remaining_size
         
         # Update maximum drawdown
         self.update_MDD()
@@ -359,21 +464,92 @@ class Broker():
         
         return pending_orders
     
-    def cancel_pending_order(self, order_id):
-        self.pending_positions.pop(order_id, 0)
+    def cancel_pending_order(self, order_id, reason):
+        ''' Moves an order from pending_orders into cancelled_orders. '''
+        
+        self.cancelled_orders[order_id] = self.pending_positions[order_id]
+        self.cancelled_orders[order_id]['reason'] = reason
     
-    def get_open_positions(self, instrument=None):
+    def get_open_trades(self, instruments=None):
+        ''' Returns open trades for the specified instrument. '''
+        
+        # Check data type of input
+        if instruments is not None:
+            # Non-None input provided, check type
+            if type(instruments) is str:
+                # Single instrument provided, put into list
+                instruments = [instruments]
+                
+        open_trades = {}
+        
+        if instruments is not None:
+            # Specific instruments requested
+            for order_no in self.open_positions:
+                if self.open_positions[order_no]['instrument'] in instruments:
+                    open_trades[order_no] = self.open_positions[order_no]
+        else:
+            # Return all currently open positions
+            open_trades = self.open_positions.copy()
+        
+        return open_trades
+    
+    def get_open_positions(self, instruments=None):
         ''' Returns the open positions in the account. '''
         
-        open_positions = {}
-        
-        if instrument is not None:
-            for order_no in self.open_positions:
-                if self.open_positions[order_no]['instrument'] == instrument:
-                    open_positions[order_no] = self.open_positions[order_no]
+        if instruments is None:
+            # No specific instrument requested, get all open
+            instruments = []
+            for order_no in self.open_positions: 
+                instruments.append(self.open_positions[order_no]['instrument'])
         else:
-            open_positions = self.open_positions.copy()
+            # Non-None input provided, check type
+            if type(instruments) is str:
+                # Single instrument provided, put into list
+                instruments = [instruments]
         
+        open_positions = {}
+        for instrument in instruments:
+            # First get open trades
+            open_trades = self.get_open_trades(instrument)
+            
+            if len(open_trades) > 0:
+                # Trades exist for current instrument, collate
+                long_units = 0
+                long_PL = 0
+                long_margin = 0
+                short_units = 0
+                short_PL = 0
+                short_margin = 0
+                total_margin = 0
+                trade_IDs = []
+                
+                for order_no in open_trades:
+                    trade_IDs.append(order_no)
+                    total_margin += open_trades[order_no]['margin_required']
+                    if open_trades[order_no]['size'] > 0:
+                        # Long trade
+                        long_units += open_trades[order_no]['size']
+                        long_PL += open_trades[order_no]['unrealised_PL']
+                        long_margin += open_trades[order_no]['margin_required']
+                    else:
+                        # Short trade
+                        short_units += open_trades[order_no]['size']
+                        short_PL += open_trades[order_no]['unrealised_PL']
+                        short_margin += open_trades[order_no]['margin_required']
+            
+                # Construct instrument position dict
+                instrument_position = {'long_units': long_units,
+                                        'long_PL': long_PL,
+                                        'long_margin': long_margin,
+                                        'short_units': short_units,
+                                        'short_PL': short_PL,
+                                        'short_margin': short_margin,
+                                        'total_margin': total_margin,
+                                        'trade_IDs': trade_IDs}
+                
+                # Append position dict to open_positions dict
+                open_positions[instrument] = instrument_position
+                        
         return open_positions
     
     def get_cancelled_orders(self, instrument = None):
@@ -422,17 +598,21 @@ class Broker():
         return margin
     
     
-    def update_margin(self, close_price):
+    def update_margin(self):
         ''' Updates margin available in account. '''
         
         margin_used = 0
         for order_no in self.open_positions:
             size            = self.open_positions[order_no]['size']
             HCF             = self.open_positions[order_no]['HCF']
-            # HCF should be updated for current time.
-            position_value  = abs(size) * close_price * HCF
+            last_price      = self.open_positions[order_no]['last_price']
+            # TODO - HCF should be updated for current time.
+            position_value  = abs(size) * last_price * HCF
             margin_required = self.calculate_margin(position_value)
             margin_used     += margin_required
+            
+            # Update margin required in trade dict
+            self.open_positions[order_no]['margin_required'] = margin_required
         
         self.margin_available = self.portfolio_balance - margin_used
 
