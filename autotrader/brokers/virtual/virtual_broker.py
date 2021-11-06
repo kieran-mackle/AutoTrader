@@ -384,38 +384,36 @@ class Broker():
         
         instrument = order_details['instrument']
         reduction_size = order_details['size']
+        # TODO - check reduction size sign
+        reduction_direction = np.sign(reduction_size)
         
         # Get open trades for instrument
         open_trades = self.get_open_trades(instrument)
         open_trade_IDs = list(open_trades.keys())
         
-        # Determine how many trades must be closed
-        # speficy how many long or short units to close
-        # For now, assume that there is only a long position to be reduced
-        
-        # TODO - add longUnits and shortUnits to open_positions dict for 
-        # greater control
-        # Also rename open_positions to open_trades
-        
-        units_to_reduce = reduction_size
         # Modify existing trades until there are no more units to reduce
+        units_to_reduce = reduction_size
         while units_to_reduce > 0:
             for order_no in open_trade_IDs:
-                if units_to_reduce > open_trades[order_no]['size']:
-                    # Entire trade must be closed
-                    last_price = open_trades[order_no]['last_price']
-                    self.close_trade(order_no = order_no, exit_price=last_price)
-                    
-                    # Update units_to_reduce
-                    # TODO - check sign
-                    units_to_reduce -= self.closed_positions[order_no]['size']
-                    
-                else:
-                    # Partially close trade
-                    self.partial_trade_close(order_no, units_to_reduce)
-                    
-                    # Update units_to_reduce
-                    units_to_reduce = 0
+                if np.sign(open_trades[order_no]['size']) != reduction_direction:
+                    # Only reduce long trades when reduction direction is -1
+                    # Only reduce short trades when reduction direction is 1
+                    if units_to_reduce > open_trades[order_no]['size']:
+                        # Entire trade must be closed
+                        last_price = open_trades[order_no]['last_price']
+                        self.close_trade(order_no = order_no, exit_price=last_price)
+                        
+                        # Update units_to_reduce
+                        # TODO - check sign, as size of size determines to subtract from
+                        # long or short position
+                        units_to_reduce -= self.closed_positions[order_no]['size']
+                        
+                    else:
+                        # Partially close trade
+                        self.partial_trade_close(order_no, units_to_reduce)
+                        
+                        # Update units_to_reduce
+                        units_to_reduce = 0
                     
     
     def partial_trade_close(self, trade_ID, units):
