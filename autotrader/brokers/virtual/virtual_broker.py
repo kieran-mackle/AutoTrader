@@ -134,7 +134,6 @@ class Broker():
             # Cancel order
             cancel_reason = "Insufficient margin"
             self.cancel_pending_order(order_no, cancel_reason)
-            # self.cancelled_orders[order_no] = self.pending_positions[order_no]
     
     def update_positions(self, candle, instrument):
         ''' 
