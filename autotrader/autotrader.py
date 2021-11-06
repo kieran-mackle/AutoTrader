@@ -1229,7 +1229,7 @@ class AutoTrader():
         data_lengths = [len(bot.data) for bot in self.bots_deployed]
         
         if min(data_lengths) != np.mean(data_lengths):
-            print("Warning: mismatched data lengths detected. Attempting to correct.")
+            print("Warning: mismatched data lengths detected. Correcting via row reduction.")
             self._normalise_bot_data()
     
     def _normalise_bot_data(self):
