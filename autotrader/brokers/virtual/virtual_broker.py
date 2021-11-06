@@ -385,7 +385,11 @@ class Broker():
         instrument = order_details['instrument']
         reduction_size = order_details['size']
         # TODO - check reduction size sign
+        # Unclear whether size already has direction in it
+        # 
         reduction_direction = np.sign(reduction_size)
+        
+        
         
         # Get open trades for instrument
         open_trades = self.get_open_trades(instrument)
