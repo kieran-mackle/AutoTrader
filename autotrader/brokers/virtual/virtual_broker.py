@@ -370,6 +370,8 @@ class Broker():
     def reduce_position(self, order_details):
         ''' Reduces the position of the specified instrument by FIFO. '''
         
+        'WARNING: THIS METHOD IS NOT READY TO BE USED YET'
+        
         # Consired long vs. short units to be reduced
         
         instrument = order_details['instrument']
