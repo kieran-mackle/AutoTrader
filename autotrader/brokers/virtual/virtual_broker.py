@@ -350,7 +350,10 @@ class Broker():
         closed_position['profit'] = net_profit
         closed_position['balance'] = self.portfolio_balance
         closed_position['exit_price'] = exit_price
-        closed_position['exit_time'] = candle.name # self.open_positions[order_no]['last_time']
+        if candle is None:
+            closed_position['exit_time'] = self.open_positions[order_no]['last_time']
+        else:
+            closed_position['exit_time'] = candle.name 
         
         # Add to closed positions dictionary
         self.closed_positions[order_no] = closed_position
