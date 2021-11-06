@@ -1250,7 +1250,7 @@ class AutoTrader():
             adj_data = dat[dat.index.isin(comm_index)]
             
             # Re-assign bot data
-            self.bots_deployed[i].data = adj_data
+            self.bots_deployed[i]._replace_data(adj_data)
         
     
 
