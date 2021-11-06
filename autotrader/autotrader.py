@@ -1223,6 +1223,36 @@ class AutoTrader():
         return objective
     
     
+    def _check_bot_data(self):
+        ''' Function to compare lengths of bot data. '''
+        
+        data_lengths = [len(bot.data) for bot in self.bots_deployed]
+        
+        if min(data_lengths) != np.mean(data_lengths):
+            print("Warning: mismatched data lengths detected. Attempting to correct.")
+            self._normalise_bot_data()
+    
+    def _normalise_bot_data(self):
+        ''' 
+        Function to normalise the data of mutliple bots so that their
+        indexes are equal, allowing backtesting.
+        '''
+        
+        # Construct list of bot data
+        data = [bot.data for bot in self.bots_deployed]
+        
+        for i, dat in enumerate(data):
+            comm_index = dat.index
+            for j, dat_2 in enumerate(data):
+                comm_index = comm_index.intersection(dat_2.index)
+            
+            # Adjust bot data using common indexes
+            adj_data = dat[dat.index.isin(comm_index)]
+            
+            # Re-assign bot data
+            self.bots_deployed[i].data = adj_data
+        
+    
 
 if __name__ == '__main__':
     autotrader = AutoTrader()
