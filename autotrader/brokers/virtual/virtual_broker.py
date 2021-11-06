@@ -186,6 +186,8 @@ class Broker():
                                         )
                     opened_positions += 1 # To remove from pending orders
                     closing_orders.append(order_no)
+                elif self.pending_positions[order_no]['order_type'] == 'reduce':
+                    self.reduce_position(self.pending_positions[order_no])
         
                 
         # Remove position from pending positions
@@ -265,6 +267,7 @@ class Broker():
                         
                         # Update PL of trade
                         self.open_positions[order_no]['last_price'] = price
+                        self.open_positions[order_no]['last_time'] = candle.name
                         self.open_positions[order_no]['unrealised_PL'] = trade_PL
                 
                 else:
@@ -294,6 +297,7 @@ class Broker():
                         
                         # Update PL of trade
                         self.open_positions[order_no]['last_price'] = price
+                        self.open_positions[order_no]['last_time'] = candle.name
                         self.open_positions[order_no]['unrealised_PL'] = trade_PL
         
         # Update margin available
@@ -346,7 +350,7 @@ class Broker():
         closed_position['profit'] = net_profit
         closed_position['balance'] = self.portfolio_balance
         closed_position['exit_price'] = exit_price
-        closed_position['exit_time'] = candle.name
+        closed_position['exit_time'] = candle.name # self.open_positions[order_no]['last_time']
         
         # Add to closed positions dictionary
         self.closed_positions[order_no] = closed_position
@@ -363,12 +367,77 @@ class Broker():
         # Consired long vs. short units to be reduced
         
         instrument = order_details['instrument']
+        reduction_size = order_details['size']
         
         # Get open trades for instrument
         open_trades = self.get_open_trades(instrument)
+        open_trade_IDs = list(open_trades.keys())
         
         # Determine how many trades must be closed
-        a = 1
+        # speficy how many long or short units to close
+        # For now, assume that there is only a long position to be reduced
+        
+        # TODO - add longUnits and shortUnits to open_positions dict for 
+        # greater control
+        # Also rename open_positions to open_trades
+        
+        units_to_reduce = reduction_size
+        # Modify existing trades until there are no more units to reduce
+        while units_to_reduce > 0:
+            for order_no in open_trade_IDs:
+                if units_to_reduce > open_trades[order_no]['size']:
+                    # Entire trade must be closed
+                    last_price = open_trades[order_no]['last_price']
+                    self.close_trade(order_no = order_no, exit_price=last_price)
+                    
+                    # Update units_to_reduce
+                    # TODO - check sign
+                    units_to_reduce -= self.closed_positions[order_no]['size']
+                    
+                else:
+                    # Partially close trade
+                    self.partial_trade_close(order_no, units_to_reduce)
+                    
+                    # Update units_to_reduce
+                    units_to_reduce = 0
+    
+    def partial_trade_close(self, trade_ID, units):
+        ''' Partially closes a trade. '''
+        entry_price = self.open_positions[trade_ID]['entry_price']
+        size        = self.open_positions[trade_ID]['size']
+        HCF         = self.open_positions[trade_ID]['HCF']
+        last_price  = self.open_positions[trade_ID]['last_price']
+        remaining_size = size-units
+        
+        # Update portfolio with profit/loss
+        gross_PL    = units*(last_price - entry_price)*HCF
+        open_trade_value    = abs(units)*entry_price*HCF
+        close_trade_value   = abs(units)*last_price*HCF
+        commission  = (self.commission/100) * (open_trade_value + close_trade_value)
+        net_profit  = gross_PL - commission
+        
+        self.add_funds(net_profit)
+        
+        if net_profit > 0:
+            self.profitable_trades += 1
+        
+        # Add trade to closed positions
+        # TODO - how will trade_ID be managed for partially closed trades?
+        closed_position = self.open_positions[trade_ID].copy()
+        closed_position['size'] = units
+        closed_position['profit'] = net_profit
+        closed_position['balance'] = self.portfolio_balance
+        closed_position['exit_price'] = last_price
+        closed_position['exit_time'] = self.open_positions[trade_ID]['last_time']
+        
+        # Add to closed positions dictionary
+        self.closed_positions[trade_ID] = closed_position
+        
+        # Modify remaining portion of trade
+        self.open_positions[trade_ID]['size'] = remaining_size
+        
+        # Update maximum drawdown
+        self.update_MDD()
         
     
     def get_pending_orders(self, instrument = None):
