@@ -7,6 +7,8 @@ Author: Kieran Mackle
 
 TODO: 
     - add flag to signal long positions only allowed (eg. no CFD)
+    - include long_units and short_units in trade dictionaries
+    - rename variables to clarify (eg. open_positions -> open_trades, etc)
     
 Known bug:
     - when closing multiple trades in a single candle, NAV will drop 
