@@ -370,8 +370,8 @@ class AutoTrader():
                     
                     ap = autoplot.AutoPlot(bot.data)
                     ap._plot_multibot_backtest(self.multibot_backtest_results, 
-                                              NAV,
-                                              cpl_dict)
+                                               NAV,
+                                               cpl_dict)
         
         elif self.scan_mode and self.show_plot:
             # Show plots for scanned instruments
