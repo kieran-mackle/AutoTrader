@@ -73,6 +73,6 @@ and answer these questions.
 AutoTrader is licensed under the [GNU General Public License v3.0](https://www.gnu.org/licenses/gpl-3.0.en.html).
 
 ### Disclaimer
-This platform is currently under heavy development and should not be considered stable until version 1.0.0 is released.
+This platform is currently under heavy development and should not be considered stable for livetrading until version 1.0.0 is released.
 
 Never risk money you cannot afford to lose. Always test your strategies on a paper trading account before taking it live.
