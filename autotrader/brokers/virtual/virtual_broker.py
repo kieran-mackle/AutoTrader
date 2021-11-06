@@ -368,7 +368,15 @@ class Broker():
         self.update_MDD()
     
     def reduce_position(self, order_details):
-        ''' Reduces the position of the specified instrument by FIFO. '''
+        ''' 
+        Reduces the position of the specified instrument by FIFO. 
+        
+        The size parameter of the order details is used to specify whether 
+        to reduce long units, or to reduce short units. For example:
+            order_type: 'reduce'
+            size: -1
+        will reduce long units of the position being held.
+        '''
         
         'WARNING: THIS METHOD IS NOT READY TO BE USED YET'
         
