@@ -75,8 +75,8 @@ class Broker():
         self.NAV                = 0
         self.unrealised_PL      = 0
         self.utils              = utils
-    
-    
+        
+
     def place_order(self, order_details):
         '''
             Place order with broker.
@@ -131,8 +131,10 @@ class Broker():
             self.NAV -= spread_cost
             
         else:
-            self.cancelled_orders[order_no] = self.pending_positions[order_no]
-    
+            # Cancel order
+            cancel_reason = "Insufficient margin"
+            self.cancel_pending_order(order_no, cancel_reason)
+            # self.cancelled_orders[order_no] = self.pending_positions[order_no]
     
     def update_positions(self, candle, instrument):
         ''' 
@@ -403,6 +405,7 @@ class Broker():
                     
                     # Update units_to_reduce
                     units_to_reduce = 0
+                    
     
     def partial_trade_close(self, trade_ID, units):
         ''' Partially closes a trade. '''
@@ -425,7 +428,6 @@ class Broker():
             self.profitable_trades += 1
         
         # Add trade to closed positions
-        # TODO - how will trade_ID be managed for partially closed trades?
         closed_position = self.open_positions[trade_ID].copy()
         closed_position['size'] = units
         closed_position['profit'] = net_profit
@@ -434,7 +436,9 @@ class Broker():
         closed_position['exit_time'] = self.open_positions[trade_ID]['last_time']
         
         # Add to closed positions dictionary
-        self.closed_positions[trade_ID] = closed_position
+        partial_trade_close_ID = self.total_trades + 1
+        self.closed_positions[partial_trade_close_ID] = closed_position
+        self.total_trades += 1
         
         # Modify remaining portion of trade
         self.open_positions[trade_ID]['size'] = remaining_size
@@ -457,8 +461,11 @@ class Broker():
         
         return pending_orders
     
-    def cancel_pending_order(self, order_id):
-        self.pending_positions.pop(order_id, 0)
+    def cancel_pending_order(self, order_id, reason):
+        ''' Moves an order from pending_orders into cancelled_orders. '''
+        
+        self.cancelled_orders[order_id] = self.pending_positions[order_id]
+        self.cancelled_orders[order_id]['reason'] = reason
     
     def get_open_trades(self, instruments=None):
         ''' Returns open trades for the specified instrument. '''
