@@ -377,6 +377,14 @@ class Broker():
     
     def get_open_trades(self, instruments=None):
         ''' Returns open trades for the specified instrument. '''
+        
+        # Check data type of input
+        if instruments is not None:
+            # Non-None input provided, check type
+            if type(instruments) is str:
+                # Single instrument provided, put into list
+                instruments = [instruments]
+                
         open_trades = {}
         
         if instruments is not None:
