@@ -64,7 +64,7 @@ class Broker():
         self.spread             = 0
         self.margin_available   = 0
         self.portfolio_balance  = 0
-        self.pending_positions  = {}
+        self.pending_orders  = {}
         self.open_positions     = {}
         self.closed_positions   = {}
         self.cancelled_orders   = {}
@@ -95,11 +95,11 @@ class Broker():
         
         order_no = self.total_trades + 1
         
-        # Create new_position and add position to self.pending_positions
+        # Create new_position and add position to self.pending_orders
         new_position = order_details.copy()
         new_position['order_ID'] = order_no
         
-        self.pending_positions[order_no] = new_position
+        self.pending_orders[order_no] = new_position
         
         # Update trade tally
         self.total_trades += 1
@@ -110,9 +110,9 @@ class Broker():
         
         # Calculate margin requirements
         current_price   = candle.Open
-        pip_value       = self.utils.get_pip_ratio(self.pending_positions[order_no]['instrument'])
-        size            = self.pending_positions[order_no]['size']
-        HCF             = self.pending_positions[order_no]['HCF']
+        pip_value       = self.utils.get_pip_ratio(self.pending_orders[order_no]['instrument'])
+        size            = self.pending_orders[order_no]['size']
+        HCF             = self.pending_orders[order_no]['HCF']
         position_value  = abs(size) * current_price * HCF
         margin_required = self.calculate_margin(position_value)
         
@@ -121,7 +121,7 @@ class Broker():
         
         if margin_required < self.margin_available:
             # Fill order
-            new_position = self.pending_positions[order_no]
+            new_position = self.pending_orders[order_no]
             new_position['time_filled'] = candle.name
             if limit_price is None:
                 new_position['entry_price'] = candle.Open + spread_shift
@@ -147,65 +147,65 @@ class Broker():
         
         # Update pending positions
         closing_orders = []
-        for order_no in self.pending_positions:
+        for order_no in self.pending_orders:
             # Filter orders by instrument type since candle is instrument specific            
-            if self.pending_positions[order_no]['instrument'] == instrument:
-                if self.pending_positions[order_no]['order_time'] != candle.name:
-                    if self.pending_positions[order_no]['order_type'] == 'market':
+            if self.pending_orders[order_no]['instrument'] == instrument:
+                if self.pending_orders[order_no]['order_time'] != candle.name:
+                    if self.pending_orders[order_no]['order_type'] == 'market':
                         # Market order type
                         self.open_position(order_no, candle)
                         opened_positions += 1
                     
-                    elif self.pending_positions[order_no]['order_type'] == 'stop-limit':
+                    elif self.pending_orders[order_no]['order_type'] == 'stop-limit':
                         # Stop-limit order type
                         # Check if order_stop_price has been reached yet
                         
-                        if candle.Low < self.pending_positions[order_no]['order_stop_price'] < candle.High:
+                        if candle.Low < self.pending_orders[order_no]['order_stop_price'] < candle.High:
                             # order_stop_price has been reached, change order type to 'limit'
-                            self.pending_positions[order_no]['order_type'] = 'limit'
+                            self.pending_orders[order_no]['order_type'] = 'limit'
                         
                     # This is in a separate if statement, as stop-limit order may
                     # eventually be changed to limit orders
-                    if self.pending_positions[order_no]['order_type'] == 'limit':
+                    if self.pending_orders[order_no]['order_type'] == 'limit':
                         # Limit order type
-                        if self.pending_positions[order_no]['size'] > 0:
-                            if candle.Low < self.pending_positions[order_no]['order_limit_price']:
+                        if self.pending_orders[order_no]['size'] > 0:
+                            if candle.Low < self.pending_orders[order_no]['order_limit_price']:
                                 self.open_position(order_no, candle, 
-                                                   self.pending_positions[order_no]['order_limit_price'])
+                                                   self.pending_orders[order_no]['order_limit_price'])
                                 opened_positions += 1
                         else:
-                            if candle.High > self.pending_positions[order_no]['order_limit_price']:
+                            if candle.High > self.pending_orders[order_no]['order_limit_price']:
                                 self.open_position(order_no, candle, 
-                                                   self.pending_positions[order_no]['order_limit_price'])
+                                                   self.pending_orders[order_no]['order_limit_price'])
                                 opened_positions += 1
                                 
                                 
-                if self.pending_positions[order_no]['order_type'] == 'close':
-                    related_order = self.pending_positions[order_no]['related_orders']
-                    self.close_position(self.pending_positions[order_no]['instrument'],
+                if self.pending_orders[order_no]['order_type'] == 'close':
+                    related_order = self.pending_orders[order_no]['related_orders']
+                    self.close_position(self.pending_orders[order_no]['instrument'],
                                         candle, 
                                         candle.Close,
                                         order_no = related_order
                                         )
                     opened_positions += 1 # To remove from pending orders
                     closing_orders.append(order_no)
-                elif self.pending_positions[order_no]['order_type'] == 'reduce':
-                    self.reduce_position(self.pending_positions[order_no])
+                elif self.pending_orders[order_no]['order_type'] == 'reduce':
+                    self.reduce_position(self.pending_orders[order_no])
         
                 
         # Remove position from pending positions
         if opened_positions > 0:
             # For orders that were opened
             for order_no in self.open_positions.keys():
-                self.pending_positions.pop(order_no, 0)
+                self.pending_orders.pop(order_no, 0)
             
             # For orders that were cancelled
             for order_no in self.cancelled_orders.keys():
-                self.pending_positions.pop(order_no, 0)
+                self.pending_orders.pop(order_no, 0)
             
             # For close orders
             for order_no in closing_orders:
-                self.pending_positions.pop(order_no, 0)
+                self.pending_orders.pop(order_no, 0)
         
         
         # Update trailing stops
@@ -464,18 +464,18 @@ class Broker():
         pending_orders = {}
         
         if instrument is not None:
-            for order_no in self.pending_positions:
-                if self.pending_positions[order_no]['instrument'] == instrument:
-                    pending_orders[order_no] = self.pending_positions[order_no]
+            for order_no in self.pending_orders:
+                if self.pending_orders[order_no]['instrument'] == instrument:
+                    pending_orders[order_no] = self.pending_orders[order_no]
         else:
-            pending_orders = self.pending_positions.copy()
+            pending_orders = self.pending_orders.copy()
         
         return pending_orders
     
     def cancel_pending_order(self, order_id, reason):
         ''' Moves an order from pending_orders into cancelled_orders. '''
         
-        self.cancelled_orders[order_id] = self.pending_positions[order_id]
+        self.cancelled_orders[order_id] = self.pending_orders[order_id]
         self.cancelled_orders[order_id]['reason'] = reason
     
     def get_open_trades(self, instruments=None):
