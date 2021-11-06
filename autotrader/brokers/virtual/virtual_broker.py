@@ -356,6 +356,19 @@ class Broker():
         
         # Update maximum drawdown
         self.update_MDD()
+    
+    def reduce_position(self, order_details):
+        ''' Reduces the position of the specified instrument by FIFO. '''
+        
+        # Consired long vs. short units to be reduced
+        
+        instrument = order_details['instrument']
+        
+        # Get open trades for instrument
+        open_trades = self.get_open_trades(instrument)
+        
+        # Determine how many trades must be closed
+        a = 1
         
     
     def get_pending_orders(self, instrument = None):
