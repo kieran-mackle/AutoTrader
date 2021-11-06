@@ -1,10 +1,28 @@
 # AutoTrader Changelog
 
+
+## Version 0.5.0
+Breaking change:
+- virtual broker method 'get_open_positions' will now behave more as expected,
+  returning the culmination of open trades for the specified instrument(s).
+  Instead of returning a dictionary of open trades, a nested dictionary will
+  be returned, containing the total position size held (long and short units),
+  associated trade ID's and other information. 
+
+Fixes:
+- margin calculations for multi-instrument backtests
+
+Features:
+- Multi-instrument backtest data checking: datasets with mis-matched lengths
+  are automatically corrected to improve backtest reliability.
+
+
 ## Version 0.4.0
 - Livetrade mode now supports bot detachment, so that bots will trade until
   a termination signal is received. This is achieved through the bot manager.
 - Data time alginment can optionally be disabled
 - Various plotting improvements
+
 
 ### 0.4.27
 - Feature: added trade unit precision method to oanda
