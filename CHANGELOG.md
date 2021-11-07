@@ -16,6 +16,10 @@ Features:
 - Multi-instrument backtest data checking: datasets with mis-matched lengths
   are automatically corrected to improve backtest reliability.
 
+### 0.5.1
+- fix: margin available will update upon initial deposit
+- improved docstrings
+
 
 ## Version 0.4.0
 - Livetrade mode now supports bot detachment, so that bots will trade until
