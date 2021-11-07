@@ -585,6 +585,7 @@ class Broker():
             
         self.portfolio_balance += deposit
         self.NAV += deposit
+        self.update_margin()
     
     def get_balance(self):
         ''' Returns balance of account. '''
