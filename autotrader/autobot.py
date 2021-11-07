@@ -339,7 +339,7 @@ class AutoTraderBot():
                     data = MTF_data[first_granularity]
                     quote_data = quote_data
                 
-                if len(MTF_data) == 1:
+                if MTF_data is not None and len(MTF_data) == 1:
                     MTF_data = None
                 
                 if int(self.verbosity) > 1:
