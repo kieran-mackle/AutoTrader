@@ -14,11 +14,13 @@ is able to pick up the key elements as they go. If you are new to Python, you ma
 
 AutoTrader has many features, so be sure to check out the [Documentation](docs) and the [Getting Started](tutorials/getting-autotrader) guide 
 for a complete summary. Some key features include:
-
- - [Validated backtesting](features/backtesting) with a high-fidelity virtual broker: multiple order types supported, commissions, bid/ask 
-   spread modelling, margin considerations for leveraged accounts
- - [Interactive visualisation](interactive-visualisation) of backtest results and live-trade performance
- - [Strategy optimisation](docs/optimisation)
- - [Streaming](docs/autostream) of price data (Oanda v20 API)
- - Built-in access to [price data](tutorials/price-data) (Yahoo finance, Oanda)
- - [Market scanning](docs/autotrader#scan-mode) with [email notifications](docs/emailing)
+- [Backtesting](https://kieran-mackle.github.io/AutoTrader/tutorials/backtesting), featuring multiple order types (market, limit, stop-limit, trailing stops, etc.) and the ability to **trade multiple instruments, multiple timeframes, and multiple strategies in the same backtest, against the same broker**
+- [Integrated data feeds](https://kieran-mackle.github.io/AutoTrader/tutorials/price-data), such as Yahoo Finance (via [yfinance](https://pypi.org/project/yfinance/)) and Oanda v20 REST API
+- [Automated interactive visualisation](https://kieran-mackle.github.io/AutoTrader/interactive-visualisation) using [Bokeh](https://bokeh.org/)
+- [Built-in parameter optimisation](https://kieran-mackle.github.io/AutoTrader/tutorials/optimisation) using [scipy](https://docs.scipy.org/doc/scipy/reference/optimize.html)
+- [Library of custom indicators](https://kieran-mackle.github.io/AutoTrader/docs/indicators)
+- [Price streaming](https://kieran-mackle.github.io/AutoTrader/docs/autostream) through [Oanda v20 REST API](https://developer.oanda.com/rest-live-v20/introduction/)
+- [Live trading](https://kieran-mackle.github.io/AutoTrader/supported-api) through [Oanda v20 REST API](https://developer.oanda.com/rest-live-v20/introduction/) (with support for more brokers coming soon!)
+- [Email notification system](https://kieran-mackle.github.io/AutoTrader/docs/emailing)
+- [Detailed documenation and tutorials](https://kieran-mackle.github.io/AutoTrader/tutorials/getting-autotrader)
+- [Repository](https://github.com/kieran-mackle/autotrader-demo) of pre-built, ready to go strategies
