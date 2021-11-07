@@ -79,6 +79,8 @@ Tutorials:
       
   - title: Miscellaneous
     children:
+      - title: Condensed Quick Start
+        url: /tutorials/quick-start
       - title: Getting Help
         url: /tutorials/help
       - title: Setting up email notifications
