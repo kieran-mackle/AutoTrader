@@ -119,6 +119,18 @@ class AutoPlot():
         
         return data.reindex(self.data.date, method='ffill')
     
+    def _check_data(self, data):
+        ''' 
+        Checks the length of the inputted data against the base data, 
+        and resamples it if necessary.
+        '''
+        
+        if len(data) != len(self.data):
+            data = self._resample_data(data)
+        
+        return data
+        
+    
     ''' ------------------- FIGURE MANAGEMENT METHODS --------------------- '''
     def plot(self, backtest_dict=None, cumulative_PL=None, indicators=None, 
              instrument=None, show_fig=True):
@@ -693,8 +705,7 @@ class AutoPlot():
         levels = pivot_dict['levels'] if 'levels' in pivot_dict else levels
         
         # Check pivot_df 
-        if len(pivot_df) != len(self.data):
-            pivot_df = self._resample_data(pivot_df)
+        pivot_df = self._check_data(pivot_df)
         
         # Merge to integer index
         pivot_df = pd.merge(self.data, pivot_df, left_on='date', right_index=True)
