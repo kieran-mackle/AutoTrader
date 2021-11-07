@@ -114,6 +114,10 @@ class AutoPlot():
         
         return modified_data
     
+    def _resample_data(self, data):
+        ''' Resamples data to match the time index of the base data. '''
+        
+        return data.reindex(self.data.date, method='ffill')
     
     ''' ------------------- FIGURE MANAGEMENT METHODS --------------------- '''
     def plot(self, backtest_dict=None, cumulative_PL=None, indicators=None, 
@@ -687,6 +691,10 @@ class AutoPlot():
         
         pivot_df = pivot_dict['data']
         levels = pivot_dict['levels'] if 'levels' in pivot_dict else levels
+        
+        # Check pivot_df 
+        if len(pivot_df) != len(self.data):
+            pivot_df = self._resample_data(pivot_df)
         
         # Merge to integer index
         pivot_df = pd.merge(self.data, pivot_df, left_on='date', right_index=True)
