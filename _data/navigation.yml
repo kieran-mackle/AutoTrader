@@ -36,8 +36,10 @@ Documentation:
         url: /docs/brokers-interface
       - title: Virtual Broker
         url: /docs/brokers-virtual
-      - title: Oanda
+      - title: Oanda v20
         url: /docs/brokers-oanda
+      - title: Coming Soon
+        url: /docs/brokers
 
   - title: User Input Files
     children:
