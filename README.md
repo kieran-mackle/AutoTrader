@@ -59,14 +59,20 @@ AutoTrader is well documented on the [project website](https://kieran-mackle.git
 Example strategies can be found in the [demo repository](https://github.com/kieran-mackle/autotrader-demo). You can also request your own strategy to be added [here](https://github.com/kieran-mackle/autotrader-demo/issues/new?assignees=&labels=&template=strategy-request.md&title=%5BSTRATEGY+REQUEST%5D).
 
 
-## Demo Chart
-The chart below is produced by a backtest of a MACD strategy (which can be found in the 
-[demo repository](https://github.com/kieran-mackle/autotrader-demo)). Note that stop loss and take profit levels are shown for each trade taken. 
-This allows you to see how effective your exit strategy is - are you being stopped out too early by placing your stop losses too tight? 
-Are you missing out on otherwise profitable trades becuase your take profits are too far away? AutoTrader helps you visualise your strategy
-and answer these questions.
+## Backtest Demo
+The chart below is produced by a backtest of the MACD trend strategy documented in the [tutorials](https://kieran-mackle.github.io/AutoTrader/tutorials/strategy) 
+(and available in the [demo repository](https://github.com/kieran-mackle/autotrader-demo)). Entry signals are defined by MACD crossovers, with exit targets defined
+by a 1.5 risk-to-reward ratio. Stop-losses are automatically placed using the custom price
+[swing detection](https://kieran-mackle.github.io/AutoTrader/docs/indicators#price-swing-detection) indicator, and position sizes are dynamically calculated based 
+on risk percentages defined in the [strategy configuration file](https://kieran-mackle.github.io/AutoTrader/tutorials/strategy#strategy-configuration).
+
+Running this strategy with AutoTrader in backtest mode will produce the following interactive chart. 
 
 [![MACD-backtest-demo](https://user-images.githubusercontent.com/60687606/128127659-bf81fdd2-c246-4cd1-b86d-ef624cac50a7.png)](https://kieran-mackle.github.io/AutoTrader/interactive-visualisation)
+
+Note that stop loss and take profit levels are shown for each trade taken. This allows you to see how effective your exit strategy is - are you being stopped out too 
+early by placing your stop losses too tight? Are you missing out on otherwise profitable trades becuase your take profits are too far away? AutoTrader helps you 
+visualise your strategy and answer these questions.
 
 ## Legal 
 ### License
