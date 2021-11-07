@@ -372,24 +372,17 @@ class Broker():
         Reduces the position of the specified instrument by FIFO. 
         
         The size parameter of the order details is used to specify whether 
-        to reduce long units, or to reduce short units. For example:
-            order_type: 'reduce'
-            size: -1
-        will reduce long units of the position being held.
+        to reduce long units, or to reduce short units. For example, the
+        order details below will reduce long units of the position being 
+        held.
+            order_type: 'reduce' # reduction order
+            size: -1 # reduce long units by selling
         '''
         
-        'WARNING: THIS METHOD IS NOT READY TO BE USED YET'
-        
         # Consired long vs. short units to be reduced
-        
         instrument = order_details['instrument']
         reduction_size = order_details['size']
-        # TODO - check reduction size sign
-        # Unclear whether size already has direction in it
-        # 
-        reduction_direction = np.sign(reduction_size)
-        
-        
+        reduction_direction = order_details['direction']
         
         # Get open trades for instrument
         open_trades = self.get_open_trades(instrument)
@@ -399,7 +392,7 @@ class Broker():
         units_to_reduce = reduction_size
         while units_to_reduce > 0:
             for order_no in open_trade_IDs:
-                if np.sign(open_trades[order_no]['size']) != reduction_direction:
+                if open_trades[order_no]['direction'] != reduction_direction:
                     # Only reduce long trades when reduction direction is -1
                     # Only reduce short trades when reduction direction is 1
                     if units_to_reduce > open_trades[order_no]['size']:
@@ -408,9 +401,7 @@ class Broker():
                         self.close_trade(order_no = order_no, exit_price=last_price)
                         
                         # Update units_to_reduce
-                        # TODO - check sign, as size of size determines to subtract from
-                        # long or short position
-                        units_to_reduce -= self.closed_positions[order_no]['size']
+                        units_to_reduce -= abs(self.closed_positions[order_no]['size'])
                         
                     else:
                         # Partially close trade
