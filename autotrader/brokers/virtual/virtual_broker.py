@@ -572,7 +572,6 @@ class Broker():
         ''' Add's funds to brokerage account. '''
         
         self.portfolio_balance  += amount
-        # self.margin_available   += amount
     
     def make_deposit(self, deposit):
         '''
@@ -666,4 +665,5 @@ class Broker():
             self.max_drawdown = MDD
     
     def get_NAV(self):
+        ''' Returns Net Asset Value of account. '''
         return self.NAV
