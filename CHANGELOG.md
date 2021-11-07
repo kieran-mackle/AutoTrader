@@ -16,6 +16,9 @@ Features:
 - Multi-instrument backtest data checking: datasets with mis-matched lengths
   are automatically corrected to improve backtest reliability.
 
+### 0.5.2
+- fix: MTF None type handling when optimising
+
 ### 0.5.1
 - fix: margin available will update upon initial deposit
 - improved docstrings
