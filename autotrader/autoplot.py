@@ -468,7 +468,8 @@ class AutoPlot():
                      'Crossover'   : 'below',
                      'over'        : 'over',
                      'below'       : 'below',
-                     'Grid'        : 'over'}
+                     'Grid'        : 'over',
+                     'Pivot'       : 'over'}
         
         # Plot indicators
         indis_over              = 0
@@ -493,6 +494,9 @@ class AutoPlot():
                     elif indi_type == 'Grid':
                         self._plot_grid(indicators[indicator]['data'], 
                                         linked_fig)
+                    elif indi_type == 'Pivot':
+                        self._plot_pivot_points(indicators[indicator], 
+                                                linked_fig)
                     else:
                         # Generic overlay indicator - plot as line
                         linked_fig.line(x_range, 
@@ -678,6 +682,72 @@ class AutoPlot():
                          line_width=linewidth)
             linked_fig.add_layout(hline)
     
+    def _plot_pivot_points(self, pivot_dict, linked_fig, levels=1):
+        ''' Adds pivot points to OHLC chart '''
+        
+        pivot_df = pivot_dict['data']
+        levels = pivot_dict['levels'] if 'levels' in pivot_dict else levels
+        
+        # Merge to integer index
+        pivot_df = pd.merge(self.data, pivot_df, left_on='date', right_index=True)
+        
+        # Remove NaNs
+        pivot_df = pivot_df.fillna('')
+        
+        linked_fig.scatter(list(pivot_df.index),
+                           list(pivot_df['pivot'].values),
+                           marker = 'dash',
+                           size = 15,
+                           line_color = 'black',
+                           legend_label = 'Pivot')
+        
+        if levels > 0:        
+            linked_fig.scatter(list(pivot_df.index),
+                               list(pivot_df['s1'].values),
+                               marker = 'dash',
+                               size = 15,
+                               line_color = 'blue',
+                               legend_label = 'Support 1')
+            
+            linked_fig.scatter(list(pivot_df.index),
+                               list(pivot_df['r1'].values),
+                               marker = 'dash',
+                               size = 15,
+                               line_color = 'red',
+                               legend_label = 'Resistance 1')
+            
+            if levels > 1:
+                linked_fig.scatter(list(pivot_df.index),
+                                   list(pivot_df['s2'].values),
+                                   marker = 'dot',
+                                   size = 10,
+                                   line_color = 'blue',
+                                   legend_label = 'Support 2')
+                
+                linked_fig.scatter(list(pivot_df.index),
+                                   list(pivot_df['r2'].values),
+                                   marker = 'dot',
+                                   size = 10,
+                                   line_color = 'red',
+                                   legend_label = 'Resistance 2')
+                
+                if levels > 2:
+                    linked_fig.scatter(list(pivot_df.index),
+                                       list(pivot_df['s3'].values),
+                                       marker = 'dot',
+                                       size = 7,
+                                       line_color = 'blue',
+                                       legend_label = 'Support 3')
+                    
+                    linked_fig.scatter(list(pivot_df.index),
+                                       list(pivot_df['r3'].values),
+                                       marker = 'dot',
+                                       size = 7,
+                                       line_color = 'red',
+                                       legend_label = 'Resistance 3')
+        
+        
+        
     ''' ----------------------- TOP FIG PLOTTING -------------------------- '''
     
     def _plot_trade(self, x_data, y_data, marker_type, marker_colour, 
