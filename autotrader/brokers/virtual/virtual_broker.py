@@ -667,3 +667,7 @@ class Broker():
     def get_NAV(self):
         ''' Returns Net Asset Value of account. '''
         return self.NAV
+    
+    def get_margin_available(self):
+        ''' Returns the margin available on the account. '''
+        return self.margin_available
