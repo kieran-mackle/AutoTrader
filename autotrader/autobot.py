@@ -262,8 +262,11 @@ class AutoTraderBot():
                     print("Using data file specified ({}).".format(custom_data_file))
                 data            = pd.read_csv(custom_data_filepath, 
                                               index_col = 0)
-                data.index = pd.to_datetime(data.index)
+                data.index = pd.to_datetime(data.index, utc=True)
                 quote_data = data
+                
+                # TODO - add support for MTF data files
+                MTF_data = None
                 
             else:
                 if int(self.verbosity) > 1:
