@@ -144,6 +144,7 @@ class AutoTrader():
         self.data_start = None
         self.data_end   = None
         self.data_file  = None
+        self.MTF_data_files = None
         self.backtest_initial_balance = None
         self.backtest_spread = None
         self.backtest_commission = None

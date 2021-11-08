@@ -68,6 +68,7 @@ class AutoTraderBot():
         self.environment        = autotrader_attributes.environment
         self.feed               = autotrader_attributes.feed
         self.data_file          = autotrader_attributes.data_file
+        self.MTF_data_files     = autotrader_attributes.MTF_data_files
         self.optimise_mode      = autotrader_attributes.optimise_mode
         self.check_data_alignment = autotrader_attributes.check_data_alignment
         self.allow_dancing_bears = autotrader_attributes.allow_dancing_bears
@@ -255,6 +256,7 @@ class AutoTraderBot():
             to_date         = self.data_end
             
             if self.data_file is not None:
+                # Read local data file
                 custom_data_file        = self.data_file
                 custom_data_filepath    = os.path.join(price_data_path,
                                                        custom_data_file)
@@ -265,10 +267,36 @@ class AutoTraderBot():
                 data.index = pd.to_datetime(data.index, utc=True)
                 quote_data = data
                 
-                # TODO - add support for MTF data files
                 MTF_data = None
+            
+            elif self.MTF_data_files is not None:
+                # Read local MTF data files
+                MTF_data_files = self.MTF_data_files
+                MTF_granularities = list(MTF_data_files.keys())
+                
+                MTF_data = {}
+                for granularity in MTF_data_files:
+                    # Extract data 
+                    custom_data_filepath = os.path.join(price_data_path,
+                                                        MTF_data_files[granularity])
+                    if int(self.verbosity) > 1:
+                        print("Using data file specified ({}).".format(MTF_data_files[granularity]))
+                    data = pd.read_csv(custom_data_filepath, index_col = 0)
+                    data.index = pd.to_datetime(data.index, utc=True)
+                    
+                    if granularity == MTF_granularities[0]:
+                        quote_data = data
+                    
+                    # Add to MTF_data dict
+                    MTF_data[granularity] = data
+                
+                # Extract first dataset to use as base
+                first_granularity = MTF_granularities[0]
+                data = MTF_data[first_granularity]
+                quote_data = quote_data
                 
             else:
+                # No data file(s) provided, proceed to download
                 if int(self.verbosity) > 1:
                     print("\nDownloading OHLC price data for {}.".format(instrument))
                 
