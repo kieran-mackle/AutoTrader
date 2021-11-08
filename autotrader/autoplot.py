@@ -607,17 +607,15 @@ class AutoPlot():
                  legend_label       = legend_label,
                  source             = source)
         
-        if hover_name is None:
-            hover_name = 'Data'
-        
-        fig_hovertool = HoverTool(tooltips = [("Date", "@date{%b %d %H:%M}"),
-                                              (hover_name, "$@{plot_data}{%0.2f}")
-                                              ], 
-                                  formatters={'@{plot_data}' : 'printf',
-                                              '@date' : 'datetime'},
-                                  mode = 'vline')
-        
-        fig.add_tools(fig_hovertool)
+        if hover_name is not None:
+            fig_hovertool = HoverTool(tooltips = [("Date", "@date{%b %d %H:%M}"),
+                                                  (hover_name, "@{plot_data}{%0.2f}")
+                                                  ], 
+                                      formatters={'@{plot_data}' : 'printf',
+                                                  '@date' : 'datetime'},
+                                      mode = 'vline')
+            
+            fig.add_tools(fig_hovertool)
         
         return fig
     
