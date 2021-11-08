@@ -541,6 +541,13 @@ class AutoPlot():
                         new_fig.title = indicator
                         indis_below   += self.max_indis_below # To block any other new plots below.
                     
+                    elif indi_type == 'RSI':
+                        new_fig = self._plot_line(indicators[indicator]['data'], linked_fig,
+                                        legend_label=indicator, new_fig=True)
+                        if 'swings' in indicators[indicator]:
+                            self._plot_swings(indicators[indicator]['swings'], 
+                                              new_fig)
+                    
                     else:
                         new_fig = figure(plot_width     = linked_fig.plot_width,
                                          plot_height    = 130,
@@ -658,7 +665,7 @@ class AutoPlot():
         '''
         Plots swing detection indicator.
         '''
-        swings = pd.merge(self.data, swings, left_on='date', right_index=True)
+        swings = pd.merge(self.data, swings, left_on='date', right_index=True).fillna('')
         
         linked_fig.scatter(list(swings.index),
                             list(swings.Last.values),
