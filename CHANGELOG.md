@@ -16,6 +16,11 @@ Features:
 - Multi-instrument backtest data checking: datasets with mis-matched lengths
   are automatically corrected to improve backtest reliability.
 
+### 0.5.3
+- fix: MTF assignment error when providing custom data file
+- feat: added pivot point plot method to AutoPlot
+- feat: added resampling method to AutoPlot to allow for MTF plotting
+
 ### 0.5.2
 - fix: MTF None type handling when optimising
 
