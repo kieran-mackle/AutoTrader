@@ -10,7 +10,7 @@ from finta import TA
 import numpy as np
 import pandas as pd
 
-
+''' -------------------------- PRICE INDICATORS --------------------------- '''
 def supertrend(data, period = 10, ATR_multiplier = 3.0, source=None):
     ''' Based on the SuperTrend indicator by KivancOzbilgic on TradingView '''
     
@@ -148,90 +148,6 @@ def atr(data, period=14):
     atr = tr.rolling(period).sum()/period
     
     return atr
-
-
-def rsi():
-    return
-
-def crossover(list_1, list_2):
-    ''' 
-    Returns a list of length len(list_1) with 1 when list_1 crosses above
-    list_2 and -1 when list_1 crosses below list_2.
-    '''
-    
-    sign_list = []
-    for i in range(len(list_1)):
-        if np.isnan(list_1[i]):
-            sign_list.append(np.nan)
-        else:
-            difference = list_1[i] - list_2[i]
-            if difference < 0:
-                sign_list.append(-1)
-            else:
-                sign_list.append(1)
-    
-    crossover_list = [0]
-    
-    for i in range(1, len(sign_list)):
-        if sign_list[i] - sign_list[i-1] != 0:
-            val = sign_list[i]
-        else:
-            val = 0
-        
-        crossover_list.append(val)
-
-    return crossover_list
-
-
-def cross_values(a, b, ab_crossover):
-    cross_point_list = [0]
-    last_cross_point = 0
-    for i in range(1, len(ab_crossover)):
-        if ab_crossover[i] != 0:
-            i0 = 0
-            m_a = a[i] - a[i-1]
-            m_b = b[i] - b[i-1]
-            ix = (b[i-1] - a[i-1])/(m_a-m_b) + i0
-            
-            cross_point = m_a*(ix - i0) + a[i-1]
-            
-            last_cross_point = cross_point
-            
-        else:
-            cross_point = last_cross_point #0
-        
-        cross_point_list.append(cross_point)
-    
-    # Replace nans with 0
-    cross_point_list = [0 if x!=x  else x for x in cross_point_list]
-    
-    return cross_point_list
-
-
-def candles_between_crosses(cross_list):
-    '''
-    Returns candles since last cross
-    
-    
-    Behaviour:
-    in:  [0, 0, 1, 0, 0, 0, -1, 0, 0, 0, 0, 0, 1]
-    out: [1, 2, 0, 1, 2, 3,  0, 1, 2, 3, 4, 5, 0]
-    '''
-    
-    count = 0
-    count_list = []
-    
-    for i in range(len(cross_list)):
-
-        if cross_list[i] == 0:
-            # Change in signal - reset count
-            count += 1
-        else:
-            count = 0
-        
-        count_list.append(count)
-    
-    return count_list
 
 
 def bullish_engulfing(data, detection = None):
@@ -404,6 +320,90 @@ def heikin_ashi(data):
     
     return ha_data
  
+
+
+
+''' ------------------------ UTILITY INDICATORS --------------------------- '''
+
+def crossover(list_1, list_2):
+    ''' 
+    Returns a list of length len(list_1) with 1 when list_1 crosses above
+    list_2 and -1 when list_1 crosses below list_2.
+    '''
+    
+    sign_list = []
+    for i in range(len(list_1)):
+        if np.isnan(list_1[i]):
+            sign_list.append(np.nan)
+        else:
+            difference = list_1[i] - list_2[i]
+            if difference < 0:
+                sign_list.append(-1)
+            else:
+                sign_list.append(1)
+    
+    crossover_list = [0]
+    
+    for i in range(1, len(sign_list)):
+        if sign_list[i] - sign_list[i-1] != 0:
+            val = sign_list[i]
+        else:
+            val = 0
+        
+        crossover_list.append(val)
+
+    return crossover_list
+
+
+def cross_values(a, b, ab_crossover):
+    cross_point_list = [0]
+    last_cross_point = 0
+    for i in range(1, len(ab_crossover)):
+        if ab_crossover[i] != 0:
+            i0 = 0
+            m_a = a[i] - a[i-1]
+            m_b = b[i] - b[i-1]
+            ix = (b[i-1] - a[i-1])/(m_a-m_b) + i0
+            
+            cross_point = m_a*(ix - i0) + a[i-1]
+            
+            last_cross_point = cross_point
+            
+        else:
+            cross_point = last_cross_point #0
+        
+        cross_point_list.append(cross_point)
+    
+    # Replace nans with 0
+    cross_point_list = [0 if x!=x  else x for x in cross_point_list]
+    
+    return cross_point_list
+
+
+def candles_between_crosses(cross_list):
+    '''
+    Returns candles since last cross
+    
+    
+    Behaviour:
+    in:  [0, 0, 1, 0, 0, 0, -1, 0, 0, 0, 0, 0, 1]
+    out: [1, 2, 0, 1, 2, 3,  0, 1, 2, 3, 4, 5, 0]
+    '''
+    
+    count = 0
+    count_list = []
+    
+    for i in range(len(cross_list)):
+
+        if cross_list[i] == 0:
+            # Change in signal - reset count
+            count += 1
+        else:
+            count = 0
+        
+        count_list.append(count)
+    
+    return count_list
 
 def find_swings(data, use_body = False):
     '''
@@ -714,37 +714,4 @@ def last_level_touched(data, grid):
         levels_touched.append(last_level_crossed)
     
     return levels_touched
-
-
-# def TDI(data):
-#     rsiPeriod = input(11, minval = 1, title = "RSI Period")
-#     bandLength = input(31, minval = 1, title = "Band Length")
-#     lengthrsipl = input(1, minval = 0, title = "Fast MA on RSI")
-#     lengthtradesl = input(9, minval = 1, title = "Slow MA on RSI")
-    
-#     src = close                                                             // Source of Calculations (Close of Bar)
-#     r = rsi(src, rsiPeriod)                                                 // RSI of Close
-#     ma = sma(r, bandLength)                                                 // Moving Average of RSI [current]
-#     offs = (1.6185 * stdev(r, bandLength))                                  // Offset
-#     up = ma + offs                                                          // Upper Bands
-#     dn = ma - offs                                                          // Lower Bands
-#     mid = (up + dn) / 2                                                     // Average of Upper and Lower Bands
-#     fastMA = sma(r, lengthrsipl)                                            // Moving Average of RSI 2 bars back
-#     slowMA = sma(r, lengthtradesl)                                          // Moving Average of RSI 7 bars back
-    
-#     hline(30)                                                               // Oversold
-#     hline(50)                                                               // Midline
-#     hline(70)                                                               // Overbought
-    
-#     upl = plot(up, "Upper Band", color = blue)                              // Upper Band
-#     dnl = plot(dn, "Lower Band", color = blue)                              // Lower Band
-#     midl = plot(mid, "Middle of Bands", color = orange, linewidth = 2)      // Middle of Bands
-    
-#     plot(slowMA, "Slow MA", color=green, linewidth=2)                       // Plot Slow MA
-#     plot(fastMA, "Fast MA", color=red, linewidth=2)                         // Plot Fast MA
-    
-#     fill(upl, midl, red, transp=90)                                         // Fill Upper Half Red
-#     fill(midl, dnl, green, transp=90)                                       // Fill Lower Half Green
-
-
 
