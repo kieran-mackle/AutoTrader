@@ -566,6 +566,35 @@ def detect_divergence(classified_price_swings, classified_indicator_swings, tol=
         
     return divergence
 
+def autodetect_divergence(ohlc, indicator_data):
+    '''
+    Wrapper method to automatically detect divergence from inputted OHLC price 
+    data and indicator data.
+    
+    This method calls:
+        find_swings()
+        classify_swings()
+        detect_divergence()
+    
+    Parameters:
+        ohlc: dataframe of OHLC data
+        
+        indicator data: array of indicator data
+    '''
+    
+    # Price swings
+    price_swings = find_swings(ohlc)
+    price_swings_classified = classify_swings(price_swings)
+    
+    # Indicator swings 
+    indicator_swings = find_swings(indicator_data, data_type='other')
+    indicator_classified = classify_swings(indicator_swings)
+    
+    # Detect divergence
+    divergence = detect_divergence(price_swings_classified, indicator_classified)
+    
+    return divergence
+
 def rolling_signal_list(signals):
         ''' 
             Returns a list which maintains the previous signal, until a new 
