@@ -517,6 +517,54 @@ def classify_swings(swing_df):
     
     return swing_df
 
+def detect_divergence(classified_price_swings, classified_indicator_swings, tol=2):
+    '''
+    Detects divergence between price swings and swings in an indicator.
+    
+    Parameters:
+        classified_price_swings: output from classify_swings using OHLC data.
+        
+        classified_indicator_swings: output from classify_swings using indicator data.
+    '''
+    
+    regular_bullish = []
+    regular_bearish = []
+    hidden_bullish = []
+    hidden_bearish = []
+    
+    for i in range(len(classified_price_swings)):
+        # Look backwards in each
+        
+        # REGULAR BULLISH DIVERGENCE
+        if sum(classified_price_swings['LL'][i-tol:i]) + sum(classified_indicator_swings['HL'][i-tol:i]) > 1:
+            regular_bullish.append(True)
+        else:
+            regular_bullish.append(False)
+        
+        # REGULAR BEARISH DIVERGENCE
+        if sum(classified_price_swings['HH'][i-tol:i]) + sum(classified_indicator_swings['LH'][i-tol:i]) > 1:
+            regular_bearish.append(True)
+        else:
+            regular_bearish.append(False)
+        
+        # HIDDEN BULLISH DIVERGENCE
+        if sum(classified_price_swings['HL'][i-tol:i]) + sum(classified_indicator_swings['LL'][i-tol:i]) > 1:
+            hidden_bullish.append(True)
+        else:
+            hidden_bullish.append(False)
+        
+        # HIDDEN BEARISH DIVERGENCE
+        if sum(classified_price_swings['LH'][i-tol:i]) + sum(classified_indicator_swings['HH'][i-tol:i]) > 1:
+            hidden_bearish.append(True)
+        else:
+            hidden_bearish.append(False)
+        
+        divergence = pd.DataFrame(data = {'regularBull': unroll_signal_list(regular_bullish),
+                                          'regularBear': unroll_signal_list(regular_bearish),
+                                          'hiddenBull': unroll_signal_list(hidden_bullish),
+                                          'hiddenBear': unroll_signal_list(hidden_bearish)})
+        
+    return divergence
 
 def rolling_signal_list(signals):
         ''' 
