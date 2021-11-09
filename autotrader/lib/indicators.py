@@ -475,6 +475,48 @@ def find_swings(data, data_type='ohlc', n = 2):
     
     return swing_df
     
+def classify_swings(swing_df):
+    ''' 
+    Classify a dataframe of swings (from find_swings) into higher-high, 
+    lower-high, higher-low and lower-low.
+    
+    Parameters:
+        swing_df: the dataframe outputted from find_swings.
+    '''
+    
+    # Create copy of swing dataframe
+    swing_df = swing_df.copy()
+    
+    new_level = np.where(swing_df.Last != swing_df.Last.shift(), 1, 0)
+
+    candles_since_last = candles_between_crosses(new_level)
+    
+    # Add column 'candles since last swing' CSLS
+    swing_df['CSLS'] = candles_since_last
+    
+    # Find strong Support and Resistance zones
+    swing_df['Support'] = (swing_df.CSLS > 0) & (swing_df.Trend == 1)
+    swing_df['Resistance'] = (swing_df.CSLS > 0) & (swing_df.Trend == -1)
+    
+    # Find higher highs and lower lows
+    swing_df['Strong_lows'] = swing_df['Support'] * swing_df['Lows'] # Returns high values when there is a strong support
+    swing_df['Strong_highs'] = swing_df['Resistance'] * swing_df['Highs'] # Returns high values when there is a strong support
+    
+    # Remove duplicates to preserve indexes of new levels
+    swing_df['FSL'] = unroll_signal_list(swing_df['Strong_lows']) # First of new strong lows
+    swing_df['FSH'] = unroll_signal_list(swing_df['Strong_highs']) # First of new strong highs
+    
+    # Now compare each non-zero value to the previous non-zero value.
+    low_change = np.sign(swing_df.FSL) * (swing_df.FSL - swing_df.Strong_lows.replace(to_replace=0, method='ffill').shift())
+    high_change = np.sign(swing_df.FSH) * (swing_df.FSH - swing_df.Strong_highs.replace(to_replace=0, method='ffill').shift())
+    
+    swing_df['LL'] = np.where(low_change < 0, True, False)
+    swing_df['HL'] = np.where(low_change > 0, True, False)
+    swing_df['HH'] = np.where(high_change > 0, True, False)
+    swing_df['LH'] = np.where(high_change < 0, True, False)
+    
+    return swing_df
+
 
 def rolling_signal_list(signals):
         ''' 
