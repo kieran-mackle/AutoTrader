@@ -405,61 +405,75 @@ def candles_between_crosses(cross_list):
     
     return count_list
 
-def find_swings(data, use_body = False):
+def find_swings(data, data_type='ohlc', n = 2):
     '''
-        Locates the recent swings in price and returns a rolling list of 
-        swing prices.
+    Locates swings in the inputted data and returns a dataframe.
+    
+    Parameters:
+        data: an OHLC dataframe of price, or an array/list of data from an 
+        indicator.
+        
+        data_type: specify 'ohlc' when data is OHLC, or 'other' when inputting
+        an indicator.
     '''
     
-    # TODO - include resampling option to find swings on higher timeframe
+    # Prepare data 
+    if data_type == 'ohlc':
+        # Find swings in OHLC price data
+        # hl2     = (data.Open.values + data.Close.values)/2
+        hl2     = (data.High.values + data.Low.values)/2
+        swing_data = ema(hl2, n)
+        
+        low_data = data.Low.values
+        high_data = data.High.values
+        
+    else:
+        # Find swings in alternative data source
+        swing_data = data
+        low_data = data
+        high_data = data
     
-    # use_body flag currently not implemented. Idea is to use body close/open
-    # instead of high/low (wicks) of candle for swings.
-    
-    # oc2     = (data.Open.values + data.Close.values)/2
-    hl2     = (data.High.values + data.Low.values)/2
-    n       = 2
-    EMA     = ema(hl2, n)
-    
-    grad    = np.gradient(EMA)
-    
-    swings   = np.zeros(len(grad))
-    for i in range(1, len(grad)):
-        if not np.isnan(grad[i-1]):
-            if np.sign(grad[i]) != np.sign(grad[i-1]):
-                swings[i] = -np.sign(grad[i])
+    # Calculate slope of data and points where slope changes
+    grad = [swing_data[i] - swing_data[i-1] for i in range(len(swing_data))]
+    swings = np.where(np.sign(grad) != np.sign(np.roll(grad,1)), -np.sign(grad), 0)
 
-    swing_df = pd.DataFrame(data=swings, index=data.index, columns=['swing'])
-    
+    # Construct columns
     low_list    = []
     high_list   = []
     for i in range(len(data)):
-        if swing_df.swing[i] == -1:
-            low_list.append(min(data.Low.values[i-1:i+2]))
+        if swings[i] == -1:
+            # Down swing - find min price in the vicinity
             high_list.append(0)
-        elif swing_df.swing[i] == 1:
-            high_list.append(max(data.High.values[i-1:i+2]))
+            low_list.append(min(low_data[i-1:i+2]))
+            
+        elif swings[i] == 1:
+            # Up swing - find max price in the vicinity
+            high_list.append(max(high_data[i-1:i+2]))
             low_list.append(0)
+            
         else:
+            # Price movement
             low_list.append(0)
             high_list.append(0)
     
-    swings_list     = merge_signals(low_list, high_list)
-    last_swing      = rolling_signal_list(swings_list)
-    last_swing[0:n] = list(data.High.values[0:n])
+    trend = rolling_signal_list(-swings)
+    swings_list = merge_signals(low_list, high_list)
+    last_swing = rolling_signal_list(swings_list)
+    last_swing[0:n] = list(high_data[0:n])
     
     # Need to return both a last swing low and last swing high list
-    last_low        = rolling_signal_list(low_list)
-    last_low[0:n]   = list(data.Low.values[0:n])
-    last_high       = rolling_signal_list(high_list)
-    last_high[0:n]  = list(data.High.values[0:n])
+    last_low = rolling_signal_list(low_list)
+    last_low[0:n] = list(low_data[0:n])     # Fill start of data
+    last_high = rolling_signal_list(high_list)
+    last_high[0:n] = list(high_data[0:n])   # Fill start of data
     
-    swings          = pd.DataFrame(data={'Highs': last_high, 
-                                         'Lows' : last_low,
-                                         'Last' : last_swing},
-                                   index = data.index)
+    swing_df = pd.DataFrame(data={'Highs': last_high, 
+                                  'Lows' : last_low,
+                                  'Last' : last_swing,
+                                  'Trend': trend},
+                            index = data.index)
     
-    return swings
+    return swing_df
     
 
 def rolling_signal_list(signals):
