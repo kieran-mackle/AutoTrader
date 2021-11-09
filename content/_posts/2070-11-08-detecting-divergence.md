@@ -56,7 +56,8 @@ Use RSI as an example, but other indicators can be used.
 Maybe also show for MACD
 
 
-
+Here is a cherry-picked example of the indicator at work:
+(insert image of plot with price, RSI, and divergence detecting big reversal)
 
 
 
