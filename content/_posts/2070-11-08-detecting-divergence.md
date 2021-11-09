@@ -11,12 +11,23 @@ If you dont like reading, feel free to [skip to the good part](#detecting-diverg
 
 
 # Motivation
+Divergence 
 
 cAN i GET ANY SOURCES ON DIVERGENCE being effective? would be good to have some links.
+https://www.investopedia.com/terms/d/divergence.asp
+https://www.investopedia.com/trading/trading-divergence-and-understanding-momentum/
+https://www.flowbank.com/en/research/how-to-trade-divergence-with-technical-indicators
+https://www.babypips.com/learn/forex/9-rules-for-trading-divergences
+
 
 define divergence, as per investopedia
 
 Something different to using pivot points
+
+
+Like all indicators, divergence just filters price action. It is therefore very important not to rely on a single
+indicator alone to make predicions of price movements. Many different factors must come together at once to create
+a price movement, and this information can not be gleaned from a single indicator.
 
 
 # Building the Indicator
