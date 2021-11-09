@@ -91,7 +91,7 @@ Maybe also show for MACD
 Here is a cherry-picked example of the indicator at work:
 (insert image of plot with price, RSI, and divergence detecting big reversal)
 
-![Divergence Indicator](/AutoTrader/assets/images/divergence-markedup.png "Divergence Indicator")
+![Divergence Indicator](/AutoTrader/assets/images/divergence_markedup.png "Divergence Indicator")
 
 
 # What Now?
@@ -100,7 +100,7 @@ The tools above have been combined into the indicators;
 find_swings()
 detect_divergence()
 
-added to AutoTrader [indicator library]().
+added to AutoTrader [indicator library](../docs/indicators).
 
 
 Next steps,
