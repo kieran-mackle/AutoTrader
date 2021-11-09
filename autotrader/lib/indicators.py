@@ -498,7 +498,7 @@ def merge_signals(signal_1, signal_2):
          Returns a single signal list which has merged two signal lists. 
      '''
      
-     merged_signal_list = signal_1
+     merged_signal_list = signal_1.copy()
      
      for i in range(len(signal_1)):
          if signal_2[i] != 0:
