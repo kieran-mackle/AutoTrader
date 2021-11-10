@@ -596,24 +596,24 @@ def autodetect_divergence(ohlc, indicator_data):
     return divergence
 
 def rolling_signal_list(signals):
-        ''' 
-            Returns a list which maintains the previous signal, until a new 
-            signal is given.
-            
-            [0,1,0,0,0,-1,0,0,1,0,0] ->  [0,1,1,1,1,-1,-1,-1,1,1,1]
-            
-        '''
+    ''' 
+        Returns a list which maintains the previous signal, until a new 
+        signal is given.
         
-        rolling_signals = [0]
-        last_signal     = rolling_signals[0]
+        [0,1,0,0,0,-1,0,0,1,0,0] ->  [0,1,1,1,1,-1,-1,-1,1,1,1]
         
-        for i in range(1, len(signals)):
-            if signals[i] != 0:
-                last_signal = signals[i]
-            
-            rolling_signals.append(last_signal)
+    '''
+    
+    rolling_signals = [0]
+    last_signal     = rolling_signals[0]
+    
+    for i in range(1, len(signals)):
+        if signals[i] != 0:
+            last_signal = signals[i]
         
-        return rolling_signals
+        rolling_signals.append(last_signal)
+    
+    return rolling_signals
 
 def unroll_signal_list(signals):
     ''' Unrolls a signal list. '''
