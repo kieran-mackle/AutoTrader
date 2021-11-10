@@ -77,7 +77,8 @@ indicators as well as price data. This will come in handy later on - as you will
 ## Support and Resistance
 Examing the image of the detected price swing levels above, it is clear that the indicator picks up some movements
 that are not significant levels. As such, we need a way to filter these out, so that we are left with more significant 
-support and resistance levels. To do this, I will disregard levels detected that last fewer than 1 candle. The code 
+support and resistance levels. To do this, I will disregard levels detected that last fewer than 1 candle. If we wanted 
+to get even stronger support and resistance levels, we could change this filter to 2 or more candles. The code 
 snippet below accomplishes this. 
 
 ```py
@@ -176,45 +177,46 @@ swing_df['LH'] = np.where(high_change < 0, True, False)
 ```
 
 Now, let's look what sort of signals this is giving us. Plotted below are the lower lows, from the column labelled `LL`.
+Looks pretty good to me so far.
 
 ![Lower Lows](/AutoTrader/assets/divergence-blog/lower-low.png "Lower Lows")
 
 
 
 # Testing on Indicators
-
-On RSI with period of 14
+The code developed above used price data as an example to detect higher highs and lower lows, but the same code can be applied
+to any indicator of choice. For example, consider we replace the price data with the RSI with period of 14. As the chart below
+shows, we can apply the same process. 
 
 ![RSI](/AutoTrader/assets/divergence-blog/rsi-swings.png "RSI")
 
 
 
 # Detecting Divergence
+The final step is to combine the tools and indicators developed above, and to apply them on price and an indicator of 
+choice to detect divergence. Following on with the examples above, consider the EUR/USD pair with RSI. First, we use 
+the `find_swings` indicator on both price and the RSI to detect data swings. Then, we can classify the swings as higher
+highs or lower lows using the `classify_swings` indicator. Finally, we can compare the the results of the swings in price 
+to the swings in the indicator to detect regular and hidden divergences. 
 
-
-Combine the tools and indicators developed above on price and an indicator of choice, to detect 
-divergence. 
-
+Take regular bullish divergence as an example. This occurs when price forms a lower low, but the indicator forms a higher
+low. Just in case the lower low and higher high do not match up perfectly, I have defined a tolerance parameter `tol`, to
+allow signals to occur within a certain number of candles of each other. The code below only shows detection of regular
+bullish divergence, but the same logic can be applied to the other types of divergence as well.
 
 ```py
 regular_bullish = []
 for i in range(len(classified_price_swings)):
-    # Look backwards in each
-    
+    # Regular bullish - Lower low in price and higher low in indicator
     if sum(classified_price_swings['LL'][i-tol:i]) + sum(classified_indicator_swings['HL'][i-tol:i]) > 1:
         regular_bullish.append(True)
     else:
         regular_bullish.append(False)
+
+    ...
 ```
 
-
-Use RSI as an example, but other indicators can be used.
-
-Maybe also show for MACD
-
-
-Here is a cherry-picked example of the indicator at work:
-(insert image of plot with price, RSI, and divergence detecting big reversal)
+The image below is a cherry-picked example of the divergence detection indicator at work.
 
 ![Divergence Indicator](/AutoTrader/assets/images/divergence_markedup.png "Divergence Indicator")
 
