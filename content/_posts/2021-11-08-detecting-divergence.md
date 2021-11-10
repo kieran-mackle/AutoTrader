@@ -11,13 +11,13 @@ If you dont like reading, feel free to [skip to the good part](#detecting-diverg
 
 # Motivation
 Divergence is commonly used in trading to assess the underlying momentum in the price of an asset, and for 
-assessing the likelihood of a price reversal [[1](#sources)].
+assessing the likelihood of a price reversal [[1](#references)].
 It is defined by a divergence in price action and the implied information of some other data, such as an 
 indicator. Usually, this 'other data' is an [oscillator](https://www.investopedia.com/terms/o/oscillator.asp)
 such as the RSI or Stochastics. 
 
 A major benefit of detecting divergence is that it can, *in some cases*, act as a leading indicator 
-[[2](#sources)]. Although you must
+[[2](#references)]. Although you must
 wait for a pivot point to be clearly defined, the underlying concept that divergence is built upon implies that
 a reversal is incoming. This is because divergence implies that momentum is weakening. 
 
