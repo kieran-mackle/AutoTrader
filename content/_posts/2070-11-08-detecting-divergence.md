@@ -60,35 +60,48 @@ indicators as well as price data. This will come in handy later on - as you will
 
 ## Support and Resistance
 Examing the image above of the detected price swing levels, it is clear that the indicator picks up some movements
-that are not significant levels. As such, we need a way to filter these out, so that we are level with more
-significant support and resistance levels.
-
-Detecting significant support and resistance levels using the price reversals
-
-When an established reversal levels survives for more than 2 candles 
-(ie. it is not broken)
-2 is what was used, this is general
-
-This filters regular fluctuations
-
+that are not significant levels. As such, we need a way to filter these out, so that we are left with more significant 
+support and resistance levels. To do this, I will disregard levels detected that last fewer than 1 candle. The code 
+snippet below accomplishes this. 
 
 ```py
 new_level = np.where(swing_df.Last != swing_df.Last.shift(), 1, 0)
 
-candles_since_last = candles_between_crosses(new_level)
+candles_since_last_swing = candles_between_crosses(new_level)
 
 # Add column 'candles since last swing' CSLS
-swing_df['CSLS'] = candles_since_last
+swing_df['CSLS'] = candles_since_last_swing
 
 # Find strong Support and Resistance zones
 swing_df['Support'] = (swing_df.CSLS > 0) & (swing_df.Trend == 1)
 swing_df['Resistance'] = (swing_df.CSLS > 0) & (swing_df.Trend == -1)
 ```
 
+First, we determine when a new level is detected, `new_level`. This is simply where the most recently detected level does 
+not equal the previous level. Next, we count the number of candles since the last swing level was first detected. To do 
+this, I make use of the [`candles_between_crosses`](../docs/indicators#candles-between-crosses) indicator. Finally, we can
+determine support and resistance levels by filtering out the swing levels which do not last more than 1 candle. 
+These support and resistance levels have been added to the chart below. Here you can clearly see that when a swing level
+reaches the specified length of 1 candle, it becomes a support or resistance level.
+
 ![Support and Resistnace Levels](/AutoTrader/assets/divergence-blog/support-resistance.png "Support and Resistnace Levels")
 
 
+
+<!-- 
+Detecting significant support and resistance levels using the price reversals
+
+When an established reversal levels survives for more than 2 candles 
+(ie. it is not broken)
+2 is what was used, this is general
+
+This filters regular fluctuations -->
+
+
+
+
 ## Filtering
+The next step
 
 Now we want to filter for strong high levels, and strong low levels
 
