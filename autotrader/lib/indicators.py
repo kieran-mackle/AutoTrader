@@ -519,7 +519,8 @@ def classify_swings(swing_df, tol=0):
     
     return swing_df
 
-def detect_divergence(classified_price_swings, classified_indicator_swings, tol=2):
+def detect_divergence(classified_price_swings, classified_indicator_swings, tol=2,
+                      method=0):
     '''
     Detects divergence between price swings and swings in an indicator.
     
@@ -529,48 +530,79 @@ def detect_divergence(classified_price_swings, classified_indicator_swings, tol=
         classified_indicator_swings: output from classify_swings using indicator data.
         
         tol: number of candles which conditions must be met within. 
+        
+        method: the method to use when detecting divergence. Options include:
+            0: use both price and indicator swings to detect divergence (default)
+            1: use only indicator swings to detect divergence
     '''
     
-    regular_bullish = []
-    regular_bearish = []
-    hidden_bullish = []
-    hidden_bearish = []
-    
-    for i in range(len(classified_price_swings)):
-        # Look backwards in each
+    if method == 0:
         
-        # REGULAR BULLISH DIVERGENCE
-        if sum(classified_price_swings['LL'][i-tol:i]) + sum(classified_indicator_swings['HL'][i-tol:i]) > 1:
-            regular_bullish.append(True)
-        else:
-            regular_bullish.append(False)
+        regular_bullish = []
+        regular_bearish = []
+        hidden_bullish = []
+        hidden_bearish = []
         
-        # REGULAR BEARISH DIVERGENCE
-        if sum(classified_price_swings['HH'][i-tol:i]) + sum(classified_indicator_swings['LH'][i-tol:i]) > 1:
-            regular_bearish.append(True)
-        else:
-            regular_bearish.append(False)
+        for i in range(len(classified_price_swings)):
+            # Look backwards in each
+            
+            # REGULAR BULLISH DIVERGENCE
+            if sum(classified_price_swings['LL'][i-tol:i]) + sum(classified_indicator_swings['HL'][i-tol:i]) > 1:
+                regular_bullish.append(True)
+            else:
+                regular_bullish.append(False)
+            
+            # REGULAR BEARISH DIVERGENCE
+            if sum(classified_price_swings['HH'][i-tol:i]) + sum(classified_indicator_swings['LH'][i-tol:i]) > 1:
+                regular_bearish.append(True)
+            else:
+                regular_bearish.append(False)
+            
+            # HIDDEN BULLISH DIVERGENCE
+            if sum(classified_price_swings['HL'][i-tol:i]) + sum(classified_indicator_swings['LL'][i-tol:i]) > 1:
+                hidden_bullish.append(True)
+            else:
+                hidden_bullish.append(False)
+            
+            # HIDDEN BEARISH DIVERGENCE
+            if sum(classified_price_swings['LH'][i-tol:i]) + sum(classified_indicator_swings['HH'][i-tol:i]) > 1:
+                hidden_bearish.append(True)
+            else:
+                hidden_bearish.append(False)
+            
+            divergence = pd.DataFrame(data = {'regularBull': unroll_signal_list(regular_bullish),
+                                              'regularBear': unroll_signal_list(regular_bearish),
+                                              'hiddenBull': unroll_signal_list(hidden_bullish),
+                                              'hiddenBear': unroll_signal_list(hidden_bearish)})
+    elif method == 1:
+        # Use indicator swings only to detect divergence
+        for i in range(len(classified_price_swings)):
+            
+            price_at_indi_lows = (classified_indicator_swings['FSL'] != 0) * classified_price_swings['Lows']
+            price_at_indi_highs = (classified_indicator_swings['FSH'] != 0) * classified_price_swings['Highs']
+            
+            # Determine change in price between indicator lows
+            price_at_indi_lows_change = np.sign(price_at_indi_lows) * (price_at_indi_lows - price_at_indi_lows.replace(to_replace=0, method='ffill').shift())
+            price_at_indi_highs_change = np.sign(price_at_indi_highs) * (price_at_indi_highs - price_at_indi_highs.replace(to_replace=0, method='ffill').shift())
+            
+            
+            # DETECT DIVERGENCES
+            regular_bullish = (classified_indicator_swings['HL']) & (price_at_indi_lows_change < 0 )
+            regular_bearish = (classified_indicator_swings['LH']) & (price_at_indi_highs_change > 0 )
+            hidden_bullish = (classified_indicator_swings['LL']) & (price_at_indi_lows_change > 0 )
+            hidden_bearish = (classified_indicator_swings['HH']) & (price_at_indi_highs_change < 0 )
+            
+            divergence = pd.DataFrame(data = {'regularBull': regular_bullish,
+                                              'regularBear': regular_bearish,
+                                              'hiddenBull': hidden_bullish,
+                                              'hiddenBear': hidden_bearish})
         
-        # HIDDEN BULLISH DIVERGENCE
-        if sum(classified_price_swings['HL'][i-tol:i]) + sum(classified_indicator_swings['LL'][i-tol:i]) > 1:
-            hidden_bullish.append(True)
-        else:
-            hidden_bullish.append(False)
-        
-        # HIDDEN BEARISH DIVERGENCE
-        if sum(classified_price_swings['LH'][i-tol:i]) + sum(classified_indicator_swings['HH'][i-tol:i]) > 1:
-            hidden_bearish.append(True)
-        else:
-            hidden_bearish.append(False)
-        
-        divergence = pd.DataFrame(data = {'regularBull': unroll_signal_list(regular_bullish),
-                                          'regularBear': unroll_signal_list(regular_bearish),
-                                          'hiddenBull': unroll_signal_list(hidden_bullish),
-                                          'hiddenBear': unroll_signal_list(hidden_bearish)})
+    else:
+        raise Exception("Error: unrecognised method of divergence detection.")
         
     return divergence
 
-def autodetect_divergence(ohlc, indicator_data):
+def autodetect_divergence(ohlc, indicator_data, method=0):
     '''
     Wrapper method to automatically detect divergence from inputted OHLC price 
     data and indicator data.
@@ -584,6 +616,10 @@ def autodetect_divergence(ohlc, indicator_data):
         ohlc: dataframe of OHLC data
         
         indicator data: array of indicator data
+        
+        method: the method to use when detecting divergence. Options include:
+            0: use both price and indicator swings to detect divergence (default)
+            1: use only indicator swings to detect divergence
     '''
     
     # Price swings
@@ -595,7 +631,7 @@ def autodetect_divergence(ohlc, indicator_data):
     indicator_classified = classify_swings(indicator_swings)
     
     # Detect divergence
-    divergence = detect_divergence(price_swings_classified, indicator_classified)
+    divergence = detect_divergence(price_swings_classified, indicator_classified, method)
     
     return divergence
 
