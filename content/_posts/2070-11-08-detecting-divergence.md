@@ -5,32 +5,43 @@ tags: features
 ---
 
 
-![Name](/AutoTrader/assets/divergence-blog/.png "Name")
-
+This post details the development of a technical indicator to detect divergences.
 If you dont like reading, feel free to [skip to the good part](#detecting-divergence).
 
 
 # Motivation
-Divergence 
+Divergence is commonly used in trading to assess the underlying momentum in the price of an asset, and for 
+assessing the likelihood of a price reversal [1](https://www.investopedia.com/terms/d/divergence.asp).
+It is defined by a divergence in price action and the implied information of some other data, such as an 
+indicator. Usually, this 'other data' is an [oscillator](https://www.investopedia.com/terms/o/oscillator.asp)
+such as the RSI or Stochastics. 
 
-cAN i GET ANY SOURCES ON DIVERGENCE being effective? would be good to have some links.
-https://www.investopedia.com/terms/d/divergence.asp
-https://www.investopedia.com/trading/trading-divergence-and-understanding-momentum/
-https://www.flowbank.com/en/research/how-to-trade-divergence-with-technical-indicators
-https://www.babypips.com/learn/forex/9-rules-for-trading-divergences
+A major benefit of detecting divergence is that it acts as a leading indicator 
+[2](https://www.flowbank.com/en/research/how-to-trade-divergence-with-technical-indicators). Although you must
+wait for a pivot point to be clearly defined, the underlying concept that divergence is built upon implies that
+a reversal is incoming. This is because divergence implies that momentum is weakening. 
 
-
-define divergence, as per investopedia
-
-Something different to using pivot points
-
-
-Like all indicators, divergence just filters price action. It is therefore very important not to rely on a single
-indicator alone to make predicions of price movements. Many different factors must come together at once to create
-a price movement, and this information can not be gleaned from a single indicator.
+To be clear, this post is not about how effective divergence is as a trading tool, but rather about developing 
+the means to detect it. Like all indicators, divergence just filters price action. It is therefore very important 
+not to rely on a single indicator alone to make predicions of price movements. Many different factors must come 
+together at once to create a price movement, and this information can not be gleaned from a single indicator.
 
 
 # Building the Indicator
+Before setting off to develop this indicator, I had a look at what others have done to achieve similar. One 
+indicator that caught my eye was [TradingView's](https://www.tradingview.com/) built-in "Divergence Indicator".
+This indicator relies on pivot points to detect changes in direction of price and indicators. Additionally,
+this indicator only detects divergence of price from RSI. Seeing this gave me two goals:
+1. To detect divergence without relying on pivot points;
+2. To build a divergence indicator which can be used with any other indicator (eg. RSI, MACD, Stochastics).
+
+
+Something different to using pivot points
+
+Mine is actually a candle quicker than TradingView! 
+
+
+
 While building this indicator, I will be using [AutoPlot](../docs/autoplot) along the way to visualise what I am 
 doing.
 
@@ -170,6 +181,10 @@ Here is a cherry-picked example of the indicator at work:
 ![Divergence Indicator](/AutoTrader/assets/images/divergence_markedup.png "Divergence Indicator")
 
 
+As we would like, the signal only comes after all pre-requisite signals have *closed*.
+
+
+
 # What Now?
 
 The tools above have been combined into the indicators;
@@ -182,4 +197,10 @@ added to AutoTrader [indicator library](../docs/indicators).
 Next steps,
 Implement into a strategy, backtest
 
+
+
+# Sources
+[1](https://www.investopedia.com/terms/d/divergence.asp)
+[2](https://www.flowbank.com/en/research/how-to-trade-divergence-with-technical-indicators)
+[use higher timeframes (1-hour or longer)](https://www.babypips.com/learn/forex/9-rules-for-trading-divergences)
 
