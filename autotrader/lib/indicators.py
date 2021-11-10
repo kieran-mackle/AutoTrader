@@ -442,13 +442,13 @@ def find_swings(data, data_type='ohlc', n = 2):
     high_list   = []
     for i in range(len(data)):
         if swings[i] == -1:
-            # Down swing - find min price in the vicinity
+            # Down swing - find min price in the vicinity 
             high_list.append(0)
-            low_list.append(min(low_data[i-1:i+2]))
+            low_list.append(min(low_data[i-2:i]))
             
         elif swings[i] == 1:
             # Up swing - find max price in the vicinity
-            high_list.append(max(high_data[i-1:i+2]))
+            high_list.append(max(high_data[i-2:i]))
             low_list.append(0)
             
         else:
