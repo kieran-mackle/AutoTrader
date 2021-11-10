@@ -104,19 +104,6 @@ reaches the specified length of 1 candle, it becomes a support or resistance lev
 ![Support and Resistnace Levels](/AutoTrader/assets/divergence-blog/support-resistance.png "Support and Resistnace Levels")
 
 
-
-<!-- 
-Detecting significant support and resistance levels using the price reversals
-
-When an established reversal levels survives for more than 2 candles 
-(ie. it is not broken)
-2 is what was used, this is general
-
-This filters regular fluctuations -->
-
-
-
-
 ### Swing Levels at S&R
 The next step is to use the support and resistance levels determined above to calculate the specific data values that 
 correspond to these levels. This is achieved with the code below.
