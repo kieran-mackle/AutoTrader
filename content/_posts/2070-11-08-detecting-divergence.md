@@ -54,6 +54,10 @@ is illustrated on the chart below by the dashed lines.
 
 ![Price Swings](/AutoTrader/assets/divergence-blog/price-swings-trend.png "Price Swings")
 
+Naturally, this method of caclulating swing levels will be more responsive compared to pivot points. However,
+this comes at the cost of false signals: the quicker a level is detected, the more likely it is to be a 
+fluctuation due to noise, rather than a significant price level.
+
 *Note*: as part of the version `0.5.5` release of AutoTrader, this indicator has been generalised to accept 
 indicators as well as price data. This will come in handy later on - as you will see below.
 
