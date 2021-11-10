@@ -47,7 +47,7 @@ this indicator only detects the divergence of price from the RSI. Seeing this ga
 
 
 By the end of this post, I hope to have achieved the goals above. As a side note, throughout the rest of the post, 
-the charts you see have been generated using using [AutoPlot](../docs/autoplot).
+the charts you see have been generated using using [AutoPlot](../../../docs/autoplot).
 
 
 ## Detecting price reversals
@@ -59,7 +59,7 @@ TradingView indicator) is [pivot points](https://www.investopedia.com/terms/p/pi
 
 My approach to solving this problem is more mechanical, and is as follows: by fitting a short-period moving
 average to the dataset, I can use the slope to detect local highs and local lows. This is exactly the approach
-I have implemented in the [`find_swings`](../docs/indicators#swing-detection) utility indicator. This indicator
+I have implemented in the [`find_swings`](../../../docs/indicators#swing-detection) utility indicator. This indicator
 is illustrated on the chart below by the dashed lines. The second plot below the price chart shows the implied 
 trend, yielding a value of `1` when a swing low is detected (implying an uptrend) and a value of `-1` when a 
 swing high is detected (implying a downtrend).
@@ -75,7 +75,7 @@ indicators as well as price data. This will come in handy later on - as you will
 
 
 ## Support and Resistance
-Examing the image above of the detected price swing levels, it is clear that the indicator picks up some movements
+Examing the image of the detected price swing levels above, it is clear that the indicator picks up some movements
 that are not significant levels. As such, we need a way to filter these out, so that we are left with more significant 
 support and resistance levels. To do this, I will disregard levels detected that last fewer than 1 candle. The code 
 snippet below accomplishes this. 
@@ -95,7 +95,7 @@ swing_df['Resistance'] = (swing_df.CSLS > 0) & (swing_df.Trend == -1)
 
 First, we determine when a new level is detected, `new_level`. This is simply where the most recently detected level does 
 not equal the previous level. Next, we count the number of candles since the last swing level was first detected. To do 
-this, I make use of the [`candles_between_crosses`](../docs/indicators#candles-between-crosses) indicator. Finally, we can
+this, I make use of the [`candles_between_crosses`](../../../docs/indicators#candles-between-crosses) indicator. Finally, we can
 determine support and resistance levels by filtering out the swing levels which do not last more than 1 candle. 
 These support and resistance levels have been added to the chart below. Here you can clearly see that when a swing level
 reaches the specified length of 1 candle, it becomes a support or resistance level.
@@ -116,10 +116,9 @@ This filters regular fluctuations -->
 
 
 
-## Filtering
-The next step
-
-Now we want to filter for strong high levels, and strong low levels
+### Swing Levels at S&R
+The next step is to use the support and resistance levels determined above to calculate the specific data values that 
+correspond to these levels. This is achieved with the code below.
 
 ```py
 # Find higher highs and lower lows
@@ -127,13 +126,21 @@ swing_df['Strong_lows'] = swing_df['Support'] * swing_df['Lows'] # Returns high 
 swing_df['Strong_highs'] = swing_df['Resistance'] * swing_df['Highs'] # Returns high values when there is a strong support
 ```
 
+The result of this is shown below. Note that the indicators will very closely resemble the support and resistance levels
+calculated previously. Now, however, we can see what data values the support and resistance levels occur at, rather than
+simply *when* they occur.
+
 ![Strong Levels](/AutoTrader/assets/divergence-blog/strong-levels.png "Strong Levels")
 
 
-### First occurrence
-Detect first occurance of strong high or low levels
+### First occurrences
+first occurance of strong high or low levels
 
-
+Since we want to detect divergence as quick as possible, we are most interested in the first occurence of a strong high or
+strong low level being detected. For this purpose, I have used another custom indicator, 
+[`unroll_signal_list`](../../../docs/indicators#unroll-signal-list). This can be used to take our 'Strong_lows' and 
+'Strong_highs' and return a single value for each time a new stong low or high is detected. See the chart below for a visual
+representation of this.
 
 ```py
 # Remove duplicates to preserve indexes of new levels
@@ -145,9 +152,8 @@ swing_df['FSH'] = unroll_signal_list(swing_df['Strong_highs']) # First of new st
 
 
 ## Finding Higher Highs and Lower Lows
-
-
-
+Now that we can detect each time a new strong level is achieved, we can detect higher highs and lower lows. First, we can 
+calculate the change in successive lows and highs: `low_change` and `high_change` in the code snippet below.
 
 ```py
 # Now compare each non-zero value to the previous non-zero value.
@@ -155,11 +161,12 @@ low_change = np.sign(swing_df.FSL) * (swing_df.FSL - swing_df.Strong_lows.replac
 high_change = np.sign(swing_df.FSH) * (swing_df.FSH - swing_df.Strong_highs.replace(to_replace=0, method='ffill').shift())
 ```
 
-
+Take a look at what these look like in the chart below. Plotted are the `low_change` values. Note that when a lower low appears,
+the `low_change` is negative. On the other hand, when a higher low appears, the `low_change` is positive.
 
 ![Lows change](/AutoTrader/assets/divergence-blog/lows-change.png "Lows change")
 
-
+Using this information, we can calculate higher highs, lower lows, higher lows and lower highs. This is shown below.
 
 ```py
 swing_df['LL'] = np.where(low_change < 0, True, False)
@@ -167,6 +174,8 @@ swing_df['HL'] = np.where(low_change > 0, True, False)
 swing_df['HH'] = np.where(high_change > 0, True, False)
 swing_df['LH'] = np.where(high_change < 0, True, False)
 ```
+
+Now, let's look what sort of signals this is giving us. Plotted below are the lower lows, from the column labelled `LL`.
 
 ![Lower Lows](/AutoTrader/assets/divergence-blog/lower-low.png "Lower Lows")
 
@@ -218,13 +227,13 @@ As we would like, the signal only comes after all pre-requisite signals have *cl
 
 
 The tools developed above have been packaged conveniently into indicators and added to the AutoTrader 
-[indicator library](../docs/indicators). You can find them under the following names:
-- [`find_swings`](../docs/indicators#swing-detection)
-- [`classify_swings`](../docs/indicators#classifying-swings) 
-- [`detect_divergence`](../docs/indicators#detecting-divergence)
+[indicator library](../../../docs/indicators). You can find them under the following names:
+- [`find_swings`](../../../docs/indicators#swing-detection)
+- [`classify_swings`](../../../docs/indicators#classifying-swings) 
+- [`detect_divergence`](../../../docs/indicators#detecting-divergence)
 
 If you do not care about the intermediate steps, you can use the 
-[`autodetect_divergence`](../docs/indicators#divergence) indicator, which is a wrapper for the indicators above.
+[`autodetect_divergence`](../../../docs/indicators#divergence) indicator, which is a wrapper for the indicators above.
 
 Next steps,
 Implement into a strategy, backtest
