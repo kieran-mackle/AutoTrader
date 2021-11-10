@@ -30,13 +30,23 @@ together at once to create a price movement, and this information can not be gle
 # Building the Indicator
 Before setting off to develop this indicator, I had a look at what others have done to achieve similar. One 
 indicator that caught my eye was [TradingView's](https://www.tradingview.com/) built-in "Divergence Indicator".
+A screenshot of this indicator in action is shown below on the EUR/USD chart. Note that the candle the signal 
+arrives on is deceptive. I have highlighted the candle at which the indicator will actually tell you that there
+has been a divergence with a vertical line, and used an arrow to emphasise the entry candle. To see this for 
+yourself, use the replay function of TradingView. You will notice that the 'Bull' signal only appears a number 
+of candles after it sits on the chart.
+
+![TradingView's Divergence indicator](/AutoTrader/assets/divergence-blog/tradingview.png "TradingView's Divergence indicator")
+
+
 This indicator relies on pivot points to detect changes in direction of price and indicators. Additionally,
 this indicator only detects the divergence of price from the RSI. Seeing this gave me two goals:
 
 1. To detect divergence without relying on pivot points;
 2. To build a divergence indicator which can be used with any other indicator (eg. RSI, MACD, Stochastics).
 
-By the end of this post, I hope to have achieved those goals. As a side note, throughout the rest of the post, 
+
+By the end of this post, I hope to have achieved the goals above. As a side note, throughout the rest of the post, 
 the charts you see have been generated using using [AutoPlot](../docs/autoplot).
 
 
