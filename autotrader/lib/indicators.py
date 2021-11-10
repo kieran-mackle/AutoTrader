@@ -475,13 +475,15 @@ def find_swings(data, data_type='ohlc', n = 2):
     
     return swing_df
     
-def classify_swings(swing_df):
+def classify_swings(swing_df, tol=0):
     ''' 
     Classify a dataframe of swings (from find_swings) into higher-high, 
     lower-high, higher-low and lower-low.
     
     Parameters:
         swing_df: the dataframe outputted from find_swings.
+        
+        tol: parameter to control strength of levels detected.
     '''
     
     # Create copy of swing dataframe
@@ -495,8 +497,8 @@ def classify_swings(swing_df):
     swing_df['CSLS'] = candles_since_last
     
     # Find strong Support and Resistance zones
-    swing_df['Support'] = (swing_df.CSLS > 0) & (swing_df.Trend == 1)
-    swing_df['Resistance'] = (swing_df.CSLS > 0) & (swing_df.Trend == -1)
+    swing_df['Support'] = (swing_df.CSLS > tol) & (swing_df.Trend == 1)
+    swing_df['Resistance'] = (swing_df.CSLS > tol) & (swing_df.Trend == -1)
     
     # Find higher highs and lower lows
     swing_df['Strong_lows'] = swing_df['Support'] * swing_df['Lows'] # Returns high values when there is a strong support
@@ -525,6 +527,8 @@ def detect_divergence(classified_price_swings, classified_indicator_swings, tol=
         classified_price_swings: output from classify_swings using OHLC data.
         
         classified_indicator_swings: output from classify_swings using indicator data.
+        
+        tol: number of candles which conditions must be met within. 
     '''
     
     regular_bullish = []
