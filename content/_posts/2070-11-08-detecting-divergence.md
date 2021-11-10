@@ -11,13 +11,13 @@ If you dont like reading, feel free to [skip to the good part](#detecting-diverg
 
 # Motivation
 Divergence is commonly used in trading to assess the underlying momentum in the price of an asset, and for 
-assessing the likelihood of a price reversal [1](https://www.investopedia.com/terms/d/divergence.asp).
+assessing the likelihood of a price reversal [[1](#sources)].
 It is defined by a divergence in price action and the implied information of some other data, such as an 
 indicator. Usually, this 'other data' is an [oscillator](https://www.investopedia.com/terms/o/oscillator.asp)
 such as the RSI or Stochastics. 
 
-A major benefit of detecting divergence is that it acts as a leading indicator 
-[2](https://www.flowbank.com/en/research/how-to-trade-divergence-with-technical-indicators). Although you must
+A major benefit of detecting divergence is that it can, *in some cases*, act as a leading indicator 
+[[2](#sources)]. Although you must
 wait for a pivot point to be clearly defined, the underlying concept that divergence is built upon implies that
 a reversal is incoming. This is because divergence implies that momentum is weakening. 
 
@@ -59,7 +59,9 @@ indicators as well as price data. This will come in handy later on - as you will
 
 
 ## Support and Resistance
-
+Examing the image above of the detected price swing levels, it is clear that the indicator picks up some movements
+that are not significant levels. As such, we need a way to filter these out, so that we are level with more
+significant support and resistance levels.
 
 Detecting significant support and resistance levels using the price reversals
 
@@ -183,14 +185,17 @@ As we would like, the signal only comes after all pre-requisite signals have *cl
 
 
 
-# What Now?
+## What Now?
 
-The tools above have been combined into the indicators;
-find_swings()
-detect_divergence()
 
-added to AutoTrader [indicator library](../docs/indicators).
+The tools developed above have been packaged conveniently into indicators and added to the AutoTrader 
+[indicator library](../docs/indicators). You can find them under the following names:
+- [`find_swings`](../docs/indicators#swing-detection)
+- [`classify_swings`](../docs/indicators#classifying-swings) 
+- [`detect_divergence`](../docs/indicators#detecting-divergence)
 
+If you do not care about the intermediate steps, you can use the 
+[`autodetect_divergence`](../docs/indicators#divergence) indicator, which is a wrapper for the indicators above.
 
 Next steps,
 Implement into a strategy, backtest
@@ -198,7 +203,10 @@ Implement into a strategy, backtest
 
 
 # Sources
-[1](https://www.investopedia.com/terms/d/divergence.asp)
-[2](https://www.flowbank.com/en/research/how-to-trade-divergence-with-technical-indicators)
+[[1](https://www.investopedia.com/terms/d/divergence.asp)] - Definition of divergence
+
+[[2](https://www.flowbank.com/en/research/how-to-trade-divergence-with-technical-indicators)] - Trading with divergence
+
 [use higher timeframes (1-hour or longer)](https://www.babypips.com/learn/forex/9-rules-for-trading-divergences)
+
 
