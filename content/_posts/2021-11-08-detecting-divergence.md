@@ -60,7 +60,9 @@ TradingView indicator) is [pivot points](https://www.investopedia.com/terms/p/pi
 My approach to solving this problem is more mechanical, and is as follows: by fitting a short-period moving
 average to the dataset, I can use the slope to detect local highs and local lows. This is exactly the approach
 I have implemented in the [`find_swings`](../docs/indicators#swing-detection) utility indicator. This indicator
-is illustrated on the chart below by the dashed lines. 
+is illustrated on the chart below by the dashed lines. The second plot below the price chart shows the implied 
+trend, yielding a value of `1` when a swing low is detected (implying an uptrend) and a value of `-1` when a 
+swing high is detected (implying a downtrend).
 
 ![Price Swings](/AutoTrader/assets/divergence-blog/price-swings-trend.png "Price Swings")
 
