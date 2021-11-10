@@ -183,7 +183,7 @@ Looks pretty good to me so far.
 
 
 
-# Testing on Indicators
+## Testing on the RSI
 The code developed above used price data as an example to detect higher highs and lower lows, but the same code can be applied
 to any indicator of choice. For example, consider we replace the price data with the RSI with period of 14. As the chart below
 shows, we can apply the same process. 
@@ -212,22 +212,23 @@ for i in range(len(classified_price_swings)):
         regular_bullish.append(True)
     else:
         regular_bullish.append(False)
-
     ...
 ```
 
-The image below is a cherry-picked example of the divergence detection indicator at work.
+## The Results
+
+The image below is a cherry-picked example of the divergence detection indicator at work. Comparing this to TradingView's
+divergence indicator shown at the start of the post, we can see that it picks up the same bullish divergence - one candle 
+earlier! In the example below, this corresponds to a little over 60 pips!
 
 ![Divergence Indicator](/AutoTrader/assets/images/divergence_markedup.png "Divergence Indicator")
 
-
-As we would like, the signal only comes after all pre-requisite signals have *closed*.
-
+As mentioned above, this is a cherry picked example of the indicator working. In fact, you can see a false signal in the same 
+image above. Examining what happened here, it is clear that the false signal is due to a false detection of a lower low. To 
+avoid this, we would have to filter out smaller retracements - such as the 'higher low' in the lower-low pair.
 
 
 ## What Now?
-
-
 The tools developed above have been packaged conveniently into indicators and added to the AutoTrader 
 [indicator library](../../../docs/indicators). You can find them under the following names:
 - [`find_swings`](../../../docs/indicators#swing-detection)
@@ -236,17 +237,17 @@ The tools developed above have been packaged conveniently into indicators and ad
 
 If you do not care about the intermediate steps, you can use the 
 [`autodetect_divergence`](../../../docs/indicators#divergence) indicator, which is a wrapper for the indicators above.
+This means that you can go straight from price data and indicator data to detecting divergence with a single line of code.
 
-Next steps,
-Implement into a strategy, backtest
+The next steps I plan to take with this indicator involve fine tuning the tolerance parameters and running some backtests.
+
+If you have any questions, please feel free to [send me an email](mailto:kemackle98@gmail.com).
 
 
-
-# Sources
+# References
 [[1](https://www.investopedia.com/terms/d/divergence.asp)] - Definition of divergence
 
 [[2](https://www.flowbank.com/en/research/how-to-trade-divergence-with-technical-indicators)] - Trading with divergence
 
-[use higher timeframes (1-hour or longer)](https://www.babypips.com/learn/forex/9-rules-for-trading-divergences)
 
 
