@@ -16,6 +16,9 @@ Features:
 - Multi-instrument backtest data checking: datasets with mis-matched lengths
   are automatically corrected to improve backtest reliability.
 
+### 0.5.5
+- feat: new indicators: divergence detection
+
 ### 0.5.4
 - feat: MTF support for local files
 
