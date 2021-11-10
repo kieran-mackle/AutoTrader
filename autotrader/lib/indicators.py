@@ -438,9 +438,9 @@ def find_swings(data, data_type='ohlc', n = 2):
     swings = np.where(np.sign(grad) != np.sign(np.roll(grad,1)), -np.sign(grad), 0)
 
     # Construct columns
-    low_list    = []
-    high_list   = []
-    for i in range(len(data)):
+    low_list    = [0]
+    high_list   = [0]
+    for i in range(1,len(data)):
         if swings[i] == -1:
             # Down swing - find min price in the vicinity 
             high_list.append(0)
