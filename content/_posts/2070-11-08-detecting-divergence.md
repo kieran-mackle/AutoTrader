@@ -31,37 +31,35 @@ together at once to create a price movement, and this information can not be gle
 Before setting off to develop this indicator, I had a look at what others have done to achieve similar. One 
 indicator that caught my eye was [TradingView's](https://www.tradingview.com/) built-in "Divergence Indicator".
 This indicator relies on pivot points to detect changes in direction of price and indicators. Additionally,
-this indicator only detects divergence of price from RSI. Seeing this gave me two goals:
+this indicator only detects the divergence of price from the RSI. Seeing this gave me two goals:
+
 1. To detect divergence without relying on pivot points;
 2. To build a divergence indicator which can be used with any other indicator (eg. RSI, MACD, Stochastics).
 
+By the end of this post, I hope to have achieved those goals. As a side note, throughout the rest of the post, 
+the charts you see have been generated using using [AutoPlot](../docs/autoplot).
 
-Something different to using pivot points
-
-Mine is actually a candle quicker than TradingView! 
-
-
-
-While building this indicator, I will be using [AutoPlot](../docs/autoplot) along the way to visualise what I am 
-doing.
 
 ## Detecting price reversals
+The first capability required in building a divergence indicator is the recognition of 'swings' or 'pivots'. 
+That is, detecting highs or lows in some dataset. The most straight-forward way to do this is to simply take 
+the maximium (or minimum) value of the last *N* periods of the data. This method falls apart in the case of 
+strong trends, in which case the detected 'swings' become meaningless. Another approach (as taken in the 
+TradingView indicator) is [pivot points](https://www.investopedia.com/terms/p/pivotpoint.asp).
 
-find_swings indicator
-
-alternatively, pivot points. However, tradingview pivot points are very lagging, 
-i want something quicker
-
-To do this, I will be using the swing detection unitilty indicator of AutoTrader. Check out the docs for that 
-in the [indicators library](../docs/indicators#price-swing-detection).
+My approach to solving this problem is more mechanical, and is as follows: by fitting a short-period moving
+average to the dataset, I can use the slope to detect local highs and local lows. This is exactly the approach
+I have implemented in the [`find_swings`](../docs/indicators#swing-detection) utility indicator. This indicator
+is illustrated on the chart below by the dashed lines. 
 
 ![Price Swings](/AutoTrader/assets/divergence-blog/price-swings-trend.png "Price Swings")
 
-Note that as part of the version `0.5.5` release of AutoTrader, this indicator has been generalised to accept 
+*Note*: as part of the version `0.5.5` release of AutoTrader, this indicator has been generalised to accept 
 indicators as well as price data. This will come in handy later on - as you will see below.
 
 
 ## Support and Resistance
+
 
 Detecting significant support and resistance levels using the price reversals
 
