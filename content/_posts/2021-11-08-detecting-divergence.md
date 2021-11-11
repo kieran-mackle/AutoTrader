@@ -215,6 +215,25 @@ image above. Examining what happened here, it is clear that the false signal is 
 avoid this, we would have to filter out smaller retracements - such as the 'higher low' in the lower-low pair.
 
 
+## Improvements
+To reduce the number of false signals detected, I have added an alternative method of calculating divergence. To explain, 
+consider the case of regular bullish divergence, which occurs when there is a *lower low* in price and a *higher low* in 
+the indicator. In the method above, divergence was detected when the lower low in price and higher low in the indicator
+occured approximately simultaneously. The problem with this is when price forms a false swing level due to regular price
+fluctuations - as you can see in the chart above. To avoid this, the alternative method first focuses on the higher lows of 
+the indicator, and *then* checks if price happens to be at a lower level compared to the previous indicator low (the lower
+low of the indicator). This sounds confusing, so take a look at the chart below for a visual explanation.
+
+![Divergence method 2](/AutoTrader/assets/divergence-blog/divergence-method-2.png "Divergence method 2")
+
+Now, whenever the price is lower when the indicator makes a higher low, we can detect bullish divergence. Following on with
+the same example above, this new method produces the following chart. Not only has the false signal been eliminated, but the
+divergence signal comes 2 candles earlier! This is equivalent to an extra 35 pips!
+
+![Divergence method 2](/AutoTrader/assets/divergence-blog/bullish-div-2.png "Divergence method 2")
+
+
+
 ## What Now?
 The tools developed above have been packaged conveniently into indicators and added to the AutoTrader 
 [indicator library](../../../docs/indicators). You can find them under the following names:
