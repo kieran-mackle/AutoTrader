@@ -305,23 +305,24 @@ def heikin_ashi(data):
         Calculates the Heikin-Ashi candlesticks from Japanese candlestick 
         data. 
     '''
-    ha_close    = (data.Open + data.High + data.Low + data.Close)/4
-    ha_open     = data.Open
-    ha_low      = data.Low
-    ha_high     = data.High
     
-    for i in range(1, len(data)):
-        ha_open[i]  = (data.Open[i-1] + data.Close[i-1])/2
-        ha_low[i]   = min(data.Low[i], ha_open[i], ha_close[i])
-        ha_high[i]  = max(data.High[i], ha_open[i], ha_close[i])
+    # Create copy of data to prevent overwriting
+    working_data = data.copy()
     
-    ha_data = pd.concat([ha_open, ha_high, ha_low, ha_close], axis=1)
-    ha_data.columns = ['Open', 'High', 'Low', 'Close']
+    # Calculate Heikin Ashi candlesticks
+    ha_close = 0.25*(working_data.Open + working_data.Low + working_data.High + working_data.Close)
+    ha_open = 0.5*(working_data.Open + working_data.Close)
+    ha_high = np.maximum(working_data.High.values, working_data.Close.values, working_data.Open.values)
+    ha_low = np.minimum(working_data.Low.values, working_data.Close.values, working_data.Open.values)
+    
+    ha_data = pd.DataFrame(data={'Open': ha_open, 
+                                 'High': ha_high, 
+                                 'Low': ha_low, 
+                                 'Close': ha_close}, 
+                           index=working_data.index)
     
     return ha_data
  
-
-
 
 ''' ------------------------ UTILITY INDICATORS --------------------------- '''
 
