@@ -16,6 +16,10 @@ Features:
 - Multi-instrument backtest data checking: datasets with mis-matched lengths
   are automatically corrected to improve backtest reliability.
 
+
+### 0.5.7
+- fix: Heikin Ashi overwriting inputted price data
+
 ### 0.5.6
 - feat: improved divergence indicators
 
