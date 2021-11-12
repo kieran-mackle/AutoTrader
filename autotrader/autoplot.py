@@ -460,7 +460,8 @@ class AutoPlot():
                         plot_height = self.top_fig_height,
                         title = None,
                         active_drag = 'pan',
-                        active_scroll = 'wheel_zoom')
+                        active_scroll = 'wheel_zoom',
+                        x_range = navfig.x_range)
         
         # Add glyphs
         marfig.line(self.data.index, 
