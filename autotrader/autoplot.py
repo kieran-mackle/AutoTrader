@@ -264,7 +264,8 @@ class AutoPlot():
             save(fig)
     
     
-    def _plot_multibot_backtest(self, multibot_backtest_results, NAV, cpl_dict):
+    def _plot_multibot_backtest(self, multibot_backtest_results, NAV, cpl_dict,
+                                margin_available):
         ''' 
         Creates multi-bot backtest figure. 
         
@@ -454,11 +455,40 @@ class AutoPlot():
                 }
         cplfig.xaxis.bounds   = (0, self.data.index[-1])
         
+        # --------------------- Margin Available --------------------------- #
+        marfig = figure(plot_width = self.ohlc_width,
+                        plot_height = self.top_fig_height,
+                        title = None,
+                        active_drag = 'pan',
+                        active_scroll = 'wheel_zoom')
+        
+        # Add glyphs
+        marfig.line(self.data.index, 
+                    margin_available, 
+                    line_color = 'black',
+                    legend_label = 'Margin Available')
+        
+        marfig.xaxis.major_label_overrides = {
+                    i: date.strftime('%b %d') for i, date in enumerate(pd.to_datetime(self.data["date"]))
+                }
+        marfig.xaxis.bounds = (0, self.data.index[-1])
+        marfig.sizing_mode = 'stretch_width'
+        marfig.legend.location = 'top_left'
+        marfig.legend.border_line_width   = 1
+        marfig.legend.border_line_color   = '#333333'
+        marfig.legend.padding             = 5
+        marfig.legend.spacing             = 0
+        marfig.legend.margin              = 0
+        marfig.legend.label_text_font_size = '8pt'
+        marfig.add_tools(linked_crosshair)
+        
+        
         # -------------------- Construct final figure ---------------------- #     
         final_fig = layout([  
                                    [navfig],
                             [winrate, pie, plbars],
-                                   [cplfig]
+                                   [cplfig],
+                                   [marfig]
                         ])
         final_fig.sizing_mode = 'scale_width'
         show(final_fig)
