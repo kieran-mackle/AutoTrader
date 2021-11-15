@@ -62,8 +62,7 @@ Example strategies can be found in the [demo repository](https://github.com/kier
 ## Backtest Demo
 The chart below is produced by a backtest of the MACD trend strategy documented in the [tutorials](https://kieran-mackle.github.io/AutoTrader/tutorials/strategy) 
 (and available in the [demo repository](https://github.com/kieran-mackle/autotrader-demo)). Entry signals are defined by MACD crossovers, with exit targets defined
-by a 1.5 risk-to-reward ratio. Stop-losses are automatically placed using the custom price
-[swing detection](https://kieran-mackle.github.io/AutoTrader/docs/indicators#price-swing-detection) indicator, and position sizes are dynamically calculated based 
+by a 1.5 risk-to-reward ratio. Stop-losses are automatically placed using the custom [swing detection](https://kieran-mackle.github.io/AutoTrader/docs/indicators#swing-detection) indicator, and position sizes are dynamically calculated based 
 on risk percentages defined in the [strategy configuration file](https://kieran-mackle.github.io/AutoTrader/tutorials/strategy#strategy-configuration).
 
 Running this strategy with AutoTrader in backtest mode will produce the following interactive chart. 
