@@ -748,6 +748,12 @@ class AutoPlot():
                            size = 3,
                            fill_color = 'red',
                            legend_label = 'ATR Resistance')
+        linked_fig.line(htdf.index,
+                           htdf['atrLow'],
+                           line_color = 'blue')
+        linked_fig.line(htdf.index,
+                           htdf['atrHigh'],
+                           line_color = 'red')
         
         # Add buy and sell entry signals
         self._plot_trade(long_arrows.index, long_arrows.atrLow, 
