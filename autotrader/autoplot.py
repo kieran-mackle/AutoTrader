@@ -516,7 +516,8 @@ class AutoPlot():
                      'over'        : 'over',
                      'below'       : 'below',
                      'Grid'        : 'over',
-                     'Pivot'       : 'over'}
+                     'Pivot'       : 'over',
+                     'HalfTrend'   : 'over'}
         
         # Plot indicators
         indis_over              = 0
@@ -533,7 +534,10 @@ class AutoPlot():
                     if indi_type == 'Supertrend':
                         self._plot_supertrend(indicators[indicator]['data'], 
                                               linked_fig)
-                        
+                        indis_over     += 1 # Count as 2 indicators
+                    elif indi_type == 'HalfTrend':
+                        self._plot_halftrend(indicators[indicator]['data'], 
+                                             linked_fig)
                         indis_over     += 1 # Count as 2 indicators
                     elif indi_type == 'Swings':
                         self._plot_swings(indicators[indicator]['data'], 
@@ -724,6 +728,33 @@ class AutoPlot():
                     size = 5,
                     fill_color = 'red',
                     legend_label = 'Down trend support')
+    
+    def _plot_halftrend(self, htdf, linked_fig):
+        ''' Plots halftrend indicator. '''
+        # reset index 
+        htdf['date'] = htdf.index 
+        htdf = htdf.reset_index(drop = True)
+        long_arrows = htdf[htdf.buy != 0]
+        short_arrows = htdf[htdf.sell != 0]
+        
+        # Add glyphs
+        linked_fig.scatter(htdf.index,
+                           htdf['atrLow'],
+                           size = 3,
+                           fill_color = 'blue',
+                           legend_label = 'ATR Support')
+        linked_fig.scatter(htdf.index,
+                           htdf['atrHigh'],
+                           size = 3,
+                           fill_color = 'red',
+                           legend_label = 'ATR Resistance')
+        
+        # Add buy and sell entry signals
+        self._plot_trade(long_arrows.index, long_arrows.atrLow, 
+                         'triangle', 'green', 'Buy Signals', linked_fig, 10)
+        self._plot_trade(short_arrows.index, short_arrows.atrHigh, 
+                         'inverted_triangle', 'red', 'Sell Signals', 
+                         linked_fig, 10)
     
     def _plot_grid(self, grid_levels, linked_fig, linewidth=0.5):
         for price in grid_levels:
