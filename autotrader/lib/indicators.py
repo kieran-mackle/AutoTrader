@@ -323,6 +323,106 @@ def heikin_ashi(data):
     
     return ha_data
  
+def half_trend(data, amplitude=2, channel_deviation=2):
+    '''
+    HalfTrend indicator, originally by Alex Orekhov (everget) on TradingView.
+    
+    Parameters:
+        data (dataframe): OHLC price data
+        
+        amplitude (int): lookback window
+            
+        channel_deviation (int): ATR channel deviation factor
+    
+    (translated to Python 15/11/21)
+    '''
+    
+    # Initialisation
+    atr2 = TA.ATR(data, 100)/2
+    dev = channel_deviation * atr2
+    high_price = data.High.rolling(amplitude).max().fillna(0)
+    low_price = data.Low.rolling(amplitude).min().fillna(0)
+    highma = TA.SMA(data, period=amplitude, column='High')
+    lowma = TA.SMA(data, period=amplitude, column='Low')
+    
+    trend = np.zeros(len(data))
+    next_trend = np.zeros(len(data))
+    max_low_price = np.zeros(len(data))
+    max_low_price[0] = data.Low[0]
+    min_high_price = np.zeros(len(data))
+    min_high_price[0] = data.High[0]
+    
+    for i in range(1, len(data)):
+        if next_trend[i-1] == 1:
+            max_low_price[i] = max(low_price[i-1], max_low_price[i-1])
+
+            if highma[i] < max_low_price[i] and data.Close[i] < data.Low[i-1]:
+                trend[i] = 1
+                next_trend[i] = 0
+                min_high_price[i] = high_price[i]
+            else:
+                # assign previous values again
+                trend[i] = trend[i-1]
+                next_trend[i] = next_trend[i-1]
+                min_high_price[i] = min_high_price[i-1]
+        else:
+            min_high_price[i] = min(high_price[i-1], min_high_price[i-1])
+            
+            if lowma[i] > min_high_price[i] and data.Close[i] > data.High[i-1]:
+                trend[i] = 0
+                next_trend[i] = 1
+                max_low_price[i] = low_price[i]
+            else:
+                # assign previous values again
+                trend[i] = trend[i-1]
+                next_trend[i] = next_trend[i-1]
+                max_low_price[i] = max_low_price[i-1]
+                
+    up = np.zeros(len(data))
+    up[0] = max_low_price[0]
+    down = np.zeros(len(data))
+    down[0] = min_high_price[0]
+    atr_high = np.zeros(len(data))
+    atr_low = np.zeros(len(data))
+    arrow_up = np.zeros(len(data))
+    arrow_down = np.zeros(len(data))
+    
+    for i in range(1, len(data)):
+        if trend[i] == 0:
+            if trend[i-1] != 0:
+                up[i] = down[i-1]
+                arrow_up[i] = up[i] - atr2[i]
+            else:
+                up[i] = max(max_low_price[i-1], up[i-1])
+            
+            atr_high[i] = up[i] + dev[i]
+            atr_low[i] = up[i] - dev[i]
+            
+        else:
+            if trend[i-1] != 1:
+                down[i] = up[i-1]
+                arrow_down[i] = down[i] + atr2[i]
+            else:
+                down[i] = min(min_high_price[i-1], down[i-1]) 
+                
+            atr_high[i] = down[i] + dev[i]
+            atr_low[i] = down[i] - dev[i]
+    
+    halftrend = np.where(trend == 0, up, down)
+    buy = np.where((trend==0) & (np.roll(trend,1)==1), 1, 0)
+    sell = np.where((trend==1) & (np.roll(trend,1)==0), 1, 0)
+    
+    # Construct DataFrame
+    htdf = pd.DataFrame(data = {'halftrend': halftrend, 
+                                'atrHigh': atr_high,
+                                'atrLow': atr_low,
+                                'arrowUp': arrow_up,
+                                'arrowDown': arrow_down,
+                                'buy': buy, 
+                                'sell': sell},
+                        index = data.index)
+    
+    return htdf
 
 ''' ------------------------ UTILITY INDICATORS --------------------------- '''
 
