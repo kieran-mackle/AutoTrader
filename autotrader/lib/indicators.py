@@ -410,8 +410,8 @@ def half_trend(data, amplitude=2, channel_deviation=2):
     
     # Construct DataFrame
     htdf = pd.DataFrame(data = {'halftrend': halftrend, 
-                                'atrHigh': atr_high,
-                                'atrLow': atr_low,
+                                'atrHigh': np.nan_to_num(atr_high),
+                                'atrLow': np.nan_to_num(atr_low),
                                 'buy': buy, 
                                 'sell': sell},
                         index = data.index)
