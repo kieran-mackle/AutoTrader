@@ -416,6 +416,14 @@ def half_trend(data, amplitude=2, channel_deviation=2):
                                 'sell': sell},
                         index = data.index)
     
+    # Clear false leading signals
+    htdf.buy.values[:100] = np.zeros(100)
+    htdf.sell.values[:100] = np.zeros(100)
+    
+    # Replace leading zeroes with nan
+    htdf['atrHigh'] = htdf.atrHigh.replace(to_replace=0, value=float("nan"))
+    htdf['atrLow'] = htdf.atrLow.replace(to_replace=0, value=float("nan"))
+    
     return htdf
 
 ''' ------------------------ UTILITY INDICATORS --------------------------- '''

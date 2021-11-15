@@ -738,6 +738,7 @@ class AutoPlot():
         short_arrows = htdf[htdf.sell != 0]
         
         # Add glyphs
+        ix = 0
         linked_fig.scatter(htdf.index,
                            htdf['atrLow'],
                            size = 3,
