@@ -384,14 +384,11 @@ def half_trend(data, amplitude=2, channel_deviation=2):
     down[0] = min_high_price[0]
     atr_high = np.zeros(len(data))
     atr_low = np.zeros(len(data))
-    arrow_up = np.zeros(len(data))
-    arrow_down = np.zeros(len(data))
     
     for i in range(1, len(data)):
         if trend[i] == 0:
             if trend[i-1] != 0:
                 up[i] = down[i-1]
-                arrow_up[i] = up[i] - atr2[i]
             else:
                 up[i] = max(max_low_price[i-1], up[i-1])
             
@@ -401,7 +398,6 @@ def half_trend(data, amplitude=2, channel_deviation=2):
         else:
             if trend[i-1] != 1:
                 down[i] = up[i-1]
-                arrow_down[i] = down[i] + atr2[i]
             else:
                 down[i] = min(min_high_price[i-1], down[i-1]) 
                 
@@ -416,8 +412,6 @@ def half_trend(data, amplitude=2, channel_deviation=2):
     htdf = pd.DataFrame(data = {'halftrend': halftrend, 
                                 'atrHigh': atr_high,
                                 'atrLow': atr_low,
-                                'arrowUp': arrow_up,
-                                'arrowDown': arrow_down,
                                 'buy': buy, 
                                 'sell': sell},
                         index = data.index)
