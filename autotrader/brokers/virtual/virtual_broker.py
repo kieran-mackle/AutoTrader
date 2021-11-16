@@ -86,6 +86,7 @@ class Broker():
         order_price = order_details["order_price"]
         stop_loss  = order_details["stop_loss"]
         stop_distance = order_details["stop_distance"]
+        take_profit = order_details["take_profit"]
         
         if stop_loss is None and stop_distance is not None:
             pip_value   = self.utils.get_pip_ratio(instrument)
@@ -100,6 +101,14 @@ class Broker():
                             f"{SL_placement} the order price for a {direction}" + \
                             " trade order.\n"+ \
                             f"Order Price: {order_price}\nStop Loss: {stop_loss}")
+        
+        if take_profit is not None and np.sign(size)*(order_price - take_profit) > 0:
+            direction = 'long' if np.sign(size) > 0 else 'short'
+            TP_placement = 'above' if np.sign(size) > 0 else 'below'
+            raise Exception("Invalid take profit request: take profit must be "+ \
+                            f"{TP_placement} the order price for a {direction}" + \
+                            " trade order.\n"+ \
+                            f"Order Price: {order_price}\nTake Profit: {take_profit}")
             
         
         order_no = self.total_trades + 1
