@@ -213,18 +213,24 @@ class Broker():
         # Can this be moved into the loop below?
         for order_no in self.open_positions:
             if self.open_positions[order_no]['instrument'] == instrument:
-                if self.open_positions[order_no]['stop_type'] == 'trailing_stop':
+                if self.open_positions[order_no]['stop_type'] == 'trailing':
                     # Trailing stop loss is enabled, check if price has moved SL
                     
                     if self.open_positions[order_no]['stop_distance'] is not None:
+                        # Stop distance provided 
                         pip_value = self.utils.get_pip_ratio(self.open_positions[order_no]['instrument'])
                         pip_distance = self.open_positions[order_no]['stop_distance']
                         distance = pip_distance*pip_value
                         
                     else:
+                        # Stop loss price provided
                         distance = abs(self.open_positions[order_no]['entry_price'] - \
                                        self.open_positions[order_no]['stop_loss'])
-                    
+                        
+                        # Append stop distance to dict
+                        pip_value = self.utils.get_pip_ratio(self.open_positions[order_no]['instrument'])
+                        self.open_positions[order_no]['stop_distance'] = distance / pip_value
+                        
     
                     if self.open_positions[order_no]['size'] > 0:
                         # long position, stop loss only moves up
