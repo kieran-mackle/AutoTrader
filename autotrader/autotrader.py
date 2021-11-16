@@ -308,7 +308,7 @@ class AutoTrader():
             # Check data lengths of each bot
             self._check_bot_data()
             
-            print("\nTrading...")
+            print("\nTrading...\n")
         
         if not self.detach_bot:
             start_range, end_range = self.bots_deployed[0]._get_iteration_range()

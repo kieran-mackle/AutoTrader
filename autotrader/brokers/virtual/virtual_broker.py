@@ -92,33 +92,40 @@ class Broker():
             pip_value   = self.utils.get_pip_ratio(instrument)
             stop_loss  = order_price - np.sign(size)*stop_distance*pip_value
         
+        order_no = self.total_trades + 1
+        new_position = order_details.copy()
+        new_position['order_ID'] = order_no
         
         # Verify SL and TP prices
+        invalid_order = False
         if np.sign(size)*(order_price - stop_loss) < 0:
             direction = 'long' if np.sign(size) > 0 else 'short'
             SL_placement = 'below' if np.sign(size) > 0 else 'above'
-            raise Exception("Invalid stop loss request: stop loss must be "+ \
+            print("Invalid stop loss request: stop loss must be "+ \
                             f"{SL_placement} the order price for a {direction}" + \
                             " trade order.\n"+ \
                             f"Order Price: {order_price}\nStop Loss: {stop_loss}")
+            invalid_order = True
         
         if take_profit is not None and np.sign(size)*(order_price - take_profit) > 0:
             direction = 'long' if np.sign(size) > 0 else 'short'
             TP_placement = 'above' if np.sign(size) > 0 else 'below'
-            raise Exception("Invalid take profit request: take profit must be "+ \
+            print("Invalid take profit request: take profit must be "+ \
                             f"{TP_placement} the order price for a {direction}" + \
                             " trade order.\n"+ \
                             f"Order Price: {order_price}\nTake Profit: {take_profit}")
+            invalid_order = True
+        
+        if invalid_order:
+            print(f"  Order {order_no} rejected.\n")
+            # Add position to self.pending_orders
+            self.cancelled_orders[order_no] = new_position
+            self.cancelled_orders[order_no]['reason'] = "Invalid order request"
             
-        
-        order_no = self.total_trades + 1
-        
-        # Create new_position and add position to self.pending_orders
-        new_position = order_details.copy()
-        new_position['order_ID'] = order_no
-        
-        self.pending_orders[order_no] = new_position
-        
+        else:
+            # Add position to self.pending_orders
+            self.pending_orders[order_no] = new_position
+            
         # Update trade tally
         self.total_trades += 1
     
