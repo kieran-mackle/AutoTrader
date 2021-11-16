@@ -19,6 +19,7 @@ Features:
 ### 0.5.8
 - fix: trailing stop behaviour in virtual broker, when specifying stop loss as
   a price.
+- feat: new indicator: halftrend
 
 ### 0.5.7
 - fix: Heikin Ashi overwriting inputted price data
