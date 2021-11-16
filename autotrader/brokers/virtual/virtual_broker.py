@@ -678,3 +678,8 @@ class Broker():
     def get_margin_available(self):
         ''' Returns the margin available on the account. '''
         return self.margin_available
+    
+    def modify_order(self):
+        ''' Modify order with updated parameters. '''
+        # Placeholder method
+        # can be used to update stop loss orders, to allow custom function SL
