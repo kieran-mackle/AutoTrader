@@ -777,6 +777,7 @@ class AutoTraderBot():
         stop_distance = order_signal_dict['stop_distance'] if 'stop_distance' in order_signal_dict else None
         stop_type = order_signal_dict['stop_type'] if 'stop_type' in order_signal_dict else None
         
+        # Calculate stop loss price
         if 'stop_loss' not in order_signal_dict and \
             'stop_distance' in order_signal_dict and \
             order_signal_dict['stop_distance'] is not None:
@@ -784,6 +785,7 @@ class AutoTraderBot():
         else:
             stop_price = order_signal_dict['stop_loss'] if 'stop_loss' in order_signal_dict else None
         
+        # Calculate take profit price
         if 'take_profit' not in order_signal_dict and \
             'take_distance' in order_signal_dict and \
             order_signal_dict['take_distance'] is not None:

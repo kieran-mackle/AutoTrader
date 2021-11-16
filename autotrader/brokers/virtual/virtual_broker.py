@@ -6,8 +6,6 @@ Purpose: AutoTrader virtual broker for backtesting
 Author: Kieran Mackle
 
 TODO: 
-    - add flag to signal long positions only allowed (eg. no CFD)
-    - include long_units and short_units in trade dictionaries
     - rename variables to clarify (eg. open_positions -> open_trades, etc)
     
 Known bug:
@@ -87,11 +85,22 @@ class Broker():
         size        = order_details["size"]
         order_price = order_details["order_price"]
         stop_loss  = order_details["stop_loss"]
-        stop_distance = order_details['stop_distance']
+        stop_distance = order_details["stop_distance"]
         
         if stop_loss is None and stop_distance is not None:
             pip_value   = self.utils.get_pip_ratio(instrument)
             stop_loss  = order_price - np.sign(size)*stop_distance*pip_value
+        
+        
+        # Verify SL and TP prices
+        if np.sign(size)*(order_price - stop_loss) < 0:
+            direction = 'long' if np.sign(size) > 0 else 'short'
+            SL_placement = 'below' if np.sign(size) > 0 else 'above'
+            raise Exception("Invalid stop loss request: stop loss must be "+ \
+                            f"{SL_placement} the order price for a {direction}" + \
+                            " trade order.\n"+ \
+                            f"Order Price: {order_price}\nStop Loss: {stop_loss}")
+            
         
         order_no = self.total_trades + 1
         
