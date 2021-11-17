@@ -7,6 +7,14 @@ tags: forex trading
 
 
 
+A currency pair consists of (unsurpisingly) two currencies - take for example EUR/USD. The top currency in 
+this pair (the Euro), is known as the 'quote currency', while the bottom currency (the US dollar) is known
+as the base currency. We make this distinction because 
+
+trading the EUR/USD pair actually involves to transactions 
+
+
+
 # The Relative Strength Index
 
 
@@ -64,7 +72,7 @@ for instrument in instruments:
 
 
 ```py
-quote_currencies['EUR'].tail(5)
+>>> quote_currencies['EUR'].tail(5)
 
                                  USD        GBP  ...        JPY        NZD
 2021-11-10 22:00:00+00:00  31.744920  62.941167  ...  37.534505  50.870087
