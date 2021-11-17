@@ -16,7 +16,12 @@ trading the EUR/USD pair actually involves to transactions
 
 
 # The Relative Strength Index
-
+The Relative Strenght Index (RSI) is an oscillator used to reflect the strength of an instrument, relative to 
+its own recent price levels. Bound by 0 and 100, a higher value indicators greater strength, meaning that price 
+is stronger relative to its recent history. There are many ways to use the RSI as a trading indicator;
+1) To indicate overbought (RSI > 70) and oversold (RSI <30) regions
+2) To detect bullish or bearish divergence (see my [previous post]() about this)
+3) To determine the direction of the trend (downtrend when RSI < 50, uptrend when RSI > 50)
 
 
 
@@ -191,6 +196,15 @@ Include charts from the times shown, to support strength metrics
 Ie. show strong/weak currency pair to be trending up, etc.
 
 Also mention the timestamp of the charts provided 
+
+
+
+
+![EUR/USD Daily Candles](/AutoTrader/assets/strength-blog/EU.png "EUR/USD Daily Candles")
+
+
+
+![NZD/CHF Daily Candles](/AutoTrader/assets/strength-blog/NC.png "NZD/CHF Daily Candles")
 
 
 
