@@ -15,16 +15,14 @@ trading the EUR/USD pair actually involves to transactions
 
 
 
-# The Relative Strength Index
+# Relative Strength Index
 The Relative Strenght Index (RSI) is an oscillator used to reflect the strength of an instrument, relative to 
 its own recent price levels. Bound by 0 and 100, a higher value indicators greater strength, meaning that price 
-is stronger relative to its recent history. There are many ways to use the RSI as a trading indicator;
-1) To indicate overbought (RSI > 70) and oversold (RSI <30) regions
-2) To detect bullish or bearish divergence (see my [previous post]() about this)
-3) To determine the direction of the trend (downtrend when RSI < 50, uptrend when RSI > 50)
+is stronger relative to its recent history. There are many ways to use the RSI as a trading indicator:
 
-
-
+1. To indicate overbought (RSI > 70) and oversold (RSI < 30) regions;
+2. To detect bullish or bearish divergence (see my [previous post](../../11/08/detecting-divergence.html) about this);
+3. To determine the direction of the trend (downtrend when RSI < 50, uptrend when RSI > 50).
 
 
 
@@ -50,6 +48,8 @@ Compare this to simply using a 200EMA.
 Consider using the tool on multiple timeframes
 
 
+
+## Calculating RSI
 
 
 ```py
@@ -88,6 +88,9 @@ for instrument in instruments:
 ```
 
 
+Now we have two dictionaries (one for the quote currencies and one for the base currencies) containing
+the RSI.
+
 
 ```py
 >>> quote_currencies['EUR'].tail(5)
@@ -110,6 +113,7 @@ we want to combine the data of the `quote_currencies` dictionary with the data o
 `base_currencies` dictionary.
 
 
+## Combining RSI History
 
 ```py
 # Combine base and quote currency lists
@@ -132,6 +136,7 @@ Now we have all the RSI data in a single dictionary.
 
 
 
+## Averaging the Results
 
 We can perform some rudimentary statistics on the data. In the code snippet below, I take the 
 row-wise mean and standard deviation of the RSI data for each currency in the `combined` 
@@ -148,7 +153,9 @@ for instrument in combined:
 
 
 
+# Visualising Strength
 
+## Strength Trends
 
 <iframe 
 	src="/AutoTrader/assets/strength-blog/strength-trends.html"
@@ -162,8 +169,9 @@ for instrument in combined:
 </iframe>
 
 
-<br>
+## Strength Snapshot
 
+test text bla bla
 
 <iframe 
 	src="/AutoTrader/assets/strength-blog/strength-slice.html"
@@ -177,7 +185,7 @@ for instrument in combined:
 </iframe>
 
 
-<br>
+## Strength Heatmap
 
 <iframe 
 	src="/AutoTrader/assets/strength-blog/strength-heatmap.html"
@@ -190,6 +198,10 @@ for instrument in combined:
 >
 </iframe>
 
+
+
+
+## Comparing to Price
 
 Include charts from the times shown, to support strength metrics
 
@@ -206,6 +218,9 @@ Also mention the timestamp of the charts provided
 
 ![NZD/CHF Daily Candles](/AutoTrader/assets/strength-blog/NC.png "NZD/CHF Daily Candles")
 
+
+# Applications
+How can this information be used
 
 
 # Full Code
