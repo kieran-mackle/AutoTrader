@@ -190,7 +190,7 @@ Include charts from the times shown, to support strength metrics
 
 Ie. show strong/weak currency pair to be trending up, etc.
 
-
+Also mention the timestamp of the charts provided 
 
 
 
@@ -226,11 +226,16 @@ from bokeh.layouts import gridplot
 import numpy as np
 import pandas as pd
 from time import sleep
+from datetime import datetime
 
+# Analysis parameters
 rsi_period = 10
 candle_duration = 365
 rsi_tol = 50
 std_tol = 12
+
+# Specify slice index - the index of the data to plot in heatmap and slice
+slice_index = -1
 
 global_config = read_yaml.read_yaml('./config' + '/GLOBAL.yaml')
 broker_config = environment_manager.get_config('demo', global_config, 'Oanda')
@@ -351,14 +356,17 @@ show(fig)
 sleep(0.2)
 
 
+time_string = datetime.strftime(data.index[slice_index], "%H:%M %b %d, %Y")
+print(f"Slices shown for {time_string}.")
+
 
 "                        Plot Slice of Currency Strengths                   "
 "                        ================================                   "
 cats = [curr for curr in combined]
-lower = [combined[curr]['lower'][-1] for curr in combined]
-upper = [combined[curr]['upper'][-1] for curr in combined]
-mid = [combined[curr]['mean'][-1] for curr in combined]
-std = [combined[curr]['stdev'][-1] for curr in combined]
+lower = [combined[curr]['lower'][slice_index] for curr in combined]
+upper = [combined[curr]['upper'][slice_index] for curr in combined]
+mid = [combined[curr]['mean'][slice_index] for curr in combined]
+std = [combined[curr]['stdev'][slice_index] for curr in combined]
 
 source = ColumnDataSource({'cats': cats, 
                            'lower': lower, 
@@ -392,7 +400,7 @@ currency_2 = list(currencies)*len(currencies)
 ratio_df = pd.DataFrame({'base': currency_1, 'quote': currency_2})
 ratios = []
 for i in range(len(ratio_df)):
-    ratios.append(combined[ratio_df.base[i]]['mean'][-1]/combined[ratio_df.quote[i]]['mean'][-1])
+    ratios.append(combined[ratio_df.base[i]]['mean'][slice_index]/combined[ratio_df.quote[i]]['mean'][slice_index])
     
 ratio_df['ratio'] = ratios
 
@@ -427,8 +435,6 @@ hm.add_layout(color_bar,
               'right')
 show(hm)
 ```
-
-
 
 
 
