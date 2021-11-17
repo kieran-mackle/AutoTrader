@@ -29,7 +29,20 @@ time. The way you use this information will depend on your trading style; a tren
 may look to go long on strong currencies and short on weak currencies, whereas a contrarian 
 trader might do the opposite in the hopes of mean reversion. 
 
+One way I invisage using this tool is to validate the directional biases of positions my 
+algoritms may form. Not only could this tool be used to confirm trending markets, but it could
+be used to deploy algorithms which thrive in ranging markets. While trends are most easily
+tackled by using a 200 period moving average, numerically detecting a ranging market is not 
+so easy. However, the tool presented offers one way to do this. 
 
+
+
+
+Compare this to simply using a 200EMA.
+
+
+
+Consider using the tool on multiple timeframes
 
 
 
