@@ -33,12 +33,14 @@ trader might do the opposite in the hopes of mean reversion.
 	data-src="/AutoTrader/assets/strength-blog/strength-trends.html" 
 	id="iframe" 
 	loading="lazy" 
-	style="width:100%; margin-top:1em; height:720px; overflow:hidden;" 
+	style="width:100%; margin-top:1em; height:830px; overflow:hidden;" 
 	data-ga-on="wheel" data-ga-event-category="iframe" 
 	data-ga-event-action="wheel"
 >
 </iframe>
 
+
+<br>
 
 
 <iframe 
@@ -46,21 +48,21 @@ trader might do the opposite in the hopes of mean reversion.
 	data-src="/AutoTrader/assets/strength-blog/strength-slice.html" 
 	id="iframe" 
 	loading="lazy" 
-	style="width:100%; margin-top:1em; height:720px; overflow:hidden;" 
+	style="width:75%; margin:auto; display:block; height:640px; overflow:hidden;" 
 	data-ga-on="wheel" data-ga-event-category="iframe" 
 	data-ga-event-action="wheel"
 >
 </iframe>
 
 
-
+<br>
 
 <iframe 
 	src="/AutoTrader/assets/strength-blog/strength-heatmap.html"
 	data-src="/AutoTrader/assets/strength-blog/strength-heatmap.html" 
 	id="iframe" 
 	loading="lazy" 
-	style="width:100%; margin-top:1em; height:720px; overflow:hidden;" 
+	style="width:61%; margin:auto; display:block; height:530px; overflow:hidden;" 
 	data-ga-on="wheel" data-ga-event-category="iframe" 
 	data-ga-event-action="wheel"
 >
