@@ -25,6 +25,8 @@ Looking at the chart, there are a number of explanations that could explain the 
 GBP getting weaker, NZD getting stronger, or even some combination of both.
 
 
+Looking at the RSI of a single currency pair alone is not enough to conclude what the underlying driving forces are
+for price movement.
 
 
 
@@ -112,6 +114,7 @@ for instrument in instruments:
 Now we have two dictionaries (one for the quote currencies and one for the base currencies) containing
 the RSI.
 
+Strength of EUR, in relation to each of the other currencies. 
 
 ```py
 >>> quote_currencies['EUR'].tail(5)
