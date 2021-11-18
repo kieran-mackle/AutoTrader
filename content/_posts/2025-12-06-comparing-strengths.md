@@ -21,6 +21,10 @@ Risk management by portfolio exposure
 
 Sure we 
 
+Looking at the chart, there are a number of explanations that could explain the movement in that time period.
+GBP getting weaker, NZD getting stronger, or even some combination of both.
+
+
 
 
 
@@ -271,6 +275,7 @@ able to speculate the reasons for GBP being weak or NZD being strong, but this i
 
 The method presented here is a relatively easy way to examing currency strengths from the interaction across many 
 markets.
+
 
 
 
