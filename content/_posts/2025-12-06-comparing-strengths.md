@@ -252,6 +252,28 @@ How can this information be used
 
 
 
+## Confirmation
+Confirmation of trends or of ranging market conditions
+
+
+
+## Risk Management
+Portfolio risk management / asset allocation
+
+
+## Forecasting
+
+Feature engineering for ML?
+
+
+## Benchmarking
+Assessing the performance of trades against the currency strength
+
+
+
+## Entry and Exit Conditions
+Lower timeframes to generate entry and exit signals along with larger trend
+
 
 
 
