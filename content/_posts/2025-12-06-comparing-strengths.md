@@ -30,6 +30,12 @@ for price movement.
 
 
 
+Describe which currencies will be looked at
+
+
+You could take a look at the indices, but this gives a single metric to strength.
+
+
 
 # Relative Strength Index
 The Relative Strenght Index (RSI) is an oscillator used to reflect the strength of an instrument, relative to 
@@ -188,7 +194,9 @@ These visualisations are provided below.
 
 
 ## Strength Trends
-The figure below illustrates 
+The figure below illustrates how the strengths of the selected currencies have varied over time. The plots
+also include Bollinger-style bands representing the standard deviation of the currency strength at each 
+point in time.
 
 
 <iframe 
@@ -203,9 +211,16 @@ The figure below illustrates
 </iframe>
 
 
-## Strength Snapshot
+When the bands squeeze, there is increased confidence in the strength metric.
 
-test text bla bla
+
+## Strength Snapshot
+Rather than looking at the strength over time, it may be convenient to look at all currency strengths at 
+a single time. The figure below does exaclty this - it is simply a slice of the trends in the previous 
+figure. Again, the standard deviation of the strength metric is represented, this time with error bars.
+Consequently, the smaller the error bars, the greater confidence you may have in the strength of the 
+currency.
+
 
 <iframe 
 	src="/AutoTrader/assets/strength-blog/strength-slice.html"
@@ -220,6 +235,13 @@ test text bla bla
 
 
 ## Strength Heatmap
+An alternative representation of the slice shown above is a heatmap. In this case, the ratios of currency strengths
+are visualised. 
+
+This provides a quick insight into currency pairs which have been strongly trending, and those which are ranging. 
+
+This information can of course be gleaned from the previous figures presented, but it is nonetheless a convenient
+visualisation.
 
 <iframe 
 	src="/AutoTrader/assets/strength-blog/strength-heatmap.html"
@@ -235,7 +257,41 @@ test text bla bla
 
 
 
+
 ## Comparing to Price
+
+
+
+Let us now revisit the GBP/NZD chart
+
+
+
+
+<iframe 
+	src="/AutoTrader/assets/strength-blog/nov13-strength-slice.html"
+	data-src="/AutoTrader/assets/strength-blog/nov13-strength-slice.html" 
+	id="iframe" 
+	loading="lazy" 
+	style="width:75%; margin:auto; display:block; height:640px; overflow:hidden;" 
+	data-ga-on="wheel" data-ga-event-category="iframe" 
+	data-ga-event-action="wheel"
+>
+</iframe>
+
+
+From this chart we can now see that the strong downtrend in GBP/NZD seen in November of 2018 was actually the 
+coalescence of GBP weakening and NZD strengthening. Sure, if you were reading the news every day, you might be 
+able to speculate the reasons for GBP being weak or NZD being strong, but this is an algo trading blog.
+
+The method presented here is a relatively easy way to examing currency strengths from the interaction across many 
+markets.
+
+
+
+
+
+
+
 
 Include charts from the times shown, to support strength metrics
 
@@ -287,29 +343,6 @@ Lower timeframes to generate entry and exit signals along with larger trend
 
 
 
-Let us now revisit the GBP/NZD chart
-
-
-
-
-<iframe 
-	src="/AutoTrader/assets/strength-blog/nov13-strength-slice.html"
-	data-src="/AutoTrader/assets/strength-blog/nov13-strength-slice.html" 
-	id="iframe" 
-	loading="lazy" 
-	style="width:75%; margin:auto; display:block; height:640px; overflow:hidden;" 
-	data-ga-on="wheel" data-ga-event-category="iframe" 
-	data-ga-event-action="wheel"
->
-</iframe>
-
-
-From this chart we can now see that the strong downtrend in GBP/NZD seen in November of 2018 was actually the 
-coalescence of GBP weakening and NZD strengthening. Sure, if you were reading the news every day, you might be 
-able to speculate the reasons for GBP being weak or NZD being strong, but this is an algo trading blog.
-
-The method presented here is a relatively easy way to examing currency strengths from the interaction across many 
-markets.
 
 
 
