@@ -78,6 +78,13 @@ Consider using the tool on multiple timeframes
 
 
 
+# Developing the Tool
+
+The core idea is to ...
+
+
+
+
 ## Calculating RSI
 
 
