@@ -5,7 +5,7 @@ tags: forex trading
 ---
 
 
-This post provides a 'technical' approach to determining the sterngth of a single currency (or any other instrument
+This post provides a 'technical' approach to determining the strength of a single currency (or any other instrument
 for that matter).
 
 This offers a more holistic approach to determining currency strength, rather than using the RSI of the traded pair
