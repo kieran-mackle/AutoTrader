@@ -358,6 +358,12 @@ Lower timeframes to generate entry and exit signals along with larger trend
 
 The complete code used to prepare this post is available on my GitHub [here]().
 
+The code provided is dependent on AutoTrader. Specifically, the following sub-modules:
+- `autotrader.lib.instrument_list`: required to retrieve currency pair names from method `get_watchlist`
+- `autotrader.lib.autodata`: required to retrieve price data from `GetData`
+- `autotrader.lib.environment_manager`: to read the global configuration file
+
+
 Note that you will need an account with Oanda, and will need to have set up your API key in the
 global configuration file. If you do not want to make an account with Oanda, you would have to
 modify the code below to work with the symbol codes of wherever you get your data from. The 
