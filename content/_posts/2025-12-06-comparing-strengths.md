@@ -178,8 +178,18 @@ for instrument in combined:
 
 
 # Visualising Strength
+There are three useful ways in which the information calculated above may be visualised. The first presents 
+the trends of currency strengths over time.
+
+The second and third methods represent a snapshot of the currency strengths at some point in time. 
+
+These visualisations are provided below.
+
+
 
 ## Strength Trends
+The figure below illustrates 
+
 
 <iframe 
 	src="/AutoTrader/assets/strength-blog/strength-trends.html"
