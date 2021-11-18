@@ -222,7 +222,7 @@ class AutoPlot():
         for plot in plots:
             if plot is not None:
                 plot.xaxis.major_label_overrides = {
-                    i: date.strftime('%b %d') for i, date in enumerate(pd.to_datetime(self.data["date"]))
+                    i: date.strftime('%b %d %Y') for i, date in enumerate(pd.to_datetime(self.data["date"]))
                 }
                 plot.xaxis.bounds   = (0, self.data.index[-1])
                 plot.sizing_mode    = 'stretch_width'
