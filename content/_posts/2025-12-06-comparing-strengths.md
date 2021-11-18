@@ -5,13 +5,23 @@ tags: forex trading
 ---
 
 
+This post provides a 'technical' approach to determining the sterngth of a single currency (or any other instrument
+for that matter).
+
+This offers a more holistic approach to determining currency strength, rather than using the RSI of the traded pair
+alone.
+
+It is an attempt to isolate the driving forces behind a market.
+
+Risk management by portfolio exposure
 
 
-A currency pair consists of (unsurpisingly) two currencies - take for example EUR/USD. The top currency in 
-this pair (the Euro), is known as the 'quote currency', while the bottom currency (the US dollar) is known
-as the base currency. We make this distinction because 
+![GBP/NZD Downtrend](/AutoTrader/assets/strength-blog/NC.png "GBP/NZD Downtrend")
 
-trading the EUR/USD pair actually involves to transactions 
+
+Sure we 
+
+
 
 
 
@@ -38,6 +48,13 @@ be used to deploy algorithms which thrive in ranging markets. While trends are m
 tackled by using a 200 period moving average, numerically detecting a ranging market is not 
 so easy. However, the tool presented offers one way to do this. 
 
+
+
+A currency pair consists of (unsurpisingly) two currencies - take for example EUR/USD. The top currency in 
+this pair (the Euro), is known as the 'quote currency', while the bottom currency (the US dollar) is known
+as the base currency. We make this distinction because 
+
+trading the EUR/USD pair actually involves to transactions 
 
 
 
@@ -219,8 +236,49 @@ Also mention the timestamp of the charts provided
 ![NZD/CHF Daily Candles](/AutoTrader/assets/strength-blog/NC.png "NZD/CHF Daily Candles")
 
 
+
+
+
+
 # Applications
 How can this information be used
+
+
+
+
+
+
+Let us now revisit the GBP/NZD chart
+
+
+
+
+<iframe 
+	src="/AutoTrader/assets/strength-blog/nov13-strength-slice.html"
+	data-src="/AutoTrader/assets/strength-blog/nov13-strength-slice.html" 
+	id="iframe" 
+	loading="lazy" 
+	style="width:75%; margin:auto; display:block; height:640px; overflow:hidden;" 
+	data-ga-on="wheel" data-ga-event-category="iframe" 
+	data-ga-event-action="wheel"
+>
+</iframe>
+
+
+From this chart we can now see that the strong downtrend in GBP/NZD seen in November of 2018 was actually the 
+coalescence of GBP weakening and NZD strengthening. Sure, if you were reading the news every day, you might be 
+able to speculate the reasons for GBP being weak or NZD being strong, but this is an algo trading blog.
+
+The method presented here is a relatively easy way to examing currency strengths from the interaction across many 
+markets.
+
+
+
+
+
+
+
+
 
 
 # Full Code
