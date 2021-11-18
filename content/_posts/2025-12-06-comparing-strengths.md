@@ -16,6 +16,11 @@ It is an attempt to isolate the driving forces behind a market.
 Risk management by portfolio exposure
 
 
+
+
+Let's consider the price of the GBP/NZD pair in November of 2018, shown in the chart below. During this time, 
+there was a clear and strong downtrend - but what was the driving force behind this?
+
 ![GBP/NZD Downtrend](/AutoTrader/assets/strength-blog/NC.png "GBP/NZD Downtrend")
 
 
@@ -28,9 +33,6 @@ GBP getting weaker, NZD getting stronger, or even some combination of both.
 Looking at the RSI of a single currency pair alone is not enough to conclude what the underlying driving forces are
 for price movement.
 
-
-
-Describe which currencies will be looked at
 
 
 You could take a look at the indices, but this gives a single metric to strength.
@@ -80,8 +82,16 @@ Consider using the tool on multiple timeframes
 
 # Developing the Tool
 
-The core idea is to ...
+The core idea is to compare the RSI of a single currency accross multiple markets trading that currency, 
+in order to gain a greater understanding of the driving forces of price movements within those markets.
 
+
+Our universe involves the forex majors:
+- 
+- 
+
+
+Describe which currencies will be looked at
 
 
 
