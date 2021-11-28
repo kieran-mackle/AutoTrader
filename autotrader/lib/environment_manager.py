@@ -13,8 +13,8 @@ def get_config(environment, global_config, feed):
         
     '''
     
-    if environment == 'real':
-        if feed == 'OANDA':
+    if environment.lower() == 'real':
+        if feed.upper() == 'OANDA':
             data_source     = 'OANDA'
             api             = global_config['OANDA']['LIVE_API']
             access_token    = global_config['OANDA']['ACCESS_TOKEN']
@@ -27,11 +27,11 @@ def get_config(environment, global_config, feed):
                            'ACCOUNT_ID'     : account_id, 
                            'PORT'           : port}
             
-        elif feed == 'IB':
+        elif feed.upper() == 'IB':
             data_source     = 'IB'
             print("Interactive brokers not supported yet.")
             
-        elif feed == 'yahoo':
+        elif feed.lower() == 'yahoo':
             data_source     = 'yfinance'
             config_dict = {'data_source'    : data_source}
             
