@@ -75,6 +75,7 @@ class Broker():
         self.NAV                = 0
         self.unrealised_PL      = 0
         self.utils              = utils
+        self.verbosity          = broker_config['verbosity']
         
 
     def place_order(self, order_details):
@@ -101,23 +102,26 @@ class Broker():
         if np.sign(size)*(order_price - stop_loss) < 0:
             direction = 'long' if np.sign(size) > 0 else 'short'
             SL_placement = 'below' if np.sign(size) > 0 else 'above'
-            print("Invalid stop loss request: stop loss must be "+ \
-                            f"{SL_placement} the order price for a {direction}" + \
-                            " trade order.\n"+ \
-                            f"Order Price: {order_price}\nStop Loss: {stop_loss}")
+            if self.verbosity > 0:
+                print("Invalid stop loss request: stop loss must be "+ \
+                                f"{SL_placement} the order price for a {direction}" + \
+                                " trade order.\n"+ \
+                                f"Order Price: {order_price}\nStop Loss: {stop_loss}")
             invalid_order = True
         
         if take_profit is not None and np.sign(size)*(order_price - take_profit) > 0:
             direction = 'long' if np.sign(size) > 0 else 'short'
             TP_placement = 'above' if np.sign(size) > 0 else 'below'
-            print("Invalid take profit request: take profit must be "+ \
-                            f"{TP_placement} the order price for a {direction}" + \
-                            " trade order.\n"+ \
-                            f"Order Price: {order_price}\nTake Profit: {take_profit}")
+            if self.verbosity > 0:
+                print("Invalid take profit request: take profit must be "+ \
+                                f"{TP_placement} the order price for a {direction}" + \
+                                " trade order.\n"+ \
+                                f"Order Price: {order_price}\nTake Profit: {take_profit}")
             invalid_order = True
         
         if invalid_order:
-            print(f"  Order {order_no} rejected.\n")
+            if self.verbosity > 0:
+                print(f"  Order {order_no} rejected.\n")
             # Add position to self.pending_orders
             self.cancelled_orders[order_no] = new_position
             self.cancelled_orders[order_no]['reason'] = "Invalid order request"

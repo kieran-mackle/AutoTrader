@@ -115,6 +115,7 @@ class AutoTrader():
         self.order_summary_fp = None
         
         self.verbosity      = 1
+        self.broker_verbosity = 0
         self.notify         = 0
         self.email_params   = None
         self.show_help      = None
@@ -256,6 +257,9 @@ class AutoTrader():
         if self.account_id is not None:
             # Overwrite default account in global config
             broker_config['ACCOUNT_ID'] = self.account_id
+        
+        # Append broker verbosity to broker_config
+        broker_config['verbosity'] = self.broker_verbosity
         
         self._assign_broker(broker_config)
         self._configure_emailing(global_config)
@@ -810,28 +814,28 @@ class AutoTrader():
         '''
         
         if self.backtest_mode is True:
-                utils_module    = importlib.import_module('autotrader.brokers.virtual.utils')
-                
-                utils           = utils_module.Utils()
-                broker          = Broker(broker_config, utils)
-                
-                initial_deposit = self.backtest_initial_balance
-                spread          = self.backtest_spread
-                leverage        = self.backtest_leverage
-                commission      = self.backtest_commission
-                base_currency   = self.backtest_base_currency
-                
-                broker.make_deposit(initial_deposit)
-                broker.fee      = spread
-                broker.leverage = leverage
-                broker.commission = commission
-                broker.spread   = spread
-                broker.base_currency = base_currency
-                # self.get_data.base_currency = base_currency
-                
-                if int(self.verbosity) > 0:
-                    banner = pyfiglet.figlet_format("AutoBacktest")
-                    print(banner)
+            utils_module    = importlib.import_module('autotrader.brokers.virtual.utils')
+            
+            utils           = utils_module.Utils()
+            broker          = Broker(broker_config, utils)
+            
+            initial_deposit = self.backtest_initial_balance
+            spread          = self.backtest_spread
+            leverage        = self.backtest_leverage
+            commission      = self.backtest_commission
+            base_currency   = self.backtest_base_currency
+            
+            broker.make_deposit(initial_deposit)
+            broker.fee      = spread
+            broker.leverage = leverage
+            broker.commission = commission
+            broker.spread   = spread
+            broker.base_currency = base_currency
+            # self.get_data.base_currency = base_currency
+            
+            if int(self.verbosity) > 0:
+                banner = pyfiglet.figlet_format("AutoBacktest")
+                print(banner)
                 
                 
         else:
