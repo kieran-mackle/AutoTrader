@@ -41,7 +41,7 @@ class AutoTrader():
     
     Author: Kieran Mackle
     
-    Version: 0.4.x
+    Version: 0.5.x
 
     Attributes
     ----------
