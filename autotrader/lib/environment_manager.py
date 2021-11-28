@@ -14,6 +14,7 @@ def get_config(environment, global_config, feed):
     '''
     
     if environment.lower() == 'real':
+        # Live trading
         if feed.upper() == 'OANDA':
             data_source     = 'OANDA'
             api             = global_config['OANDA']['LIVE_API']
@@ -28,11 +29,14 @@ def get_config(environment, global_config, feed):
                            'PORT'           : port}
             
         elif feed.upper() == 'IB':
-            data_source     = 'IB'
-            print("Interactive brokers not supported yet.")
+            print("WARNING: Interactive brokers not fully supported yet.")
+            
+            data_source = 'IB'
+            config_dict = {'data_source'    : data_source}
+            # Any extra information will be added to the config_dict above
             
         elif feed.lower() == 'yahoo':
-            data_source     = 'yfinance'
+            data_source = 'yfinance'
             config_dict = {'data_source'    : data_source}
             
         else:
@@ -40,6 +44,7 @@ def get_config(environment, global_config, feed):
             
     
     else:
+        # Paper trading
         if feed.upper() == 'OANDA':
             data_source     = 'OANDA'
             api             = global_config['OANDA']['PRACTICE_API']
@@ -54,9 +59,12 @@ def get_config(environment, global_config, feed):
                            'PORT'           : port}
             
         elif feed.upper() == 'IB':
-            data_source     = 'IB'
-            print("Interactive brokers not supported yet.")
-            return
+            print("WARNING: Interactive brokers not fully supported yet.")
+            
+            data_source = 'IB'
+            config_dict = {'data_source'    : data_source}
+            # Any extra information will be added to the config_dict above
+            
             
         elif feed.upper() == 'YAHOO':
             data_source = 'yfinance'
