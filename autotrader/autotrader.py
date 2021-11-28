@@ -23,6 +23,7 @@ import timeit
 from scipy.optimize import brute
 from ast import literal_eval
 from autotrader.brokers.oanda import Oanda
+# from autotrader.brokers.interactive_brokers import ib_broker
 from autotrader.brokers.virtual.virtual_broker import Broker
 from autotrader.lib import instrument_list, environment_manager, printout
 from autotrader.lib.read_yaml import read_yaml
@@ -814,6 +815,7 @@ class AutoTrader():
         '''
         
         if self.backtest_mode is True:
+            # Backtesting; use virtual broker
             utils_module    = importlib.import_module('autotrader.brokers.virtual.utils')
             
             utils           = utils_module.Utils()
@@ -839,15 +841,24 @@ class AutoTrader():
                 
                 
         else:
-            
+            # Live/demo trading
             if self.feed.lower() == 'yahoo':
+                # Assign virtual broker for Yahoo API
                 utils_module    = importlib.import_module('autotrader.brokers.virtual.utils')
                 utils           = utils_module.Utils()
                 broker          = Broker(broker_config, utils)
-            else:
+                
+            elif self.feed.lower() == 'oanda':
+                # Oanda v20 API
                 utils_module    = importlib.import_module('autotrader.brokers.{}.utils'.format(self.feed.lower()))
                 utils           = utils_module.Utils()
-                broker          = Oanda.Oanda(broker_config, utils) # TODO - generalise away from Oanda
+                broker          = Oanda.Oanda(broker_config, utils)
+                
+            elif self.feed.lower() == 'ib':
+                # Interactive Brokers API
+                utils_module    = importlib.import_module('autotrader.brokers.interactive_brokers.utils')
+                utils           = utils_module.Utils()
+                # broker          = ib_broker.interac_broker(broker_config, utils)
         
         self.broker = broker
         self.broker_utils = utils
