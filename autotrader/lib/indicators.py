@@ -426,6 +426,16 @@ def half_trend(data, amplitude=2, channel_deviation=2):
     
     return htdf
 
+def N_period_high(data, N):
+    ''' Returns the N-period high. '''
+    highs = data.High.rolling(N).max()
+    return highs
+
+def N_period_low(data, N):
+    ''' Returns the N-period low. '''
+    lows = data.Low.rolling(N).min()
+    return lows
+
 ''' ------------------------ UTILITY INDICATORS --------------------------- '''
 
 def crossover(list_1, list_2):
