@@ -523,7 +523,8 @@ class AutoPlot():
         indis_over              = 0
         indis_below             = 0
         bottom_figs             = []
-        colours                 = ['red', 'blue', 'orange', 'green']
+        colours                 = ['red', 'blue', 'orange', 'green', 'black',
+                                   'yellow']
         
         for indicator in indicators:
             indi_type = indicators[indicator]['type']
@@ -554,7 +555,7 @@ class AutoPlot():
                                         indicators[indicator]['data'], 
                                         line_width = 1.5, 
                                         legend_label = indicator,
-                                        line_color = colours[indis_over])
+                                        line_color = indicators[indicator]['color'] if 'color' in indicators[indicator] else colours[indis_over])
                     indis_over     += 1
                     
                 elif plot_type[indi_type] == 'below' and indis_below < self.max_indis_below:
