@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name='autotrader',
-    version='0.5.8',
+    version='0.5.9',
     author='Kieran Mackle',
     author_email='kemackle98@gmail.com',
     description="A Python-based platform for developing, optimising and deploying automated trading systems.",
@@ -31,7 +31,8 @@ setuptools.setup(
         "bokeh >= 2.3.1",
         "scipy",
         "yfinance",
-        "finta"
+        "finta",
+        "v20"
         ],
     setup_requires=[
             'setuptools_git',

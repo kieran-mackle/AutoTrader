@@ -16,6 +16,9 @@ Features:
 - Multi-instrument backtest data checking: datasets with mis-matched lengths
   are automatically corrected to improve backtest reliability.
 
+### 0.5.9
+- fix: added v20 dependency
+
 ### 0.5.8
 - fix: trailing stop behaviour in virtual broker, when specifying stop loss as
   a price.
