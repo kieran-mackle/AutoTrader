@@ -517,7 +517,8 @@ class AutoPlot():
                      'below'       : 'below',
                      'Grid'        : 'over',
                      'Pivot'       : 'over',
-                     'HalfTrend'   : 'over'}
+                     'HalfTrend'   : 'over',
+                     'multi'       : 'below'}
         
         # Plot indicators
         indis_over              = 0
@@ -596,7 +597,35 @@ class AutoPlot():
                         if 'swings' in indicators[indicator]:
                             self._plot_swings(indicators[indicator]['swings'], 
                                               new_fig)
-                    
+                            
+                    elif indi_type == 'multi':
+                        # Plot multiple lines on the same figure
+                        new_fig = figure(plot_width     = linked_fig.plot_width,
+                                         plot_height    = 130,
+                                         title          = indicator,
+                                         tools          = linked_fig.tools,
+                                         active_drag    = linked_fig.tools[0],
+                                         active_scroll  = linked_fig.tools[1],
+                                         x_range        = linked_fig.x_range)
+                        
+                        for dataset in list(indicators[indicator].keys())[1:]:
+                            if type(indicators[indicator][dataset]['data']) == pd.Series:
+                                # Merge indexes
+                                merged_indicator_data = pd.merge(self.data, 
+                                                                 indicators[indicator][dataset]['data'], 
+                                                                 left_on='date', 
+                                                                 right_index=True)
+                                line_data = merged_indicator_data[indicators[indicator][dataset]['data'].name]
+                                x_vals = line_data.index
+                                y_vals = line_data.values
+                            else:
+                                x_vals = x_range
+                                y_vals = indicators[indicator][dataset]['data']
+                            
+                            new_fig.line(x_vals, y_vals,
+                                         line_color = indicators[indicator][dataset]['color'] if 'color' in indicators[indicator][dataset] else 'black', 
+                                         legend_label = dataset)
+                        
                     else:
                         # Generic indicator - plot as line
                         if type(indicators[indicator]['data']) == pd.Series:
