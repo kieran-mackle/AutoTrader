@@ -551,8 +551,21 @@ class AutoPlot():
                                                 linked_fig)
                     else:
                         # Generic overlay indicator - plot as line
-                        linked_fig.line(x_range, 
-                                        indicators[indicator]['data'], 
+                        if type(indicators[indicator]['data']) == pd.Series:
+                            # Merge indexes
+                            merged_indicator_data = pd.merge(self.data, 
+                                                             indicators[indicator]['data'], 
+                                                             left_on='date', 
+                                                             right_index=True)
+                            line_data = merged_indicator_data[indicators[indicator]['data'].name]
+                            x_vals = line_data.index
+                            y_vals = line_data.values
+                        else:
+                            x_vals = x_range
+                            y_vals = indicators[indicator]['data']
+                        
+                        linked_fig.line(x_vals, 
+                                        y_vals, 
                                         line_width = 1.5, 
                                         legend_label = indicator,
                                         line_color = indicators[indicator]['color'] if 'color' in indicators[indicator] else colours[indis_over])
@@ -585,6 +598,20 @@ class AutoPlot():
                                               new_fig)
                     
                     else:
+                        # Generic indicator - plot as line
+                        if type(indicators[indicator]['data']) == pd.Series:
+                            # Merge indexes
+                            merged_indicator_data = pd.merge(self.data, 
+                                                             indicators[indicator]['data'], 
+                                                             left_on='date', 
+                                                             right_index=True)
+                            line_data = merged_indicator_data[indicators[indicator]['data'].name]
+                            x_vals = line_data.index
+                            y_vals = line_data.values
+                        else:
+                            x_vals = x_range
+                            y_vals = indicators[indicator]['data']
+                            
                         new_fig = figure(plot_width     = linked_fig.plot_width,
                                          plot_height    = 130,
                                          title          = None,
@@ -594,9 +621,9 @@ class AutoPlot():
                                          x_range        = linked_fig.x_range)
                         
                         # Add glyphs
-                        new_fig.line(x_range, 
-                                     indicators[indicator]['data'],
-                                     line_color         = 'black', 
+                        new_fig.line(x_vals, 
+                                     y_vals,
+                                     line_color = indicators[indicator]['color'] if 'color' in indicators[indicator] else 'black', 
                                      legend_label       = indicator)
                         
                     indis_below    += 1
