@@ -16,6 +16,9 @@ Features:
 - Multi-instrument backtest data checking: datasets with mis-matched lengths
   are automatically corrected to improve backtest reliability.
 
+### 0.5.11
+- fix: stop loss filter will only be applied when there is a stop loss
+
 ### 0.5.10
 - feat: improved robustness of generic indicator line plotting
 - feat: added capability to plot multiple indicator lines on same figure
