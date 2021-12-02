@@ -99,7 +99,7 @@ class Broker():
         
         # Verify SL and TP prices
         invalid_order = False
-        if np.sign(size)*(order_price - stop_loss) < 0:
+        if stop_loss is not None and np.sign(size)*(order_price - stop_loss) < 0:
             direction = 'long' if np.sign(size) > 0 else 'short'
             SL_placement = 'below' if np.sign(size) > 0 else 'above'
             if self.verbosity > 0:
