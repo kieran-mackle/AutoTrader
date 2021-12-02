@@ -322,11 +322,14 @@ class AutoTrader():
                 
                 # Update each bot with latest data to generate signal
                 for bot in self.bots_deployed:
-                    bot._update(i)
                     
                     # If backtesting, update virtual broker with latest data
                     if self.backtest_mode:
                         bot._update_backtest(i)
+                    
+                    # Update bot
+                    bot._update(i)
+                    
                 
                 if self.backtest_mode is True:
                     NAV.append(self.broker.NAV)
