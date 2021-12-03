@@ -518,7 +518,8 @@ class AutoPlot():
                      'Grid'        : 'over',
                      'Pivot'       : 'over',
                      'HalfTrend'   : 'over',
-                     'multi'       : 'below'}
+                     'multi'       : 'below',
+                     'signals'     : 'over'}
         
         # Plot indicators
         indis_over              = 0
@@ -550,6 +551,10 @@ class AutoPlot():
                     elif indi_type == 'Pivot':
                         self._plot_pivot_points(indicators[indicator], 
                                                 linked_fig)
+                    elif indi_type == 'signals':
+                        self._plot_signals(linked_fig, 
+                                           indicators[indicator]['data'])
+                        
                     else:
                         # Generic overlay indicator - plot as line
                         if type(indicators[indicator]['data']) == pd.Series:
@@ -818,6 +823,20 @@ class AutoPlot():
         self._plot_trade(short_arrows.index, short_arrows.atrHigh, 
                          'inverted_triangle', 'red', 'Sell Signals', 
                          linked_fig, 10)
+    
+    def _plot_signals(self, linked_fig, signals_df):
+        ' Plots long and short entry signals over OHLC chart. '
+        
+        signals_df = signals_df.reset_index(drop = True)
+        long_arrows = signals_df[signals_df['buy'] != 0]
+        short_arrows = signals_df[signals_df['sell'] != 0]
+        
+        # Add buy and sell entry signals
+        self._plot_trade(long_arrows.index, long_arrows.buy, 
+                         'triangle', 'lightgreen', 'Buy Signals', linked_fig, 12)
+        self._plot_trade(short_arrows.index, short_arrows.sell, 
+                         'inverted_triangle', 'orangered', 'Sell Signals', 
+                         linked_fig, 12)
     
     def _plot_grid(self, grid_levels, linked_fig, linewidth=0.5):
         for price in grid_levels:
