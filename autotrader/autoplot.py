@@ -306,7 +306,7 @@ class AutoPlot():
                     legend_label = 'Backtest Net Asset Value')
         
         navfig.xaxis.major_label_overrides = {
-                    i: date.strftime('%b %d') for i, date in enumerate(pd.to_datetime(self.data["date"]))
+                    i: date.strftime('%b %d %Y') for i, date in enumerate(pd.to_datetime(self.data["date"]))
                 }
         navfig.xaxis.bounds = (0, self.data.index[-1])
         navfig.sizing_mode = 'stretch_width'
@@ -451,7 +451,7 @@ class AutoPlot():
         cplfig.add_tools(linked_crosshair)
         
         cplfig.xaxis.major_label_overrides = {
-                    i: date.strftime('%b %d') for i, date in enumerate(pd.to_datetime(self.data["date"]))
+                    i: date.strftime('%b %d %Y') for i, date in enumerate(pd.to_datetime(self.data["date"]))
                 }
         cplfig.xaxis.bounds   = (0, self.data.index[-1])
         
@@ -470,7 +470,7 @@ class AutoPlot():
                     legend_label = 'Margin Available')
         
         marfig.xaxis.major_label_overrides = {
-                    i: date.strftime('%b %d') for i, date in enumerate(pd.to_datetime(self.data["date"]))
+                    i: date.strftime('%b %d %Y') for i, date in enumerate(pd.to_datetime(self.data["date"]))
                 }
         marfig.xaxis.bounds = (0, self.data.index[-1])
         marfig.sizing_mode = 'stretch_width'
