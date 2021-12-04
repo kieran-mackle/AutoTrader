@@ -11,10 +11,32 @@ Breaking change:
 
 Fixes:
 - margin calculations for multi-instrument backtests
+- fix: MTF None type handling when optimising
+- fix: MTF assignment error when providing custom data file
+- fix: Heikin Ashi overwriting inputted price data
+- fix: trailing stop behaviour in virtual broker, when specifying stop loss as
+  a price.
+- fix: added v20 dependency
+- fix: stop loss filter will only be applied when there is a stop loss
 
 Features:
 - Multi-instrument backtest data checking: datasets with mis-matched lengths
   are automatically corrected to improve backtest reliability.
+- improved docstrings
+- feat: added pivot point plot method to AutoPlot
+- feat: added resampling method to AutoPlot to allow for MTF plotting
+- feat: MTF support for local files
+- feat: new indicators: divergence detection
+- feat: improved divergence indicators
+- feat: new indicator: halftrend
+- feat: improved robustness of generic indicator line plotting
+- feat: added capability to plot multiple indicator lines on same figure
+
+### 0.5.12
+- feat: added signal plotting method to IndiView ('type': 'signals')
+- feat: improved multibot backtest axis labelling
+- docs: changed virtual broker update order in backtest to improve order 
+      executions
 
 ### 0.5.11
 - fix: stop loss filter will only be applied when there is a stop loss
