@@ -321,4 +321,7 @@ class GetData():
         '''
         return data
     
-    
+    def _check_oanda_response(self, response):
+        'Placeholder method to check Oanda API response.'
+        if response.status != 200:
+            print(response.reason)
