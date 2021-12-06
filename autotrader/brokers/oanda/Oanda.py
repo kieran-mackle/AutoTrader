@@ -211,6 +211,8 @@ class Oanda():
             response = self.place_stop_limit_order(order_details)
         elif order_details["order_type"] == 'limit':
             response = self.place_limit_order(order_details)
+        elif order_details["order_type"] == 'close':
+            response = self.close_position(order_details["instrument"])
         else:
             print("Order type not recognised.")
             return

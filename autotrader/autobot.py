@@ -565,9 +565,12 @@ class AutoTraderBot():
     def _verify_data_alignment(self, data, instrument, feed, period, price_data_path):
         '''
         Verifies data time-alignment based on current time and last
-        candle in data.
+        candle in data. 
+        
+        When using MTF data, this method will only check the base timeframe.
         '''
-        interval = self.strategy_params['granularity']
+        
+        interval = self.strategy_params['granularity'].split(',')[0]
         
         # Check data time alignment
         current_time        = datetime.now(tz=pytz.utc)
