@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name='autotrader',
-    version='0.5.12',
+    version='0.5.13',
     author='Kieran Mackle',
     author_email='kemackle98@gmail.com',
     description="A Python-based platform for developing, optimising and deploying automated trading systems.",

@@ -32,6 +32,9 @@ Features:
 - feat: improved robustness of generic indicator line plotting
 - feat: added capability to plot multiple indicator lines on same figure
 
+### 0.5.13
+- fix: data alignment verification method when using MTF data
+
 ### 0.5.12
 - feat: added signal plotting method to IndiView ('type': 'signals')
 - feat: improved multibot backtest axis labelling
