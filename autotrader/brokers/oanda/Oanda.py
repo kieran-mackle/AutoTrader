@@ -230,9 +230,13 @@ class Oanda():
         stop_loss_details = self.get_stop_loss_details(order_details)
         take_profit_details = self.get_take_profit_details(order_details)
         
+        # Check position size
+        size = self.check_trade_size(order_details["instrument"], 
+                                     order_details["size"])
+        
         response = self.api.order.market(accountID = self.ACCOUNT_ID,
                                          instrument = order_details["instrument"],
-                                         units = order_details["size"],
+                                         units = size,
                                          takeProfitOnFill = take_profit_details,
                                          stopLossOnFill = stop_loss_details,
                                          )
@@ -428,7 +432,16 @@ class Oanda():
         corrected_price = round(price, N)
         
         return corrected_price
+    
+    def check_trade_size(self, pair, units):
+        ''' Checks the requested trade size against the minimum trade size 
+            allowed for the currency pair. '''
+        response = self.api.account.instruments(accountID=self.ACCOUNT_ID, 
+                                                instruments = pair)
+        # minimum_units = response.body['instruments'][0].minimumTradeSize
+        trade_unit_precision = response.body['instruments'][0].tradeUnitsPrecision
         
+        return round(units, trade_unit_precision)
     
     def check_response(self, response):
         ''' Checks API response (currently only for placing orders) '''
