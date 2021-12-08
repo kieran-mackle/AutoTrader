@@ -87,10 +87,10 @@ class AutoTraderBot():
         sizing                  = strategy_config["SIZING"] if 'SIZING' in strategy_config else 0
         params                  = strategy_config["PARAMETERS"]
         strategy_params                 = params
-        strategy_params['granularity']  = interval
-        strategy_params['risk_pc']      = risk_pc
-        strategy_params['sizing']       = sizing
-        strategy_params['period']       = period
+        strategy_params['granularity']  = strategy_params['granularity'] if 'granularity' in strategy_params else interval
+        strategy_params['risk_pc']      = strategy_params['risk_pc'] if 'risk_pc' in strategy_params else risk_pc
+        strategy_params['sizing']       = strategy_params['sizing'] if 'sizing' in strategy_params else sizing
+        strategy_params['period']       = strategy_params['period'] if 'period' in strategy_params else period
         self.strategy_params            = strategy_params
         
         # Import Strategy
