@@ -33,6 +33,9 @@ Features:
 - feat: improved robustness of generic indicator line plotting
 - feat: added capability to plot multiple indicator lines on same figure
 
+### 0.5.15
+- fix: default setting of limit stop loss type
+
 ### 0.5.14
 - fix: overwrite of keys in strategy parameters: risk_pc, granularity, sizing  
     and period. If these keys exist already, they will no longer be overwritten
