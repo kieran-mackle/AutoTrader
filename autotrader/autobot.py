@@ -778,7 +778,6 @@ class AutoTraderBot():
         # Calculate exit levels
         pip_value   = self.broker_utils.get_pip_ratio(instrument)
         stop_distance = order_signal_dict['stop_distance'] if 'stop_distance' in order_signal_dict else None
-        stop_type = order_signal_dict['stop_type'] if 'stop_type' in order_signal_dict else None
         
         # Calculate stop loss price
         if 'stop_loss' not in order_signal_dict and \
@@ -788,6 +787,12 @@ class AutoTraderBot():
         else:
             stop_price = order_signal_dict['stop_loss'] if 'stop_loss' in order_signal_dict else None
         
+        # Set stop type
+        if stop_price is not None:
+            stop_type = order_signal_dict['stop_type'] if 'stop_type' in order_signal_dict else 'limit'
+        else:
+            stop_type = None
+            
         # Calculate take profit price
         if 'take_profit' not in order_signal_dict and \
             'take_distance' in order_signal_dict and \
