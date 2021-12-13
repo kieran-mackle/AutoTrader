@@ -33,6 +33,10 @@ Features:
 - feat: improved robustness of generic indicator line plotting
 - feat: added capability to plot multiple indicator lines on same figure
 
+### 0.5.16
+- fix: Oanda `get_open_positions()` more reflective of virtual broker, added 
+    (incomplete) method for `get_open_trades()`
+
 ### 0.5.15
 - fix: default setting of limit stop loss type
 
