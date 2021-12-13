@@ -160,9 +160,12 @@ class Oanda():
         self.api.order.cancel(accountID = self.ACCOUNT_ID, 
                               orderSpecifier=str(order_id))
     
-    def get_open_positions(self, instrument = None):
-        ''' Gets the current positions open on the account. '''
+    def get_open_trades(self, instruments=None):
+        ''' 
+        Returns the open trades held by the account. 
         
+        (incomplete implementation)
+        '''
         self.check_connection()
         
         response = self.api.trade.list_open(accountID=self.ACCOUNT_ID)
@@ -191,12 +194,41 @@ class Oanda():
             new_order['stop_loss']          = None
             new_order['related_orders']     = None
             
-            if instrument is not None and order.instrument == instrument:
+            if instruments is not None and order.instrument in instruments:
                 open_trades[order.id] = new_order
-            elif instrument is None:
+            elif instruments is None:
                 open_trades[order.id] = new_order
         
         return open_trades
+    
+    def get_open_positions(self, instrument=None):
+        ''' 
+        Gets the current positions open on the account. 
+        '''
+        
+        self.check_connection()
+        
+        response = self.api.position.list_open(accountID=self.ACCOUNT_ID)
+        
+        oanda_open_positions = response.body['positions']
+        open_positions = {}
+        
+        for position in oanda_open_positions:
+            pos = {'long_units': position.long.units,
+                   'long_PL': position.long.unrealizedPL,
+                   'long_margin': None,
+                   'short_units': position.short.units,
+                   'short_PL': position.short.unrealizedPL,
+                   'short_margin': None,
+                   'total_margin': position.marginUsed,
+                   'trade_IDs': None}
+            
+            if instrument is not None and position.instrument == instrument:
+                open_positions[position.instrument] = pos
+            elif instrument is None:
+                open_positions[position.instrument] = pos
+        
+        return open_positions
     
     def place_order(self, order_details):
         '''
