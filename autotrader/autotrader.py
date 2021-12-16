@@ -167,7 +167,6 @@ class AutoTrader():
         self.scan_results = {}
         
         # Plotting
-        self._custom_ap_settings = False
         self.jupyter_notebook = False
         
     def run(self):
@@ -410,9 +409,6 @@ class AutoTrader():
                       bottom_fig_height=150, jupyter_notebook=False):
         ''' Configures settings for AutoPlot. '''
         
-        # Set flag for custom settings
-        self._custom_ap_settings = True
-        
         # Assign attributes
         self.max_indis_over     = max_indis_over
         self.max_indis_below    = max_indis_below
@@ -429,16 +425,15 @@ class AutoTrader():
         # Create nominal instance
         ap = autoplot.AutoPlot(data)
         
-        if self._custom_ap_settings:
-            # Assign attributes
-            ap.max_indis_over     = self.max_indis_over
-            ap.max_indis_below    = self.max_indis_below
-            ap.fig_tools          = self.fig_tools
-            ap.ohlc_height        = self.ohlc_height
-            ap.ohlc_width         = self.ohlc_width
-            ap.top_fig_height     = self.top_fig_height
-            ap.bottom_fig_height  = self.bottom_fig_height
-            ap.jupyter_notebook   = self.jupyter_notebook
+        # Assign attributes
+        ap.max_indis_over     = self.max_indis_over
+        ap.max_indis_below    = self.max_indis_below
+        ap.fig_tools          = self.fig_tools
+        ap.ohlc_height        = self.ohlc_height
+        ap.ohlc_width         = self.ohlc_width
+        ap.top_fig_height     = self.top_fig_height
+        ap.bottom_fig_height  = self.bottom_fig_height
+        ap.jupyter_notebook   = self.jupyter_notebook
         
         return ap
     
