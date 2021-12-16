@@ -168,6 +168,7 @@ class AutoTrader():
         
         # Plotting
         self._custom_ap_settings = False
+        self.jupyter_notebook = False
         
     def run(self):
         '''
@@ -377,7 +378,7 @@ class AutoTrader():
                                  left_index=True, right_index=True).Profit.cumsum()
                         cpl_dict[bot.instrument] = profit_df
                     
-                    ap = autoplot.AutoPlot(bot.data)
+                    ap = self._instantiate_autoplot(bot.data)
                     ap._plot_multibot_backtest(self.multibot_backtest_results, 
                                                NAV, cpl_dict, margin)
         
@@ -406,7 +407,7 @@ class AutoTrader():
     def plot_settings(self, max_indis_over=3, max_indis_below=2,
                       fig_tools="pan,wheel_zoom,box_zoom,undo,redo,reset,save,crosshair",
                       ohlc_height=400, ohlc_width=800, top_fig_height=150,
-                      bottom_fig_height=150):
+                      bottom_fig_height=150, jupyter_notebook=False):
         ''' Configures settings for AutoPlot. '''
         
         # Set flag for custom settings
@@ -420,6 +421,7 @@ class AutoTrader():
         self.ohlc_width         = ohlc_width
         self.top_fig_height     = top_fig_height
         self.bottom_fig_height  = bottom_fig_height
+        self.jupyter_notebook   = jupyter_notebook
     
     def _instantiate_autoplot(self, data):
         ''' Creates instance of AutoPlot. '''
@@ -436,6 +438,7 @@ class AutoTrader():
             ap.ohlc_width         = self.ohlc_width
             ap.top_fig_height     = self.top_fig_height
             ap.bottom_fig_height  = self.bottom_fig_height
+            ap.jupyter_notebook   = self.jupyter_notebook
         
         return ap
     
@@ -530,7 +533,7 @@ class AutoTrader():
                   use_stream=False, detach_bot=False,
                   check_data_alignment=True, allow_dancing_bears=False,
                   account_id=None, environment='demo', show_plot=False,
-                  MTF_initialisation=False):
+                  MTF_initialisation=False, jupyter_notebook=False):
         '''
         AutoTrader Run Configuration
         -------------------------------
@@ -579,6 +582,7 @@ class AutoTrader():
         self.environment = environment
         self.show_plot = show_plot
         self.MTF_initialisation = MTF_initialisation
+        self.jupyter_notebook = jupyter_notebook
         
     
     def scan(self, strategy_filename=None, strategy_dict=None, scan_index=None):
@@ -625,7 +629,7 @@ class AutoTrader():
             Parameters:
                 bot (class): AutoTrader bot class containing backtest results.
         '''
-        ap = autoplot.AutoPlot(bot.data)
+        ap = self._instantiate_autoplot(bot.data)
         profit_df = pd.merge(bot.data, 
                              bot.backtest_summary['trade_summary']['Profit'], 
                              left_index=True, right_index=True).Profit.cumsum()
