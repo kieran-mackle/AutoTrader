@@ -13,6 +13,7 @@ import os
 # Bokeh
 from bokeh.models.annotations import Title
 from bokeh.plotting import figure, output_file, show, save
+from bokeh.io import output_notebook
 from bokeh.models import (
     CustomJS,
     ColumnDataSource,
@@ -81,6 +82,7 @@ class AutoPlot():
         self.top_fig_height     = 150
         self.bottom_fig_height  = 150
         # self.total_height       = 1000
+        self.jupyter_notebook   = False
         
         # Modify data index
         self.data               = self._reindex_data(data)
@@ -259,6 +261,9 @@ class AutoPlot():
         fig.sizing_mode     = 'stretch_width'
         
         if show_fig:
+            if self.jupyter_notebook:
+                output_notebook()
+                
             show(fig)
         else:
             save(fig)
@@ -492,6 +497,9 @@ class AutoPlot():
                                    [marfig]
                         ])
         final_fig.sizing_mode = 'scale_width'
+        
+        if self.jupyter_notebook:
+            output_notebook()
         show(final_fig)
     
         
