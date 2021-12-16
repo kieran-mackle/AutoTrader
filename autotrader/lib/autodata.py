@@ -241,6 +241,7 @@ class GetData():
         
         dataframe = pd.DataFrame({"Open": open_price, "High": high_price, "Low": low_price, "Close": close_price})
         dataframe.index = pd.to_datetime(times)
+        dataframe.drop_duplicates(inplace=True)
         
         return dataframe
     

@@ -361,7 +361,8 @@ class AutoTraderBot():
                                                                             from_date,
                                                                             to_date)
                         
-                            data, quote_data    = self.broker_utils.check_dataframes(data, quote_data)
+                            data, quote_data = self.broker_utils.check_dataframes(data.drop_duplicates(), 
+                                                                                  quote_data.drop_duplicates())
                         
                         MTF_data[granularity] = data
                     
