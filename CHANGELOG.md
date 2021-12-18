@@ -33,6 +33,9 @@ Features:
 - feat: improved robustness of generic indicator line plotting
 - feat: added capability to plot multiple indicator lines on same figure
 
+### 0.5.21
+- feat: added `add_data` method to conveniently provide local price data files.
+
 ### 0.5.20
 - feat: added `order_type: modify` to virtual broker, to allow dynamically 
      updating stop losses and take profits 
