@@ -992,6 +992,7 @@ class AutoTrader():
             avg_trade_duration = np.mean(trade_summary.Trade_duration.values)
             min_trade_duration = min(trade_summary.Trade_duration.values)
             max_trade_duration = max(trade_summary.Trade_duration.values)
+            total_fees = trade_summary.Fees.sum()
             
             backtest_results['all_trades']['profit_abs']    = profit_abs
             backtest_results['all_trades']['profit_pc']     = profit_pc
@@ -1006,6 +1007,7 @@ class AutoTrader():
             backtest_results['all_trades']['longest_trade'] = str(timedelta(seconds = int(max_trade_duration)))
             backtest_results['all_trades']['shortest_trade'] = str(timedelta(seconds = int(min_trade_duration)))
             backtest_results['all_trades']['avg_trade_duration'] = str(timedelta(seconds = int(avg_trade_duration)))
+            backtest_results['all_trades']['total_fees']    = total_fees
         
         # Cancelled orders (insufficient margin)
         cancelled_orders    = broker.cancelled_orders
@@ -1072,6 +1074,7 @@ class AutoTrader():
             avg_loss    = backtest_results['all_trades']['avg_loss']
             longest_win_streak = backtest_results['all_trades']['win_streak']
             longest_lose_streak = backtest_results['all_trades']['lose_streak']
+            total_fees = backtest_results['all_trades']['total_fees']
         
         print("\n-------------------------------------------")
         print("            Backtest Results")
@@ -1089,6 +1092,7 @@ class AutoTrader():
             print("Backtest win rate:       {}%".format(round(win_rate, 1)))
             
             print("Total no. trades:        {}".format(self.broker.total_trades))
+            print("Total fees:              ${}".format(round(total_fees, 3)))
             print("Profit:                  ${} ({}%)".format(round(profit_abs, 3), 
                                               round(profit_pc, 1)))
             print("Maximum drawdown:        {}%".format(MDD))

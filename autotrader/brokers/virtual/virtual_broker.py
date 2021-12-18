@@ -388,6 +388,7 @@ class Broker():
         closed_position['profit'] = net_profit
         closed_position['balance'] = self.portfolio_balance
         closed_position['exit_price'] = exit_price
+        closed_position['fees'] = commission
         if candle is None:
             closed_position['exit_time'] = self.open_positions[order_no]['last_time']
         else:
@@ -473,6 +474,7 @@ class Broker():
         closed_position['balance'] = self.portfolio_balance
         closed_position['exit_price'] = last_price
         closed_position['exit_time'] = self.open_positions[trade_ID]['last_time']
+        closed_position['fees'] = commission
         
         # Add to closed positions dictionary
         partial_trade_close_ID = self.total_trades + 1
@@ -646,7 +648,6 @@ class Broker():
             size            = self.open_positions[order_no]['size']
             HCF             = self.open_positions[order_no]['HCF']
             last_price      = self.open_positions[order_no]['last_price']
-            # TODO - HCF should be updated for current time.
             position_value  = abs(size) * last_price * HCF
             margin_required = self.calculate_margin(position_value)
             margin_used     += margin_required

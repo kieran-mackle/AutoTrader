@@ -205,6 +205,7 @@ class BrokerUtils:
         exit_times  = []
         exit_prices = []
         trade_duration = []
+        fees = []
         
         for order in closed_positions_dict:
             if closed_positions_dict[order]['instrument'] == pair:
@@ -220,6 +221,7 @@ class BrokerUtils:
                 portfolio_balance.append(closed_positions_dict[order]['balance'])
                 exit_times.append(closed_positions_dict[order]['exit_time'])
                 exit_prices.append(closed_positions_dict[order]['exit_price'])
+                fees.append(closed_positions_dict[order]['fees'])
                 if type(closed_positions_dict[order]['exit_time']) == str:
                     exit_dt     = datetime.strptime(closed_positions_dict[order]['exit_time'],
                                                     "%Y-%m-%d %H:%M:%S%z")
@@ -238,7 +240,8 @@ class BrokerUtils:
                                   "Stop_loss": stop_price, "Take_profit": take_price,
                                   "Profit": profit, "Balance": portfolio_balance,
                                   "Exit_time": exit_times, "Exit_price": exit_prices,
-                                  "Trade_duration": trade_duration})
+                                  "Trade_duration": trade_duration,
+                                  "Fees": fees})
         dataframe.index = pd.to_datetime(entry_time)
         dataframe = dataframe.sort_index()
         
