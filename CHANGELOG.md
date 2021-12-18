@@ -33,6 +33,9 @@ Features:
 - feat: improved robustness of generic indicator line plotting
 - feat: added capability to plot multiple indicator lines on same figure
 
+### 0.5.22
+- feat: added total trading fees to trade summary
+
 ### 0.5.21
 - feat: added `add_data` method to conveniently provide local price data files.
 
