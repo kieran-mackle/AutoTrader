@@ -46,35 +46,35 @@ class AutoTraderBot():
     
     '''
     
-    def __init__(self, instrument, strategy_config, broker, autotrader_attributes):
+    def __init__(self, instrument, strategy_config, broker, data_dict, autotrader_instance):
         '''
         AutoTrader Bot initialisation. 
         '''
 
         # Inherit user options from autotrader
-        self.home_dir           = autotrader_attributes.home_dir
-        self.scan_mode          = autotrader_attributes.scan_mode
-        self.scan_index         = autotrader_attributes.scan_index
+        self.home_dir           = autotrader_instance.home_dir
+        self.scan_mode          = autotrader_instance.scan_mode
+        self.scan_index         = autotrader_instance.scan_index
         self.scan_results       = {}
-        self.broker_utils       = autotrader_attributes.broker_utils
-        self.email_params       = autotrader_attributes.email_params
-        self.notify             = autotrader_attributes.notify
-        self.verbosity          = autotrader_attributes.verbosity
-        self.order_summary_fp   = autotrader_attributes.order_summary_fp
-        self.backtest_mode      = autotrader_attributes.backtest_mode
-        self.data_start         = autotrader_attributes.data_start
-        self.data_end           = autotrader_attributes.data_end
-        self.base_currency      = autotrader_attributes.backtest_base_currency
-        self.environment        = autotrader_attributes.environment
-        self.feed               = autotrader_attributes.feed
-        self.data_file          = autotrader_attributes.data_file
-        self.MTF_data_files     = autotrader_attributes.MTF_data_files
-        self.optimise_mode      = autotrader_attributes.optimise_mode
-        self.check_data_alignment = autotrader_attributes.check_data_alignment
-        self.allow_dancing_bears = autotrader_attributes.allow_dancing_bears
-        self.use_stream         = autotrader_attributes.use_stream
-        self.stream_config      = autotrader_attributes.stream_config
-        self.MTF_initialisation = autotrader_attributes.MTF_initialisation
+        self.broker_utils       = autotrader_instance.broker_utils
+        self.email_params       = autotrader_instance.email_params
+        self.notify             = autotrader_instance.notify
+        self.verbosity          = autotrader_instance.verbosity
+        self.order_summary_fp   = autotrader_instance.order_summary_fp
+        self.backtest_mode      = autotrader_instance.backtest_mode
+        self.data_start         = autotrader_instance.data_start
+        self.data_end           = autotrader_instance.data_end
+        self.base_currency      = autotrader_instance.backtest_base_currency
+        self.environment        = autotrader_instance.environment
+        self.feed               = autotrader_instance.feed
+        self.data_file          = autotrader_instance.data_file
+        self.MTF_data_files     = autotrader_instance.MTF_data_files
+        self.optimise_mode      = autotrader_instance.optimise_mode
+        self.check_data_alignment = autotrader_instance.check_data_alignment
+        self.allow_dancing_bears = autotrader_instance.allow_dancing_bears
+        self.use_stream         = autotrader_instance.use_stream
+        self.stream_config      = autotrader_instance.stream_config
+        self.MTF_initialisation = autotrader_instance.MTF_initialisation
         
         # Assign local attributes
         self.instrument         = instrument
@@ -142,6 +142,18 @@ class AutoTraderBot():
             self.MTF_data = None
         
         # Data retrieval
+        if data_dict is not None:
+            # Local data files provided
+            self.abs_data_filepath = True
+            if type(data_dict) == str:
+                # Single timeframe data file provided
+                self.data_file = data_dict
+            else:
+                # MTF data provided
+                self.MTF_data_files = data_dict
+        else:
+            self.abs_data_filepath = False
+        
         self.get_data = autodata.GetData(broker_config, self.allow_dancing_bears)
         data, quote_data, MTF_data = self._retrieve_data(instrument, self.feed)
         
@@ -247,6 +259,7 @@ class AutoTraderBot():
         interval    = self.strategy_params['granularity']
         period      = self.strategy_params['period']
         price_data_path = os.path.join(self.home_dir, 'price_data')
+        # TODO - assign price_data_path attribute 
         
         if self.backtest_mode is True:
             ' ~~~~~~~~~~~~~~~~~~~ Running in backtest mode ~~~~~~~~~~~~~~~~~~ '
@@ -258,8 +271,7 @@ class AutoTraderBot():
             if self.data_file is not None:
                 # Read local data file
                 custom_data_file        = self.data_file
-                custom_data_filepath    = os.path.join(price_data_path,
-                                                       custom_data_file)
+                custom_data_filepath    = os.path.join(price_data_path, custom_data_file) if not self.abs_data_filepath else custom_data_file
                 if int(self.verbosity) > 1:
                     print("Using data file specified ({}).".format(custom_data_file))
                 data            = pd.read_csv(custom_data_filepath, 
@@ -277,8 +289,8 @@ class AutoTraderBot():
                 MTF_data = {}
                 for granularity in MTF_data_files:
                     # Extract data 
-                    custom_data_filepath = os.path.join(price_data_path,
-                                                        MTF_data_files[granularity])
+                    custom_data_file = MTF_data_files[granularity]
+                    custom_data_filepath = os.path.join(price_data_path, custom_data_file) if not self.abs_data_filepath else custom_data_file
                     if int(self.verbosity) > 1:
                         print("Using data file specified ({}).".format(MTF_data_files[granularity]))
                     data = pd.read_csv(custom_data_filepath, index_col = 0)

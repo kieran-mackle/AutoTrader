@@ -147,6 +147,7 @@ class AutoTrader():
         self.data_end   = None
         self.data_file  = None
         self.MTF_data_files = None
+        self.local_data = None
         self.backtest_initial_balance = None
         self.backtest_spread = None
         self.backtest_commission = None
@@ -299,8 +300,9 @@ class AutoTrader():
         ''' -------------------------------------------------------------- '''
         for strategy in self.strategies:
             for instrument in self.strategies[strategy]['WATCHLIST']:
+                data_dict = self.local_data[instrument] if self.local_data is not None else None
                 bot = AutoTraderBot(instrument, self.strategies[strategy],
-                                        self.broker, self)
+                                    self.broker, data_dict, self)
                 
                 if self.detach_bot is True and self.backtest_mode is False:
                     # Send bot to bot manager to monitor stream
@@ -585,6 +587,58 @@ class AutoTrader():
         self.show_plot = show_plot
         self.MTF_initialisation = MTF_initialisation
         self.jupyter_notebook = jupyter_notebook
+        
+    def add_data(self, data_dict, data_directory='price_data', abs_dir_path=None):
+        ''' 
+        Add local data to run backtest on. Note that to ensure proper directory 
+        configuration, this method should only be called after calling 
+        autotrader.configure().
+        
+        Parameters:
+            data_dict (dict): a dictionary containing the filenames of the datasets
+                 to be used. For example:
+                    data_dict = {'product1': 'filename1.csv',
+                                 'product2': 'filename2.csv'}
+                 
+                 In the case of MTF data, the data_dict will look as follows:
+                     data_dict = {'product1': {'H1': 'product1_H1.csv',
+                                               'D': 'product1_D.csv'},
+                                  'product2': {'H1': 'product2_H1.csv',
+                                               'D': 'product2_D.csv'}
+                                  }
+                 
+                 Note that the filenames in the dict above must be present in the 
+                 data directory, as specified by the data_directory or abs_dir_path
+                 parameters.
+                 
+            data_directory (str): the name of the sub-directory containing price
+                data files. This directory should be located in the project
+                home directory (at.home_dir).
+            
+            abs_dir_path: the absolute path to the data_directory. This parameter
+                may be used when the datafiles are stored outside of the project
+                directory.
+        '''
+        
+        dir_path = abs_dir_path if abs_dir_path is not None else os.path.join(self.home_dir, data_directory)
+        
+        # Assign local data attribute
+        local_data = {}
+        
+        # for loop to populate local_data
+        for product in data_dict:
+            if type(data_dict[product]) == dict:
+                # MTF data
+                MTF_data = {}
+                for timeframe in data_dict[product]:
+                    MTF_data[timeframe] = os.path.join(dir_path, data_dict[product][timeframe])
+                
+                local_data[product] = MTF_data
+            else:
+                # Single timeframe data
+                local_data[product] = os.path.join(dir_path, data_dict[product])
+        
+        self.local_data = local_data
         
     
     def scan(self, strategy_filename=None, strategy_dict=None, scan_index=None):
