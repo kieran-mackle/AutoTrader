@@ -784,14 +784,17 @@ class AutoTraderBot():
         if 'stop_loss' not in order_signal_dict and \
             'stop_distance' in order_signal_dict and \
             order_signal_dict['stop_distance'] is not None:
+            # Stop loss provided as pip distance, convert to price
             stop_price = working_price - np.sign(signal)*stop_distance*pip_value
         else:
+            # Stop loss provided as price
             stop_price = order_signal_dict['stop_loss'] if 'stop_loss' in order_signal_dict else None
         
         # Set stop type
         if stop_price is not None:
             stop_type = order_signal_dict['stop_type'] if 'stop_type' in order_signal_dict else 'limit'
         else:
+            # No stop loss specified 
             stop_type = None
             
         # Calculate take profit price
