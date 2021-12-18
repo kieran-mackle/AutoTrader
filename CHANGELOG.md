@@ -33,6 +33,9 @@ Features:
 - feat: improved robustness of generic indicator line plotting
 - feat: added capability to plot multiple indicator lines on same figure
 
+### 0.5.19
+- fix: AutoPlot attribute error
+
 ### 0.5.18
 - feat: added Jupyter notebook config option to AutoTrader
 
