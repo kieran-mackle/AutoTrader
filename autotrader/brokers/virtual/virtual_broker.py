@@ -4,13 +4,6 @@
 Module: brokers.virtual.virtual_broker
 Purpose: AutoTrader virtual broker for backtesting
 Author: Kieran Mackle
-
-TODO: 
-    - rename variables to clarify (eg. open_positions -> open_trades, etc)
-    
-Known bug:
-    - when closing multiple trades in a single candle, NAV will drop 
-      with balance.
 '''
 
 import numpy as np
@@ -173,9 +166,9 @@ class Broker():
 
         # Tally for positions opened this update
         opened_positions = 0
+        modification_orders = []
         
         # Update pending positions
-        closing_orders = []
         for order_no in self.pending_orders:
             # Filter orders by instrument type since candle is instrument specific            
             if self.pending_orders[order_no]['instrument'] == instrument:
@@ -192,6 +185,13 @@ class Broker():
                         if candle.Low < self.pending_orders[order_no]['order_stop_price'] < candle.High:
                             # order_stop_price has been reached, change order type to 'limit'
                             self.pending_orders[order_no]['order_type'] = 'limit'
+                    
+                    elif self.pending_orders[order_no]['order_type'] == 'modify':
+                        # Modification order
+                        self.modify_order(self.pending_orders[order_no])
+                        
+                        opened_positions += 1 # To remove from pending orders
+                        modification_orders.append(order_no)
                         
                     # This is in a separate if statement, as stop-limit order may
                     # eventually be changed to limit orders
@@ -217,7 +217,7 @@ class Broker():
                                         order_no = related_order
                                         )
                     opened_positions += 1 # To remove from pending orders
-                    closing_orders.append(order_no)
+                    modification_orders.append(order_no)
                 elif self.pending_orders[order_no]['order_type'] == 'reduce':
                     self.reduce_position(self.pending_orders[order_no])
         
@@ -233,7 +233,7 @@ class Broker():
                 self.pending_orders.pop(order_no, 0)
             
             # For close orders
-            for order_no in closing_orders:
+            for order_no in modification_orders:
                 self.pending_orders.pop(order_no, 0)
         
         
@@ -265,13 +265,13 @@ class Broker():
                         # long position, stop loss only moves up
                         new_stop = candle.High - distance
                         if new_stop > self.open_positions[order_no]['stop_loss']:
-                            self.open_positions[order_no]['stop_loss'] = new_stop
+                            self._update_stop_loss(order_no, new_stop)
                         
                     else:
                         # short position, stop loss only moves down
                         new_stop = candle.Low + distance
                         if new_stop < self.open_positions[order_no]['stop_loss']:
-                            self.open_positions[order_no]['stop_loss'] = new_stop
+                            self._update_stop_loss(order_no, new_stop)
         
         # Update self.open_positions
         open_position_orders = list(self.open_positions.keys())
@@ -529,6 +529,10 @@ class Broker():
         
         return open_trades
     
+    def get_trade_details(self, trade_ID):
+        'Returns the details of the trade specified by trade_ID.'
+        return self.open_positions[trade_ID]
+    
     def get_open_positions(self, instruments=None):
         ''' Returns the open positions in the account. '''
         
@@ -708,7 +712,31 @@ class Broker():
         ''' Returns the margin available on the account. '''
         return self.margin_available
     
-    def modify_order(self):
-        ''' Modify order with updated parameters. '''
-        # Placeholder method
-        # can be used to update stop loss orders, to allow custom function SL
+    def modify_order(self, modification_order):
+        ''' 
+        Modify order with updated parameters. Called when order_type = 'modify', 
+        modifies trade specified by related_orders key.
+        '''
+        
+        # Get ID of trade to modify
+        modify_trade_id = modification_order['related_orders']
+        
+        if modification_order['stop_loss'] is not None:
+            # New stop loss provided
+            self._update_stop_loss(modify_trade_id, 
+                                   modification_order['stop_loss'],
+                                   modification_order['stop_type'])
+            
+        if modification_order['take_profit'] is not None:
+            self._update_take_profit(modify_trade_id, 
+                                     modification_order['take_profit'])
+        
+    def _update_stop_loss(self, trade_id, new_stop_loss, new_stop_type='limit'):
+        ''' Updates stop loss on open trade. '''
+        self.open_positions[trade_id]['stop_loss'] = new_stop_loss
+        self.open_positions[trade_id]['stop_type'] = new_stop_type
+        self.open_positions[trade_id]['stop_distance'] = None
+    
+    def _update_take_profit(self, trade_id, new_take_profit):
+        ''' Updates take profit on open trade. '''
+        self.open_positions[trade_id]['take_profit'] = new_take_profit
