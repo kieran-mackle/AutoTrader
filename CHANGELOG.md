@@ -33,6 +33,12 @@ Features:
 - feat: improved robustness of generic indicator line plotting
 - feat: added capability to plot multiple indicator lines on same figure
 
+### 0.5.20
+- feat: added `order_type: modify` to virtual broker, to allow dynamically 
+     updating stop losses and take profits 
+     ([Issue 11](https://github.com/kieran-mackle/AutoTrader/issues/11)). 
+     **This order type is not yet supported in the Oanda module.**
+
 ### 0.5.19
 - fix: AutoPlot attribute error
 
