@@ -167,6 +167,13 @@ class AutoTrader():
         self.scan_results = {}
         
         # Plotting
+        self.max_indis_over = 3
+        self.max_indis_below = 2
+        self.fig_tools = "pan,wheel_zoom,box_zoom,undo,redo,reset,save,crosshair"
+        self.ohlc_height = 400
+        self.ohlc_width = 800
+        self.top_fig_height = 150
+        self.bottom_fig_height = 150
         self.jupyter_notebook = False
         
     def run(self):
