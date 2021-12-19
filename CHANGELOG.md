@@ -33,6 +33,10 @@ Features:
 - feat: improved robustness of generic indicator line plotting
 - feat: added capability to plot multiple indicator lines on same figure
 
+
+### 0.5.23
+- feat: added shaded bands plotting to AutoPlot
+
 ### 0.5.22
 - feat: added total trading fees to trade summary
 
