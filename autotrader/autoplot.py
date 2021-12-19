@@ -527,7 +527,9 @@ class AutoPlot():
                      'Pivot'       : 'over',
                      'HalfTrend'   : 'over',
                      'multi'       : 'below',
-                     'signals'     : 'over'}
+                     'signals'     : 'over',
+                     'bands'       : 'over',
+                     'threshold'   : 'below'}
         
         # Plot indicators
         indis_over              = 0
@@ -562,6 +564,11 @@ class AutoPlot():
                     elif indi_type == 'signals':
                         self._plot_signals(linked_fig, 
                                            indicators[indicator]['data'])
+                        
+                    elif indi_type == 'bands':
+                        self._plot_bands(indicators[indicator], 
+                                         linked_fig=linked_fig, new_fig=False,
+                                         legend_label=indicator)
                         
                     else:
                         # Generic overlay indicator - plot as line
@@ -638,7 +645,11 @@ class AutoPlot():
                             new_fig.line(x_vals, y_vals,
                                          line_color = indicators[indicator][dataset]['color'] if 'color' in indicators[indicator][dataset] else 'black', 
                                          legend_label = dataset)
-                        
+                    
+                    elif indi_type == 'threshold':
+                        new_fig = self._plot_bands(indicators[indicator], 
+                                         linked_fig=linked_fig, legend_label=indicator)
+                    
                     else:
                         # Generic indicator - plot as line
                         if type(indicators[indicator]['data']) == pd.Series:
@@ -1121,4 +1132,60 @@ class AutoPlot():
                   source=source)
         
         return pie
+    
+    def _plot_bands(self, plot_data, linked_fig=None, new_fig = True,
+                    fill_color = 'blue', fill_alpha = 0.3, line_color='black',
+                    legend_label = None):
+        '''
+        Plots a shaded region bound by upper and lower vaues.
+        
+        lower, upper and mid data must have same length as self.data.
+        
+        Parameters: 
+            plot_data (dict): a dictionary containing keys 'lower', 'upper', 
+            corresponding to the lower and upper bounding values (which may be
+            an integer or timeseries). Optional keys include:
+                - band_name: legend name for bands
+                - fill_color: color filling upper and lower bands
+                - fill_alpha: transparency of fill (0 - 1)
+                - mid: data for a mid line
+                - mid_name: legend name for mid line
+                - line_color: line color for mid line
+            
+            linked_fig (Bokeh figure): linked figure
+            
+            new_fig (bool): flag to return a new figure or overlay on linked_fig
+        '''
+        
+        fill_color = plot_data['fill_color'] if 'fill_color' in plot_data else fill_color
+        fill_alpha = plot_data['fill_alpha'] if 'fill_alpha' in plot_data else fill_alpha
+        line_color = plot_data['line_color'] if 'line_color' in plot_data else line_color
+        
+        if new_fig:
+            # Plot on new fig
+            fig = figure(plot_width     = linked_fig.plot_width,
+                         plot_height    = self.bottom_fig_height,
+                         title          = None,
+                         tools          = linked_fig.tools,
+                         active_drag    = linked_fig.tools[0],
+                         active_scroll  = linked_fig.tools[1],
+                         x_range        = linked_fig.x_range)
+            
+        else:
+            # Plot over linked figure
+            fig = linked_fig
+            
+        fig.varea(self.data.index, 
+                  plot_data['lower'], 
+                  plot_data['upper'],
+                  fill_alpha = fill_alpha, 
+                  fill_color = fill_color,
+                  legend_label = plot_data['band_name'] if 'band_name' in plot_data else legend_label)
+        
+        if 'mid' in plot_data:
+            # Add a mid line
+            fig.line(self.data.index, plot_data['mid'], line_color=line_color,
+            legend_label = plot_data['mid_name'] if 'mid_name' in plot_data else 'Band Mid Line')
+        
+        return fig
     
