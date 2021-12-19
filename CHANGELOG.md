@@ -35,6 +35,7 @@ Features:
 
 ### 0.5.24
 - fix: order SL and TP filter on limit and stop-limit order types
+- feat: added option to show/hide cancelled orders in AutoPlot
 
 ### 0.5.23
 - feat: added shaded bands plotting to AutoPlot

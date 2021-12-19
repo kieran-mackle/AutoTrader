@@ -176,6 +176,7 @@ class AutoTrader():
         self.top_fig_height = 150
         self.bottom_fig_height = 150
         self.jupyter_notebook = False
+        self.show_cancelled = True
         
     def run(self):
         '''
@@ -415,7 +416,7 @@ class AutoTrader():
     def plot_settings(self, max_indis_over=3, max_indis_below=2,
                       fig_tools="pan,wheel_zoom,box_zoom,undo,redo,reset,save,crosshair",
                       ohlc_height=400, ohlc_width=800, top_fig_height=150,
-                      bottom_fig_height=150, jupyter_notebook=False):
+                      bottom_fig_height=150, jupyter_notebook=False, show_cancelled=True):
         ''' Configures settings for AutoPlot. '''
         
         # Assign attributes
@@ -427,6 +428,7 @@ class AutoTrader():
         self.top_fig_height     = top_fig_height
         self.bottom_fig_height  = bottom_fig_height
         self.jupyter_notebook   = jupyter_notebook
+        self.show_cancelled     = show_cancelled
     
     def _instantiate_autoplot(self, data):
         ''' Creates instance of AutoPlot. '''
@@ -443,6 +445,7 @@ class AutoTrader():
         ap.top_fig_height     = self.top_fig_height
         ap.bottom_fig_height  = self.bottom_fig_height
         ap.jupyter_notebook   = self.jupyter_notebook
+        ap.show_cancelled     = self.show_cancelled
         
         return ap
     

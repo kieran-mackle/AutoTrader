@@ -83,6 +83,7 @@ class AutoPlot():
         self.bottom_fig_height  = 150
         # self.total_height       = 1000
         self.jupyter_notebook   = False
+        self.show_cancelled     = True
         
         # Modify data index
         self.data               = self._reindex_data(data)
@@ -198,7 +199,7 @@ class AutoPlot():
             
             # Overlay trades 
             self._plot_trade_history(trade_summary, candle_plot)
-            if len(cancelled_trades) > 0:
+            if len(cancelled_trades) > 0 and self.show_cancelled:
                 self._plot_trade_history(cancelled_trades, candle_plot, cancelled_summary=True)
             if len(open_trades) > 0:
                 self._plot_trade_history(open_trades, candle_plot, open_summary=True)
