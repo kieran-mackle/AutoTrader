@@ -33,6 +33,8 @@ Features:
 - feat: improved robustness of generic indicator line plotting
 - feat: added capability to plot multiple indicator lines on same figure
 
+### 0.5.24
+- fix: order SL and TP filter on limit and stop-limit order types
 
 ### 0.5.23
 - feat: added shaded bands plotting to AutoPlot

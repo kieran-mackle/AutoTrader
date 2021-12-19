@@ -77,10 +77,14 @@ class Broker():
         '''
         instrument  = order_details["instrument"]
         size        = order_details["size"]
-        order_price = order_details["order_price"]
         stop_loss  = order_details["stop_loss"]
         stop_distance = order_details["stop_distance"]
         take_profit = order_details["take_profit"]
+        
+        if order_details['order_type'] == 'market':
+            order_price = order_details["order_price"]
+        elif order_details['order_type'] == 'limit' or order_details['order_type'] == 'stop-limit':
+            order_price = order_details["order_limit_price"]
         
         if stop_loss is None and stop_distance is not None:
             pip_value   = self.utils.get_pip_ratio(instrument)
