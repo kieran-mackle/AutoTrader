@@ -85,6 +85,8 @@ class Broker():
             order_price = order_details["order_price"]
         elif order_details['order_type'] == 'limit' or order_details['order_type'] == 'stop-limit':
             order_price = order_details["order_limit_price"]
+        else:
+            order_price = order_details["order_price"]
         
         if stop_loss is None and stop_distance is not None:
             pip_value   = self.utils.get_pip_ratio(instrument)
