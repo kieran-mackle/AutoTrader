@@ -259,7 +259,6 @@ class AutoTraderBot():
         interval    = self.strategy_params['granularity']
         period      = self.strategy_params['period']
         price_data_path = os.path.join(self.home_dir, 'price_data')
-        # TODO - assign price_data_path attribute 
         
         if self.backtest_mode is True:
             ' ~~~~~~~~~~~~~~~~~~~ Running in backtest mode ~~~~~~~~~~~~~~~~~~ '
@@ -679,14 +678,15 @@ class AutoTraderBot():
         if int(self.verbosity) > 1:
             if len(self.latest_orders) > 0:
                 for order in self.latest_orders:
-                    order_string = "{}: {} {}".format(order['order_time'], 
+                    order_string = "{}: {} {}".format(order['order_time'].strftime("%b %d %Y %H:%M:%S"), 
                                                       order['instrument'], 
                                                       order['order_type']) + \
                         " order of {} units placed at {}.".format(order['size'],
                                                                   order['order_price'])
                     print(order_string)
             else:
-                print("{}: No signal detected ({}).".format(datetime.now().strftime("%b %d %H:%M:%S"),
+                if int(self.verbosity) > 2:
+                    print("{}: No signal detected ({}).".format(self.data.index[i].strftime("%b %d %Y %H:%M:%S"),
                                                             self.instrument))
         
         # Check for orders placed and/or scan hits
