@@ -33,6 +33,10 @@ Features:
 - feat: improved robustness of generic indicator line plotting
 - feat: added capability to plot multiple indicator lines on same figure
 
+### 0.5.25
+- fix: order submission time error when backtesting with verbosity
+- feat: empty signal dicts are now accepted when no order is to be submitted
+
 ### 0.5.24
 - fix: order SL and TP filter for limit and stop-limit order types
 - feat: added option to show/hide cancelled orders in AutoPlot
