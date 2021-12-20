@@ -1036,13 +1036,13 @@ class AutoPlot():
         # Stop loss  levels
         if None not in trade_summary.Stop_loss.values:
             self._plot_trade(list(trade_summary.data_index.values),
-                             list(trade_summary.Stop_loss.values),
+                             list(trade_summary.Stop_loss.fillna('').values),
                              'dash', 'black', 'Stop loss', linked_fig)
         
         # Take profit levels
         if None not in trade_summary.Take_profit.values:
             self._plot_trade(list(trade_summary.data_index.values),
-                             list(trade_summary.Take_profit.values),
+                             list(trade_summary.Take_profit.fillna('').values),
                              'dash', 'black', 'Take profit', linked_fig)
         
         # Position exits
