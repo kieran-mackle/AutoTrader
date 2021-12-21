@@ -358,7 +358,7 @@ class AutoTrader():
                 print("\nBacktest complete.")
                 if len(self.bots_deployed) == 1:
                     bot = self.bots_deployed[0]
-                    backtest_results = self.analyse_backtest(bot.backtest_summary)
+                    backtest_results = self.analyse_backtest(bot)
                     self.print_backtest_results(backtest_results)
                     
                 else:
@@ -714,7 +714,7 @@ class AutoTrader():
             bots = self.bots_deployed
         
         for bot in bots:
-            backtest_results = self.analyse_backtest(bot.backtest_summary)
+            backtest_results = self.analyse_backtest(bot)
             
             instruments.append(bot.instrument)
             no_trades.append(backtest_results['no_trades'])
@@ -747,25 +747,33 @@ class AutoTrader():
         
         return multibot_backtest_results
         
-    def analyse_backtest(self, backtest_summary):
+    def analyse_backtest(self, bot=None):
         '''
-        Analyses backtest summary to extract key statistics.
+        Analyses bot backtest results to extract key statistics.
         
             Parameters:
-                backtest_summary (dict): summary of backtest performance of bot.
+                bot (class): An AutoBot class instance.
         '''
-        # TODO - change input to a bot - then search for all bot.backtest_summary inputs
+        
+        if bot is None:
+            if len(self.bots_deployed) == 1:
+                bot = self.bots_deployed[0]
+            else:
+                print("Reverting to multi-bot backtest.")
+                return self.multibot_backtest_analysis()
+                    
+        backtest_summary = bot.backtest_summary
         
         trade_summary   = backtest_summary['trade_summary']
         instrument      = backtest_summary['instrument']
         account_history = backtest_summary['account_history']
         
-        cpl             = trade_summary.Profit.cumsum()
+        cpl = trade_summary.Profit.cumsum()
         
         backtest_results = {}
         
         # All trades
-        no_trades   = len(trade_summary)
+        no_trades = len(trade_summary)
         backtest_results['no_trades'] = no_trades
         backtest_results['start'] = account_history.index[0]
         backtest_results['end'] = account_history.index[-1]
@@ -872,7 +880,7 @@ class AutoTrader():
         print("---------------------------------------------------")
         print("Instruments traded: ", backtest_results.index.values)
         print("Final NAV:           ${}".format(round(self.broker.NAV, 2)))
-        print("Total no trades:    ", backtest_results.no_trades.sum())
+        print("Total no. trades:   ", backtest_results.no_trades.sum())
         print("Short trades:       ", backtest_results.no_short.sum(),
               "({}%)".format(round(100*backtest_results.no_short.sum()/backtest_results.no_trades.sum(),2)))
         print("Long trades:        ", backtest_results.no_long.sum(),
@@ -1030,7 +1038,7 @@ class AutoTrader():
             print("Ending NAV:              ${}".format(round(ending_NAV, 2)))
             print("Total return:            ${} ({}%)".format(round(abs_return, 2), 
                                               round(pc_return, 1)))
-            print("Total no. trades:        {}".format(self.broker.total_trades))
+            print("Total no. trades:        {}".format(no_trades))
             print("Total fees:              ${}".format(round(total_fees, 3)))
             print("Backtest win rate:       {}%".format(round(win_rate, 1)))
             print("Maximum drawdown:        {}%".format(round(max_drawdown*100, 2)))
@@ -1225,9 +1233,8 @@ class AutoTrader():
         self._main()
         
         bot = self.bots_deployed[0]
-        
             
-        backtest_results    = self.analyse_backtest(bot.backtest_summary)
+        backtest_results    = self.analyse_backtest(bot)
         
         try:
             objective           = -backtest_results['all_trades']['net_pl']
