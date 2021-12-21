@@ -33,6 +33,13 @@ Features:
 - feat: improved robustness of generic indicator line plotting
 - feat: added capability to plot multiple indicator lines on same figure
 
+### 0.5.26
+- feat: AutoTrader analyse backtest methods are now simpler to use, requiring
+      only the bot as an input. 
+- feat: `bot.backtest_summary` now includes an `account_history` key, containing
+    a DataFrame with the time-history of the trading account balance, NAV, 
+    margin available and drawdown.
+
 ### 0.5.25
 - fix: order submission time error when backtesting with verbosity
 - feat: empty signal dicts are now accepted when no order is to be submitted
