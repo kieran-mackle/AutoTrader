@@ -282,9 +282,7 @@ class AutoTrader():
         if int(self.verbosity) > 0:
             if self.backtest_mode:
                 print("Beginning new backtest.")
-                print("  From: ", datetime.strftime(self.data_start,'%d/%m/%Y %H:%M'))
-                print("  To:   ", datetime.strftime(self.data_end,'%d/%m/%Y %H:%M'))
-                # print("  Instruments: ", self.watchlist)
+
             elif self.scan_mode:
                 print("AutoTrader - AutoScan")
                 print("Time: {}\n".format(datetime.now().strftime("%A, %B %d %Y, "+
@@ -323,7 +321,8 @@ class AutoTrader():
             self._check_bot_data()
             
             print("\nTrading...\n")
-        
+            backtest_start_time = timeit.default_timer()
+            
         if not self.detach_bot:
             start_range, end_range = self.bots_deployed[0]._get_iteration_range()
             
@@ -345,6 +344,8 @@ class AutoTrader():
                     balance.append(self.broker.portfolio_balance)
                     margin.append(self.broker.margin_available)
         
+        backtest_end_time = timeit.default_timer()
+        
         ''' -------------------------------------------------------------- '''
         '''                     Backtest Post-Processing                   '''
         ''' -------------------------------------------------------------- '''
@@ -355,7 +356,7 @@ class AutoTrader():
                 bot.create_backtest_summary(balance, NAV, margin)            
             
             if int(self.verbosity) > 0:
-                print("\nBacktest complete.")
+                print(f"Backtest complete (runtime {round((backtest_end_time - backtest_start_time), 3)} s).")
                 if len(self.bots_deployed) == 1:
                     bot = self.bots_deployed[0]
                     backtest_results = self.analyse_backtest(bot)
@@ -875,16 +876,36 @@ class AutoTrader():
                 backtest_results (dict): dictionary containing backtest results.
         '''
         
+        bot = self.bots_deployed[0]
+        account_history = bot.backtest_summary['account_history']
+        
+        start_date = account_history.index[0]
+        end_date = account_history.index[-1]
+        
+        starting_balance = account_history.balance[0]
+        ending_balance = account_history.balance[-1]
+        ending_NAV = account_history.NAV[-1]
+        abs_return = ending_balance - starting_balance
+        pc_return = 100 * abs_return / starting_balance
+        
         print("\n---------------------------------------------------")
         print("            MultiBot Backtest Results")
         print("---------------------------------------------------")
+        print("Start date:              {}".format(start_date))
+        print("End date:                {}".format(end_date))
+        print("Starting balance:        ${}".format(round(starting_balance, 2)))
+        print("Ending balance:          ${}".format(round(ending_balance, 2)))
+        print("Ending NAV:              ${}".format(round(ending_NAV, 2)))
+        print("Total return:            ${} ({}%)".format(round(abs_return, 2), 
+                                          round(pc_return, 1)))
+        
         print("Instruments traded: ", backtest_results.index.values)
-        print("Final NAV:           ${}".format(round(self.broker.NAV, 2)))
         print("Total no. trades:   ", backtest_results.no_trades.sum())
         print("Short trades:       ", backtest_results.no_short.sum(),
               "({}%)".format(round(100*backtest_results.no_short.sum()/backtest_results.no_trades.sum(),2)))
         print("Long trades:        ", backtest_results.no_long.sum(),
               "({}%)".format(round(100*backtest_results.no_long.sum()/backtest_results.no_trades.sum(),2)))
+        
         print("\nInstrument win rates (%):")
         print(backtest_results[['win_rate', 'no_trades']])
         print("\nMaximum/Average Win/Loss breakdown ($):")
@@ -986,16 +1007,12 @@ class AutoTrader():
             self.order_summary_fp = order_summary_fp
 
     def print_backtest_results(self, backtest_results):
-        ' Prints backtest results. '
-        
-        # TODO - input bot
-        # if bot is None:
-        #     bot = self.bots_deployed[0]
-        # backtest_results = bot.backtest_results
+        ''' 
+        Prints backtest results. Backtest results can be found using
+        bot.backtest_summary. 
+        '''
         
         # TODO - change output based on verbosity (include as input)
-        
-        # TODO - print backtest runtime
         
         start_date = backtest_results['start'].strftime("%b %d %Y %H:%M:%S")
         end_date = backtest_results['end'].strftime("%b %d %Y %H:%M:%S")
