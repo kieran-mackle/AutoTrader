@@ -174,8 +174,8 @@ class AutoPlot():
         
         if backtest_dict is not None:
             
-            NAV             = backtest_dict['NAV']
-            balance         = backtest_dict['balance']
+            NAV             = backtest_dict['account_history']['NAV']
+            balance         = backtest_dict['account_history']['balance']
             trade_summary   = backtest_dict['trade_summary']
             indicators      = backtest_dict['indicators']
             open_trades     = backtest_dict['open_trades']

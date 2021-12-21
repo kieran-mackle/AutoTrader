@@ -275,7 +275,6 @@ class AutoTrader():
         self._configure_emailing(global_config)
         
         if self.backtest_mode:
-            starting_balance = self.broker.get_balance()
             NAV     = []
             balance = []
             margin  = []
@@ -359,9 +358,7 @@ class AutoTrader():
                 print("\nBacktest complete.")
                 if len(self.bots_deployed) == 1:
                     bot = self.bots_deployed[0]
-                    trade_summary = bot.backtest_summary['trade_summary']
-                    backtest_results = self.extract_backtest_results(trade_summary, 
-                             self.broker, starting_balance, self.broker_utils) 
+                    backtest_results = self.analyse_backtest(bot.backtest_summary)
                     self.print_backtest_results(backtest_results)
                     
                 else:
@@ -370,7 +367,8 @@ class AutoTrader():
                     
                     print("Results for multiple-instrument backtests have been")
                     print("written to AutoTrader.multibot_backtest_results.")
-                    print("Individual bot results can be found in AutoTrader.bots_deployed.")
+                    print("Individual bot results can be found in the")
+                    print("'bots_deployed' attribute of the AutoTrader instance.")
             
             if self.show_plot:
                 if len(self.bots_deployed) == 1:
@@ -642,7 +640,6 @@ class AutoTrader():
                 local_data[product] = os.path.join(dir_path, data_dict[product])
         
         self.local_data = local_data
-        
     
     def scan(self, strategy_filename=None, strategy_dict=None, scan_index=None):
         '''
@@ -673,7 +670,6 @@ class AutoTrader():
         self.scan_index = scan_index
         self.check_data_alignment = False
     
-    
     def _update_strategy_watchlist(self):
         ''' Updates the watchlist of each strategy with the scan watchlist. '''
         
@@ -694,7 +690,6 @@ class AutoTrader():
                              left_index=True, right_index=True).Profit.cumsum()
         
         ap.plot(bot.backtest_summary, cumulative_PL=profit_df)
-                
     
     def multibot_backtest_analysis(self, bots=None):
         '''
@@ -739,7 +734,6 @@ class AutoTrader():
                 max_loss.append(np.nan)
                 no_long.append(np.nan)
                 no_short.append(np.nan)
-            
         
         multibot_backtest_results = pd.DataFrame(data={'win_rate': win_rate,
                                                        'no_trades': no_trades,
@@ -753,7 +747,6 @@ class AutoTrader():
         
         return multibot_backtest_results
         
-    
     def analyse_backtest(self, backtest_summary):
         '''
         Analyses backtest summary to extract key statistics.
@@ -761,9 +754,11 @@ class AutoTrader():
             Parameters:
                 backtest_summary (dict): summary of backtest performance of bot.
         '''
+        # TODO - change input to a bot - then search for all bot.backtest_summary inputs
         
         trade_summary   = backtest_summary['trade_summary']
         instrument      = backtest_summary['instrument']
+        account_history = backtest_summary['account_history']
         
         cpl             = trade_summary.Profit.cumsum()
         
@@ -772,6 +767,9 @@ class AutoTrader():
         # All trades
         no_trades   = len(trade_summary)
         backtest_results['no_trades'] = no_trades
+        backtest_results['start'] = account_history.index[0]
+        backtest_results['end'] = account_history.index[-1]
+        
         if no_trades > 0:
             backtest_results['all_trades'] = {}
             wins        = trade_summary[trade_summary.Profit > 0]
@@ -785,7 +783,20 @@ class AutoTrader():
             avg_trade_duration = np.mean(trade_summary.Trade_duration.values)
             min_trade_duration = min(trade_summary.Trade_duration.values)
             max_trade_duration = max(trade_summary.Trade_duration.values)
+            max_drawdown = min(account_history.drawdown)
+            total_fees = trade_summary.Fees.sum()
             
+            starting_balance = account_history.balance[0]
+            ending_balance = account_history.balance[-1]
+            ending_NAV = account_history.NAV[-1]
+            abs_return = ending_balance - starting_balance
+            pc_return = 100 * abs_return / starting_balance
+            
+            backtest_results['all_trades']['starting_balance'] = starting_balance
+            backtest_results['all_trades']['ending_balance'] = ending_balance
+            backtest_results['all_trades']['ending_NAV']    = ending_NAV
+            backtest_results['all_trades']['abs_return']    = abs_return
+            backtest_results['all_trades']['pc_return']     = pc_return
             backtest_results['all_trades']['avg_win']       = avg_win
             backtest_results['all_trades']['max_win']       = max_win
             backtest_results['all_trades']['avg_loss']      = avg_loss
@@ -797,6 +808,8 @@ class AutoTrader():
             backtest_results['all_trades']['shortest_trade'] = str(timedelta(seconds = int(min_trade_duration)))
             backtest_results['all_trades']['avg_trade_duration'] = str(timedelta(seconds = int(avg_trade_duration)))
             backtest_results['all_trades']['net_pl']        = cpl.values[-1]
+            backtest_results['all_trades']['max_drawdown']  = max_drawdown
+            backtest_results['all_trades']['total_fees']    = total_fees
             
         # Cancelled and open orders
         cancelled_orders = self.broker.get_cancelled_orders(instrument)
@@ -824,7 +837,6 @@ class AutoTrader():
             backtest_results['long_trades']['max_long_loss']    = max_long_loss
             backtest_results['long_trades']['long_wr']          = long_wr
             
-          
         # Short trades
         short_trades    = trade_summary[trade_summary.Size < 0]
         no_short        = len(short_trades)
@@ -846,7 +858,6 @@ class AutoTrader():
             backtest_results['short_trades']['short_wr']        = short_wr
         
         return backtest_results
-        
     
     def print_multibot_backtest_results(self, backtest_results=None):
         '''
@@ -857,7 +868,7 @@ class AutoTrader():
         '''
         
         print("\n---------------------------------------------------")
-        print("         MultiBot Backtest Results")
+        print("            MultiBot Backtest Results")
         print("---------------------------------------------------")
         print("Instruments traded: ", backtest_results.index.values)
         print("Final NAV:           ${}".format(round(self.broker.NAV, 2)))
@@ -905,7 +916,6 @@ class AutoTrader():
                 banner = pyfiglet.figlet_format("AutoBacktest")
                 print(banner)
                 
-                
         else:
             # Live/demo trading
             if self.feed.lower() == 'yahoo':
@@ -934,7 +944,6 @@ class AutoTrader():
         '''
         Configure email settings.
         '''
-        
         # TODO - allow setting email in this method
         
         if int(self.notify) > 0:
@@ -968,109 +977,28 @@ class AutoTrader():
             
             self.order_summary_fp = order_summary_fp
 
-
-    def extract_backtest_results(self, trade_summary, broker, starting_balance, 
-                                 utils):
-        '''
-        Analyses backtest summary to extract key statistics.
-        '''
-        backtest_results = {}
-        
-        # All trades
-        no_trades   = len(trade_summary)
-        backtest_results['no_trades'] = no_trades
-        if no_trades > 0:
-            backtest_results['all_trades'] = {}
-            profit_abs  = broker.portfolio_balance - starting_balance
-            profit_pc   = 100*profit_abs / starting_balance
-            MDD         = round(broker.max_drawdown, 1)
-            wins        = trade_summary[trade_summary.Profit > 0]
-            avg_win     = np.mean(wins.Profit)
-            max_win     = np.max(wins.Profit)
-            loss        = trade_summary[trade_summary.Profit < 0]
-            avg_loss    = abs(np.mean(loss.Profit))
-            max_loss    = abs(np.min(loss.Profit))
-            win_rate    = 100*broker.profitable_trades/no_trades
-            longest_win_streak, longest_lose_streak  = utils.get_streaks(trade_summary)
-            avg_trade_duration = np.mean(trade_summary.Trade_duration.values)
-            min_trade_duration = min(trade_summary.Trade_duration.values)
-            max_trade_duration = max(trade_summary.Trade_duration.values)
-            total_fees = trade_summary.Fees.sum()
-            
-            backtest_results['all_trades']['profit_abs']    = profit_abs
-            backtest_results['all_trades']['profit_pc']     = profit_pc
-            backtest_results['all_trades']['MDD']           = MDD
-            backtest_results['all_trades']['avg_win']       = avg_win
-            backtest_results['all_trades']['max_win']       = max_win
-            backtest_results['all_trades']['avg_loss']      = avg_loss
-            backtest_results['all_trades']['max_loss']      = max_loss
-            backtest_results['all_trades']['win_rate']      = win_rate
-            backtest_results['all_trades']['win_streak']    = longest_win_streak
-            backtest_results['all_trades']['lose_streak']   = longest_lose_streak
-            backtest_results['all_trades']['longest_trade'] = str(timedelta(seconds = int(max_trade_duration)))
-            backtest_results['all_trades']['shortest_trade'] = str(timedelta(seconds = int(min_trade_duration)))
-            backtest_results['all_trades']['avg_trade_duration'] = str(timedelta(seconds = int(avg_trade_duration)))
-            backtest_results['all_trades']['total_fees']    = total_fees
-        
-        # Cancelled orders (insufficient margin)
-        cancelled_orders    = broker.cancelled_orders
-        backtest_results['no_open'] = len(broker.open_positions)
-        backtest_results['no_cancelled'] = len(cancelled_orders)
-        
-        # Long trades
-        long_trades     = trade_summary[trade_summary.Size > 0]
-        no_long         = len(long_trades)
-        backtest_results['long_trades'] = {}
-        backtest_results['long_trades']['no_trades'] = no_long
-        if no_long > 0:
-            long_wins       = long_trades[long_trades.Profit > 0]
-            avg_long_win    = np.mean(long_wins.Profit)
-            max_long_win    = np.max(long_wins.Profit)
-            long_loss       = long_trades[long_trades.Profit < 0]
-            avg_long_loss   = abs(np.mean(long_loss.Profit))
-            max_long_loss   = abs(np.min(long_loss.Profit))
-            long_wr         = 100*len(long_trades[long_trades.Profit > 0])/no_long
-            
-            backtest_results['long_trades']['avg_long_win']     = avg_long_win
-            backtest_results['long_trades']['max_long_win']     = max_long_win 
-            backtest_results['long_trades']['avg_long_loss']    = avg_long_loss
-            backtest_results['long_trades']['max_long_loss']    = max_long_loss
-            backtest_results['long_trades']['long_wr']          = long_wr
-            
-          
-        # Short trades
-        short_trades    = trade_summary[trade_summary.Size < 0]
-        no_short        = len(short_trades)
-        backtest_results['short_trades'] = {}
-        backtest_results['short_trades']['no_trades'] = no_short
-        if no_short > 0:
-            short_wins      = short_trades[short_trades.Profit > 0]
-            avg_short_win   = np.mean(short_wins.Profit)
-            max_short_win   = np.max(short_wins.Profit)
-            short_loss      = short_trades[short_trades.Profit < 0]
-            avg_short_loss  = abs(np.mean(short_loss.Profit))
-            max_short_loss  = abs(np.min(short_loss.Profit))
-            short_wr        = 100*len(short_trades[short_trades.Profit > 0])/no_short
-            
-            backtest_results['short_trades']['avg_short_win']   = avg_short_win
-            backtest_results['short_trades']['max_short_win']   = max_short_win
-            backtest_results['short_trades']['avg_short_loss']  = avg_short_loss
-            backtest_results['short_trades']['max_short_loss']  = max_short_loss
-            backtest_results['short_trades']['short_wr']        = short_wr
-        
-        # Save results
-        self.backtest_results = backtest_results
-        
-        return backtest_results
-    
     def print_backtest_results(self, backtest_results):
+        ' Prints backtest results. '
+        
+        # TODO - input bot
+        # if bot is None:
+        #     bot = self.bots_deployed[0]
+        # backtest_results = bot.backtest_results
+        
+        # TODO - change output based on verbosity (include as input)
+        
+        # TODO - print backtest runtime
+        
+        start_date = backtest_results['start'].strftime("%b %d %Y %H:%M:%S")
+        end_date = backtest_results['end'].strftime("%b %d %Y %H:%M:%S")
+        
         # params      = self.strategy_params
         no_trades   = backtest_results['no_trades']
         if no_trades > 0:
             win_rate    = backtest_results['all_trades']['win_rate']
-            profit_abs  = backtest_results['all_trades']['profit_abs']
-            profit_pc   = backtest_results['all_trades']['profit_pc']
-            MDD         = backtest_results['all_trades']['MDD']
+            abs_return  = backtest_results['all_trades']['abs_return']
+            pc_return   = backtest_results['all_trades']['pc_return']
+            max_drawdown = backtest_results['all_trades']['max_drawdown']
             max_win     = backtest_results['all_trades']['max_win']
             avg_win     = backtest_results['all_trades']['avg_win']
             max_loss    = backtest_results['all_trades']['max_loss']
@@ -1078,10 +1006,13 @@ class AutoTrader():
             longest_win_streak = backtest_results['all_trades']['win_streak']
             longest_lose_streak = backtest_results['all_trades']['lose_streak']
             total_fees = backtest_results['all_trades']['total_fees']
+            starting_balance = backtest_results['all_trades']['starting_balance']
+            ending_balance = backtest_results['all_trades']['ending_balance']
+            ending_NAV = backtest_results['all_trades']['ending_NAV']
         
-        print("\n-------------------------------------------")
-        print("            Backtest Results")
-        print("-------------------------------------------")
+        print("\n----------------------------------------------")
+        print("               Backtest Results")
+        print("----------------------------------------------")
         # TODO - the below are all strategy specific. Maybe if only one strategy
         # is used (ie len(self.strategies) = 1), that can be used. Otherwise,
         # not sure. However, the granularity has to be the same ... until 
@@ -1092,21 +1023,24 @@ class AutoTrader():
         #     print("Risk to reward ratio:    {}".format(params['RR']))
         #     print("Profitable win rate:     {}%".format(round(100/(1+params['RR']), 1)))
         if no_trades > 0:
-            print("Backtest win rate:       {}%".format(round(win_rate, 1)))
-            
+            print("Start date:              {}".format(start_date))
+            print("End date:                {}".format(end_date))
+            print("Starting balance:        ${}".format(round(starting_balance, 2)))
+            print("Ending balance:          ${}".format(round(ending_balance, 2)))
+            print("Ending NAV:              ${}".format(round(ending_NAV, 2)))
+            print("Total return:            ${} ({}%)".format(round(abs_return, 2), 
+                                              round(pc_return, 1)))
             print("Total no. trades:        {}".format(self.broker.total_trades))
             print("Total fees:              ${}".format(round(total_fees, 3)))
-            print("Profit:                  ${} ({}%)".format(round(profit_abs, 3), 
-                                              round(profit_pc, 1)))
-            print("Maximum drawdown:        {}%".format(MDD))
+            print("Backtest win rate:       {}%".format(round(win_rate, 1)))
+            print("Maximum drawdown:        {}%".format(round(max_drawdown*100, 2)))
             print("Max win:                 ${}".format(round(max_win, 2)))
             print("Average win:             ${}".format(round(avg_win, 2)))
             print("Max loss:                -${}".format(round(max_loss, 2)))
             print("Average loss:            -${}".format(round(avg_loss, 2)))
             print("Longest win streak:      {} trades".format(longest_win_streak))
             print("Longest losing streak:   {} trades".format(longest_lose_streak))
-            print("Average trade duration   {}".format(backtest_results['all_trades']['avg_trade_duration']))
-            
+            print("Average trade duration:  {}".format(backtest_results['all_trades']['avg_trade_duration']))
             
         else:
             print("No trades taken.")
@@ -1119,11 +1053,10 @@ class AutoTrader():
         if no_cancelled > 0:
             print("Cancelled orders:        {}".format(no_cancelled))
         
-        
         # Long trades
         no_long = backtest_results['long_trades']['no_trades']
-        print("\n         Summary of long trades")
-        print("-------------------------------------------")
+        print("\n            Summary of long trades")
+        print("----------------------------------------------")
         if no_long > 0:
             avg_long_win = backtest_results['long_trades']['avg_long_win']
             max_long_win = backtest_results['long_trades']['max_long_win']
@@ -1142,8 +1075,8 @@ class AutoTrader():
           
         # Short trades
         no_short = backtest_results['short_trades']['no_trades']
-        print("\n          Summary of short trades")
-        print("-------------------------------------------")
+        print("\n             Summary of short trades")
+        print("----------------------------------------------")
         if no_short > 0:
             avg_short_win = backtest_results['short_trades']['avg_short_win']
             max_short_win = backtest_results['short_trades']['max_short_win']
@@ -1161,7 +1094,6 @@ class AutoTrader():
         else:
             print("There were no short trades.")
 
-
     def optimise(self, opt_params, bounds, Ns=4):
         '''
         Optimisation configuration.
@@ -1176,7 +1108,6 @@ class AutoTrader():
                 
                 Ns (int): the number of points along each dimension of the 
                 optimisation grid.
-                
         '''
         
         if type(bounds) == str:
@@ -1338,7 +1269,6 @@ class AutoTrader():
             self.bots_deployed[i]._replace_data(adj_data)
         
     
-
 if __name__ == '__main__':
     autotrader = AutoTrader()
     autotrader.usage()

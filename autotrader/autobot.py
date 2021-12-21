@@ -891,9 +891,11 @@ class AutoTraderBot():
             
         backtest_dict = {}
         backtest_dict['data']           = self.data
-        backtest_dict['NAV']            = NAV
-        backtest_dict['balance']        = balance
-        backtest_dict['margin']         = margin
+        backtest_dict['account_history'] = pd.DataFrame(data={'balance': balance, 
+                                                              'NAV': NAV, 
+                                                              'margin': margin,
+                                                              'drawdown': np.array(NAV)/np.maximum.accumulate(NAV) - 1}, 
+                                                        index=self.data.index)
         backtest_dict['trade_summary']  = trade_summary
         backtest_dict['indicators']     = self.strategy.indicators if hasattr(self.strategy, 'indicators') else None
         backtest_dict['instrument']     = self.instrument
