@@ -273,9 +273,11 @@ class AutoTraderBot():
                 custom_data_filepath    = os.path.join(price_data_path, custom_data_file) if not self.abs_data_filepath else custom_data_file
                 if int(self.verbosity) > 1:
                     print("Using data file specified ({}).".format(custom_data_file))
-                data            = pd.read_csv(custom_data_filepath, 
-                                              index_col = 0)
+                data = pd.read_csv(custom_data_filepath, index_col = 0)
                 data.index = pd.to_datetime(data.index, utc=True)
+                
+                # Adjust for start and end dates
+                data = self._check_data_period(data, from_date, to_date)
                 quote_data = data
                 
                 MTF_data = None
@@ -294,6 +296,9 @@ class AutoTraderBot():
                         print("Using data file specified ({}).".format(MTF_data_files[granularity]))
                     data = pd.read_csv(custom_data_filepath, index_col = 0)
                     data.index = pd.to_datetime(data.index, utc=True)
+                    
+                    # Adjust for start and end dates
+                    data = self._check_data_period(data, from_date, to_date)
                     
                     if granularity == MTF_granularities[0]:
                         quote_data = data
@@ -573,6 +578,14 @@ class AutoTraderBot():
             
             return data, None, MTF_data
 
+    def _check_data_period(self, data, from_date, to_date):
+        ''' 
+        Checks and returns the dataset matching the backtest start and 
+        end dates (as close as possible).
+        '''
+        
+        return data[(data.index >= from_date) & (data.index <= to_date)]
+        
 
     def _verify_data_alignment(self, data, instrument, feed, period, price_data_path):
         '''
