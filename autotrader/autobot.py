@@ -173,6 +173,7 @@ class AutoTraderBot():
         # Assign strategy to local attributes
         self.strategy           = my_strat
         self.data               = data
+        self.MTF_data           = MTF_data
         self.quote_data         = quote_data
         self.latest_orders      = []
         
