@@ -378,17 +378,7 @@ class AutoTrader():
                 
                 else:
                     # Backtest run with multiple bots
-                    cpl_dict = {}
-                    for bot in self.bots_deployed:
-                        
-                        profit_df = pd.merge(bot.data, 
-                                 bot.backtest_summary['trade_summary']['Profit'], 
-                                 left_index=True, right_index=True).Profit.cumsum()
-                        cpl_dict[bot.instrument] = profit_df
-                    
-                    ap = self._instantiate_autoplot(bot.data)
-                    ap._plot_multibot_backtest(self.multibot_backtest_results, 
-                                               NAV, cpl_dict, margin)
+                    self.plot_multibot_backtest()
         
         elif self.scan_mode and self.show_plot:
             # Show plots for scanned instruments
@@ -685,12 +675,38 @@ class AutoTrader():
             Parameters:
                 bot (class): AutoTrader bot class containing backtest results.
         '''
+        
+        if bot is None:
+            if len(self.bots_deployed) == 1:
+                bot = self.bots_deployed[0]
+            else:
+                # Multi-bot backtest
+                self.plot_multibot_backtest()
+                return
+            
         ap = self._instantiate_autoplot(bot.data)
         profit_df = pd.merge(bot.data, 
                              bot.backtest_summary['trade_summary']['Profit'], 
                              left_index=True, right_index=True).Profit.cumsum()
         
         ap.plot(bot.backtest_summary, cumulative_PL=profit_df)
+    
+    def plot_multibot_backtest(self,):
+        ''' Plots the backtest results for multiple trading bots. '''
+        
+        cpl_dict = {}
+        for bot in self.bots_deployed:
+            profit_df = pd.merge(bot.data, 
+                     bot.backtest_summary['trade_summary']['Profit'], 
+                     left_index=True, right_index=True).Profit.cumsum()
+            cpl_dict[bot.instrument] = profit_df
+        
+        ap = self._instantiate_autoplot(bot.data)
+        ap._plot_multibot_backtest(self.multibot_backtest_results, 
+                                   bot.backtest_summary['account_history']['NAV'], 
+                                   cpl_dict, 
+                                   bot.backtest_summary['account_history']['margin'])
+        
     
     def multibot_backtest_analysis(self, bots=None):
         '''
