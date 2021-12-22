@@ -33,6 +33,15 @@ Features:
 - feat: improved robustness of generic indicator line plotting
 - feat: added capability to plot multiple indicator lines on same figure
 
+### 0.5.27
+- fix: backtest dates will be adhered to (as close as possible) when providing
+    local data
+- feat: generalised `plot_backtest` method
+- feat: (beta) ability to specify chart candle timeframe via `plot_settings`
+     to plot MTF strategies on timeframes other than the base timeframe. This
+     feature is useful to reduce the chart filesize by plotting on higher
+     timeframe candles.
+
 ### 0.5.26
 - feat: AutoTrader analyse backtest methods are now simpler to use, requiring
       only the bot as an input. 
