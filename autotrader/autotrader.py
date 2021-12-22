@@ -425,7 +425,6 @@ class AutoTrader():
     def _instantiate_autoplot(self, data):
         ''' Creates instance of AutoPlot. '''
         
-        # TODO - use self.chart_timeframe to instantiate data ...
         # TODO - check length of data to prevent plotting over some length...
         if self.chart_timeframe == 'default':
             ap = autoplot.AutoPlot(data)
@@ -438,8 +437,8 @@ class AutoTrader():
             else:
                 warning_str = f'The chart timeframe requested ({self.chart_timeframe}) was not found ' + \
                     'in the MTF data. Please ensure that the timeframe provided matches ' + \
-                    'the format provided in the strategy configuration file, or the data ' + \
-                    'provided.'
+                    'the format provided in the strategy configuration file, or the local ' + \
+                    'data provided.'
                 raise Exception(warning_str)
                 
         # Assign attributes

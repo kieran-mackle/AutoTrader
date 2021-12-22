@@ -144,7 +144,7 @@ class AutoPlot():
             name: the desired column name of the merged data
         '''
         
-        # TODO - what happens for different data types of plot_data? list vs. series vs. df
+        # TODO - need to add handling of different data types, ie. list vs. series vs. df
         
         merged_data = pd.merge(self.data, data, left_on='date', 
                                right_index=True).fillna('')
@@ -1215,17 +1215,22 @@ class AutoPlot():
         else:
             # Plot over linked figure
             fig = linked_fig
-            
-        fig.varea(self.data.index, 
-                  plot_data['lower'], 
-                  plot_data['upper'],
+        
+        # Charting on different timeframe data
+        lower_band = self._merge_data(plot_data['lower'], name='lower')['lower']
+        upper_band = self._merge_data(plot_data['upper'], name='upper')['upper']
+        
+        fig.varea(lower_band.index, 
+                  lower_band.values, 
+                  upper_band.values,
                   fill_alpha = fill_alpha, 
                   fill_color = fill_color,
                   legend_label = plot_data['band_name'] if 'band_name' in plot_data else legend_label)
         
         if 'mid' in plot_data:
             # Add a mid line
-            fig.line(self.data.index, plot_data['mid'], line_color=line_color,
+            mid_line = self._merge_data(plot_data['mid'], name='mid')['mid']
+            fig.line(mid_line.index, mid_line.values, line_color=line_color,
             legend_label = plot_data['mid_name'] if 'mid_name' in plot_data else 'Band Mid Line')
         
         return fig
