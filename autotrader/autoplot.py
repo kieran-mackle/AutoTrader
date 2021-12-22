@@ -87,6 +87,7 @@ class AutoPlot():
         
         # Modify data index
         self.data               = self._reindex_data(data)
+        self.backtest_data      = None
         
         # Load JavaScript code for auto-scaling 
         with open(os.path.join(os.path.dirname(__file__), 'lib/autoscale.js'),
@@ -133,6 +134,35 @@ class AutoPlot():
         
         return data
         
+    def _merge_data(self, data, name=None):
+        '''
+        Merges the provided data with the base data, using the data of the 
+        base data and the index of the data to be merged.
+        
+        Parameters:
+            data: the data to be merged
+            name: the desired column name of the merged data
+        '''
+        
+        # TODO - what happens for different data types of plot_data? list vs. series vs. df
+        
+        merged_data = pd.merge(self.data, data, left_on='date', 
+                               right_index=True).fillna('')
+        
+        if name is not None:
+            merged_data.rename(columns={data.name: name}, inplace=True)
+        
+        return merged_data
+    
+    def _add_backtest_price_data(self, backtest_price_data):
+        ''' 
+        Processes backtest price data to included integer index of base 
+        data.
+        '''
+        temp_data = self.data.copy()
+        temp_data.index = temp_data['date']
+        
+        self.backtest_data = temp_data.reindex(backtest_price_data.index, method='ffill')
     
     ''' ------------------- FIGURE MANAGEMENT METHODS --------------------- '''
     def plot(self, backtest_dict=None, cumulative_PL=None, indicators=None, 
@@ -185,13 +215,9 @@ class AutoPlot():
             top_fig = self._plot_line(NAV, candle_plot, new_fig=True, 
                                       legend_label='Net Asset Value', 
                                       hover_name='NAV')
-            self._plot_line(balance, 
-                            top_fig, 
-                            legend_label='Account Balance', 
-                            hover_name='P/L',
-                            line_colour='blue')
+            self._plot_line(balance, top_fig, legend_label='Account Balance', 
+                            hover_name='P/L', line_colour='blue')
             # if cumulative_PL is not None:
-                
             #     self._plot_line(cumulative_PL, top_fig, 
             #                     legend_label='Cumulative P/L', 
             #                     hover_name='P/L')
@@ -717,8 +743,14 @@ class AutoPlot():
             fig = linked_fig
         
         # Add glyphs
-        source = ColumnDataSource(self.data)
-        source.add(plot_data, 'plot_data')
+        if len(plot_data) != len(self.data):
+            # Mismatched timeframe
+            merged_data = self._merge_data(plot_data, name='plot_data')
+            source = ColumnDataSource(merged_data)
+        else:
+            source = ColumnDataSource(self.data)
+            source.add(plot_data, 'plot_data')
+        
         fig.line('data_index', 'plot_data', 
                  line_color         = line_colour,
                  legend_label       = legend_label,
@@ -954,13 +986,15 @@ class AutoPlot():
                             cancelled_summary=False, open_summary=False):
         ''' Plots trades taken over ohlc chart. '''
         
-        ts = trade_summary
-        # TODO - merge should work with left_on='date', right_index=True,
-        # meaning this can be deleted below - test it
-        ts['date']   = ts.index 
-        ts           = ts.reset_index(drop = True)
+        exit_summary = trade_summary.copy()
         
-        trade_summary = pd.merge(self.data, ts, left_on='date', right_on='date')
+        if self.backtest_data is not None:
+            # Charting on different timeframe data
+            trade_summary = pd.merge(self.backtest_data, trade_summary, 
+                                     left_index=True, right_index=True)
+        else:
+            trade_summary = pd.merge(self.data, trade_summary, 
+                                     left_on='date', right_index=True)
         
         # Backtesting signals
         long_trades             = trade_summary[trade_summary.Size > 0]
@@ -968,7 +1002,13 @@ class AutoPlot():
         
         if cancelled_summary is False and open_summary is False:
             
-            exit_summary = pd.merge(self.data, ts, left_on='date', right_on='Exit_time')
+            if self.backtest_data is not None:
+                # Charting on different timeframe data
+                exit_summary = pd.merge(self.backtest_data, exit_summary, 
+                                        left_index=True, right_on='Exit_time')
+            else:
+                exit_summary = pd.merge(self.data, exit_summary, 
+                                        left_on='date', right_on='Exit_time')
             
             profitable_longs        = long_trades[(long_trades['Profit'] > 0)]
             unprofitable_longs      = long_trades[(long_trades['Profit'] < 0)]
@@ -1189,4 +1229,5 @@ class AutoPlot():
             legend_label = plot_data['mid_name'] if 'mid_name' in plot_data else 'Band Mid Line')
         
         return fig
+    
     

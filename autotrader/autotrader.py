@@ -177,6 +177,7 @@ class AutoTrader():
         self.bottom_fig_height = 150
         self.jupyter_notebook = False
         self.show_cancelled = True
+        self.chart_timeframe = 'default'
         
     def run(self):
         '''
@@ -405,7 +406,8 @@ class AutoTrader():
     def plot_settings(self, max_indis_over=3, max_indis_below=2,
                       fig_tools="pan,wheel_zoom,box_zoom,undo,redo,reset,save,crosshair",
                       ohlc_height=400, ohlc_width=800, top_fig_height=150,
-                      bottom_fig_height=150, jupyter_notebook=False, show_cancelled=True):
+                      bottom_fig_height=150, jupyter_notebook=False, show_cancelled=True,
+                      chart_timeframe='default'):
         ''' Configures settings for AutoPlot. '''
         
         # Assign attributes
@@ -418,13 +420,28 @@ class AutoTrader():
         self.bottom_fig_height  = bottom_fig_height
         self.jupyter_notebook   = jupyter_notebook
         self.show_cancelled     = show_cancelled
+        self.chart_timeframe    = chart_timeframe
     
     def _instantiate_autoplot(self, data):
         ''' Creates instance of AutoPlot. '''
         
-        # Create nominal instance
-        ap = autoplot.AutoPlot(data)
-        
+        # TODO - use self.chart_timeframe to instantiate data ...
+        # TODO - check length of data to prevent plotting over some length...
+        if self.chart_timeframe == 'default':
+            ap = autoplot.AutoPlot(data)
+        else:
+            # Instantiate AutoPlot with requested chart timeframe
+            if self.chart_timeframe in self.bots_deployed[0].MTF_data.keys():
+                # Valid timeframe requested
+                ap = autoplot.AutoPlot(self.bots_deployed[0].MTF_data[self.chart_timeframe])
+                ap._add_backtest_price_data(data) # provide nominal timeframe data for merge operations
+            else:
+                warning_str = f'The chart timeframe requested ({self.chart_timeframe}) was not found ' + \
+                    'in the MTF data. Please ensure that the timeframe provided matches ' + \
+                    'the format provided in the strategy configuration file, or the data ' + \
+                    'provided.'
+                raise Exception(warning_str)
+                
         # Assign attributes
         ap.max_indis_over     = self.max_indis_over
         ap.max_indis_below    = self.max_indis_below
