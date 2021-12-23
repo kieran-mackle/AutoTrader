@@ -33,6 +33,10 @@ Features:
 - feat: improved robustness of generic indicator line plotting
 - feat: added capability to plot multiple indicator lines on same figure
 
+### 0.5.28
+- feat: `instrument` key added to `signal_dict` to allow optionally trading 
+    other products from a strategy.
+
 ### 0.5.27
 - fix: backtest dates will be adhered to (as close as possible) when providing
     local data
