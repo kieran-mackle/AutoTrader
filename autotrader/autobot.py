@@ -854,7 +854,7 @@ class AutoTraderBot():
         order_details                   = order_signal_dict
         order_details["order_time"]     = datetime_stamp
         order_details["strategy"]       = self.strategy.name
-        order_details["instrument"]     = instrument
+        order_details["instrument"]     = order_signal_dict['instrument'] if 'instrument' in order_signal_dict else instrument
         order_details["size"]           = signal*size
         order_details["order_price"]    = order_price
         order_details["HCF"]            = HCF
