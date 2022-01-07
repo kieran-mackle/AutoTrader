@@ -556,7 +556,8 @@ class AutoPlot():
                      'multi'       : 'below',
                      'signals'     : 'over',
                      'bands'       : 'over',
-                     'threshold'   : 'below'}
+                     'threshold'   : 'below',
+                     'trading-session': 'over'}
         
         # Plot indicators
         indis_over              = 0
@@ -596,7 +597,11 @@ class AutoPlot():
                         self._plot_bands(indicators[indicator], 
                                          linked_fig=linked_fig, new_fig=False,
                                          legend_label=indicator)
-                        
+                    
+                    elif indi_type == 'trading-session':
+                        self._plot_trading_session(indicators[indicator]['data'],
+                                                   linked_fig)
+                    
                     else:
                         # Generic overlay indicator - plot as line
                         if type(indicators[indicator]['data']) == pd.Series:
@@ -966,7 +971,33 @@ class AutoPlot():
                                        line_color = 'red',
                                        legend_label = 'Resistance 3')
         
+    def _plot_trading_session(self, session, linked_fig):
+        'Shades trading session times'
         
+        times = {'sydney': {'start': '21:00', 'end': '05:00'},
+                 'london': {'start': '08:00', 'end': '16:00'},
+                 'new york': {'start': '13:00', 'end': '21:00'},
+                 'tokyo': {'start': '23:00', 'end': '07:00'},
+                 'frankfurt': {'start': '07:00', 'end': '15:00'}
+                 }
+        
+        index_data = self.data.set_index('date')
+        
+        midpoint = max(self.data.High.values)
+        height = 2*midpoint
+        
+        session_start = times[session]['start']
+        session_end = times[session]['end']
+        
+        session_data = index_data.between_time(session_start, session_end)
+        
+        opens = session_data[session_data.data_index - session_data.data_index.shift(1) != 1].data_index
+        closes = session_data[(session_data.data_index - session_data.data_index.shift(1) != 1).shift(-1).fillna(True)].data_index
+        
+        linked_fig.hbar(midpoint, height, opens, closes, 
+                        line_color = "black", 
+                        fill_color = 'blue',
+                        fill_alpha = 0.3)
         
     ''' ----------------------- TOP FIG PLOTTING -------------------------- '''
     
