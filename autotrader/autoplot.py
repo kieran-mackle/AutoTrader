@@ -1002,7 +1002,9 @@ class AutoPlot():
         linked_fig.hbar(midpoint, height, opens, closes, 
                         line_color = line_color, 
                         fill_color = fill_color,
-                        fill_alpha = fill_alpha)
+                        fill_alpha = fill_alpha,
+                        legend_label = f'{session} trading session')
+        
         
     ''' ----------------------- TOP FIG PLOTTING -------------------------- '''
     
