@@ -599,7 +599,7 @@ class AutoPlot():
                                          legend_label=indicator)
                     
                     elif indi_type == 'trading-session':
-                        self._plot_trading_session(indicators[indicator]['data'],
+                        self._plot_trading_session(indicators[indicator],
                                                    linked_fig)
                     
                     else:
@@ -971,8 +971,13 @@ class AutoPlot():
                                        line_color = 'red',
                                        legend_label = 'Resistance 3')
         
-    def _plot_trading_session(self, session, linked_fig):
+    def _plot_trading_session(self, session_plot_data, linked_fig):
         'Shades trading session times'
+        
+        session = session_plot_data['data'].lower()
+        fill_color = session_plot_data['fill_color'] if 'fill_color' in session_plot_data else 'blue'
+        fill_alpha = session_plot_data['fill_alpha'] if 'fill_alpha' in session_plot_data else 0.3
+        line_color = session_plot_data['line_color'] if 'line_color' in session_plot_data else None
         
         times = {'sydney': {'start': '21:00', 'end': '05:00'},
                  'london': {'start': '08:00', 'end': '16:00'},
@@ -995,9 +1000,9 @@ class AutoPlot():
         closes = session_data[(session_data.data_index - session_data.data_index.shift(1) != 1).shift(-1).fillna(True)].data_index
         
         linked_fig.hbar(midpoint, height, opens, closes, 
-                        line_color = "black", 
-                        fill_color = 'blue',
-                        fill_alpha = 0.3)
+                        line_color = line_color, 
+                        fill_color = fill_color,
+                        fill_alpha = fill_alpha)
         
     ''' ----------------------- TOP FIG PLOTTING -------------------------- '''
     
