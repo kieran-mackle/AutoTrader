@@ -220,8 +220,16 @@ class Oanda():
                    'short_units': position.short.units,
                    'short_PL': position.short.unrealizedPL,
                    'short_margin': None,
-                   'total_margin': position.marginUsed,
-                   'trade_IDs': None}
+                   'total_margin': position.marginUsed}
+            
+            # fetch trade ID'strade_IDs
+            trade_IDs = []
+            if abs(pos['long_units']) > 0: 
+                for ID in position.long.tradeIDs: trade_IDs.append(ID)
+            if abs(pos['short_units']) > 0: 
+                for ID in position.short.tradeIDs: trade_IDs.append(ID)
+            
+            pos['trade_IDs'] = trade_IDs
             
             if instrument is not None and position.instrument == instrument:
                 open_positions[position.instrument] = pos
