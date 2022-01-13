@@ -483,6 +483,41 @@ class Oanda():
         
         return round(units, trade_unit_precision)
     
+    def get_trade_details(self, trade_ID):
+        'Returns the details of the trade specified by trade_ID.'
+        
+        response = self.api.trade.list(accountID=self.ACCOUNT_ID, ids=int(trade_ID))
+        trade = response.body['trades'][0]
+        
+        details = {'direction': int(np.sign(trade.currentUnits)), 
+                   'stop_loss': 82.62346473606581, 
+                   'order_time': datetime.datetime.strptime(trade.openTime[:-4], '%Y-%m-%dT%H:%M:%S.%f'), 
+                   'instrument': trade.instrument, 
+                   'size': trade.currentUnits,
+                 'order_price': trade.price, 
+                 'order_ID': trade.id, 
+                 'time_filled': trade.openTime, 
+                 'entry_price': trade.price, 
+                 'unrealised_PL': trade.unrealizedPL, 
+                 'margin_required': trade.marginUsed}
+        
+        # Get associated trades
+        related = []
+        try:
+            details['take_profit'] = trade.takeProfitOrder.price
+            related.append(trade.takeProfitOrder.id)
+        except:
+            pass
+        
+        try:
+            details['stop_loss'] = trade.stopLossOrder.price
+            related.append(trade.stopLossOrder.id)
+        except:
+            pass
+        details['related_orders'] = related
+        
+        return details
+    
     def check_response(self, response):
         ''' Checks API response (currently only for placing orders) '''
         if response.status != 201:
