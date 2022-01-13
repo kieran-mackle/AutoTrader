@@ -33,6 +33,11 @@ Features:
 - feat: improved robustness of generic indicator line plotting
 - feat: added capability to plot multiple indicator lines on same figure
 
+### 0.5.29
+- feat: added trading session plot type, to show times of trading sessions
+      in AutoPlot (indicator type `trading-session`)
+- feat: added get_trade_details method to oanda module to match virtual broker
+
 ### 0.5.28
 - feat: `instrument` key added to `signal_dict` to allow optionally trading 
     other products from a strategy.
