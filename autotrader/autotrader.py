@@ -640,6 +640,8 @@ class AutoTrader():
                                             'extra_data2': dataset2}
                                }
         '''
+        # TODO - add option to specify strategy, in case multiple strategies
+        # (requiring different data) are added to the instance
         
         if data_dict is not None:
             dir_path = abs_dir_path if abs_dir_path is not None else os.path.join(self.home_dir, data_directory)
