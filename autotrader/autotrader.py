@@ -148,6 +148,7 @@ class AutoTrader():
         self.data_file  = None
         self.MTF_data_files = None
         self.local_data = None
+        self.auxdata = None
         self.backtest_initial_balance = None
         self.backtest_spread = None
         self.backtest_commission = None
@@ -300,8 +301,9 @@ class AutoTrader():
         for strategy in self.strategies:
             for instrument in self.strategies[strategy]['WATCHLIST']:
                 data_dict = self.local_data[instrument] if self.local_data is not None else None
+                auxdata = self.auxdata[instrument] if self.auxdata is not None else None
                 bot = AutoTraderBot(instrument, self.strategies[strategy],
-                                    self.broker, data_dict, self)
+                                    self.broker, data_dict, auxdata, self)
                 
                 if self.detach_bot is True and self.backtest_mode is False:
                     # Send bot to bot manager to monitor stream
@@ -596,7 +598,8 @@ class AutoTrader():
         self.MTF_initialisation = MTF_initialisation
         self.jupyter_notebook = jupyter_notebook
         
-    def add_data(self, data_dict, data_directory='price_data', abs_dir_path=None):
+    def add_data(self, data_dict=None, data_directory='price_data', 
+                 abs_dir_path=None, auxdata=None):
         ''' 
         Add local data to run backtest on. Note that to ensure proper directory 
         configuration, this method should only be called after calling 
@@ -626,27 +629,39 @@ class AutoTrader():
             abs_dir_path: the absolute path to the data_directory. This parameter
                 may be used when the datafiles are stored outside of the project
                 directory.
+            
+            auxdata (dict): a dictionary containing raw data to supplement the 
+                data passed to the strategy module. For strategies involving 
+                multiple products, the keys of this dictionary must correspond
+                to the products, with the auxdata in nested dictionaries or 
+                otherwise. Examples include:
+                    auxdata = {'product1': aux_price_data,
+                               'product2': {'extra_data1': dataset1,
+                                            'extra_data2': dataset2}
+                               }
         '''
         
-        dir_path = abs_dir_path if abs_dir_path is not None else os.path.join(self.home_dir, data_directory)
-        
-        # Assign local data attribute
-        local_data = {}
-        
-        # for loop to populate local_data
-        for product in data_dict:
-            if type(data_dict[product]) == dict:
-                # MTF data
-                MTF_data = {}
-                for timeframe in data_dict[product]:
-                    MTF_data[timeframe] = os.path.join(dir_path, data_dict[product][timeframe])
-                
-                local_data[product] = MTF_data
-            else:
-                # Single timeframe data
-                local_data[product] = os.path.join(dir_path, data_dict[product])
-        
-        self.local_data = local_data
+        if data_dict is not None:
+            dir_path = abs_dir_path if abs_dir_path is not None else os.path.join(self.home_dir, data_directory)
+            
+            # Assign local data attribute
+            local_data = {}
+            
+            # for loop to populate local_data
+            for product in data_dict:
+                if type(data_dict[product]) == dict:
+                    # MTF data
+                    MTF_data = {}
+                    for timeframe in data_dict[product]:
+                        MTF_data[timeframe] = os.path.join(dir_path, data_dict[product][timeframe])
+                    
+                    local_data[product] = MTF_data
+                else:
+                    # Single timeframe data
+                    local_data[product] = os.path.join(dir_path, data_dict[product])
+            
+            self.local_data = local_data
+        self.auxdata = auxdata
     
     def scan(self, strategy_filename=None, strategy_dict=None, scan_index=None):
         '''

@@ -46,7 +46,8 @@ class AutoTraderBot():
     
     '''
     
-    def __init__(self, instrument, strategy_config, broker, data_dict, autotrader_instance):
+    def __init__(self, instrument, strategy_config, broker, data_dict, 
+                 auxdata, autotrader_instance):
         '''
         AutoTrader Bot initialisation. 
         '''
@@ -162,6 +163,11 @@ class AutoTraderBot():
             strat_data = data
         else:
             strat_data = MTF_data
+        
+        # Auxiliary data assignment
+        if auxdata is not None:
+            strat_data = {'base': strat_data,
+                          'aux': auxdata}
         
         # Instantiate Strategy
         include_broker = strategy_config['INCLUDE_BROKER'] if 'INCLUDE_BROKER' in strategy_config else False
