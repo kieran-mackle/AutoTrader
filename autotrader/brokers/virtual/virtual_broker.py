@@ -508,7 +508,7 @@ class Broker():
         
         return pending_orders
     
-    def cancel_pending_order(self, order_id, reason):
+    def cancel_pending_order(self, order_id, reason=None):
         ''' Moves an order from pending_orders into cancelled_orders. '''
         
         self.cancelled_orders[order_id] = self.pending_orders[order_id]
