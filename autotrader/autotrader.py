@@ -625,9 +625,15 @@ class AutoTrader():
                  data directory, as specified by the data_directory or abs_dir_path
                  parameters.
                 
-            quote_data (dict): a dictionary identical to the data_dict, but 
-                with matching quote data for each key of the data_dict. That
-                is, for each product provided, provide the quote data file.
+            quote_data (dict): a dictionary containing the quote data filenames 
+                of the datasets provided in data_dict. For example:
+                    quote_data = {'product1': 'product1_quote.csv',
+                                  'product2': 'product2_quote.csv'}
+                
+                In the case of MTF data, quote data should only be provided for
+                    the base timeframe (ie. the data which will be iterated on
+                    when backtesting). Therefore, the quote_data dict will look
+                    the same for single timeframe and MTF backtests.
             
             data_directory (str): the name of the sub-directory containing price
                 data files. This directory should be located in the project
@@ -682,14 +688,10 @@ class AutoTrader():
             # Populate local_quote_data
             for product in quote_data:
                 if type(quote_data[product]) == dict:
-                    # MTF data
-                    MTF_data = {}
-                    for timeframe in quote_data[product]:
-                        MTF_data[timeframe] = os.path.join(dir_path, quote_data[product][timeframe])
+                    raise Exception("Only a single quote-data file should be " +\
+                                    "provided per instrument traded.")
                     
-                    local_quote_data[product] = MTF_data
                 else:
-                    # Single timeframe data
                     local_quote_data[product] = os.path.join(dir_path, quote_data[product])
             
             self.local_quote_data = local_quote_data
