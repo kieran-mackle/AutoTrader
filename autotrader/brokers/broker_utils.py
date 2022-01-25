@@ -191,7 +191,7 @@ class BrokerUtils:
     
     def trade_summary(self, pair, closed_positions_dict):
         ''' Creates backtest trade summary dataframe. '''
-        # Could also include a pairs list, and only input closed_pos dict
+        product     = []
         order_ID    = []
         times_list  = []
         order_price = []
@@ -207,8 +207,12 @@ class BrokerUtils:
         trade_duration = []
         fees = []
         
+        # TODO - dont filter pair by conditional, rather by indexing after df
+        
         for order in closed_positions_dict:
-            if closed_positions_dict[order]['instrument'] == pair:
+            if closed_positions_dict[order]['instrument'] == pair or \
+                pair is None:
+                product.append(closed_positions_dict[order]['instrument'])
                 order_ID.append(closed_positions_dict[order]['order_ID'])
                 entry_time.append(closed_positions_dict[order]['time_filled'])
                 times_list.append(closed_positions_dict[order]['order_time'])
@@ -232,7 +236,8 @@ class BrokerUtils:
                     trade_duration.append(closed_positions_dict[order]['exit_time'].timestamp() - 
                                           closed_positions_dict[order]['time_filled'].timestamp())
                 
-        dataframe = pd.DataFrame({"Order_ID": order_ID, 
+        dataframe = pd.DataFrame({"Instrument": product,
+                                  "Order_ID": order_ID, 
                                   "Order_price": order_price,
                                   "Order_time": times_list,
                                   "Entry_time": entry_time,
