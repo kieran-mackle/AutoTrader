@@ -148,6 +148,7 @@ class AutoTrader():
         self.data_file  = None
         self.MTF_data_files = None
         self.local_data = None
+        self.local_quote_data = None
         self.auxdata = None
         self.backtest_initial_balance = None
         self.backtest_spread = None
@@ -301,9 +302,11 @@ class AutoTrader():
         for strategy in self.strategies:
             for instrument in self.strategies[strategy]['WATCHLIST']:
                 data_dict = self.local_data[instrument] if self.local_data is not None else None
+                quote_data_dict = self.local_quote_data[instrument] if self.local_quote_data is not None else None
                 auxdata = self.auxdata[instrument] if self.auxdata is not None else None
                 bot = AutoTraderBot(instrument, self.strategies[strategy],
-                                    self.broker, data_dict, auxdata, self)
+                                    self.broker, data_dict, quote_data_dict, 
+                                    auxdata, self)
                 
                 if self.detach_bot is True and self.backtest_mode is False:
                     # Send bot to bot manager to monitor stream
@@ -598,8 +601,8 @@ class AutoTrader():
         self.MTF_initialisation = MTF_initialisation
         self.jupyter_notebook = jupyter_notebook
         
-    def add_data(self, data_dict=None, data_directory='price_data', 
-                 abs_dir_path=None, auxdata=None):
+    def add_data(self, data_dict=None, quote_data=None, 
+                 data_directory='price_data', abs_dir_path=None, auxdata=None):
         ''' 
         Add local data to run backtest on. Note that to ensure proper directory 
         configuration, this method should only be called after calling 
@@ -621,7 +624,11 @@ class AutoTrader():
                  Note that the filenames in the dict above must be present in the 
                  data directory, as specified by the data_directory or abs_dir_path
                  parameters.
-                 
+                
+            quote_data (dict): a dictionary identical to the data_dict, but 
+                with matching quote data for each key of the data_dict. That
+                is, for each product provided, provide the quote data file.
+            
             data_directory (str): the name of the sub-directory containing price
                 data files. This directory should be located in the project
                 home directory (at.home_dir).
@@ -643,13 +650,16 @@ class AutoTrader():
         # TODO - add option to specify strategy, in case multiple strategies
         # (requiring different data) are added to the instance
         
+        dir_path = abs_dir_path if abs_dir_path is not None else os.path.join(self.home_dir, data_directory)
+        
+        # TODO - wrap the loops below into a signle for loop with dict assignment
+        
+        # Trading data
         if data_dict is not None:
-            dir_path = abs_dir_path if abs_dir_path is not None else os.path.join(self.home_dir, data_directory)
-            
             # Assign local data attribute
             local_data = {}
             
-            # for loop to populate local_data
+            # Populate local_data
             for product in data_dict:
                 if type(data_dict[product]) == dict:
                     # MTF data
@@ -661,8 +671,29 @@ class AutoTrader():
                 else:
                     # Single timeframe data
                     local_data[product] = os.path.join(dir_path, data_dict[product])
-            
+                    
             self.local_data = local_data
+        
+        # Quote data
+        if quote_data is not None:
+            # Assign local data attribute
+            local_quote_data = {}
+            
+            # Populate local_quote_data
+            for product in quote_data:
+                if type(quote_data[product]) == dict:
+                    # MTF data
+                    MTF_data = {}
+                    for timeframe in quote_data[product]:
+                        MTF_data[timeframe] = os.path.join(dir_path, quote_data[product][timeframe])
+                    
+                    local_quote_data[product] = MTF_data
+                else:
+                    # Single timeframe data
+                    local_quote_data[product] = os.path.join(dir_path, quote_data[product])
+            
+            self.local_quote_data = local_quote_data
+        
         self.auxdata = auxdata
     
     def scan(self, strategy_filename=None, strategy_dict=None, scan_index=None):
