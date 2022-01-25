@@ -175,7 +175,7 @@ class BrokerUtils:
         
         for index in new_indices:
             
-            df_row = df1[df1.index == index]
+            df_row = df1.copy()[df1.index == index]
             
             df_row.Open = None
             df_row.High = None
