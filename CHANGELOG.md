@@ -33,6 +33,12 @@ Features:
 - feat: improved robustness of generic indicator line plotting
 - feat: added capability to plot multiple indicator lines on same figure
 
+### 0.5.30
+- docs: virtual broker `cancel_pending_order` method closer reflects Oanda 
+      method equivalent method
+- feat: `add_data` allows specifying local `quote_data` for home conversion
+      factor.
+
 ### 0.5.29
 - feat: added trading session plot type, to show times of trading sessions
       in AutoPlot (indicator type `trading-session`)
