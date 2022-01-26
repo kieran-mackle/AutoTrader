@@ -47,7 +47,7 @@ class AutoTraderBot():
     '''
     
     def __init__(self, instrument, strategy_config, broker, data_dict, 
-                 auxdata, autotrader_instance):
+                 quote_data_dict, auxdata, autotrader_instance):
         '''
         AutoTrader Bot initialisation. 
         '''
@@ -143,6 +143,7 @@ class AutoTraderBot():
             self.MTF_data = None
         
         # Data retrieval
+        self.quote_data_file = quote_data_dict
         if data_dict is not None:
             # Local data files provided
             self.abs_data_filepath = True
@@ -285,7 +286,17 @@ class AutoTraderBot():
                 
                 # Adjust for start and end dates
                 data = self._check_data_period(data, from_date, to_date)
-                quote_data = data
+                
+                # Load quote data
+                if self.quote_data_file is not None:
+                    quote_data = pd.read_csv(self.quote_data_file, index_col = 0)
+                    quote_data.index = pd.to_datetime(quote_data.index, utc=True)
+                    quote_data = self._check_data_period(quote_data, from_date, to_date)
+                else:
+                    quote_data = data
+                
+                # Correct any data mismatches
+                data, quote_data = self._match_quote_data(data, quote_data)
                 
                 MTF_data = None
             
@@ -308,7 +319,14 @@ class AutoTraderBot():
                     data = self._check_data_period(data, from_date, to_date)
                     
                     if granularity == MTF_granularities[0]:
-                        quote_data = data
+                        # Assign quote data for backtesting
+                        if self.quote_data_file is not None:
+                            quote_data = pd.read_csv(self.quote_data_file, index_col = 0)
+                            quote_data.index = pd.to_datetime(quote_data.index, utc=True)
+                            quote_data = self._check_data_period(quote_data, from_date, to_date)
+                            data, quote_data = self._match_quote_data(data, quote_data)
+                        else:
+                            quote_data = data
                     
                     # Add to MTF_data dict
                     MTF_data[granularity] = data
@@ -946,3 +964,25 @@ class AutoTraderBot():
         self.data = data
         self.strategy.data = data
     
+    def _match_quote_data(self, data, quote_data):
+        ''' Function to match index of trading data and quote data. '''
+        datasets = [data, quote_data]
+        adjusted_datasets = []
+        
+        for dataset in datasets:
+            # Initialise common index
+            common_index = dataset.index
+            
+            # Update common index by intersection with other data 
+            for other_dataset in datasets:
+                common_index = common_index.intersection(other_dataset.index)
+            
+            # Adjust data using common index found
+            adj_data = dataset[dataset.index.isin(common_index)]
+            
+            adjusted_datasets.append(adj_data)
+        
+        # Unpack adjusted datasets
+        adj_data, adj_quote_data = adjusted_datasets
+        
+        return adj_data, adj_quote_data
