@@ -1364,7 +1364,10 @@ class AutoTrader():
         data = [bot.data for bot in self.bots_deployed]
         
         for i, dat in enumerate(data):
+            # Initialise common index
             comm_index = dat.index
+            
+            # Update common index by intersection with other data 
             for j, dat_2 in enumerate(data):
                 comm_index = comm_index.intersection(dat_2.index)
             
