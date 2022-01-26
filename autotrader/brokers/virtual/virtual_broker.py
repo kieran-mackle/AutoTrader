@@ -667,17 +667,19 @@ class Broker():
     def get_price(self, instrument, data=None, conversion_data=None, i=None):
         ''' Returns the price data dict. '''
         
-        if data is not None and conversion_data is not None and i is not None:
+        # TODO - include bid/ask spread here
+        
+        if conversion_data is not None:
             ask = data.Close[i]
             bid = data.Close[i]
-            conversion_data = conversion_data.Close[i]
+            conversion_price = conversion_data.Close[i]
             
-            if bid == conversion_data:
+            if bid == conversion_price:
                 negativeHCF = 1
                 positiveHCF = 1
             else:
-                negativeHCF = 1/conversion_data
-                positiveHCF = 1/conversion_data
+                negativeHCF = 1/conversion_price
+                positiveHCF = 1/conversion_price
         else:
             # Allow calling get_price as placeholder for livetrading
             ask = data.Close[i]
