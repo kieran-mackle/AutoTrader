@@ -178,7 +178,7 @@ class Broker():
         for order_no in self.pending_orders:
             # Filter orders by instrument type since candle is instrument specific            
             if self.pending_orders[order_no]['instrument'] == instrument:
-                if self.pending_orders[order_no]['order_time'] != candle.name:
+                if candle.name > self.pending_orders[order_no]['order_time']:
                     if self.pending_orders[order_no]['order_type'] == 'market':
                         # Market order type
                         self.open_position(order_no, candle)
