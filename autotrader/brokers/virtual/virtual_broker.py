@@ -21,8 +21,12 @@ class Broker():
     leverage : int
         the leverage on the account (default 1)
     
+    commission_scheme : str
+        the commission scheme to use ('percentage' or 'fixed')
+    
     commission : int
-        the brokers commission as a percentage (default 0)
+        the brokers commission, either as a percentage of trade volume,
+        or as a fixed amount per unit traded.
         
     spread : int
         the bid/ask spread (default 0)
@@ -51,7 +55,6 @@ class Broker():
     
     def __init__(self, broker_config, utils):
         self.leverage           = 1
-        self.commission         = 0
         self.spread             = 0
         self.margin_available   = 0
         self.portfolio_balance  = 0
@@ -69,6 +72,11 @@ class Broker():
         self.unrealised_PL      = 0
         self.utils              = utils
         self.verbosity          = broker_config['verbosity']
+        
+        # Commissions
+        self.commission_scheme  = 'percentage'
+        self.commission         = 0
+        
         
 
     def place_order(self, order_details):
@@ -379,11 +387,9 @@ class Broker():
         HCF         = self.open_positions[order_no]['HCF']
         
         # Update portfolio with profit/loss
-        gross_PL    = size*(exit_price - entry_price)*HCF
-        open_trade_value    = abs(size)*entry_price*HCF
-        close_trade_value   = abs(size)*exit_price*HCF
-        commission  = (self.commission/100) * (open_trade_value + close_trade_value)
-        net_profit  = gross_PL - commission
+        gross_PL = size*(exit_price - entry_price)*HCF
+        commission = self.calculate_commissions(order_no, exit_price, size)
+        net_profit = gross_PL - commission
         
         self.add_funds(net_profit)
         if net_profit > 0:
@@ -462,10 +468,9 @@ class Broker():
         remaining_size = size-units
         
         # Update portfolio with profit/loss
-        gross_PL    = units*(last_price - entry_price)*HCF
-        open_trade_value    = abs(units)*entry_price*HCF
-        close_trade_value   = abs(units)*last_price*HCF
-        commission  = (self.commission/100) * (open_trade_value + close_trade_value)
+        gross_PL = units*(last_price - entry_price)*HCF
+        commission = self.calculate_commissions(trade_ID, last_price, units)
+        
         net_profit  = gross_PL - commission
         
         self.add_funds(net_profit)
@@ -492,7 +497,23 @@ class Broker():
         
         # Update maximum drawdown
         self.update_MDD()
+    
+    def calculate_commissions(self, order_no, exit_price, units=None):
+        'Calculates trade commissions.'
+        if self.commission_scheme == 'percentage':
+            entry_price = self.open_positions[order_no]['entry_price']
+            size = self.open_positions[order_no]['size'] if units is None else units
+            HCF = self.open_positions[order_no]['HCF']
+            
+            open_trade_value = abs(size)*entry_price*HCF
+            close_trade_value = abs(size)*exit_price*HCF
+            commission  = (self.commission/100) * (open_trade_value + close_trade_value)
         
+        elif self.commission_scheme == 'fixed':
+            size = self.open_positions[order_no]['size'] if units is None else units
+            commission = self.commission * size
+            
+        return commission
     
     def get_pending_orders(self, instrument = None):
         ''' Returns pending orders. '''
