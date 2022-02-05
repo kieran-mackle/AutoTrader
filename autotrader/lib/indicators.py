@@ -436,6 +436,32 @@ def N_period_low(data, N):
     lows = data.Low.rolling(N).min()
     return lows
 
+def range_filter(data, range_qty=2.618, range_period=14,
+                           smooth_range=True, smooth_period=27, av_vals=False, 
+                           av_samples=2, mov_source='body', filter_type=1):
+    '''
+    Price range filter. Credit to DonovanWall on TradingView.
+    
+    Ported to Python: 01/19/2022
+    '''
+    
+    # Get high and low values
+    if mov_source == 'body':
+        high_val = data.Close
+        low_val = data.Close
+    elif mov_source == 'wicks':
+        high_val = data.High
+        low_val = data.Low
+    
+    # Get filter values
+    rng_ = range_size((high_val + low_val)/2, 'AverageChange', 
+                      range_qty, range_period)
+    rfi = calculate_range_filter(high_val, low_val, rng_, range_period, filter_type, 
+                       smooth_range, smooth_period, av_vals, av_samples)
+    
+    return rfi
+
+
 ''' ------------------------ UTILITY INDICATORS --------------------------- '''
 
 def crossover(list_1, list_2):
@@ -1001,3 +1027,99 @@ def last_level_touched(data, grid):
     
     return levels_touched
 
+def conditional_ema(x, condition=1, n=14, s=2):
+    'Conditional sampling EMA functtion'
+    
+    if type(condition) == int: condition = condition*np.ones(len(x))
+    
+    ema = np.zeros(len(x))
+    for i in range(1, len(x)):
+        if condition[i]:
+            ema[i] = (x[i] - ema[i-1]) * (s/(1+n)) + ema[i-1]
+        else:
+            ema[i] = ema[i-1]
+    
+    return pd.Series(ema, x.index, name=f'{n} period conditional EMA')
+    
+def conditional_sma(x, condition=1, n=14):
+    'Conditional sampling SMA functtion'
+    
+    if type(condition) == int: condition = condition*np.ones(len(x))
+    
+    # Calculate SMA
+    sma = x.rolling(n).mean()
+    
+    # Filter by condition
+    sma = sma * condition
+    
+    return sma
+    
+def stdev(x, n):
+    'Standard deviation function'
+    sd = np.sqrt(conditional_sma(x**2, 1, n) - conditional_sma(x, 1, n)**2)
+    return sd
+    
+def range_size(x, scale='AverageChange', qty=2.618, n=14):
+    'Range size function'
+    
+    if scale == 'AverageChange':
+        AC = conditional_ema(abs(x - x.shift(1)), 1, n)
+        rng_size = qty*AC
+    elif scale == 'ATR':
+        tr = TA.TR(x)
+        atr = conditional_ema(tr, 1, n)
+        rng_size = qty*atr
+    elif scale == 'StandardDeviation':
+        sd = stdev(x, n)
+        rng_size = qty*sd
+        
+    return rng_size
+
+def calculate_range_filter(h, l, rng_, n, rng_type, smooth, sn, av_rf, av_n):
+    'Two type range filter function'
+    
+    smoothed_range = conditional_ema(rng_, 1, sn)
+    r = smoothed_range if smooth else rng_
+    r_filt = (h+l)/2
+    
+    if rng_type == 1:
+        for i in range(1, len(h)):
+            if h[i] - r[i] > r_filt[i-1]:
+                r_filt[i] = h[i] - r[i]
+            elif l[i] + r[i] < r_filt[i-1]:
+                r_filt[i] = l[i] + r[i]
+            else:
+                r_filt[i] = r_filt[i-1]
+    
+    elif rng_type == 2:
+        for i in range(1, len(h)):
+            if h[i] >= r_filt[i-1] + r[i]:
+                r_filt[i] = r_filt[i-1] + np.floor(abs(h[i] - r_filt[i-1])/r[i])*r[i]
+            elif l[i] <= r_filt[i-1] - r[i]:
+                r_filt[i] = r_filt[i-1] - np.floor(abs(l[i] - r_filt[i-1])/r[i])*r[i]
+            else:
+                r_filt[i] = r_filt[i-1]
+    
+    # Define nominal values
+    r_filt1 = r_filt.copy()
+    hi_band1 = r_filt1 + r
+    lo_band1 = r_filt1 - r
+    
+    # Calculate indicator for averaged filter changes
+    r_filt2 = conditional_ema(r_filt1, r_filt1 != r_filt1.shift(1), av_n)
+    hi_band2 = conditional_ema(hi_band1, r_filt1 != r_filt1.shift(1), av_n)
+    lo_band2 = conditional_ema(lo_band1, r_filt1 != r_filt1.shift(1), av_n)
+    
+    # Assign indicator
+    rng_filt = r_filt2 if av_rf else r_filt1
+    hi_band = hi_band2 if av_rf else hi_band1
+    lo_band = lo_band2 if av_rf else lo_band1
+    
+    # Construct output
+    rfi = pd.DataFrame(data={'upper': hi_band, 'lower': lo_band, 
+                             'rf': rng_filt}, index=rng_filt.index)
+    
+    # Classify filter direction
+    rfi['fdir'] = np.sign(rfi.rf - rfi.rf.shift(1)).fillna(0)
+    
+    return rfi
