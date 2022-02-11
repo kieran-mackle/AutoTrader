@@ -741,25 +741,42 @@ def detect_divergence(classified_price_swings, classified_indicator_swings, tol=
         
     return divergence
 
-def autodetect_divergence(ohlc, indicator_data, method=0):
-    '''
-    Wrapper method to automatically detect divergence from inputted OHLC price 
+def autodetect_divergence(ohlc: pd.DataFrame, indicator_data: pd.DataFrame, 
+                          tolerance: int = 1, method: int = 0) -> pd.DataFrame:
+    """A wrapper method to automatically detect divergence from inputted OHLC price 
     data and indicator data.
+
+    Parameters
+    ----------
+    ohlc : pd.DataFrame
+        A dataframe of OHLC price data.
+    indicator_data : pd.DataFrame
+        dataframe of indicator data.
+    tolerance : int, optional
+        A parameter to control the lookback when detecting divergence. The default is 1.
+    method : int, optional
+        The divergence detection method. The default is 0.
+
+    Returns
+    -------
+    divergence : pd.DataFrame
+        A DataFrame containing columns 'regularBull', 'regularBear',
+        'hiddenBull' and 'hiddenBear'.
     
+    Notes
+    -----
     This method calls:
         find_swings()
+        
         classify_swings()
+        
         detect_divergence()
     
-    Parameters:
-        ohlc: dataframe of OHLC data
+    The 'method' parameter has options:        
+        0: use both price and indicator swings to detect divergence (default)
         
-        indicator data: array of indicator data
-        
-        method: the method to use when detecting divergence. Options include:
-            0: use both price and indicator swings to detect divergence (default)
-            1: use only indicator swings to detect divergence
-    '''
+        1: use only indicator swings to detect divergence
+    """
     
     # Price swings
     price_swings = find_swings(ohlc)
@@ -770,7 +787,8 @@ def autodetect_divergence(ohlc, indicator_data, method=0):
     indicator_classified = classify_swings(indicator_swings)
     
     # Detect divergence
-    divergence = detect_divergence(price_swings_classified, indicator_classified, method)
+    divergence = detect_divergence(price_swings_classified, indicator_classified, 
+                                   tol=tolerance, method=method)
     
     return divergence
 
