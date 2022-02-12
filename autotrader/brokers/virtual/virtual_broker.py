@@ -260,32 +260,32 @@ class Broker():
                     # Trailing stop loss is enabled, check if price has moved SL
                     
                     if self.open_positions[order_no]['stop_distance'] is not None:
-                        # Stop distance provided 
+                        # Stop distance provided (pips)
                         pip_value = self.utils.get_pip_ratio(self.open_positions[order_no]['instrument'])
                         pip_distance = self.open_positions[order_no]['stop_distance']
-                        distance = pip_distance*pip_value
+                        distance = pip_distance*pip_value # price units
                         
                     else:
                         # Stop loss price provided
                         distance = abs(self.open_positions[order_no]['entry_price'] - \
                                        self.open_positions[order_no]['stop_loss'])
                         
-                        # Append stop distance to dict
+                        # Append stop distance (pips) to dict
                         pip_value = self.utils.get_pip_ratio(self.open_positions[order_no]['instrument'])
                         self.open_positions[order_no]['stop_distance'] = distance / pip_value
                         
-    
+                        
                     if self.open_positions[order_no]['size'] > 0:
                         # long position, stop loss only moves up
                         new_stop = candle.High - distance
                         if new_stop > self.open_positions[order_no]['stop_loss']:
-                            self._update_stop_loss(order_no, new_stop)
+                            self._update_stop_loss(order_no, new_stop, new_stop_type='trailing')
                         
                     else:
                         # short position, stop loss only moves down
                         new_stop = candle.Low + distance
                         if new_stop < self.open_positions[order_no]['stop_loss']:
-                            self._update_stop_loss(order_no, new_stop)
+                            self._update_stop_loss(order_no, new_stop, new_stop_type='trailing')
         
         # Update self.open_positions
         open_position_orders = list(self.open_positions.keys())
@@ -765,7 +765,6 @@ class Broker():
         ''' Updates stop loss on open trade. '''
         self.open_positions[trade_id]['stop_loss'] = new_stop_loss
         self.open_positions[trade_id]['stop_type'] = new_stop_type
-        self.open_positions[trade_id]['stop_distance'] = None
     
     def _update_take_profit(self, trade_id, new_take_profit):
         ''' Updates take profit on open trade. '''
