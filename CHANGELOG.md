@@ -33,6 +33,10 @@ Features:
 - feat: improved robustness of generic indicator line plotting
 - feat: added capability to plot multiple indicator lines on same figure
 
+### 0.5.32
+- fix: trailing stops bug in virtual broker
+- fix: pending order method in Oanda module
+
 ### 0.5.31
 - fix: virtual broker is now more robust to bad data
 - docs: added commission method to virtual broker, eventually to allow more
