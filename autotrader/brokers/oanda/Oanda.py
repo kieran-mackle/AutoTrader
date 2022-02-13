@@ -138,7 +138,7 @@ class Oanda():
                 new_order['size']               = order.units
                 new_order['order_price']        = order.price
                 new_order['granularity']        = None
-                new_order['take_profit']        = order.takeProfitOnFill.price
+                new_order['take_profit']        = order.takeProfitOnFill.price if order.takeProfitOnFill is not None else None
                 new_order['take_distance']      = None
                 new_order['stop_type']          = None
                 new_order['stop_distance']      = None
