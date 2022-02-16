@@ -464,34 +464,27 @@ def range_filter(data, range_qty=2.618, range_period=14,
 
 ''' ------------------------ UTILITY INDICATORS --------------------------- '''
 
-def crossover(list_1, list_2):
-    ''' 
-    Returns a list of length len(list_1) with 1 when list_1 crosses above
-    list_2 and -1 when list_1 crosses below list_2.
-    '''
-    
-    sign_list = []
-    for i in range(len(list_1)):
-        if np.isnan(list_1[i]):
-            sign_list.append(np.nan)
-        else:
-            difference = list_1[i] - list_2[i]
-            if difference < 0:
-                sign_list.append(-1)
-            else:
-                sign_list.append(1)
-    
-    crossover_list = [0]
-    
-    for i in range(1, len(sign_list)):
-        if sign_list[i] - sign_list[i-1] != 0:
-            val = sign_list[i]
-        else:
-            val = 0
-        
-        crossover_list.append(val)
+def crossover(ts1: pd.Series, ts2: pd.Series) -> pd.Series:
+    """Locates where two timeseries crossover each other, returning 1 when
+    list_1 crosses above list_2, and -1 for when list_1 crosses below list_2.
 
-    return crossover_list
+    Parameters
+    ----------
+    ts1 : pd.Series
+        The first timeseries.
+    ts2 : pd.Series
+        The second timeseries.
+
+    Returns
+    -------
+    crossovers : pd.Series
+        The crossover series.
+    """
+    
+    signs = np.sign(ts1 - ts2)
+    crossovers = pd.Series(data=signs*(signs != signs.shift(1)), name='crossovers')
+    
+    return crossovers
 
 
 def cross_values(a, b, ab_crossover):
