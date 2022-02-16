@@ -9,6 +9,7 @@ Author: Kieran Mackle
 from finta import TA
 import numpy as np
 import pandas as pd
+from typing import Union
 
 ''' -------------------------- PRICE INDICATORS --------------------------- '''
 def supertrend(data, period = 10, ATR_multiplier = 3.0, source=None):
@@ -512,30 +513,42 @@ def cross_values(a, b, ab_crossover):
     return cross_point_list
 
 
-def candles_between_crosses(cross_list):
-    '''
-    Returns candles since last cross
-    
-    
-    Behaviour:
-    in:  [0, 0, 1, 0, 0, 0, -1, 0, 0, 0, 0, 0, 1]
-    out: [1, 2, 0, 1, 2, 3,  0, 1, 2, 3, 4, 5, 0]
-    '''
+def candles_between_crosses(crosses: Union[list, pd.Series]) -> Union[list, pd.Series]:
+    """Returns a rolling sum of candles since the last cross/signal occurred.
+
+    Parameters
+    ----------
+    crosses : list | pd.Series
+        The list or Series containing crossover signals.
+
+    Returns
+    -------
+    counts : TYPE
+        The rolling count of bars since the last crossover signal.
+        
+    See Also
+    ---------
+    indicators.crossover
+    """
     
     count = 0
-    count_list = []
+    counts = []
     
-    for i in range(len(cross_list)):
-
-        if cross_list[i] == 0:
+    for i in range(len(crosses)):
+        if crosses[i] == 0:
             # Change in signal - reset count
             count += 1
         else:
             count = 0
         
-        count_list.append(count)
+        counts.append(count)
     
-    return count_list
+    if isinstance(crosses, pd.Series):
+        # Convert to Series
+        counts = pd.Series(data=counts, index=crosses.index, name='counts')
+    
+    return counts
+
 
 def find_swings(data, data_type='ohlc', n = 2):
     '''
