@@ -495,8 +495,8 @@ def crossover(list_1, list_2):
 
 
 def cross_values(a, b, ab_crossover):
-    cross_point_list = [0]
-    last_cross_point = 0
+    last_cross_point = a[0]
+    cross_point_list = [last_cross_point]
     for i in range(1, len(ab_crossover)):
         if ab_crossover[i] != 0:
             i0 = 0
