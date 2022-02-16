@@ -488,29 +488,56 @@ def crossover(ts1: pd.Series, ts2: pd.Series) -> pd.Series:
     return crossovers
 
 
-def cross_values(a, b, ab_crossover):
-    last_cross_point = a[0]
-    cross_point_list = [last_cross_point]
-    for i in range(1, len(ab_crossover)):
-        if ab_crossover[i] != 0:
+def cross_values(ts1: Union[list, pd.Series], ts2: Union[list, pd.Series], 
+                 ts_crossover: Union[list, pd.Series] = None) -> Union[list, pd.Series]:
+    """Returns the approximate value of the point where the two series cross.
+
+    Parameters
+    ----------
+    ts1 : list | pd.Series
+        The first timeseries..
+    ts2 : list | pd.Series
+        The second timeseries..
+    ts_crossover : list | pd.Series, optional
+        The crossovers between timeseries 1 and timeseries 2.
+
+    Returns
+    -------
+    cross_points : list | pd.Series
+        The values at which crossovers occur.
+    """
+    
+    if ts_crossover is None:
+        ts_crossover = crossover(ts1, ts2)
+    
+    last_cross_point = ts1[0]
+    cross_points = [last_cross_point]
+    for i in range(1, len(ts_crossover)):
+        if ts_crossover[i] != 0:
             i0 = 0
-            m_a = a[i] - a[i-1]
-            m_b = b[i] - b[i-1]
-            ix = (b[i-1] - a[i-1])/(m_a-m_b) + i0
+            m_a = ts1[i] - ts1[i-1]
+            m_b = ts2[i] - ts2[i-1]
+            ix = (ts2[i-1] - ts1[i-1])/(m_a-m_b) + i0
             
-            cross_point = m_a*(ix - i0) + a[i-1]
+            cross_point = m_a*(ix - i0) + ts1[i-1]
             
             last_cross_point = cross_point
             
         else:
-            cross_point = last_cross_point #0
+            cross_point = last_cross_point
         
-        cross_point_list.append(cross_point)
+        cross_points.append(cross_point)
     
     # Replace nans with 0
-    cross_point_list = [0 if x!=x  else x for x in cross_point_list]
+    cross_points = [0 if x!=x  else x for x in cross_points]
     
-    return cross_point_list
+    if isinstance(ts1, pd.Series):
+        # Convert to Series
+        cross_points = pd.Series(data=cross_points, 
+                                 index=ts1.index, 
+                                 name='crossval')
+    
+    return cross_points
 
 
 def candles_between_crosses(crosses: Union[list, pd.Series]) -> Union[list, pd.Series]:
