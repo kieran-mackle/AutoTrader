@@ -10,8 +10,9 @@ import traceback
 import sys
 import time
 
+
 class IB:
-    def __init__(self, config, utils):
+    def __init__(self, config: dict, utils) -> None:
         
         return
         
