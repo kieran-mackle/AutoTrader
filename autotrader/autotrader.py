@@ -32,17 +32,17 @@ from autotrader.autobot import AutoTraderBot
 from autotrader.lib.bot_manager import ManageBot
 import time
 
-class AutoTrader():
+class AutoTrader:
     """
     AutoTrader: A Python-Based Development Platform For Automated Trading Systems.
     ------------------------------------------------------------------------------
-    Website: https://kieran-mackle.github.io/AutoTrader/
+    Homepage: https://kieran-mackle.github.io/AutoTrader/
     
     GitHub: https://github.com/kieran-mackle/AutoTrader
     
     Author: Kieran Mackle
     
-    Version: 0.5.x
+    Version: 0.5
 
     Attributes
     ----------
@@ -90,20 +90,33 @@ class AutoTrader():
     Methods
     -------
     run():
-        Runs AutoTrader.
-    
-    configure(feed='yahoo', verbosity=1, notify=0, home_dir=None,
-              use_stream=False, detach_bot=False,
-              check_data_alignment=True, allow_dancing_bears=False,
-              account_id=None, environment='demo', show_plot=False,
-              MTF_initialisation=False):
-        Configures various run settings for AutoTrader.
-    
-    add_strategy(strategy_filename=None, strategy_dict=None)
-        Adds a strategy to AutoTrader. 
-    
-    plot_backtest(bot=None):
-        Plots backtest results of an AutoTrader Bot.
+        Runs AutoTrader with configured settings.
+    configure():
+        Configures run settings for AutoTrader.
+    add_strategy():
+        Adds a strategy to the active AutoTrader instance. 
+    plot_settings():
+        Configures the plot settings for AutoPlot.
+    backtest():
+        Configures backtest settings.
+    add_data():
+        Specify local data files to use for backtests.
+    scan():
+        Configures scan settings.
+    optimise():
+        Configures optimisation settings.
+    analyse_backtest():
+        Analyse backtest results of a single trading bot.
+    multibot_backtest_analysis():
+        Analyses backtest results of multiple trading bots.
+    plot_backtest():
+        Plots backtest results of a trading Bot.
+    plot_multibot_backtest():
+        Plots backtest results for multiple trading bots.
+    print_backtest_results():
+        Prints backtest results.
+    print_multibot_backtest_results():
+        Prints a multi-bot backtest results.
     
     """
     
