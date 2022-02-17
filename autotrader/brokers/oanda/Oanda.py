@@ -527,7 +527,7 @@ class Oanda():
             
         output = {'Status': response.status, 
                   'Message': message}
-        
+        # TODO - print errors
         return output
     
     def update_data(self, pair, granularity, data):
@@ -721,7 +721,7 @@ class Oanda():
     
     def get_trade_unit_precision(self, instrument):
         ''' Returns the trade unit precision for the requested instrument. '''
-        
+        # TODO - implement checking using this method
         response = self.api.account.instruments(self.ACCOUNT_ID, 
                                                 instruments=instrument)
         
