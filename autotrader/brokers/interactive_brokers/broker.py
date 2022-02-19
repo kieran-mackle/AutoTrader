@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import v20
 from autotrader.brokers.interactive_brokers import utils
 import datetime
 import pandas as pd
@@ -9,6 +8,7 @@ import numpy as np
 import traceback
 import sys
 import time
+
 
 
 class IB:
