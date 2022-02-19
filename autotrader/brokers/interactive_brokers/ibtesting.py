@@ -2,6 +2,7 @@ from ibapi.client import EClient
 from ibapi.wrapper import EWrapper
 from ibapi.contract import Contract
 from ibapi.ticktype import TickTypeEnum
+from ibapi.order import Order
 
 import threading
 import time
@@ -20,10 +21,34 @@ class IBapi(EWrapper, EClient):
     def historical_data(self, reqID, bar):
         print(f'Time: {bar.date} Close: {bar.close}')
         self.data.append([bar.date, bar.close])
+        
+    def nextValidId(self, orderId: int):
+        super().nextValidId(orderId)
+        self.nextorderId = orderId
+        print('The next valid order id is: ', self.nextorderId)
+
+    def orderStatus(self, orderId, status, filled, remaining, avgFullPrice, permId, parentId, lastFillPrice, clientId, whyHeld, mktCapPrice):
+        print('orderStatus - orderid:', orderId, 'status:', status, 'filled', filled, 'remaining', remaining, 'lastFillPrice', lastFillPrice)
+	
+    def openOrder(self, orderId, contract, order, orderState):
+        print('openOrder id:', orderId, contract.symbol, contract.secType, '@', contract.exchange, ':', order.action, order.orderType, order.totalQuantity, orderState.status)
+
+    def execDetails(self, reqId, contract, execution):
+        print('Order Executed: ', reqId, contract.symbol, contract.secType, contract.currency, execution.execId, execution.orderId, execution.shares, execution.lastLiquidity)
+    
 
 def show_ticktypes():
     for i in range(91):
         print(TickTypeEnum.to_str(i), i)
+
+def FX_order(symbol):
+    "Creates FX order contract"
+    contract = Contract()
+    contract.symbol = symbol[:3]
+    contract.secType = 'CASH'
+    contract.exchange = 'IDEALPRO'
+    contract.currency = symbol[3:]
+    return contract
 
 
 # Test connection
@@ -35,6 +60,8 @@ def show_ticktypes():
 # Get current price of AAPL
 def run_loop():
     app.run()
+
+
 
 
 app = IBapi()
@@ -84,4 +111,48 @@ df['DateTime'] = pandas.to_datetime(df['DateTime'],unit='s')
 print(df)
 
 app.disconnect()
+
+
+# Fire order
+app.nextorderId = None
+api_thread = threading.Thread(target=run_loop, daemon=True)
+api_thread.start()
+
+while True:
+	if isinstance(app.nextorderId, int):
+		print('connected')
+		break
+	else:
+		print('waiting for connection')
+		time.sleep(1)
+
+#Create order object
+order = Order()
+order.action = 'BUY'
+order.totalQuantity = 100000
+order.orderType = 'LMT' # 'MKT'
+order.lmtPrice = '1.10'
+
+#Place order
+app.placeOrder(app.nextorderId, FX_order('EURUSD'), order)
+#app.nextorderId += 1   # Increment when placing multiple
+
+time.sleep(3)
+
+#Cancel order 
+print('cancelling order')
+app.cancelOrder(app.nextorderId)
+
+time.sleep(3)
+app.disconnect()
+
+
+
+
+
+
+
+
+
+
 
