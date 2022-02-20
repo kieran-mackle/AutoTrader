@@ -1,7 +1,8 @@
 from ibapi.client import EClient
 from ibapi.wrapper import EWrapper
 from ibapi.contract import Contract
-from ibapi.ticktype import TickTypeEnum
+from ibapi.ticktype import 
+from ibapi.order_condition import Create, OrderCondition
 from ibapi.order import Order
 
 import threading
@@ -118,6 +119,7 @@ app.nextorderId = None
 api_thread = threading.Thread(target=run_loop, daemon=True)
 api_thread.start()
 
+# Check if API is connected
 while True:
 	if isinstance(app.nextorderId, int):
 		print('connected')
@@ -148,10 +150,36 @@ app.disconnect()
 
 
 
+# SL / TP
+# First create main order
+order = Order()
+order.action = 'BUY'
+order.totalQuantity = 100000
+order.orderType = 'LMT'
+order.lmtPrice = '1.10'
+order.orderId = app.nextorderId
+app.nextorderId += 1
+order.transmit = False  # Do not process until SL order has been submitted
+
+# Then create stop loss order object
+stop_order = Order()
+stop_order.action = 'SELL'
+stop_order.totalQuantity = 100000
+stop_order.orderType = 'STP'
+stop_order.auxPrice = '1.09'
+stop_order.orderId = app.nextorderId
+app.nextorderId += 1
+stop_order.parentId = order.orderId
+order.transmit = True
+
+#Place orders
+app.placeOrder(order.orderId, FX_order('EURUSD'), order)
+app.placeOrder(stop_order.orderId, FX_order('EURUSD'), stop_order)
+
+app.disconnect()
 
 
-
-
+# Set order to fire at a set price
 
 
 
