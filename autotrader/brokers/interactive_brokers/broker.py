@@ -8,7 +8,7 @@ import ib_insync
 
 class InteractiveBroker:
     def __init__(self, config: dict, utils: Utils = None) -> None:
-        """InteractiveBroker Class constructor.
+        """AutoTrader-InteractiveBroker Class constructor.
         """
         
         self.utils = utils if utils is not None else Utils()
@@ -101,12 +101,14 @@ class InteractiveBroker:
         if symbol is not None:
             pass
         
-        return
+        return all_positions
     
     
     def get_trade_details(self, trade_ID: str):
         """Returns the details of the trade specified by trade_ID.
         """
+        
+        
         
         response = self.api.trade.list(accountID=self.ACCOUNT_ID, ids=int(trade_ID))
         trade = response.body['trades'][0]
@@ -171,6 +173,8 @@ class InteractiveBroker:
         """Returns all pending orders in the account.
         """
         
+        open_orders = self.ib.openOrders()
+        
         response = {}
         
         oanda_pending_orders = response.body['orders']
@@ -208,6 +212,9 @@ class InteractiveBroker:
     def cancel_pending_order(self, order_id):
         """Cancels pending order by order ID.
         """
+        # TODO - need to retrieve order object
+        self.ib.cancelOrder()
+        
         pass
     
     
@@ -215,7 +222,10 @@ class InteractiveBroker:
         """Returns the open trades held by the account. 
         """
         
-        self.check_connection()
+        open_trades = self.ib.openTrades()
+        
+        self._check_connection()
+        
         
         response = self.api.trade.list_open(accountID=self.ACCOUNT_ID)
         
@@ -255,7 +265,7 @@ class InteractiveBroker:
         """Gets the current positions open on the account.
         """
         
-        self.check_connection()
+        self._check_connection()
         
         response = self.api.position.list_open(accountID=self.ACCOUNT_ID)
         
@@ -317,6 +327,15 @@ class InteractiveBroker:
         order = ib_insync.MarketOrder(action, units)
         contract = self._build_contract(order_details['instrument'])
         trade = self.ib.placeOrder(contract, order)
+        
+        # order = self.ib.bracketOrder('BUY',
+        #                         100000,
+        #                         limitPrice=1.19,
+        #                         takeProfitPrice=1.20,
+        #                         stopLossPrice=1.18
+        #                         )
+        # for ord in eurusd_bracket_order:
+        #     self.ib.placeOrder(eur_usd_contract, ord)
         
         return trade
     
