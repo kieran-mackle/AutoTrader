@@ -1,4 +1,5 @@
 # from autotrader.brokers.interactive_brokers.utils import Utils
+from utils import Utils
 import datetime
 # import pandas as pd
 import numpy as np
@@ -6,19 +7,24 @@ import ib_insync
 
 
 class InteractiveBroker:
-    def __init__(self, config: dict, utils) -> None:
+    def __init__(self, config: dict, utils: Utils = None) -> None:
         """InteractiveBroker Class constructor.
         """
+        
+        self.utils = utils
         
         host = config['host'] if 'host' in config else '127.0.0.1'
         port = config['port'] if 'port' in config else 7497
         client_id = config['clientID'] if 'clientID' in config else 1
         read_only = config['read_only'] if 'read_only' in config else False
-        account = config['account'] if 'account' in config else ''
+        self.account = config['account'] if 'account' in config else ''
+        
+        # TODO - toggle when using interactive environments
+        ib_insync.util.startLoop()
         
         self.ib = ib_insync.IB()
         self.ib.connect(host=host, port=port, clientId=client_id, 
-                        readonly=read_only, account=account)
+                        readonly=read_only, account=self.account)
         
     
     def __repr__(self):
@@ -48,13 +54,12 @@ class InteractiveBroker:
         """Returns account summary.
         """
         
-        self.check_connection()
+        self._check_connection()
+        raw_summary = self.ib.accountSummary(self.account)
         
-        # response = self.api.account.get(accountID=self.ACCOUNT_ID)
-        response = self.api.account.summary(accountID=self.ACCOUNT_ID)
-        # print(response.body['account'])
+        summary = self.utils.accsum_to_dict(self.account, raw_summary)
         
-        return response
+        return summary
     
     
     def get_NAV(self):
