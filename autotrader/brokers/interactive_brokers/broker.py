@@ -5,16 +5,13 @@ from autotrader.brokers.interactive_brokers import utils
 import datetime
 import pandas as pd
 import numpy as np
-import traceback
-import sys
-import time
 import ib_insync
 
 
-class IB:
+class InteractiveBroker:
     def __init__(self, config: dict, utils) -> None:
-        self.ib = IB()
-        return
+        self.ib = ib_insync.IB()
+        self.ib.connect()
         
         
     def get_NAV(self):
@@ -78,6 +75,8 @@ class IB:
                     pending_orders[order.id] = new_order
             
         return pending_orders
+    
+    
     
     def cancel_pending_order(self, order_id):
         ''' Cancels pending order by ID. '''
@@ -165,10 +164,10 @@ class IB:
         return open_positions
     
     
-    def place_order(self, order_details):
-        '''
-        Parses order_details dict and handles order.
-        '''
+    def place_order(self, order_details: dict):
+        """Disassemble order_details dictionary to place order.
+        """
+        
         
         self.check_connection()
         
@@ -184,16 +183,14 @@ class IB:
             print("Order type not recognised.")
             return
         
-        # Check response
-        output = self.check_response(response)
-        
         return response
         
     
-    def place_market_order(self, order_details):
-        ''' Places market order. '''
+    def place_market_order(self, order_details: dict):
+        """Places a market order.
+        """
         
-        self.check_connection()
+        # ib_insync.MarketOrder(action, totalQuantity)
         
         stop_loss_details = self.get_stop_loss_details(order_details)
         take_profit_details = self.get_take_profit_details(order_details)
@@ -212,12 +209,10 @@ class IB:
     
     
     def place_stop_limit_order(self, order_details):
-        '''
-        Places MarketIfTouchedOrder with Oanda.
-        https://developer.oanda.com/rest-live-v20/order-df/
-        '''
+        """Places stop-limit order.
+        """
         
-        self.check_connection()
+        # ib_insync.StopLimitOrder(action, totalQuantity, lmtPrice, stopPrice)
         
         stop_loss_details = self.get_stop_loss_details(order_details)
         take_profit_details = self.get_take_profit_details(order_details)
@@ -241,10 +236,10 @@ class IB:
     
     
     def place_limit_order(self, order_details):
-        ''' (NOT YET IMPLEMENTED) PLaces limit order. '''
-        
-        self.check_connection()
-        
+        """Places limit order.
+        """
+        # ib_insync.LimitOrder(action, totalQuantity, lmtPrice)
+
 
     def get_stop_loss_details(self, order_details):
         ''' Constructs stop loss details dictionary. '''
