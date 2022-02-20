@@ -144,8 +144,6 @@ class InteractiveBroker:
     def get_price(self, symbol: str, snapshot: bool = True, **kwargs):
         """Returns current price (bid+ask) and home conversion factors.
         """
-        # TODO - calculate conversion factors
-        
         contract = self._build_contract(symbol)
         self.ib.qualifyContracts(contract)
         data = self.ib.reqMktData(contract, snapshot=snapshot)
@@ -155,7 +153,7 @@ class InteractiveBroker:
                  "negativeHCF": 1,
                  "positiveHCF": 1,
                  }
-    
+        
         return price
     
     
@@ -294,9 +292,6 @@ class InteractiveBroker:
         """Disassemble order_details dictionary to place order.
         """
         
-        
-        self.check_connection()
-        
         if order_details["order_type"] == 'market':
             response = self.place_market_order(order_details)
         elif order_details["order_type"] == 'stop-limit':
@@ -315,23 +310,15 @@ class InteractiveBroker:
     def place_market_order(self, order_details: dict):
         """Places a market order.
         """
+        self._check_connection()
         
-        # ib_insync.MarketOrder(action, totalQuantity)
+        action = 'BUY' if order_details["size"] > 0 else 'SELL'
+        units = abs(order_details["size"])
+        order = ib_insync.MarketOrder(action, units)
+        contract = self._build_contract(order_details['instrument'])
+        trade = self.ib.placeOrder(contract, order)
         
-        stop_loss_details = self.get_stop_loss_details(order_details)
-        take_profit_details = self.get_take_profit_details(order_details)
-        
-        # Check position size
-        size = self.check_trade_size(order_details["instrument"], 
-                                     order_details["size"])
-        
-        response = self.api.order.market(accountID = self.ACCOUNT_ID,
-                                         instrument = order_details["instrument"],
-                                         units = size,
-                                         takeProfitOnFill = take_profit_details,
-                                         stopLossOnFill = stop_loss_details,
-                                         )
-        return response
+        return trade
     
     
     def place_stop_limit_order(self, order_details):
@@ -371,9 +358,7 @@ class InteractiveBroker:
         """Constructs stop loss details dictionary.
         """
         
-        # https://developer.oanda.com/rest-live-v20/order-df/#OrderType
-        
-        self.check_connection()
+        self._check_connection()
         
         if order_details["stop_type"] is not None:
             price = self.check_precision(order_details["instrument"], 
@@ -395,7 +380,7 @@ class InteractiveBroker:
         """Constructs take profit details dictionary.
         """
         
-        self.check_connection()
+        self._check_connection()
         
         
         if order_details["take_profit"] is not None:
