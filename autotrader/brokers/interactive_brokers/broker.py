@@ -108,7 +108,8 @@ class InteractiveBroker:
     
     
     def get_pending_orders(self, instrument=None):
-        ''' Get all pending orders in the account. '''
+        """Returns all pending orders in the account.
+        """
         
         response = {}
         
@@ -151,11 +152,9 @@ class InteractiveBroker:
     
     
     def get_open_trades(self, instruments=None):
-        ''' 
-        Returns the open trades held by the account. 
+        """Returns the open trades held by the account. 
+        """
         
-        (incomplete implementation)
-        '''
         self.check_connection()
         
         response = self.api.trade.list_open(accountID=self.ACCOUNT_ID)
@@ -192,10 +191,9 @@ class InteractiveBroker:
         return open_trades
     
     
-    def get_open_positions(self, instrument=None):
-        ''' 
-        Gets the current positions open on the account. 
-        '''
+    def get_open_positions(self, symbol: str = None):
+        """Gets the current positions open on the account.
+        """
         
         self.check_connection()
         
@@ -222,9 +220,9 @@ class InteractiveBroker:
             
             pos['trade_IDs'] = trade_IDs
             
-            if instrument is not None and position.instrument == instrument:
+            if symbol is not None and position.instrument == symbol:
                 open_positions[position.instrument] = pos
-            elif instrument is None:
+            elif symbol is None:
                 open_positions[position.instrument] = pos
         
         return open_positions
@@ -308,7 +306,9 @@ class InteractiveBroker:
 
 
     def get_stop_loss_details(self, order_details):
-        ''' Constructs stop loss details dictionary. '''
+        """Constructs stop loss details dictionary.
+        """
+        
         # https://developer.oanda.com/rest-live-v20/order-df/#OrderType
         
         self.check_connection()
@@ -329,8 +329,9 @@ class InteractiveBroker:
         return stop_loss_details
     
     
-    def get_take_profit_details(self, order_details):
-        ''' Constructs take profit details dictionary. '''
+    def get_take_profit_details(self, order_details: dict):
+        """Constructs take profit details dictionary.
+        """
         
         self.check_connection()
         
@@ -345,40 +346,18 @@ class InteractiveBroker:
         return take_profit_details
 
     
-    def close_position(self, instrument, long_units=None, short_units=None,
-                       **dummy_inputs):
-        ''' Closes all open positions on an instrument. '''
-        
-        self.check_connection()
-        
-        # Check if the position is long or short
-        # Temp code to close all positions
-        # Close all long units
-        response = self.api.position.close(accountID=self.ACCOUNT_ID, 
-                                           instrument=instrument,
-                                           longUnits="ALL")
-        
-        # Close all short units
-        response = self.api.position.close(accountID=self.ACCOUNT_ID, 
-                                           instrument=instrument,
-                                           shortUnits="ALL")
-        
-        return response
+    def close_position(self, symbol: str, long_units: float = None, 
+                       short_units: float = None, **kwargs):
+        """Closes open position of symbol.
+        """
+        pass
     
     
-    def get_historical_data(self, pair, interval, from_time, to_time):
-        
-        self.check_connection()
-        
-        response        = self.api.instrument.candles(pair,
-                                                      granularity = interval,
-                                                      fromTime = from_time,
-                                                      toTime = to_time
-                                                      )
-        
-        data = self.utils.response_to_df(response)
-        
-        return data
+    def get_historical_data(self, symbol: str, interval: str, 
+                            from_time: str, to_time: str):
+        """Returns historical price data.
+        """
+        pass
     
     
     class Response:
