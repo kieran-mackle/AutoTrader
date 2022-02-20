@@ -1,6 +1,6 @@
 # from autotrader.brokers.interactive_brokers.utils import Utils
 import datetime
-import pandas as pd
+# import pandas as pd
 import numpy as np
 import ib_insync
 
@@ -10,13 +10,15 @@ class InteractiveBroker:
         """InteractiveBroker Class constructor.
         """
         
-        host = config['host']
-        port = config['port']
-        client_id = config['clientID']
-        read_only = config['read_only']
+        host = config['host'] if 'host' in config else '127.0.0.1'
+        port = config['port'] if 'port' in config else 7497
+        client_id = config['clientID'] if 'clientID' in config else 1
+        read_only = config['read_only'] if 'read_only' in config else False
+        account = config['account'] if 'account' in config else ''
         
-        # self.ib = ib_insync.IB()
-        # self.ib.connect()
+        self.ib = ib_insync.IB()
+        self.ib.connect(host=host, port=port, clientId=client_id, 
+                        readonly=read_only, account=account)
         
     
     def __repr__(self):
@@ -31,6 +33,7 @@ class InteractiveBroker:
         """Disconnects from IB application.
         """
         self.ib.disconnect()
+        
 
     def _check_connection(self):
         """Checks if there is an active connection to IB.
