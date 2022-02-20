@@ -19,6 +19,10 @@ class InteractiveBroker:
         read_only = config['read_only'] if 'read_only' in config else False
         self.account = config['account'] if 'account' in config else ''
         
+        # Set security type
+        self._security_type = 'stock' # Stock, Forex, CFD, Future, Option, Bond, Crypto
+        
+        
         # TODO - toggle when using interactive environments
         # ib_insync.util.startLoop()
         
@@ -90,7 +94,6 @@ class InteractiveBroker:
 
         """
         
-        
         # Get all positions
         all_positions = self.ib.positions()
         
@@ -149,8 +152,8 @@ class InteractiveBroker:
         
         price = {"ask": data.ask,
                  "bid": data.bid,
-                 "negativeHCF": None,
-                 "positiveHCF": None,
+                 "negativeHCF": 1,
+                 "positiveHCF": 1,
                  }
     
         return price
@@ -159,7 +162,11 @@ class InteractiveBroker:
     def _build_contract(self, symbol: str):
         """Builds IB contract based on provided symbol and security type.
         """
-        pass
+        # TODO - will need more customisation
+        contract_object = getattr(ib_insync, self._security_type)
+        contract = contract_object(symbol)
+        
+        return contract
     
     
     def get_pending_orders(self, instrument=None):
