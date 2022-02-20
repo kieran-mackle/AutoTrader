@@ -1,7 +1,4 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-
-from autotrader.brokers.interactive_brokers.utils import Utils
+# from autotrader.brokers.interactive_brokers.utils import Utils
 import datetime
 import pandas as pd
 import numpy as np
@@ -9,12 +6,16 @@ import ib_insync
 
 
 class InteractiveBroker:
-    def __init__(self, config: dict, utils: Utils) -> None:
+    def __init__(self, config: dict, utils) -> None:
         """InteractiveBroker Class constructor.
         """
         # self.ib = ib_insync.IB()
         # self.ib.connect()
         
+    
+    def __repr__(self):
+        return 'AutoTrader-InteractiveBrokers interface'
+    
     
     def __str__(self):
         return 'AutoTrader-InteractiveBrokers interface'
@@ -96,6 +97,7 @@ class InteractiveBroker:
         # TODO - calculate conversion factors
         
         contract = self._build_contract(symbol)
+        self.ib.qualifyContracts(contract)
         data = self.ib.reqMktData(contract, snapshot=snapshot)
         
         price = {"ask": data.ask,
@@ -105,6 +107,12 @@ class InteractiveBroker:
                  }
     
         return price
+    
+    
+    def _build_contract(self, symbol: str):
+        """Builds IB contract based on provided symbol and security type.
+        """
+        pass
     
     
     def get_pending_orders(self, instrument=None):
