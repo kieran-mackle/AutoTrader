@@ -18,12 +18,18 @@ class IB:
         
         
     def get_NAV(self):
+        """Returns the net asset/liquidation value of the account.
+        """
+        
+        # nav = (float([i.value for i in self.ib.accountSummary() if i.tag == 'NetLiquidation'][0]))
+        
         return
     
     
     def get_price(self, symbol: str, snapshot: bool = True, **kwargs):
         """Returns current price (bid+ask) and home conversion factors.
         """
+        # TODO - calculate conversion factors
         
         contract = self._build_contract(symbol)
         data = self.ib.reqMktData(contract, snapshot=snapshot)
@@ -35,6 +41,7 @@ class IB:
                  }
     
         return price
+    
     
     def get_pending_orders(self, instrument=None):
         ''' Get all pending orders in the account. '''
