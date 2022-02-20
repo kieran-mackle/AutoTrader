@@ -32,6 +32,7 @@ class Utils(BrokerUtils):
         
         return output
     
+    
     def check_precision(self, pair, price):
         ''' Modify a price based on required ordering precision for pair. ''' 
         N               = self.get_precision(pair)
@@ -60,4 +61,34 @@ class Utils(BrokerUtils):
         trade_unit_precision = response.body['instruments'][0].tradeUnitsPrecision
         
         return round(units, trade_unit_precision)
+    
+    
+    @staticmethod
+    def accsum_to_dict(account: str = None, data: list = None) -> dict:
+        """Returns account summary list as a dictionary.
+
+        Parameters
+        ----------
+        account : str
+            DESCRIPTION.
+        data : list
+            DESCRIPTION.
+
+        Returns
+        -------
+        out
+            DESCRIPTION.
+        """
+        
+        if account is None:
+            account = 'All'
+            
+        out = {}
+        for av in data:
+            if av.account == account:
+                out[av.tag] = {'value': av.value,
+                               'currency': av.currency,
+                               'modelCode': av.modelCode}
+        
+        return out
     
