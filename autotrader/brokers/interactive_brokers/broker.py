@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from autotrader.brokers.interactive_brokers import utils
+from autotrader.brokers.interactive_brokers.utils import Utils
 import datetime
 import pandas as pd
 import numpy as np
@@ -9,11 +9,29 @@ import ib_insync
 
 
 class InteractiveBroker:
-    def __init__(self, config: dict, utils) -> None:
-        self.ib = ib_insync.IB()
-        self.ib.connect()
+    def __init__(self, config: dict, utils: Utils) -> None:
+        """InteractiveBroker Class constructor.
+        """
+        # self.ib = ib_insync.IB()
+        # self.ib.connect()
         
+    
+    def __str__(self):
+        return 'AutoTrader-InteractiveBrokers interface'
+    
+    
+    def get_summary(self):
+        """Returns account summary.
+        """
         
+        self.check_connection()
+        
+        # response = self.api.account.get(accountID=self.ACCOUNT_ID)
+        response = self.api.account.summary(accountID=self.ACCOUNT_ID)
+        # print(response.body['account'])
+        
+        return response
+    
     def get_NAV(self):
         """Returns the net asset/liquidation value of the account.
         """
@@ -21,6 +39,65 @@ class InteractiveBroker:
         # nav = (float([i.value for i in self.ib.accountSummary() if i.tag == 'NetLiquidation'][0]))
         
         return
+    
+    
+    def get_balance(self):
+        ''' Returns account balance. '''
+        
+        self.check_connection()
+        
+        response = self.api.account.get(accountID=self.ACCOUNT_ID)
+        
+        return response.body["account"].balance
+    
+        
+    
+    def get_position(self, instrument):
+        ''' Gets position from Oanda. '''
+        
+        self.check_connection()
+        
+        response = self.api.position.get(instrument = instrument, 
+                                         accountID = self.ACCOUNT_ID)
+        
+        return response.body['position']
+    
+    
+    def get_trade_details(self, trade_ID):
+        """Returns the details of the trade specified by trade_ID.
+        """
+        
+        response = self.api.trade.list(accountID=self.ACCOUNT_ID, ids=int(trade_ID))
+        trade = response.body['trades'][0]
+        
+        details = {'direction': int(np.sign(trade.currentUnits)), 
+                   'stop_loss': 82.62346473606581, 
+                   'order_time': datetime.datetime.strptime(trade.openTime[:-4], '%Y-%m-%dT%H:%M:%S.%f'), 
+                   'instrument': trade.instrument, 
+                   'size': trade.currentUnits,
+                 'order_price': trade.price, 
+                 'order_ID': trade.id, 
+                 'time_filled': trade.openTime, 
+                 'entry_price': trade.price, 
+                 'unrealised_PL': trade.unrealizedPL, 
+                 'margin_required': trade.marginUsed}
+        
+        # Get associated trades
+        related = []
+        try:
+            details['take_profit'] = trade.takeProfitOrder.price
+            related.append(trade.takeProfitOrder.id)
+        except:
+            pass
+        
+        try:
+            details['stop_loss'] = trade.stopLossOrder.price
+            related.append(trade.stopLossOrder.id)
+        except:
+            pass
+        details['related_orders'] = related
+        
+        return details
     
     
     def get_price(self, symbol: str, snapshot: bool = True, **kwargs):
@@ -278,55 +355,6 @@ class InteractiveBroker:
         
         return take_profit_details
 
-
-    def get_data(self, pair, period, interval):
-        # print("Getting data for {}".format(pair))
-        
-        self.check_connection()
-        
-        response    = self.api.instrument.candles(pair,
-                                             granularity = interval,
-                                             count = period,
-                                             dailyAlignment = 0
-                                             )
-        
-        data        = utils.response_to_df(response)
-        
-        return data
-    
-    
-    def get_balance(self):
-        ''' Returns account balance. '''
-        
-        self.check_connection()
-        
-        response = self.api.account.get(accountID=self.ACCOUNT_ID)
-        
-        return response.body["account"].balance
-    
-    
-    def get_summary(self):
-        ''' Returns account summary. '''
-        
-        self.check_connection()
-        
-        # response = self.api.account.get(accountID=self.ACCOUNT_ID)
-        response = self.api.account.summary(accountID=self.ACCOUNT_ID)
-        # print(response.body['account'])
-        
-        return response
-    
-    
-    def get_position(self, instrument):
-        ''' Gets position from Oanda. '''
-        
-        self.check_connection()
-        
-        response = self.api.position.get(instrument = instrument, 
-                                         accountID = self.ACCOUNT_ID)
-        
-        return response.body['position']
-    
     
     def close_position(self, instrument, long_units=None, short_units=None,
                        **dummy_inputs):
@@ -349,139 +377,6 @@ class InteractiveBroker:
         return response
     
     
-    def get_precision(self, pair):
-        ''' Returns the allowable precision for a given pair '''
-        
-        response = self.api.account.instruments(accountID = self.ACCOUNT_ID, 
-                                                instruments = pair)
-        
-        precision = response.body['instruments'][0].displayPrecision
-        
-        return precision
-
-    
-    def check_precision(self, pair, price):
-        ''' Modify a price based on required ordering precision for pair. ''' 
-        N               = self.get_precision(pair)
-        corrected_price = round(price, N)
-        
-        return corrected_price
-    
-    
-    def check_trade_size(self, pair, units):
-        ''' Checks the requested trade size against the minimum trade size 
-            allowed for the currency pair. '''
-        response = self.api.account.instruments(accountID=self.ACCOUNT_ID, 
-                                                instruments = pair)
-        # minimum_units = response.body['instruments'][0].minimumTradeSize
-        trade_unit_precision = response.body['instruments'][0].tradeUnitsPrecision
-        
-        return round(units, trade_unit_precision)
-    
-    
-    def get_trade_details(self, trade_ID):
-        'Returns the details of the trade specified by trade_ID.'
-        
-        response = self.api.trade.list(accountID=self.ACCOUNT_ID, ids=int(trade_ID))
-        trade = response.body['trades'][0]
-        
-        details = {'direction': int(np.sign(trade.currentUnits)), 
-                   'stop_loss': 82.62346473606581, 
-                   'order_time': datetime.datetime.strptime(trade.openTime[:-4], '%Y-%m-%dT%H:%M:%S.%f'), 
-                   'instrument': trade.instrument, 
-                   'size': trade.currentUnits,
-                 'order_price': trade.price, 
-                 'order_ID': trade.id, 
-                 'time_filled': trade.openTime, 
-                 'entry_price': trade.price, 
-                 'unrealised_PL': trade.unrealizedPL, 
-                 'margin_required': trade.marginUsed}
-        
-        # Get associated trades
-        related = []
-        try:
-            details['take_profit'] = trade.takeProfitOrder.price
-            related.append(trade.takeProfitOrder.id)
-        except:
-            pass
-        
-        try:
-            details['stop_loss'] = trade.stopLossOrder.price
-            related.append(trade.stopLossOrder.id)
-        except:
-            pass
-        details['related_orders'] = related
-        
-        return details
-    
-    
-    def check_response(self, response):
-        ''' Checks API response (currently only for placing orders) '''
-        if response.status != 201:
-            message = response.body['errorMessage']
-        else:
-            message = "Success."
-            
-        output = {'Status': response.status, 
-                  'Message': message}
-        # TODO - print errors
-        return output
-    
-    
-    def update_data(self, pair, granularity, data):
-        ''' Attempts to construct the latest candle when there is a delay in the 
-            api feed.
-        '''
-        
-        granularity_details = self.deconstruct_granularity(granularity)
-        secs = granularity_details['seconds']
-        mins = granularity_details['minutes']
-        hrs  = granularity_details['hours']
-        days = granularity_details['days']
-        
-        # TODO: make this a function of original granularity
-        # Done, but now I think, maybe this should always be something like S5?
-        small_granularity = self.get_reduced_granularity(granularity_details, 
-                                                         25)
-        
-        # Get data equivalent of last candle's granularity
-        time_now        = datetime.datetime.now()
-        start_time      = time_now - datetime.timedelta(seconds = secs,
-                                                        minutes = mins,
-                                                        hours = hrs,
-                                                        days = days)
-        latest_data     = self.get_historical_data(pair, 
-                                                   small_granularity, 
-                                                   start_time.timestamp(), 
-                                                   time_now.timestamp())
-        
-        # Get latest price data
-        latest_close    = latest_data.Close.values[0]
-        
-        open_price      = data.Close.values[-1]
-        close_price     = latest_close
-        high_price      = max(latest_data.High.values)
-        low_price       = min(latest_data.Low.values)
-        last_time       = data.index[-1]
-        stripped_time   = datetime.datetime.strptime(last_time.strftime("%Y-%m-%d %H:%M:%S%z"),
-                                                      "%Y-%m-%d %H:%M:%S%z")
-        new_time        = stripped_time + datetime.timedelta(seconds = secs,
-                                                              minutes = mins,
-                                                              hours = hrs,
-                                                              days = days)
-        
-        new_candle      = pd.DataFrame({'Open'  : open_price, 
-                                        'High'  : high_price,
-                                        'Low'   : low_price,
-                                        'Close' : close_price},
-                                        index=[new_time])
-        
-        
-        new_data        = pd.concat([data, new_candle])
-        
-        return new_data
-    
-    
     def get_historical_data(self, pair, interval, from_time, to_time):
         
         self.check_connection()
@@ -492,39 +387,6 @@ class InteractiveBroker:
                                                       toTime = to_time
                                                       )
         
-        data = utils.response_to_df(response)
+        data = self.utils.response_to_df(response)
         
         return data
-    
-    
-    def get_order_book(self, instrument):
-        ''' Returns the order book of the instrument specified. '''
-        
-        response = self.api.instrument.order_book(instrument)
-        
-        return response.body['orderBook']
-        
-    
-    def get_position_book(self, instrument):
-        ''' Returns the position book of the instrument specified. '''
-        
-        response = self.api.instrument.position_book(instrument)
-        
-        return response.body['positionBook']
-    
-    
-    def get_pip_location(self, instrument):
-        ''' Returns the pip location of the requested instrument. '''
-        
-        response = self.api.account.instruments(self.ACCOUNT_ID, 
-                                                instruments=instrument)
-        
-        return response.body['instruments'][0].pipLocation
-    
-    
-    def get_trade_unit_precision(self, instrument):
-        ''' Returns the trade unit precision for the requested instrument. '''
-        response = self.api.account.instruments(self.ACCOUNT_ID, 
-                                                instruments=instrument)
-        
-        return response.body['instruments'][0].tradeUnitsPrecision
