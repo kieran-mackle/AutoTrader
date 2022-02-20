@@ -9,6 +9,12 @@ class InteractiveBroker:
     def __init__(self, config: dict, utils) -> None:
         """InteractiveBroker Class constructor.
         """
+        
+        host = config['host']
+        port = config['port']
+        client_id = config['clientID']
+        read_only = config['read_only']
+        
         # self.ib = ib_insync.IB()
         # self.ib.connect()
         
@@ -21,6 +27,20 @@ class InteractiveBroker:
         return 'AutoTrader-InteractiveBrokers interface'
     
     
+    def _disconnect(self):
+        """Disconnects from IB application.
+        """
+        self.ib.disconnect()
+
+    def _check_connection(self):
+        """Checks if there is an active connection to IB.
+        """
+        connected = self.ib.isConnected()
+        
+        if not connected:
+            raise ConnectionError("No active connection to IB.")
+        
+        
     def get_summary(self):
         """Returns account summary.
         """
@@ -48,9 +68,28 @@ class InteractiveBroker:
         return
         
     
-    def get_position(self, symbol: str):
+    def get_position(self, symbol: str = None):
         """Returns details of the current position in the requested symbol. 
+
+        Parameters
+        ----------
+        symbol : str, optional
+            DESCRIPTION. The default is None.
+
+        Returns
+        -------
+        None.
+
         """
+        
+        
+        # Get all positions
+        all_positions = self.ib.positions()
+        
+        # Filter by symbol
+        if symbol is not None:
+            pass
+        
         return
     
     
@@ -365,6 +404,7 @@ class InteractiveBroker:
                             from_time: str, to_time: str):
         """Returns historical price data.
         """
+        self.ib.reqHistoricalData()
         pass
     
     
