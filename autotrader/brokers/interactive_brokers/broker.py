@@ -32,38 +32,28 @@ class InteractiveBroker:
         
         return response
     
+    
     def get_NAV(self):
         """Returns the net asset/liquidation value of the account.
         """
-        
         # nav = (float([i.value for i in self.ib.accountSummary() if i.tag == 'NetLiquidation'][0]))
         
         return
     
     
     def get_balance(self):
-        ''' Returns account balance. '''
-        
-        self.check_connection()
-        
-        response = self.api.account.get(accountID=self.ACCOUNT_ID)
-        
-        return response.body["account"].balance
-    
+        """Returns account balance.
+        """
+        return
         
     
-    def get_position(self, instrument):
-        ''' Gets position from Oanda. '''
-        
-        self.check_connection()
-        
-        response = self.api.position.get(instrument = instrument, 
-                                         accountID = self.ACCOUNT_ID)
-        
-        return response.body['position']
+    def get_position(self, symbol: str):
+        """Returns details of the current position in the requested symbol. 
+        """
+        return
     
     
-    def get_trade_details(self, trade_ID):
+    def get_trade_details(self, trade_ID: str):
         """Returns the details of the trade specified by trade_ID.
         """
         
@@ -154,12 +144,11 @@ class InteractiveBroker:
         return pending_orders
     
     
-    
     def cancel_pending_order(self, order_id):
-        ''' Cancels pending order by ID. '''
-        
-        self.api.order.cancel(accountID = self.ACCOUNT_ID, 
-                              orderSpecifier=str(order_id))
+        """Cancels pending order by order ID.
+        """
+        pass
+    
     
     def get_open_trades(self, instruments=None):
         ''' 
@@ -390,3 +379,9 @@ class InteractiveBroker:
         data = self.utils.response_to_df(response)
         
         return data
+    
+    
+    class Response:
+        """Response oject for handling errors."""
+        def __init__(self):
+            pass
