@@ -11,7 +11,7 @@ class InteractiveBroker:
         """InteractiveBroker Class constructor.
         """
         
-        self.utils = utils
+        self.utils = utils if utils is not None else Utils()
         
         host = config['host'] if 'host' in config else '127.0.0.1'
         port = config['port'] if 'port' in config else 7497
@@ -20,7 +20,7 @@ class InteractiveBroker:
         self.account = config['account'] if 'account' in config else ''
         
         # TODO - toggle when using interactive environments
-        ib_insync.util.startLoop()
+        # ib_insync.util.startLoop()
         
         self.ib = ib_insync.IB()
         self.ib.connect(host=host, port=port, clientId=client_id, 
@@ -65,15 +65,15 @@ class InteractiveBroker:
     def get_NAV(self):
         """Returns the net asset/liquidation value of the account.
         """
-        # nav = (float([i.value for i in self.ib.accountSummary() if i.tag == 'NetLiquidation'][0]))
-        
-        return
+        summary = self.get_summary()
+        return summary['NetLiquidation']
     
     
     def get_balance(self):
         """Returns account balance.
         """
-        return
+        summary = self.get_summary()
+        return summary['TotalCashValue']
         
     
     def get_position(self, symbol: str = None):
