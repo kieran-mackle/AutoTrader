@@ -8,12 +8,12 @@ import numpy as np
 import traceback
 import sys
 import time
-
+import ib_insync
 
 
 class IB:
     def __init__(self, config: dict, utils) -> None:
-        
+        self.ib = IB()
         return
         
         
@@ -21,19 +21,17 @@ class IB:
         return
     
     
-    def get_price(self, instrument, **kwargs):
-        ''' Returns current price (bid+ask) and home conversion factors.'''
+    def get_price(self, symbol: str, snapshot: bool = True, **kwargs):
+        """Returns current price (bid+ask) and home conversion factors.
+        """
         
-        response = {}
-        ask = response.body["prices"][0].closeoutAsk
-        bid = response.body["prices"][0].closeoutBid
-        negativeHCF = response.body["prices"][0].quoteHomeConversionFactors.negativeUnits
-        positiveHCF = response.body["prices"][0].quoteHomeConversionFactors.positiveUnits
-    
-        price = {"ask": ask,
-                 "bid": bid,
-                 "negativeHCF": negativeHCF,
-                 "positiveHCF": positiveHCF
+        contract = self._build_contract(symbol)
+        data = self.ib.reqMktData(contract, snapshot=snapshot)
+        
+        price = {"ask": data.ask,
+                 "bid": data.bid,
+                 "negativeHCF": None,
+                 "positiveHCF": None,
                  }
     
         return price
