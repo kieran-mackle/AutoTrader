@@ -99,6 +99,7 @@ class InteractiveBroker:
         
         # Filter by symbol
         if symbol is not None:
+            # TODO - implement
             pass
         
         return all_positions
@@ -107,8 +108,7 @@ class InteractiveBroker:
     def get_trade_details(self, trade_ID: str):
         """Returns the details of the trade specified by trade_ID.
         """
-        
-        
+        # TODO - implement
         
         response = self.api.trade.list(accountID=self.ACCOUNT_ID, ids=int(trade_ID))
         trade = response.body['trades'][0]
@@ -118,12 +118,12 @@ class InteractiveBroker:
                    'order_time': datetime.datetime.strptime(trade.openTime[:-4], '%Y-%m-%dT%H:%M:%S.%f'), 
                    'instrument': trade.instrument, 
                    'size': trade.currentUnits,
-                 'order_price': trade.price, 
-                 'order_ID': trade.id, 
-                 'time_filled': trade.openTime, 
-                 'entry_price': trade.price, 
-                 'unrealised_PL': trade.unrealizedPL, 
-                 'margin_required': trade.marginUsed}
+                   'order_price': trade.price, 
+                   'order_ID': trade.id, 
+                   'time_filled': trade.openTime, 
+                   'entry_price': trade.price, 
+                   'unrealised_PL': trade.unrealizedPL, 
+                   'margin_required': trade.marginUsed}
         
         # Get associated trades
         related = []
@@ -172,7 +172,7 @@ class InteractiveBroker:
     def get_pending_orders(self, instrument=None):
         """Returns all pending orders in the account.
         """
-        
+        # Get all open orders
         open_orders = self.ib.openOrders()
         
         response = {}
@@ -221,7 +221,7 @@ class InteractiveBroker:
     def get_open_trades(self, instruments=None):
         """Returns the open trades held by the account. 
         """
-        
+        # Get all open trades
         open_trades = self.ib.openTrades()
         
         self._check_connection()

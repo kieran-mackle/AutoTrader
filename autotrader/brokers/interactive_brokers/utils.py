@@ -92,3 +92,20 @@ class Utils(BrokerUtils):
         
         return out
     
+    @staticmethod
+    def positionlist_to_dict(positions: list) -> dict:
+        """Returns position list as a dictionary.
+
+        Parameters
+        ----------
+        positions : list
+            DESCRIPTION.
+
+        Returns
+        -------
+        dict
+            DESCRIPTION.
+
+        """
+        pass
+    
