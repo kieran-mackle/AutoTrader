@@ -261,8 +261,6 @@ class InteractiveBroker:
     def get_open_trades(self, symbol: str = None):
         """Returns the open trades held by the account. 
         """
-        # TODO - verify functionality
-        
         self._check_connection()
         
         # Get all open trades
@@ -397,28 +395,18 @@ class InteractiveBroker:
     def _place_stop_limit_order(self, order_details):
         """Places stop-limit order.
         """
-        # TODO - implement
-        # ib_insync.StopLimitOrder(action, totalQuantity, lmtPrice, stopPrice)
+        # TODO - implement SL and TP
+        self._check_connection()
         
-        stop_loss_details = self._get_stop_loss_details(order_details)
-        take_profit_details = self._get_take_profit_details(order_details)
+        action = 'BUY' if order_details["size"] > 0 else 'SELL'
+        units = abs(order_details["size"])
+        lmtPrice = order_details["order_limit_price"]
+        stopPrice = order_details["order_stop_price"]
+        order = ib_insync.StopLimitOrder(action, units, lmtPrice, stopPrice)
+        contract = self._build_contract(order_details)
+        trade = self.ib.placeOrder(contract, order)
         
-        # Check and correct order stop price
-        price = self.check_precision(order_details["instrument"], 
-                                     order_details["order_stop_price"])
-        
-        trigger_condition = order_details["trigger_price"] if "trigger_price" in order_details else "DEFAULT"
-        
-        # Need to test cases when no stop/take is provided (as None type)
-        response = self.api.order.market_if_touched(accountID   = self.ACCOUNT_ID,
-                                                    instrument  = order_details["instrument"],
-                                                    units       = order_details["size"],
-                                                    price       = str(price),
-                                                    takeProfitOnFill = take_profit_details,
-                                                    stopLossOnFill = stop_loss_details,
-                                                    triggerCondition = trigger_condition
-                                                    )
-        return response
+        return trade
     
     
     def _place_limit_order(self, order_details):
