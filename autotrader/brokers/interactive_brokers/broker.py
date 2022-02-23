@@ -151,6 +151,7 @@ class InteractiveBroker:
     def get_price(self, symbol: str, snapshot: bool = True, **kwargs):
         """Returns current price (bid+ask) and home conversion factors.
         """
+        # TODO - verify functionality
         contract = self._build_contract(symbol)
         self.ib.qualifyContracts(contract)
         data = self.ib.reqMktData(contract, snapshot=snapshot)
@@ -182,11 +183,11 @@ class InteractiveBroker:
             contract = contract_object(symbol=symbol, exchange=exchange, currency=currency)
             
         elif security_type == 'Options':
-            raise NotImplementedError("Contract building for this contract type is not supported yet.")
+            raise NotImplementedError("Contract building for this security type is not supported yet.")
         elif security_type == 'Future':
-            raise NotImplementedError("Contract building for this contract type is not supported yet.")
+            raise NotImplementedError("Contract building for this security type is not supported yet.")
         elif security_type == 'ContFuture':
-            raise NotImplementedError("Contract building for this contract type is not supported yet.")
+            raise NotImplementedError("Contract building for this security type is not supported yet.")
             
         elif security_type == 'Forex':
             # pair='', exchange='IDEALPRO', symbol='', currency='', **kwargs)
@@ -194,62 +195,65 @@ class InteractiveBroker:
             contract = contract_object(pair=symbol, exchange=exchange)
             
         elif security_type == 'Index':
-            raise NotImplementedError("Contract building for this contract type is not supported yet.")
+            raise NotImplementedError("Contract building for this security type is not supported yet.")
         elif security_type == 'CFD':
-            raise NotImplementedError("Contract building for this contract type is not supported yet.")
+            raise NotImplementedError("Contract building for this security type is not supported yet.")
         elif security_type == 'Commodity':
-            raise NotImplementedError("Contract building for this contract type is not supported yet.")
+            raise NotImplementedError("Contract building for this security type is not supported yet.")
         elif security_type == 'Bond':
-            raise NotImplementedError("Contract building for this contract type is not supported yet.")
+            raise NotImplementedError("Contract building for this security type is not supported yet.")
         elif security_type == 'FuturesOption':
-            raise NotImplementedError("Contract building for this contract type is not supported yet.")
+            raise NotImplementedError("Contract building for this security type is not supported yet.")
         elif security_type == 'MutualFund':
-            raise NotImplementedError("Contract building for this contract type is not supported yet.")
+            raise NotImplementedError("Contract building for this security type is not supported yet.")
         elif security_type == 'Warrant':
-            raise NotImplementedError("Contract building for this contract type is not supported yet.")
+            raise NotImplementedError("Contract building for this security type is not supported yet.")
         elif security_type == 'Bag':
-            raise NotImplementedError("Contract building for this contract type is not supported yet.")
+            raise NotImplementedError("Contract building for this security type is not supported yet.")
         elif security_type == 'Crypto':
-            raise NotImplementedError("Contract building for this contract type is not supported yet.")
+            raise NotImplementedError("Contract building for this security type is not supported yet.")
         
         return contract
     
     
-    def get_pending_orders(self, instrument=None):
-        """Returns all pending orders in the account.
+    def get_pending_orders(self, symbol=None):
+        """Returns all pending orders (have not been filled) in the account.
         """
-        # Get all open orders
-        open_orders = self.ib.openOrders()
+        # Get all open trades
+        open_trades = self.ib.openTrades()
         
-        response = {}
-        
-        oanda_pending_orders = response.body['orders']
         pending_orders = {}
-        
-        for order in oanda_pending_orders:
-            if order.type != 'TAKE_PROFIT' and order.type != 'STOP_LOSS':
+        for trade in open_trades:
+            trade_dict = trade.dict()
+            contract = trade_dict['contract']
+            order_dict = trade_dict['order'].dict()
+            order_status_dict = trade_dict['orderStatus'].dict()
+            order_status = order_status_dict['status']
+            
+            if order_status in ib_insync.OrderStatus.ActiveStates:
+                # Order is still active (not yet filled)
                 new_order = {}
-                new_order['order_ID']           = order.id
-                new_order['order_type']         = order.type
-                new_order['order_stop_price']   = order.price
-                new_order['order_limit_price']  = order.price
-                new_order['direction']          = np.sign(order.units)
-                new_order['order_time']         = order.createTime
-                new_order['strategy']           = None
-                new_order['instrument']         = order.instrument
-                new_order['size']               = order.units
-                new_order['order_price']        = order.price
-                new_order['granularity']        = None
-                new_order['take_profit']        = order.takeProfitOnFill.price if order.takeProfitOnFill is not None else None
+                new_order['order_ID']           = order_dict['orderId']
+                new_order['order_type']         = order_dict['orderType']
+                new_order['order_stop_price']   = order_dict['auxPrice']
+                new_order['order_limit_price']  = order_dict['lmtPrice']
+                new_order['direction']          = 1 if order_dict['action'] == 'BUY' else -1
+                new_order['order_time']         = None
+                new_order['instrument']         = contract.symbol
+                new_order['size']               = order_dict['totalQuantity']
+                new_order['order_price']        = None
+                new_order['take_profit']        = None
                 new_order['take_distance']      = None
                 new_order['stop_type']          = None
                 new_order['stop_distance']      = None
                 new_order['stop_loss']          = None
                 new_order['related_orders']     = None
+                new_order['granularity']        = None
+                new_order['strategy']           = None
                 
-                if instrument is not None and order.instrument == instrument:
+                if symbol is not None and order.instrument == symbol:
                     pending_orders[order.id] = new_order
-                elif instrument is None:
+                elif symbol is None:
                     pending_orders[order.id] = new_order
             
         return pending_orders
