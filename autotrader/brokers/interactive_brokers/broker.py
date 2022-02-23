@@ -251,10 +251,10 @@ class InteractiveBroker:
                 new_order['granularity']        = None
                 new_order['strategy']           = None
                 
-                if symbol is not None and order.instrument == symbol:
-                    pending_orders[order.id] = new_order
+                if symbol is not None and contract.symbol == symbol:
+                    pending_orders[new_order['order_ID']] = new_order
                 elif symbol is None:
-                    pending_orders[order.id] = new_order
+                    pending_orders[new_order['order_ID']] = new_order
             
         return pending_orders
     
