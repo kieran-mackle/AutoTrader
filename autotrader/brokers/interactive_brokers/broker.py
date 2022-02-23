@@ -273,45 +273,50 @@ class InteractiveBroker:
         return cancelled_trades
     
     
-    def get_open_trades(self, instruments=None):
+    def get_open_trades(self, symbol: str = None):
         """Returns the open trades held by the account. 
         """
-        # Get all open trades
-        open_trades = self.ib.openTrades()
+        # TODO - verify functionality
         
         self._check_connection()
         
+        # Get all open trades
+        all_open_trades = self.ib.openTrades()
         
-        response = self.api.trade.list_open(accountID=self.ACCOUNT_ID)
-        
-        oanda_open_trades = response.body['trades']
         open_trades = {}
-        
-        for order in oanda_open_trades:
-            new_order = {}
-            new_order['order_ID']           = order.id
-            new_order['order_stop_price']   = order.price
-            new_order['order_limit_price']  = order.price
-            new_order['direction']          = np.sign(order.currentUnits)
-            new_order['order_time']         = order.openTime
-            new_order['instrument']         = order.instrument
-            new_order['size']               = order.currentUnits
-            new_order['order_price']        = order.price
-            new_order['entry_price']        = order.price
-            new_order['order_type']         = None
-            new_order['strategy']           = None
-            new_order['granularity']        = None
-            new_order['take_profit']        = None
-            new_order['take_distance']      = None
-            new_order['stop_type']          = None
-            new_order['stop_distance']      = None
-            new_order['stop_loss']          = None
-            new_order['related_orders']     = None
+        for trade in all_open_trades:
+            trade_dict = trade.dict()
+            contract = trade_dict['contract']
+            order_dict = trade_dict['order'].dict()
+            order_status_dict = trade_dict['orderStatus'].dict()
+            order_status = order_status_dict['status']
             
-            if instruments is not None and order.instrument in instruments:
-                open_trades[order.id] = new_order
-            elif instruments is None:
-                open_trades[order.id] = new_order
+            if order_status == 'Filled':
+                # Order is still active (not yet filled)
+                new_trade = {}
+                new_trade['order_ID']           = order_dict['orderId']
+                new_trade['order_stop_price']   = order_dict['auxPrice']
+                new_trade['order_limit_price']  = order_dict['lmtPrice']
+                new_trade['direction']          = 1 if order_dict['action'] == 'BUY' else -1
+                new_trade['order_time']         = None
+                new_trade['instrument']         = contract.symbol
+                new_trade['size']               = order_dict['totalQuantity']
+                new_trade['order_price']        = None
+                new_trade['entry_price']        = order_status_dict['lastFillPrice']
+                new_trade['order_type']         = None
+                new_trade['take_profit']        = None
+                new_trade['take_distance']      = None
+                new_trade['stop_type']          = None
+                new_trade['stop_distance']      = None
+                new_trade['stop_loss']          = None
+                new_trade['related_orders']     = None
+                new_trade['granularity']        = None
+                new_trade['strategy']           = None
+                
+                if symbol is not None and contract.symbol == symbol:
+                    open_trades[new_trade['order_ID']] = new_trade
+                elif symbol is None:
+                    open_trades[new_trade['order_ID']] = new_trade
         
         return open_trades
     
