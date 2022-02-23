@@ -191,7 +191,9 @@ class InteractiveBroker:
         
         
         if security_type == 'Stock':
-            raise NotImplementedError("Contract building for this contract type is not supported yet.")
+            # symbol='', exchange='', currency=''
+            exchange = exchange if exchange != '' else 'SMART'
+            contract = contract_object(symbol=symbol, exchange=exchange, currency=currency)
         elif security_type == 'Options':
             raise NotImplementedError("Contract building for this contract type is not supported yet.")
         elif security_type == 'Future':
@@ -200,7 +202,8 @@ class InteractiveBroker:
             raise NotImplementedError("Contract building for this contract type is not supported yet.")
         elif security_type == 'Forex':
             # pair='', exchange='IDEALPRO', symbol='', currency='', **kwargs)
-            contract = contract_object(symbol)
+            exchange = exchange if exchange != '' else 'IDEALPRO'
+            contract = contract_object(pair=symbol, exchange=exchange)
         elif security_type == 'Index':
             raise NotImplementedError("Contract building for this contract type is not supported yet.")
         elif security_type == 'CFD':
