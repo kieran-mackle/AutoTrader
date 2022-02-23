@@ -79,14 +79,14 @@ class InteractiveBroker:
         """Returns the net asset/liquidation value of the account.
         """
         summary = self.get_summary()
-        return summary['NetLiquidation']
+        return float(summary['NetLiquidation']['value'])
     
     
     def get_balance(self):
         """Returns account balance.
         """
         summary = self.get_summary()
-        return summary['TotalCashValue']
+        return float(summary['TotalCashValue']['value'])
         
     
     def get_position(self, symbol: str = None):
