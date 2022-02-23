@@ -17,7 +17,7 @@ class InteractiveBroker:
         port = config['port'] if 'port' in config else 7497
         client_id = config['clientID'] if 'clientID' in config else 1
         read_only = config['read_only'] if 'read_only' in config else False
-        self.account = config['account'] if 'account' in config else ''
+        account = config['account'] if 'account' in config else ''
         
         # Set security type
         self._security_type = 'stock' # Stock, Forex, CFD, Future, Option, Bond, Crypto
@@ -28,7 +28,9 @@ class InteractiveBroker:
         
         self.ib = ib_insync.IB()
         self.ib.connect(host=host, port=port, clientId=client_id, 
-                        readonly=read_only, account=self.account)
+                        readonly=read_only, account=account)
+        
+        self.account = account if account != '' else self._get_account()
         
     
     def __repr__(self):
@@ -53,7 +55,14 @@ class InteractiveBroker:
         if not connected:
             raise ConnectionError("No active connection to IB.")
         
-        
+    
+    def _get_account(self,):
+        """Gets first managed account.
+        """
+        accounts = self.ib.managedAccounts()
+        return accounts[0]
+    
+    
     def get_summary(self):
         """Returns account summary.
         """
