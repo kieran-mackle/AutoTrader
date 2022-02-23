@@ -22,10 +22,6 @@ class InteractiveBroker:
         # Set security type
         self._security_type = 'stock' # Stock, Forex, CFD, Future, Option, Bond, Crypto
         
-        
-        # TODO - toggle when using interactive environments
-        # ib_insync.util.startLoop()
-        
         self.ib = ib_insync.IB()
         self.ib.connect(host=host, port=port, clientId=client_id, 
                         readonly=read_only, account=account)
@@ -168,12 +164,61 @@ class InteractiveBroker:
         return price
     
     
-    def _build_contract(self, symbol: str):
+    def _build_contract(self, symbol: str, security_type: str,
+                        exchange: str = '', currency: str = ''
+                        ) -> ib_insync.contract.Contract:
         """Builds IB contract based on provided symbol and security type.
+
+        Parameters
+        ----------
+        symbol : str
+            DESCRIPTION.
+        security_type : str
+            DESCRIPTION.
+        exchange : str, optional
+            DESCRIPTION. The default is ''.
+        currency : str, optional
+            DESCRIPTION. The default is ''.
+
+        Returns
+        -------
+        contract : TYPE
+            DESCRIPTION.
+
         """
-        # TODO - will need more customisation
-        contract_object = getattr(ib_insync, self._security_type)
-        contract = contract_object(symbol)
+        
+        contract_object = getattr(ib_insync, security_type)
+        
+        
+        if security_type == 'Stock':
+            raise NotImplementedError("Contract building for this contract type is not supported yet.")
+        elif security_type == 'Options':
+            raise NotImplementedError("Contract building for this contract type is not supported yet.")
+        elif security_type == 'Future':
+            raise NotImplementedError("Contract building for this contract type is not supported yet.")
+        elif security_type == 'ContFuture':
+            raise NotImplementedError("Contract building for this contract type is not supported yet.")
+        elif security_type == 'Forex':
+            # pair='', exchange='IDEALPRO', symbol='', currency='', **kwargs)
+            contract = contract_object(symbol)
+        elif security_type == 'Index':
+            raise NotImplementedError("Contract building for this contract type is not supported yet.")
+        elif security_type == 'CFD':
+            raise NotImplementedError("Contract building for this contract type is not supported yet.")
+        elif security_type == 'Commodity':
+            raise NotImplementedError("Contract building for this contract type is not supported yet.")
+        elif security_type == 'Bond':
+            raise NotImplementedError("Contract building for this contract type is not supported yet.")
+        elif security_type == 'FuturesOption':
+            raise NotImplementedError("Contract building for this contract type is not supported yet.")
+        elif security_type == 'MutualFund':
+            raise NotImplementedError("Contract building for this contract type is not supported yet.")
+        elif security_type == 'Warrant':
+            raise NotImplementedError("Contract building for this contract type is not supported yet.")
+        elif security_type == 'Bag':
+            raise NotImplementedError("Contract building for this contract type is not supported yet.")
+        elif security_type == 'Crypto':
+            raise NotImplementedError("Contract building for this contract type is not supported yet.")
         
         return contract
     
