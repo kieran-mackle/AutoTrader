@@ -5,6 +5,14 @@ import datetime
 import numpy as np
 import ib_insync
 
+'''
+Notes and considerations:
+    - IB does not handle automatic base/quote exchanges, so either need 
+      to make that the onus of the user, or automate ... which will
+      require knowledge of the account currency
+    - close trade might not be as simple as a 'close' order, but rather the
+      opposite of what got the trade. Eg. selling a long trade.
+'''
 
 class InteractiveBroker:
     def __init__(self, config: dict, utils: Utils = None) -> None:
@@ -192,6 +200,7 @@ class InteractiveBroker:
         elif security_type == 'Forex':
             # pair='', exchange='IDEALPRO', symbol='', currency='', **kwargs)
             exchange = order_details['exchange'] if 'exchange' in order_details else 'IDEALPRO'
+            
             contract = contract_object(pair=symbol, exchange=exchange)
             
         elif security_type == 'Index':
@@ -363,11 +372,11 @@ class InteractiveBroker:
         """
         
         if order_details["order_type"] == 'market':
-            response = self.place_market_order(order_details)
+            response = self._place_market_order(order_details)
         elif order_details["order_type"] == 'stop-limit':
-            response = self.place_stop_limit_order(order_details)
+            response = self._place_stop_limit_order(order_details)
         elif order_details["order_type"] == 'limit':
-            response = self.place_limit_order(order_details)
+            response = self._place_limit_order(order_details)
         elif order_details["order_type"] == 'close':
             response = self.close_position(order_details["instrument"])
         else:
@@ -377,7 +386,7 @@ class InteractiveBroker:
         return response
         
     
-    def place_market_order(self, order_details: dict):
+    def _place_market_order(self, order_details: dict):
         """Places a market order.
         """
         self._check_connection()
@@ -388,6 +397,7 @@ class InteractiveBroker:
         contract = self._build_contract(order_details)
         trade = self.ib.placeOrder(contract, order)
         
+        # TODO - implement bracket order below
         # order = self.ib.bracketOrder('BUY',
         #                         100000,
         #                         limitPrice=1.19,
@@ -400,14 +410,14 @@ class InteractiveBroker:
         return trade
     
     
-    def place_stop_limit_order(self, order_details):
+    def _place_stop_limit_order(self, order_details):
         """Places stop-limit order.
         """
-        
+        # TODO - implement
         # ib_insync.StopLimitOrder(action, totalQuantity, lmtPrice, stopPrice)
         
-        stop_loss_details = self.get_stop_loss_details(order_details)
-        take_profit_details = self.get_take_profit_details(order_details)
+        stop_loss_details = self._get_stop_loss_details(order_details)
+        take_profit_details = self._get_take_profit_details(order_details)
         
         # Check and correct order stop price
         price = self.check_precision(order_details["instrument"], 
@@ -427,16 +437,17 @@ class InteractiveBroker:
         return response
     
     
-    def place_limit_order(self, order_details):
+    def _place_limit_order(self, order_details):
         """Places limit order.
         """
+        # TODO - implement
         # ib_insync.LimitOrder(action, totalQuantity, lmtPrice)
 
 
-    def get_stop_loss_details(self, order_details):
+    def _get_stop_loss_details(self, order_details):
         """Constructs stop loss details dictionary.
         """
-        
+        # TODO - implement
         self._check_connection()
         
         if order_details["stop_type"] is not None:
@@ -455,10 +466,10 @@ class InteractiveBroker:
         return stop_loss_details
     
     
-    def get_take_profit_details(self, order_details: dict):
+    def _get_take_profit_details(self, order_details: dict):
         """Constructs take profit details dictionary.
         """
-        
+        # TODO - implement
         self._check_connection()
         
         
@@ -476,6 +487,7 @@ class InteractiveBroker:
                        short_units: float = None, **kwargs):
         """Closes open position of symbol.
         """
+        # TODO - implement
         pass
     
     
@@ -484,10 +496,10 @@ class InteractiveBroker:
         """Returns historical price data.
         """
         self.ib.reqHistoricalData()
-        pass
     
     
     class Response:
         """Response oject for handling errors."""
+        # TODO - implement
         def __init__(self):
             pass
