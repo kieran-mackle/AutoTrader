@@ -164,46 +164,35 @@ class InteractiveBroker:
         return price
     
     
-    def _build_contract(self, symbol: str, security_type: str,
-                        exchange: str = '', currency: str = ''
-                        ) -> ib_insync.contract.Contract:
+    @staticmethod
+    def _build_contract(order_details: dict) -> ib_insync.contract.Contract:
         """Builds IB contract based on provided symbol and security type.
-
-        Parameters
-        ----------
-        symbol : str
-            DESCRIPTION.
-        security_type : str
-            DESCRIPTION.
-        exchange : str, optional
-            DESCRIPTION. The default is ''.
-        currency : str, optional
-            DESCRIPTION. The default is ''.
-
-        Returns
-        -------
-        contract : TYPE
-            DESCRIPTION.
-
         """
         
-        contract_object = getattr(ib_insync, security_type)
+        symbol = order_details['instrument']
+        security_type = order_details['secType']
         
+        # Get contract object
+        contract_object = getattr(ib_insync, security_type)
         
         if security_type == 'Stock':
             # symbol='', exchange='', currency=''
-            exchange = exchange if exchange != '' else 'SMART'
+            exchange = order_details['exchange'] if 'exchange' in order_details else 'SMART'
+            currency = order_details['currency'] if 'currency' in order_details else 'USD'
             contract = contract_object(symbol=symbol, exchange=exchange, currency=currency)
+            
         elif security_type == 'Options':
             raise NotImplementedError("Contract building for this contract type is not supported yet.")
         elif security_type == 'Future':
             raise NotImplementedError("Contract building for this contract type is not supported yet.")
         elif security_type == 'ContFuture':
             raise NotImplementedError("Contract building for this contract type is not supported yet.")
+            
         elif security_type == 'Forex':
             # pair='', exchange='IDEALPRO', symbol='', currency='', **kwargs)
-            exchange = exchange if exchange != '' else 'IDEALPRO'
+            exchange = order_details['exchange'] if 'exchange' in order_details else 'IDEALPRO'
             contract = contract_object(pair=symbol, exchange=exchange)
+            
         elif security_type == 'Index':
             raise NotImplementedError("Contract building for this contract type is not supported yet.")
         elif security_type == 'CFD':
@@ -382,7 +371,7 @@ class InteractiveBroker:
         action = 'BUY' if order_details["size"] > 0 else 'SELL'
         units = abs(order_details["size"])
         order = ib_insync.MarketOrder(action, units)
-        contract = self._build_contract(order_details['instrument'])
+        contract = self._build_contract(order_details)
         trade = self.ib.placeOrder(contract, order)
         
         # order = self.ib.bracketOrder('BUY',
