@@ -259,13 +259,18 @@ class InteractiveBroker:
         return pending_orders
     
     
-    def cancel_pending_order(self, order_id):
+    def cancel_pending_order(self, order_id: int):
         """Cancels pending order by order ID.
         """
-        # TODO - need to retrieve order object
-        self.ib.cancelOrder()
+        open_trades = self.ib.openTrades()
+        cancelled_trades = []
+        for trade in open_trades:
+            order = trade.order
+            if order.orderId == order_id:
+                cancel_trade = self.ib.cancelOrder(order)
+                cancelled_trades.append(cancel_trade)
         
-        pass
+        return cancelled_trades
     
     
     def get_open_trades(self, instruments=None):
