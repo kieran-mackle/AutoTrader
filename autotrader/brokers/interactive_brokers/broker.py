@@ -27,9 +27,6 @@ class InteractiveBroker:
         read_only = config['read_only'] if 'read_only' in config else False
         account = config['account'] if 'account' in config else ''
         
-        # Set security type
-        self._security_type = 'stock' # Stock, Forex, CFD, Future, Option, Bond, Crypto
-        
         self.ib = ib_insync.IB()
         self.ib.connect(host=host, port=port, clientId=client_id, 
                         readonly=read_only, account=account)
@@ -106,7 +103,7 @@ class InteractiveBroker:
         None.
 
         """
-        
+        # TODO - this is basically get_open_positions
         # Get all positions
         all_positions = self.ib.positions()
         
@@ -206,7 +203,11 @@ class InteractiveBroker:
         elif security_type == 'Index':
             raise NotImplementedError("Contract building for this security type is not supported yet.")
         elif security_type == 'CFD':
-            raise NotImplementedError("Contract building for this security type is not supported yet.")
+            # symbol='', exchange='', currency='',
+            exchange = order_details['exchange'] if 'exchange' in order_details else 'SMART'
+            currency = order_details['currency'] if 'currency' in order_details else 'USD'
+            contract = contract_object(symbol=symbol, exchange=exchange, currency=currency)
+            
         elif security_type == 'Commodity':
             raise NotImplementedError("Contract building for this security type is not supported yet.")
         elif security_type == 'Bond':
@@ -336,33 +337,27 @@ class InteractiveBroker:
         
         self._check_connection()
         
-        response = self.api.position.list_open(accountID=self.ACCOUNT_ID)
-        
-        oanda_open_positions = response.body['positions']
+        all_positions = self.ib.portfolio()
         open_positions = {}
+        for position in all_positions:
+            units = position.position
+            pnl = position.unrealizedPNL
+            pos_symbol = position.contract.localSymbol
+            pos_dict = {'long_units': units if np.sign(units) > 0 else 0,
+                        'long_PL': pnl if np.sign(units) > 0 else 0,
+                        'long_margin': None,
+                        'short_units': units if np.sign(units) < 0 else 0,
+                        'short_PL': units if np.sign(units) < 0 else 0,
+                        'short_margin': None,
+                        'total_margin': None,
+                        'trade_IDs': None}
         
-        for position in oanda_open_positions:
-            pos = {'long_units': position.long.units,
-                   'long_PL': position.long.unrealizedPL,
-                   'long_margin': None,
-                   'short_units': position.short.units,
-                   'short_PL': position.short.unrealizedPL,
-                   'short_margin': None,
-                   'total_margin': position.marginUsed}
-            
-            # fetch trade ID'strade_IDs
-            trade_IDs = []
-            if abs(pos['long_units']) > 0: 
-                for ID in position.long.tradeIDs: trade_IDs.append(ID)
-            if abs(pos['short_units']) > 0: 
-                for ID in position.short.tradeIDs: trade_IDs.append(ID)
-            
-            pos['trade_IDs'] = trade_IDs
-            
-            if symbol is not None and position.instrument == symbol:
-                open_positions[position.instrument] = pos
+            if symbol is not None and pos_symbol == symbol:
+                # Only add positions in requested symbol
+                open_positions[pos_symbol] = pos_dict
             elif symbol is None:
-                open_positions[position.instrument] = pos
+                # Append all positions
+                open_positions[pos_symbol] = pos_dict
         
         return open_positions
     
@@ -378,7 +373,7 @@ class InteractiveBroker:
         elif order_details["order_type"] == 'limit':
             response = self._place_limit_order(order_details)
         elif order_details["order_type"] == 'close':
-            response = self.close_position(order_details["instrument"])
+            response = self.close_position(order_details)
         else:
             print("Order type not recognised.")
             return
@@ -483,7 +478,8 @@ class InteractiveBroker:
         return take_profit_details
 
     
-    def close_position(self, symbol: str, long_units: float = None, 
+    def close_position(self, order_details: dict, symbol: str, 
+                       long_units: float = None, 
                        short_units: float = None, **kwargs):
         """Closes open position of symbol.
         """
