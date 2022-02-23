@@ -412,8 +412,17 @@ class InteractiveBroker:
     def _place_limit_order(self, order_details):
         """Places limit order.
         """
-        # TODO - implement
-        # ib_insync.LimitOrder(action, totalQuantity, lmtPrice)
+        # TODO - implement SL and TP
+        self._check_connection()
+        
+        action = 'BUY' if order_details["size"] > 0 else 'SELL'
+        units = abs(order_details["size"])
+        lmtPrice = order_details["order_limit_price"]
+        order = ib_insync.LimitOrder(action, units, lmtPrice)
+        contract = self._build_contract(order_details)
+        trade = self.ib.placeOrder(contract, order)
+        
+        return trade
 
 
     def _get_stop_loss_details(self, order_details):
