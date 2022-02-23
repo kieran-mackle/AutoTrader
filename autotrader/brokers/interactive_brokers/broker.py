@@ -90,31 +90,6 @@ class InteractiveBroker:
         return float(summary['TotalCashValue']['value'])
         
     
-    def get_position(self, symbol: str = None):
-        """Returns details of the current position in the requested symbol. 
-
-        Parameters
-        ----------
-        symbol : str, optional
-            DESCRIPTION. The default is None.
-
-        Returns
-        -------
-        None.
-
-        """
-        # TODO - this is basically get_open_positions
-        # Get all positions
-        all_positions = self.ib.positions()
-        
-        # Filter by symbol
-        if symbol is not None:
-            # TODO - implement
-            pass
-        
-        return all_positions
-    
-    
     def get_trade_details(self, trade_ID: str):
         """Returns the details of the trade specified by trade_ID.
         """
@@ -331,8 +306,19 @@ class InteractiveBroker:
         return open_trades
     
     
-    def get_open_positions(self, symbol: str = None):
+    def get_open_positions(self, symbol: str = None) -> dict:
         """Gets the current positions open on the account.
+        
+        Parameters
+        ----------
+        symbol : str, optional
+            The local symbol. The default is None.
+
+        Returns
+        -------
+        open_positions : dict
+            A dictionary containing details of the open positions.
+            
         """
         
         self._check_connection()
@@ -342,7 +328,7 @@ class InteractiveBroker:
         for position in all_positions:
             units = position.position
             pnl = position.unrealizedPNL
-            pos_symbol = position.contract.localSymbol
+            pos_symbol = position.contract.localSymbol # TODO - this may need to be changed
             pos_dict = {'long_units': units if np.sign(units) > 0 else 0,
                         'long_PL': pnl if np.sign(units) > 0 else 0,
                         'long_margin': None,
@@ -350,7 +336,10 @@ class InteractiveBroker:
                         'short_PL': units if np.sign(units) < 0 else 0,
                         'short_margin': None,
                         'total_margin': None,
-                        'trade_IDs': None}
+                        'trade_IDs': None,
+                        'position': units,
+                        'PL': pnl,
+                        'contract': position.contract}
         
             if symbol is not None and pos_symbol == symbol:
                 # Only add positions in requested symbol
@@ -478,13 +467,24 @@ class InteractiveBroker:
         return take_profit_details
 
     
-    def close_position(self, order_details: dict, symbol: str, 
-                       long_units: float = None, 
-                       short_units: float = None, **kwargs):
+    def close_position(self, order_details: dict, **kwargs):
         """Closes open position of symbol.
         """
-        # TODO - implement
-        pass
+        # TODO - what happens when there are bracket orders?
+        
+        symbol = order_details['instrument']
+        position = self.get_open_positions(symbol)[symbol]
+        position_units = position['position']
+        
+        # Place opposing market order
+        action = 'BUY' if position_units < 0 else 'SELL'
+        units = abs(position_units)
+        order = ib_insync.MarketOrder(action, units)
+        contract = position['contract']
+        self.ib.qualifyContracts(contract)
+        trade = self.ib.placeOrder(contract, order)
+        
+        return trade
     
     
     def get_historical_data(self, symbol: str, interval: str, 
