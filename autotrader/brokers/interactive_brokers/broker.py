@@ -373,11 +373,37 @@ class InteractiveBroker:
         """
         self._check_connection()
         
+        # Build contract
+        contract = self._build_contract(order_details)
+        
+        # Create order(s)
         action = 'BUY' if order_details["size"] > 0 else 'SELL'
         units = abs(order_details["size"])
-        order = ib_insync.MarketOrder(action, units)
-        contract = self._build_contract(order_details)
-        trade = self.ib.placeOrder(contract, order)
+        market_order = ib_insync.MarketOrder(action, units)
+        
+        # TODO - move TP and SL into their own methods
+        
+        # if there is a TP or SL, market_order.transmit = False
+        
+        # TP order
+        takeProfit_order = ib_insync.LimitOrder(
+            reverseAction, quantity, takeProfitPrice,
+            orderId=self.client.getReqId(), # TODO - need to manage this...
+            transmit=False,
+            parentId=market_order.orderId)
+        
+        
+        # SL order
+        stopLoss_order = ib_insync.StopOrder(
+            reverseAction, quantity, stopLossPrice,
+            orderId=self.client.getReqId(), # TODO - need to manage this...
+            transmit=True,
+            parentId=market_order.orderId)
+        
+        # Submit orders
+        # for order in bracket:
+        #     self.ib.placeOrder(contract, order)
+        trade = self.ib.placeOrder(contract, market_order)
         
         # TODO - implement bracket order below
         # order = self.ib.bracketOrder('BUY',
@@ -388,6 +414,17 @@ class InteractiveBroker:
         #                         )
         # for ord in eurusd_bracket_order:
         #     self.ib.placeOrder(eur_usd_contract, ord)
+        
+        # Create bracket order composed of multiple orders,
+        # then submit with
+        
+        
+        '''
+        parent = ib
+        
+        '''
+        
+        
         
         return trade
     
