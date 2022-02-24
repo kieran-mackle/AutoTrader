@@ -386,6 +386,48 @@ class InteractiveBroker:
         self._process_orders(contract, orders)
         
     
+    def _place_stop_limit_order(self, order_details):
+        """Places stop-limit order.
+        """
+        self._check_connection()
+        
+        # Build contract
+        contract = self._build_contract(order_details)
+        
+        # Create stop limit order
+        action = 'BUY' if order_details["size"] > 0 else 'SELL'
+        units = abs(order_details["size"])
+        lmtPrice = order_details["order_limit_price"]
+        stopPrice = order_details["order_stop_price"]
+        order = ib_insync.StopLimitOrder(action, units, lmtPrice, stopPrice)
+        
+        # Attach SL and TP orders
+        orders = self._attach_auxiliary_orders(order_details, order)
+        
+        # Submit orders
+        self._process_orders(contract, orders)
+    
+    
+    def _place_limit_order(self, order_details):
+        """Places limit order.
+        """
+        self._check_connection()
+        
+        # Build contract
+        contract = self._build_contract(order_details)
+        
+        action = 'BUY' if order_details["size"] > 0 else 'SELL'
+        units = abs(order_details["size"])
+        lmtPrice = order_details["order_limit_price"]
+        order = ib_insync.LimitOrder(action, units, lmtPrice)
+        
+        # Attach SL and TP orders
+        orders = self._attach_auxiliary_orders(order_details, order)
+        
+        # Submit orders
+        self._process_orders(contract, orders)
+    
+    
     def _attach_auxiliary_orders(self, order_details: dict, 
                                  parent_order: ib_insync.order) -> list:
         orders = [parent_order]
@@ -444,78 +486,6 @@ class InteractiveBroker:
                                              transmit=False,
                                              parentId=parentId)
         return stopLoss_order
-    
-    
-    def _place_stop_limit_order(self, order_details):
-        """Places stop-limit order.
-        """
-        # TODO - implement SL and TP
-        self._check_connection()
-        
-        action = 'BUY' if order_details["size"] > 0 else 'SELL'
-        units = abs(order_details["size"])
-        lmtPrice = order_details["order_limit_price"]
-        stopPrice = order_details["order_stop_price"]
-        order = ib_insync.StopLimitOrder(action, units, lmtPrice, stopPrice)
-        contract = self._build_contract(order_details)
-        trade = self.ib.placeOrder(contract, order)
-        
-        return trade
-    
-    
-    def _place_limit_order(self, order_details):
-        """Places limit order.
-        """
-        # TODO - implement SL and TP
-        self._check_connection()
-        
-        action = 'BUY' if order_details["size"] > 0 else 'SELL'
-        units = abs(order_details["size"])
-        lmtPrice = order_details["order_limit_price"]
-        order = ib_insync.LimitOrder(action, units, lmtPrice)
-        contract = self._build_contract(order_details)
-        trade = self.ib.placeOrder(contract, order)
-        
-        return trade
-
-
-    def _get_stop_loss_details(self, order_details):
-        """Constructs stop loss details dictionary.
-        """
-        # TODO - implement
-        self._check_connection()
-        
-        if order_details["stop_type"] is not None:
-            price = self.check_precision(order_details["instrument"], 
-                                         order_details["stop_loss"])
-            
-            if order_details["stop_type"] == 'trailing':
-                # Trailing stop loss order
-                stop_loss_details = {"price": str(price),
-                                     "type": "TRAILING_STOP_LOSS"}
-            else:
-                stop_loss_details = {"price": str(price)}
-        else:
-            stop_loss_details = None
-        
-        return stop_loss_details
-    
-    
-    def _get_take_profit_details(self, order_details: dict):
-        """Constructs take profit details dictionary.
-        """
-        # TODO - implement
-        self._check_connection()
-        
-        
-        if order_details["take_profit"] is not None:
-            price = self.check_precision(order_details["instrument"], 
-                                         order_details["take_profit"])
-            take_profit_details = {"price": str(price)}
-        else:
-            take_profit_details = None
-        
-        return take_profit_details
 
     
     def close_position(self, order_details: dict, **kwargs):
