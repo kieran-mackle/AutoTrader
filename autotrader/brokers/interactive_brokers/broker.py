@@ -75,6 +75,7 @@ class InteractiveBroker:
     def _get_account(self,):
         """Gets first managed account.
         """
+        self._check_connection()
         accounts = self.ib.managedAccounts()
         return accounts[0]
     
@@ -108,6 +109,7 @@ class InteractiveBroker:
     def get_trade_details(self, trade_ID: str):
         """Returns the details of the trade specified by trade_ID.
         """
+        self._check_connection()
         # TODO - implement
         
         response = self.api.trade.list(accountID=self.ACCOUNT_ID, ids=int(trade_ID))
@@ -209,6 +211,9 @@ class InteractiveBroker:
     def cancel_pending_order(self, order_id: int):
         """Cancels pending order by order ID.
         """
+        # TODO - is this a private method? Cancelling by order id isn't natural... but it is
+        # consistent with virtual broker
+        
         self._check_connection()
         
         open_trades = self.ib.openTrades()
@@ -464,7 +469,23 @@ class InteractiveBroker:
             self.ib.placeOrder(contract, order)
     
     
-    # TODO - add OCA method
+    def _convert_to_oca(self, orders: list) -> list:
+        """Converts a list of Orders to One Cancels All group of orders.
+
+        Parameters
+        ----------
+        orders : list
+            A list of orders.
+
+        Returns
+        -------
+        oca_orders : list
+            The orders modified to be in a OCA group.
+        """
+        self._check_connection()
+        # TODO - verify functionality
+        oca_orders = self.ib.oneCancelsAll(orders)
+        return oca_orders
     
     
     def _create_take_profit_order(self, order_details: dict, parentId: int):
@@ -516,6 +537,7 @@ class InteractiveBroker:
             raise NotImplementedError("Contract building for this security type is not supported yet.")
         elif security_type == 'Future':
             raise NotImplementedError("Contract building for this security type is not supported yet.")
+            # TODO - add futures contract building
         elif security_type == 'ContFuture':
             raise NotImplementedError("Contract building for this security type is not supported yet.")
             
