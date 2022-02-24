@@ -61,9 +61,7 @@ class InteractiveBroker:
         """Checks if there is an active connection to IB.
         """
         self._refresh()
-        
         connected = self.ib.isConnected()
-        
         if not connected:
             raise ConnectionError("No active connection to IB.")
     
@@ -84,10 +82,8 @@ class InteractiveBroker:
     def get_summary(self):
         """Returns account summary.
         """
-        
         self._check_connection()
         raw_summary = self.ib.accountSummary(self.account)
-        
         summary = self.utils.accsum_to_dict(self.account, raw_summary)
         
         return summary
@@ -96,6 +92,7 @@ class InteractiveBroker:
     def get_NAV(self):
         """Returns the net asset/liquidation value of the account.
         """
+        self._check_connection()
         summary = self.get_summary()
         return float(summary['NetLiquidation']['value'])
     
@@ -103,6 +100,7 @@ class InteractiveBroker:
     def get_balance(self):
         """Returns account balance.
         """
+        self._check_connection()
         summary = self.get_summary()
         return float(summary['TotalCashValue']['value'])
         
@@ -148,6 +146,7 @@ class InteractiveBroker:
     def get_price(self, symbol: str, snapshot: bool = True, **kwargs):
         """Returns current price (bid+ask) and home conversion factors.
         """
+        self._check_connection()
         # TODO - verify functionality
         contract = self._build_contract(symbol)
         self.ib.qualifyContracts(contract)
@@ -165,6 +164,8 @@ class InteractiveBroker:
     def get_pending_orders(self, symbol=None):
         """Returns all pending orders (have not been filled) in the account.
         """
+        self._check_connection()
+        
         # Get all open trades
         open_trades = self.ib.openTrades()
         
@@ -315,6 +316,7 @@ class InteractiveBroker:
     def place_order(self, order_details: dict):
         """Disassemble order_details dictionary to place order.
         """
+        self._check_connection()
         
         if order_details["order_type"] == 'market':
             self._place_market_order(order_details)
@@ -333,10 +335,11 @@ class InteractiveBroker:
     def close_position(self, order_details: dict, **kwargs):
         """Closes open position of symbol.
         """
+        self._check_connection()
         # TODO - what happens when there are bracket orders?
         
         symbol = order_details['instrument']
-        position = self.get_open_positions(symbol)[symbol]
+        position = self.get_open_positions(symbol)[symbol] # TODO - generalise this
         position_units = position['position']
         
         # Place opposing market order
@@ -354,6 +357,8 @@ class InteractiveBroker:
                             from_time: str, to_time: str):
         """Returns historical price data.
         """
+        self._check_connection()
+        
         # TODO - implement
         self.ib.reqHistoricalData()
         
@@ -446,6 +451,8 @@ class InteractiveBroker:
     
     
     def _process_orders(self, contract: ib_insync.Contract, orders: list) -> None:
+        
+        self._check_connection()
         
         # Submit orders
         for i, order in enumerate(orders):
