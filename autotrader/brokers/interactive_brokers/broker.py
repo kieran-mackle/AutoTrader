@@ -12,8 +12,11 @@ Notes and considerations:
       require knowledge of the account currency
     - close trade might not be as simple as a 'close' order, but rather the
       opposite of what got the trade. Eg. selling a long trade.
-
-Need to include self.ib.sleep(0) to force updates
+      
+TODO:
+    - Futures contract building
+    - Closing position with bracket orders (first try making OCA, else manual)
+    - Generalise symbol construction (eg. EUR + USD -> EUR.USD, localSymbol, etc.)
 '''
 
 class InteractiveBroker:
@@ -342,9 +345,15 @@ class InteractiveBroker:
         """
         self._check_connection()
         # TODO - what happens when there are bracket orders?
+        # Need to manually close (one of) the others
         
         symbol = order_details['instrument']
-        position = self.get_open_positions(symbol)[symbol] # TODO - generalise this
+        # TODO - generalise what the symbol is - probably wont match up to the 
+        # symbol returned by get_open_positions(symbol), or rather, eg:
+        # EURUSD order is placed by symbol=EUR, currency=USD. Ie. instrument = EUR
+        # but then the symbol gets converted to EUR.USD ...
+        # How can I handle these inconsistencies?
+        position = self.get_open_positions(symbol)[symbol]
         position_units = position['position']
         
         # Place opposing market order
@@ -353,9 +362,9 @@ class InteractiveBroker:
         order = ib_insync.MarketOrder(action, units)
         contract = position['contract']
         self.ib.qualifyContracts(contract)
-        trade = self.ib.placeOrder(contract, order)
+        self.ib.placeOrder(contract, order)
         
-        return trade
+        # return trade
     
     
     def get_historical_data(self, symbol: str, interval: str, 
@@ -538,6 +547,14 @@ class InteractiveBroker:
         elif security_type == 'Future':
             raise NotImplementedError("Contract building for this security type is not supported yet.")
             # TODO - add futures contract building
+            
+            exchange = order_details['exchange'] if 'exchange' in order_details else 'GLOBEX'
+            currency = order_details['currency'] if 'currency' in order_details else 'USD'
+            symbol='' # eg. 'ES', 'CL'
+            lastTradeDateOrContractMonth='' # eg. '20170721' or '201707'
+            # TODO - if last trade date not in dict, create using datetime.now() and offset to next month
+            contract = contract_object(symbol=symbol, exchange=exchange, currency=currency)
+            
         elif security_type == 'ContFuture':
             raise NotImplementedError("Contract building for this security type is not supported yet.")
             
