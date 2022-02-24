@@ -12,6 +12,8 @@ Notes and considerations:
       require knowledge of the account currency
     - close trade might not be as simple as a 'close' order, but rather the
       opposite of what got the trade. Eg. selling a long trade.
+
+Need to include self.ib.sleep(0) to force updates
 '''
 
 class InteractiveBroker:
@@ -42,6 +44,13 @@ class InteractiveBroker:
         return 'AutoTrader-InteractiveBrokers interface'
     
     
+    def _connect(self, host, port, client_id, read_only, account):
+        """Connects from IB application.
+        """
+        self.ib.connect(host=host, port=port, clientId=client_id, 
+                        readonly=read_only, account=account)
+        
+    
     def _disconnect(self):
         """Disconnects from IB application.
         """
@@ -55,7 +64,13 @@ class InteractiveBroker:
         
         if not connected:
             raise ConnectionError("No active connection to IB.")
-        
+    
+    
+    def _refresh(self):
+        """Refreshes IB session events.
+        """
+        self.ib.sleep(0)
+    
     
     def _get_account(self,):
         """Gets first managed account.
@@ -333,6 +348,7 @@ class InteractiveBroker:
                             from_time: str, to_time: str):
         """Returns historical price data.
         """
+        # TODO - implement
         self.ib.reqHistoricalData()
         
     
@@ -347,8 +363,9 @@ class InteractiveBroker:
         # Create market order
         action = 'BUY' if order_details["size"] > 0 else 'SELL'
         units = abs(order_details["size"])
-        market_order = ib_insync.MarketOrder(action, units)
-        market_order.transmit = False
+        market_order = ib_insync.MarketOrder(action, units, 
+                                             orderId=self.ib.client.getReqId(),
+                                             transmit=False)
         
         # Attach SL and TP orders
         orders = self._attach_auxiliary_orders(order_details, market_order)
@@ -370,7 +387,9 @@ class InteractiveBroker:
         units = abs(order_details["size"])
         lmtPrice = order_details["order_limit_price"]
         stopPrice = order_details["order_stop_price"]
-        order = ib_insync.StopLimitOrder(action, units, lmtPrice, stopPrice)
+        order = ib_insync.StopLimitOrder(action, units, lmtPrice, stopPrice, 
+                                         orderId=self.ib.client.getReqId(),
+                                         transmit=False)
         
         # Attach SL and TP orders
         orders = self._attach_auxiliary_orders(order_details, order)
@@ -390,7 +409,9 @@ class InteractiveBroker:
         action = 'BUY' if order_details["size"] > 0 else 'SELL'
         units = abs(order_details["size"])
         lmtPrice = order_details["order_limit_price"]
-        order = ib_insync.LimitOrder(action, units, lmtPrice)
+        order = ib_insync.LimitOrder(action, units, lmtPrice, 
+                                     orderId=self.ib.client.getReqId(),
+                                     transmit=False)
         
         # Attach SL and TP orders
         orders = self._attach_auxiliary_orders(order_details, order)
@@ -410,7 +431,7 @@ class InteractiveBroker:
             orders.append(takeProfit_order)
         
         # SL order
-        if order_details["stop_type"] is not None:
+        if order_details["stop_loss"] is not None:
             stopLoss_order = self._create_stop_loss_order(order_details,
                                                           parent_order.orderId)
             orders.append(stopLoss_order)
@@ -427,8 +448,10 @@ class InteractiveBroker:
                 order.transmit = True
             else:
                 order.transmit = False
-                
             self.ib.placeOrder(contract, order)
+    
+    
+    # TODO - add OCA method
     
     
     def _create_take_profit_order(self, order_details: dict, parentId: int):
@@ -454,7 +477,7 @@ class InteractiveBroker:
                                              quantity, 
                                              stopLossPrice,
                                              orderId=self.ib.client.getReqId(),
-                                             transmit=False,
+                                             transmit=True,
                                              parentId=parentId)
         return stopLoss_order
     
