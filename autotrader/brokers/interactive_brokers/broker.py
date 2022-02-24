@@ -354,25 +354,21 @@ class InteractiveBroker:
         """
         
         if order_details["order_type"] == 'market':
-            response = self._place_market_order(order_details)
+            self._place_market_order(order_details)
         elif order_details["order_type"] == 'stop-limit':
-            response = self._place_stop_limit_order(order_details)
+            self._place_stop_limit_order(order_details)
         elif order_details["order_type"] == 'limit':
-            response = self._place_limit_order(order_details)
+            self._place_limit_order(order_details)
         elif order_details["order_type"] == 'close':
-            response = self.close_position(order_details)
+            self.close_position(order_details)
         else:
             print("Order type not recognised.")
-            return
-        
-        return response
         
     
     def _place_market_order(self, order_details: dict):
         """Places a market order.
         """
         self._check_connection()
-        orders = []
         
         # Build contract
         contract = self._build_contract(order_details)
@@ -382,28 +378,44 @@ class InteractiveBroker:
         units = abs(order_details["size"])
         market_order = ib_insync.MarketOrder(action, units)
         market_order.transmit = False
-        orders.append(market_order)
+        
+        # Attach SL and TP orders
+        orders = self._attach_auxiliary_orders(order_details, market_order)
+        
+        # Submit orders
+        self._process_orders(contract, orders)
+        
+    
+    def _attach_auxiliary_orders(self, order_details: dict, 
+                                 parent_order: ib_insync.order) -> list:
+        orders = [parent_order]
         
         # TP order
         if order_details["take_profit"] is not None:
             takeProfit_order = self._create_take_profit_order(order_details, 
-                                                              market_order.orderId)
+                                                              parent_order.orderId)
             orders.append(takeProfit_order)
         
         # SL order
         if order_details["stop_type"] is not None:
             stopLoss_order = self._create_stop_loss_order(order_details,
-                                                          market_order.orderId)
+                                                          parent_order.orderId)
             orders.append(stopLoss_order)
+        
+        return orders
+    
+    
+    def _process_orders(self, contract: ib_insync.Contract, orders: list) -> None:
         
         # Submit orders
         for i, order in enumerate(orders):
             if i == len(orders)-1:
                 # Final order; set transmit to True
                 order.transmit = True
+            else:
+                order.transmit = False
+                
             self.ib.placeOrder(contract, order)
-        
-        return trade
     
     
     def _create_take_profit_order(self, order_details: dict, parentId: int):
@@ -420,9 +432,11 @@ class InteractiveBroker:
     
     
     def _create_stop_loss_order(self, order_details: dict, parentId: int):
+        
+        # TODO - add support for trailing SL
         quantity = order_details["size"]
         stopLossPrice = order_details["stop_loss"]
-        action = 'BUY' if order_details["size"] < 0 else 'SELL
+        action = 'BUY' if order_details["size"] < 0 else 'SELL'
         stopLoss_order = ib_insync.StopOrder(action, 
                                              quantity, 
                                              stopLossPrice,
