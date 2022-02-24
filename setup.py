@@ -32,7 +32,8 @@ setuptools.setup(
         "scipy",
         "yfinance",
         "finta",
-        "v20"
+        "v20",
+        "ib_insync",
         ],
     setup_requires=[
             'setuptools_git',
