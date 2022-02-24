@@ -372,63 +372,36 @@ class InteractiveBroker:
         """Places a market order.
         """
         self._check_connection()
+        orders = []
         
         # Build contract
         contract = self._build_contract(order_details)
         
-        # Create order(s)
+        # Create market order
         action = 'BUY' if order_details["size"] > 0 else 'SELL'
         units = abs(order_details["size"])
         market_order = ib_insync.MarketOrder(action, units)
         market_order.transmit = False
-        
-        # TODO - move TP and SL into their own methods
-        
-        # if there is a TP or SL, market_order.transmit = False
+        orders.append(market_order)
         
         # TP order
         if order_details["take_profit"] is not None:
-            takeProfit_order = ib_insync.LimitOrder(
-                reverseAction, quantity, takeProfitPrice,
-                orderId=self.client.getReqId(), # TODO - need to manage this...
-                transmit=False,
-                parentId=market_order.orderId)
-        
+            takeProfit_order = self._create_take_profit_order(order_details, 
+                                                              market_order.orderId)
+            orders.append(takeProfit_order)
         
         # SL order
         if order_details["stop_type"] is not None:
-            stopLoss_order = ib_insync.StopOrder(
-                reverseAction, quantity, stopLossPrice,
-                orderId=self.client.getReqId(), # TODO - need to manage this...
-                transmit=True,
-                parentId=market_order.orderId)
+            stopLoss_order = self._create_stop_loss_order(order_details,
+                                                          market_order.orderId)
+            orders.append(stopLoss_order)
         
         # Submit orders
-        # for order in bracket:
-            # if not the last order, transmit = False else True
-        #     self.ib.placeOrder(contract, order)
-        trade = self.ib.placeOrder(contract, market_order)
-        
-        # TODO - implement bracket order below
-        # order = self.ib.bracketOrder('BUY',
-        #                         100000,
-        #                         limitPrice=1.19,
-        #                         takeProfitPrice=1.20,
-        #                         stopLossPrice=1.18
-        #                         )
-        # for ord in eurusd_bracket_order:
-        #     self.ib.placeOrder(eur_usd_contract, ord)
-        
-        # Create bracket order composed of multiple orders,
-        # then submit with
-        
-        
-        '''
-        parent = ib
-        
-        '''
-        
-        
+        for i, order in enumerate(orders):
+            if i == len(orders)-1:
+                # Final order; set transmit to True
+                order.transmit = True
+            self.ib.placeOrder(contract, order)
         
         return trade
     
@@ -440,10 +413,11 @@ class InteractiveBroker:
         takeProfit_order = ib_insync.LimitOrder(action, 
                                                 quantity, 
                                                 takeProfitPrice,
-                                                orderId=self.client.getReqId(), # TODO - need to manage this...
+                                                orderId=self.ib.client.getReqId(),
                                                 transmit=False,
                                                 parentId=parentId)
         return takeProfit_order
+    
     
     def _create_stop_loss_order(self, order_details: dict, parentId: int):
         quantity = order_details["size"]
@@ -452,7 +426,7 @@ class InteractiveBroker:
         stopLoss_order = ib_insync.StopOrder(action, 
                                              quantity, 
                                              stopLossPrice,
-                                             orderId=self.client.getReqId(), # TODO - need to manage this...
+                                             orderId=self.ib.client.getReqId(),
                                              transmit=False,
                                              parentId=parentId)
         return stopLoss_order
