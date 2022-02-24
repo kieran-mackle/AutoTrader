@@ -60,6 +60,8 @@ class InteractiveBroker:
     def _check_connection(self):
         """Checks if there is an active connection to IB.
         """
+        self._refresh()
+        
         connected = self.ib.isConnected()
         
         if not connected:
@@ -206,6 +208,8 @@ class InteractiveBroker:
     def cancel_pending_order(self, order_id: int):
         """Cancels pending order by order ID.
         """
+        self._check_connection()
+        
         open_trades = self.ib.openTrades()
         cancelled_trades = []
         for trade in open_trades:
@@ -322,7 +326,9 @@ class InteractiveBroker:
             self.close_position(order_details)
         else:
             print("Order type not recognised.")
-
+        
+        self._refresh()
+        
         
     def close_position(self, order_details: dict, **kwargs):
         """Closes open position of symbol.
