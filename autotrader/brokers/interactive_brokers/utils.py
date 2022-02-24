@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+from datetime import datetime
+from dateutil.relativedelta import relativedelta
 from autotrader.brokers.broker_utils import BrokerUtils
 
 class Utils(BrokerUtils):
@@ -109,3 +111,26 @@ class Utils(BrokerUtils):
         """
         pass
     
+    
+    @staticmethod
+    def _futures_expiry(dt: datetime = datetime.now(), months: int = 1) -> str:
+        """Returns a string of format YYYYMM corresponding to the leading 
+        contract month, from the inputted datetime object.
+
+        Parameters
+        ----------
+        dt : datetime, optional
+            The datetime object to convert to string. The default is datetime.now().
+        months : int, optional
+            The month offset from dt. The default is 1.
+
+        Returns
+        -------
+        str
+            A string corresponding to the expiry.
+        """
+        # TODO - if current date is past last trade date... error
+        expiry_dt = dt + relativedelta(months=months)
+        return expiry_dt.strftime('%Y') + expiry_dt.strftime('%m')
+        
+        
