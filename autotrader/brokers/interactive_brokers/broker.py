@@ -145,62 +145,6 @@ class InteractiveBroker:
         return price
     
     
-    @staticmethod
-    def _build_contract(order_details: dict) -> ib_insync.contract.Contract:
-        """Builds IB contract based on provided symbol and security type.
-        """
-        
-        symbol = order_details['instrument']
-        security_type = order_details['secType']
-        
-        # Get contract object
-        contract_object = getattr(ib_insync, security_type)
-        
-        if security_type == 'Stock':
-            # symbol='', exchange='', currency=''
-            exchange = order_details['exchange'] if 'exchange' in order_details else 'SMART'
-            currency = order_details['currency'] if 'currency' in order_details else 'USD'
-            contract = contract_object(symbol=symbol, exchange=exchange, currency=currency)
-            
-        elif security_type == 'Options':
-            raise NotImplementedError("Contract building for this security type is not supported yet.")
-        elif security_type == 'Future':
-            raise NotImplementedError("Contract building for this security type is not supported yet.")
-        elif security_type == 'ContFuture':
-            raise NotImplementedError("Contract building for this security type is not supported yet.")
-            
-        elif security_type == 'Forex':
-            # pair='', exchange='IDEALPRO', symbol='', currency='', **kwargs)
-            exchange = order_details['exchange'] if 'exchange' in order_details else 'IDEALPRO'
-            
-            contract = contract_object(pair=symbol, exchange=exchange)
-            
-        elif security_type == 'Index':
-            raise NotImplementedError("Contract building for this security type is not supported yet.")
-        elif security_type == 'CFD':
-            # symbol='', exchange='', currency='',
-            exchange = order_details['exchange'] if 'exchange' in order_details else 'SMART'
-            currency = order_details['currency'] if 'currency' in order_details else 'USD'
-            contract = contract_object(symbol=symbol, exchange=exchange, currency=currency)
-            
-        elif security_type == 'Commodity':
-            raise NotImplementedError("Contract building for this security type is not supported yet.")
-        elif security_type == 'Bond':
-            raise NotImplementedError("Contract building for this security type is not supported yet.")
-        elif security_type == 'FuturesOption':
-            raise NotImplementedError("Contract building for this security type is not supported yet.")
-        elif security_type == 'MutualFund':
-            raise NotImplementedError("Contract building for this security type is not supported yet.")
-        elif security_type == 'Warrant':
-            raise NotImplementedError("Contract building for this security type is not supported yet.")
-        elif security_type == 'Bag':
-            raise NotImplementedError("Contract building for this security type is not supported yet.")
-        elif security_type == 'Crypto':
-            raise NotImplementedError("Contract building for this security type is not supported yet.")
-        
-        return contract
-    
-    
     def get_pending_orders(self, symbol=None):
         """Returns all pending orders (have not been filled) in the account.
         """
@@ -363,6 +307,33 @@ class InteractiveBroker:
             self.close_position(order_details)
         else:
             print("Order type not recognised.")
+
+        
+    def close_position(self, order_details: dict, **kwargs):
+        """Closes open position of symbol.
+        """
+        # TODO - what happens when there are bracket orders?
+        
+        symbol = order_details['instrument']
+        position = self.get_open_positions(symbol)[symbol]
+        position_units = position['position']
+        
+        # Place opposing market order
+        action = 'BUY' if position_units < 0 else 'SELL'
+        units = abs(position_units)
+        order = ib_insync.MarketOrder(action, units)
+        contract = position['contract']
+        self.ib.qualifyContracts(contract)
+        trade = self.ib.placeOrder(contract, order)
+        
+        return trade
+    
+    
+    def get_historical_data(self, symbol: str, interval: str, 
+                            from_time: str, to_time: str):
+        """Returns historical price data.
+        """
+        self.ib.reqHistoricalData()
         
     
     def _place_market_order(self, order_details: dict):
@@ -486,33 +457,62 @@ class InteractiveBroker:
                                              transmit=False,
                                              parentId=parentId)
         return stopLoss_order
-
     
-    def close_position(self, order_details: dict, **kwargs):
-        """Closes open position of symbol.
+    
+    @staticmethod
+    def _build_contract(order_details: dict) -> ib_insync.contract.Contract:
+        """Builds IB contract based on provided symbol and security type.
         """
-        # TODO - what happens when there are bracket orders?
         
         symbol = order_details['instrument']
-        position = self.get_open_positions(symbol)[symbol]
-        position_units = position['position']
+        security_type = order_details['secType']
         
-        # Place opposing market order
-        action = 'BUY' if position_units < 0 else 'SELL'
-        units = abs(position_units)
-        order = ib_insync.MarketOrder(action, units)
-        contract = position['contract']
-        self.ib.qualifyContracts(contract)
-        trade = self.ib.placeOrder(contract, order)
+        # Get contract object
+        contract_object = getattr(ib_insync, security_type)
         
-        return trade
-    
-    
-    def get_historical_data(self, symbol: str, interval: str, 
-                            from_time: str, to_time: str):
-        """Returns historical price data.
-        """
-        self.ib.reqHistoricalData()
+        if security_type == 'Stock':
+            # symbol='', exchange='', currency=''
+            exchange = order_details['exchange'] if 'exchange' in order_details else 'SMART'
+            currency = order_details['currency'] if 'currency' in order_details else 'USD'
+            contract = contract_object(symbol=symbol, exchange=exchange, currency=currency)
+            
+        elif security_type == 'Options':
+            raise NotImplementedError("Contract building for this security type is not supported yet.")
+        elif security_type == 'Future':
+            raise NotImplementedError("Contract building for this security type is not supported yet.")
+        elif security_type == 'ContFuture':
+            raise NotImplementedError("Contract building for this security type is not supported yet.")
+            
+        elif security_type == 'Forex':
+            # pair='', exchange='IDEALPRO', symbol='', currency='', **kwargs)
+            exchange = order_details['exchange'] if 'exchange' in order_details else 'IDEALPRO'
+            
+            contract = contract_object(pair=symbol, exchange=exchange)
+            
+        elif security_type == 'Index':
+            raise NotImplementedError("Contract building for this security type is not supported yet.")
+        elif security_type == 'CFD':
+            # symbol='', exchange='', currency='',
+            exchange = order_details['exchange'] if 'exchange' in order_details else 'SMART'
+            currency = order_details['currency'] if 'currency' in order_details else 'USD'
+            contract = contract_object(symbol=symbol, exchange=exchange, currency=currency)
+            
+        elif security_type == 'Commodity':
+            raise NotImplementedError("Contract building for this security type is not supported yet.")
+        elif security_type == 'Bond':
+            raise NotImplementedError("Contract building for this security type is not supported yet.")
+        elif security_type == 'FuturesOption':
+            raise NotImplementedError("Contract building for this security type is not supported yet.")
+        elif security_type == 'MutualFund':
+            raise NotImplementedError("Contract building for this security type is not supported yet.")
+        elif security_type == 'Warrant':
+            raise NotImplementedError("Contract building for this security type is not supported yet.")
+        elif security_type == 'Bag':
+            raise NotImplementedError("Contract building for this security type is not supported yet.")
+        elif security_type == 'Crypto':
+            raise NotImplementedError("Contract building for this security type is not supported yet.")
+        
+        return contract
     
     
     class Response:
