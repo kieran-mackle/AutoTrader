@@ -24,6 +24,8 @@ IMPORTANT DOCUMENTATION:
     - There are some methods missing between virtual broker and this one...
       ideally all public methods should be shared across brokers, and private
       methods can be broker-specific. Can then just use wrappers where necessary.
+    - required signal_dict keys for different security types (eg. futures 
+      require symbol, exchange and contract_month)
 '''
 
 class InteractiveBroker:
@@ -120,7 +122,7 @@ class InteractiveBroker:
         """Returns the details of the trade specified by trade_ID.
         """
         self._check_connection()
-        # TODO - implement
+        # TODO - implement (?)
         
         response = self.api.trade.list(accountID=self.ACCOUNT_ID, ids=int(trade_ID))
         trade = response.body['trades'][0]
@@ -280,20 +282,27 @@ class InteractiveBroker:
         return open_trades
     
     
-    def get_open_positions(self, symbol: str = None) -> dict:
+    def get_open_positions(self, symbol: str = None, local_symbol: str = None) -> dict:
         """Gets the current positions open on the account.
         
         Parameters
         ----------
         symbol : str, optional
-            The local symbol. The default is None.
-
+            The product symbol. The default is None.
+        local_symbol : str, optional
+            The exchange-local product symbol. The default is None.
+            
         Returns
         -------
         open_positions : dict
             A dictionary containing details of the open positions.
-            
         """
+        
+        # TODO - add optional localSymbol arg for disambiguity :
+        # symbol_attr = 'symbol' if local_symbol is None else 'localSymbol'
+        # getattr(position.contract, symbol_attr)
+        # matching_symbol = symbol if local_symbol is None else local_symbol
+        # use matching_symbol to compare to pos_symbol
         
         self._check_connection()
         
@@ -302,7 +311,7 @@ class InteractiveBroker:
         for position in all_positions:
             units = position.position
             pnl = position.unrealizedPNL
-            pos_symbol = position.contract.symbol # TODO - this may need to be changed
+            pos_symbol = position.contract.symbol
             pos_dict = {'long_units': units if np.sign(units) > 0 else 0,
                         'long_PL': pnl if np.sign(units) > 0 else 0,
                         'long_margin': None,
@@ -544,15 +553,17 @@ class InteractiveBroker:
         elif security_type == 'Options':
             raise NotImplementedError("Contract building for this security type is not supported yet.")
         elif security_type == 'Future':
-            raise NotImplementedError("Contract building for this security type is not supported yet.")
-            # TODO - add futures contract building
-            
+            # Requires order_details{'instrument', 'exchange', 'contract_month'}
+            # TODO - make local_symbol required for futures?
             exchange = order_details['exchange'] if 'exchange' in order_details else 'GLOBEX'
             currency = order_details['currency'] if 'currency' in order_details else 'USD'
-            symbol='' # eg. 'ES', 'CL'
-            lastTradeDateOrContractMonth='' # eg. '20170721' or '201707'
-            localSymbol = '' # TODO - make this required for futures?
-            contract = contract_object(symbol=symbol, exchange=exchange, currency=currency)
+            contract_month = order_details['contract_month']
+            local_symbol = order_details['local_symbol'] if 'local_symbol' in order_details else '' 
+            contract = contract_object(symbol=symbol, 
+                                       exchange=exchange, 
+                                       currency=currency,
+                                       lastTradeDateOrContractMonth=contract_month,
+                                       localSymbol=local_symbol)
             
         elif security_type == 'ContFuture':
             raise NotImplementedError("Contract building for this security type is not supported yet.")
@@ -587,10 +598,3 @@ class InteractiveBroker:
             raise NotImplementedError("Contract building for this security type is not supported yet.")
         
         return contract
-    
-
-    class Response:
-        """Response oject for handling errors."""
-        # TODO - implement
-        def __init__(self):
-            pass
