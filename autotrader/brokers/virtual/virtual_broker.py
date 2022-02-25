@@ -1,17 +1,8 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-'''
-Module: brokers.virtual.virtual_broker
-Purpose: AutoTrader virtual broker for backtesting
-Author: Kieran Mackle
-'''
-
 import numpy as np
 
-class Broker():
-    """
-    Virtual broker to simulate trading environment.
 
+class Broker():
+    """Virtual broker to simulate trading environment.
 
     Attributes
     ----------
@@ -49,9 +40,8 @@ class Broker():
     update_positions(candle):
         Updates orders and open positions based on current candle. 
 
-    
-    
     """
+    
     
     def __init__(self, broker_config, utils):
         self.leverage           = 1
@@ -77,12 +67,10 @@ class Broker():
         self.commission_scheme  = 'percentage'
         self.commission         = 0
         
-        
 
     def place_order(self, order_details):
-        '''
-            Place order with broker.
-        '''
+        """Place order with broker.
+        """
         instrument  = order_details["instrument"]
         size        = order_details["size"]
         stop_loss  = order_details["stop_loss"]
@@ -172,6 +160,7 @@ class Broker():
             # Cancel order
             cancel_reason = "Insufficient margin"
             self.cancel_pending_order(order_no, cancel_reason)
+    
     
     def update_positions(self, candle, instrument):
         ''' 
@@ -415,6 +404,7 @@ class Broker():
         # Update maximum drawdown
         self.update_MDD()
     
+    
     def reduce_position(self, order_details):
         ''' 
         Reduces the position of the specified instrument by FIFO. 
@@ -498,6 +488,7 @@ class Broker():
         # Update maximum drawdown
         self.update_MDD()
     
+    
     def calculate_commissions(self, order_no, exit_price, units=None):
         'Calculates trade commissions.'
         if self.commission_scheme == 'percentage':
@@ -515,6 +506,7 @@ class Broker():
             
         return commission
     
+    
     def get_pending_orders(self, instrument = None):
         ''' Returns pending orders. '''
         
@@ -529,11 +521,13 @@ class Broker():
         
         return pending_orders
     
+    
     def cancel_pending_order(self, order_id, reason=None):
         ''' Moves an order from pending_orders into cancelled_orders. '''
         
         self.cancelled_orders[order_id] = self.pending_orders[order_id]
         self.cancelled_orders[order_id]['reason'] = reason
+    
     
     def get_open_trades(self, instruments=None):
         ''' Returns open trades for the specified instrument. '''
@@ -558,9 +552,11 @@ class Broker():
         
         return open_trades
     
+    
     def get_trade_details(self, trade_ID):
         'Returns the details of the trade specified by trade_ID.'
         return self.open_positions[trade_ID]
+    
     
     def get_open_positions(self, instruments=None):
         ''' Returns the open positions in the account. '''
@@ -621,6 +617,7 @@ class Broker():
                         
         return open_positions
     
+    
     def get_cancelled_orders(self, instrument = None):
         ''' Returns cancelled orders. '''
         
@@ -641,6 +638,7 @@ class Broker():
         
         self.portfolio_balance  += amount
     
+    
     def make_deposit(self, deposit):
         '''
         Adds deposit to account balance and NAV.
@@ -654,6 +652,7 @@ class Broker():
         self.portfolio_balance += deposit
         self.NAV += deposit
         self.update_margin()
+    
     
     def get_balance(self):
         ''' Returns balance of account. '''
@@ -716,6 +715,7 @@ class Broker():
         
         return price
     
+    
     def update_MDD(self):
         ''' Function to calculate maximum portfolio drawdown '''
         balance     = self.portfolio_balance
@@ -734,13 +734,16 @@ class Broker():
         if MDD < self.max_drawdown:
             self.max_drawdown = MDD
     
+    
     def get_NAV(self):
         ''' Returns Net Asset Value of account. '''
         return self.NAV
     
+    
     def get_margin_available(self):
         ''' Returns the margin available on the account. '''
         return self.margin_available
+    
     
     def modify_order(self, modification_order):
         ''' 
@@ -761,11 +764,15 @@ class Broker():
             self._update_take_profit(modify_trade_id, 
                                      modification_order['take_profit'])
         
+        
     def _update_stop_loss(self, trade_id, new_stop_loss, new_stop_type='limit'):
         ''' Updates stop loss on open trade. '''
         self.open_positions[trade_id]['stop_loss'] = new_stop_loss
         self.open_positions[trade_id]['stop_type'] = new_stop_type
     
+    
     def _update_take_profit(self, trade_id, new_take_profit):
         ''' Updates take profit on open trade. '''
         self.open_positions[trade_id]['take_profit'] = new_take_profit
+        
+        
