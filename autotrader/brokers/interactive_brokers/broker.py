@@ -551,10 +551,10 @@ class InteractiveBroker:
             contract = contract_object(symbol=symbol, exchange=exchange, currency=currency)
             
         elif security_type == 'Options':
-            raise NotImplementedError("Contract building for this security type is not supported yet.")
+            raise NotImplementedError(f"Contract building for {security_type.lower()} trading is not supported yet.")
+            
         elif security_type == 'Future':
             # Requires order_details{'instrument', 'exchange', 'contract_month'}
-            # TODO - make local_symbol required for futures?
             exchange = order_details['exchange'] if 'exchange' in order_details else 'GLOBEX'
             currency = order_details['currency'] if 'currency' in order_details else 'USD'
             contract_month = order_details['contract_month']
@@ -566,16 +566,16 @@ class InteractiveBroker:
                                        localSymbol=local_symbol)
             
         elif security_type == 'ContFuture':
-            raise NotImplementedError("Contract building for this security type is not supported yet.")
+            raise NotImplementedError(f"Contract building for {security_type.lower()} trading is not supported yet.")
             
         elif security_type == 'Forex':
             # pair='', exchange='IDEALPRO', symbol='', currency='', **kwargs)
             exchange = order_details['exchange'] if 'exchange' in order_details else 'IDEALPRO'
-            
             contract = contract_object(pair=symbol, exchange=exchange)
             
         elif security_type == 'Index':
-            raise NotImplementedError("Contract building for this security type is not supported yet.")
+            raise NotImplementedError(f"Contract building for {security_type.lower()} trading is not supported yet.")
+            
         elif security_type == 'CFD':
             # symbol='', exchange='', currency='',
             exchange = order_details['exchange'] if 'exchange' in order_details else 'SMART'
@@ -583,18 +583,18 @@ class InteractiveBroker:
             contract = contract_object(symbol=symbol, exchange=exchange, currency=currency)
             
         elif security_type == 'Commodity':
-            raise NotImplementedError("Contract building for this security type is not supported yet.")
+            raise NotImplementedError(f"Contract building for {security_type.lower()} trading is not supported yet.")
         elif security_type == 'Bond':
-            raise NotImplementedError("Contract building for this security type is not supported yet.")
+            raise NotImplementedError(f"Contract building for {security_type.lower()} trading is not supported yet.")
         elif security_type == 'FuturesOption':
-            raise NotImplementedError("Contract building for this security type is not supported yet.")
+            raise NotImplementedError(f"Contract building for {security_type.lower()} trading is not supported yet.")
         elif security_type == 'MutualFund':
-            raise NotImplementedError("Contract building for this security type is not supported yet.")
+            raise NotImplementedError(f"Contract building for {security_type.lower()} trading is not supported yet.")
         elif security_type == 'Warrant':
-            raise NotImplementedError("Contract building for this security type is not supported yet.")
+            raise NotImplementedError(f"Contract building for {security_type.lower()} trading is not supported yet.")
         elif security_type == 'Bag':
-            raise NotImplementedError("Contract building for this security type is not supported yet.")
+            raise NotImplementedError(f"Contract building for {security_type.lower()} trading is not supported yet.")
         elif security_type == 'Crypto':
-            raise NotImplementedError("Contract building for this security type is not supported yet.")
+            raise NotImplementedError(f"Contract building for {security_type.lower()} trading is not supported yet.")
         
         return contract
