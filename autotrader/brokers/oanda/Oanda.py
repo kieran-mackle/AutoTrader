@@ -1,11 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-'''
-Module: brokers.oanda.Oanda
-Purpose: AutoTrader broker wrapper script for Oanda v20 REST API
-Author: Kieran Mackle
-'''
-
 import v20
 from autotrader.brokers.oanda import utils
 import datetime
@@ -15,7 +7,8 @@ import traceback
 import sys
 import time
 
-class Oanda():
+
+class Oanda:
     def __init__(self, oanda_config, utils):
         ''' Create v20 context. '''
         self.API             = oanda_config["API"]
@@ -113,6 +106,7 @@ class Oanda():
     
         return price
     
+    
     def get_pending_orders(self, instrument=None):
         ''' Get all pending orders in the account. '''
         
@@ -152,6 +146,7 @@ class Oanda():
             
         return pending_orders
     
+    
     def cancel_pending_order(self, order_id):
         ''' Cancels pending order by ID. '''
         
@@ -159,6 +154,7 @@ class Oanda():
         
         self.api.order.cancel(accountID = self.ACCOUNT_ID, 
                               orderSpecifier=str(order_id))
+    
     
     def get_open_trades(self, instruments=None):
         ''' 
@@ -201,6 +197,7 @@ class Oanda():
         
         return open_trades
     
+    
     def get_open_positions(self, instrument=None):
         ''' 
         Gets the current positions open on the account. 
@@ -238,6 +235,7 @@ class Oanda():
         
         return open_positions
     
+    
     def place_order(self, order_details):
         '''
         Parses order_details dict and handles order.
@@ -262,6 +260,7 @@ class Oanda():
         
         return response
         
+    
     def place_market_order(self, order_details):
         ''' Places market order. '''
         
@@ -281,6 +280,7 @@ class Oanda():
                                          stopLossOnFill = stop_loss_details,
                                          )
         return response
+    
     
     def place_stop_limit_order(self, order_details):
         '''
@@ -310,6 +310,7 @@ class Oanda():
                                                     )
         return response
     
+    
     def place_limit_order(self, order_details):
         ''' (NOT YET IMPLEMENTED) PLaces limit order. '''
         
@@ -337,6 +338,7 @@ class Oanda():
         
         return stop_loss_details
     
+    
     def get_take_profit_details(self, order_details):
         ''' Constructs take profit details dictionary. '''
         
@@ -351,6 +353,7 @@ class Oanda():
             take_profit_details = None
         
         return take_profit_details
+
 
     def get_data(self, pair, period, interval):
         # print("Getting data for {}".format(pair))
@@ -388,6 +391,7 @@ class Oanda():
         # print(response.body['account'])
         
         return response
+    
     
     def get_position(self, instrument):
         ''' Gets position from Oanda. '''
@@ -473,6 +477,7 @@ class Oanda():
         
         return corrected_price
     
+    
     def check_trade_size(self, pair, units):
         ''' Checks the requested trade size against the minimum trade size 
             allowed for the currency pair. '''
@@ -482,6 +487,7 @@ class Oanda():
         trade_unit_precision = response.body['instruments'][0].tradeUnitsPrecision
         
         return round(units, trade_unit_precision)
+    
     
     def get_trade_details(self, trade_ID):
         'Returns the details of the trade specified by trade_ID.'
@@ -518,6 +524,7 @@ class Oanda():
         
         return details
     
+    
     def check_response(self, response):
         ''' Checks API response (currently only for placing orders) '''
         if response.status != 201:
@@ -529,6 +536,7 @@ class Oanda():
                   'Message': message}
         # TODO - print errors
         return output
+    
     
     def update_data(self, pair, granularity, data):
         ''' Attempts to construct the latest candle when there is a delay in the 
@@ -647,6 +655,7 @@ class Oanda():
         
         return granularity_details
 
+
     def get_reduced_granularity(self, granularity_details, fraction):
         '''Returns a candlestick granularity as a fraction of given granularity'''
         secs = granularity_details['seconds']
@@ -697,6 +706,7 @@ class Oanda():
         
         return reduced_granularity
     
+    
     def get_order_book(self, instrument):
         ''' Returns the order book of the instrument specified. '''
         
@@ -704,12 +714,14 @@ class Oanda():
         
         return response.body['orderBook']
         
+    
     def get_position_book(self, instrument):
         ''' Returns the position book of the instrument specified. '''
         
         response = self.api.instrument.position_book(instrument)
         
         return response.body['positionBook']
+    
     
     def get_pip_location(self, instrument):
         ''' Returns the pip location of the requested instrument. '''
@@ -718,6 +730,7 @@ class Oanda():
                                                 instruments=instrument)
         
         return response.body['instruments'][0].pipLocation
+    
     
     def get_trade_unit_precision(self, instrument):
         ''' Returns the trade unit precision for the requested instrument. '''

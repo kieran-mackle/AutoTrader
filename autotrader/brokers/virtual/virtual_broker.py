@@ -1,7 +1,7 @@
 import numpy as np
 
 
-class Broker():
+class Broker:
     """Virtual broker to simulate trading environment.
 
     Attributes
