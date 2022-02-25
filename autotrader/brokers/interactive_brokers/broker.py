@@ -282,7 +282,8 @@ class InteractiveBroker:
         return open_trades
     
     
-    def get_open_positions(self, symbol: str = None, local_symbol: str = None) -> dict:
+    def get_open_positions(self, symbol: str = None, 
+                           local_symbol: str = None) -> dict:
         """Gets the current positions open on the account.
         
         Parameters
@@ -298,11 +299,8 @@ class InteractiveBroker:
             A dictionary containing details of the open positions.
         """
         
-        # TODO - add optional localSymbol arg for disambiguity :
-        # symbol_attr = 'symbol' if local_symbol is None else 'localSymbol'
-        # getattr(position.contract, symbol_attr)
-        # matching_symbol = symbol if local_symbol is None else local_symbol
-        # use matching_symbol to compare to pos_symbol
+        symbol_attr = 'symbol' if local_symbol is None else 'localSymbol'
+        matching_symbol = symbol if local_symbol is None else local_symbol
         
         self._check_connection()
         
@@ -311,7 +309,8 @@ class InteractiveBroker:
         for position in all_positions:
             units = position.position
             pnl = position.unrealizedPNL
-            pos_symbol = position.contract.symbol
+            # pos_symbol = position.contract.symbol
+            pos_symbol = getattr(position.contract, symbol_attr)
             pos_dict = {'long_units': units if np.sign(units) > 0 else 0,
                         'long_PL': pnl if np.sign(units) > 0 else 0,
                         'long_margin': None,
@@ -324,10 +323,11 @@ class InteractiveBroker:
                         'PL': pnl,
                         'contract': position.contract}
         
-            if symbol is not None and pos_symbol == symbol:
+            if pos_symbol == matching_symbol:
                 # Only add positions in requested symbol
                 open_positions[pos_symbol] = pos_dict
-            elif symbol is None:
+                
+            else:
                 # Append all positions
                 open_positions[pos_symbol] = pos_dict
         
