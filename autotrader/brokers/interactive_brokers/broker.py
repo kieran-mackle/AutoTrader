@@ -1,21 +1,9 @@
 # from autotrader.brokers.interactive_brokers.utils import Utils
 from utils import Utils
-import datetime
-# import pandas as pd
 import numpy as np
 import ib_insync
 
 '''
-Notes and considerations:
-    - IB does not handle automatic base/quote exchanges, so either need 
-      to make that the onus of the user, or automate ... which will
-      require knowledge of the account currency
-    - close trade might not be as simple as a 'close' order, but rather the
-      opposite of what got the trade. Eg. selling a long trade.
-      
-TODO:
-    - Futures contract building
-
 IMPORTANT DOCUMENTATION:
     - when closing a position using close_position(), if there are attached SL
       and/or TP orders, they must be closed manually using cancel_pending_order().
@@ -123,38 +111,7 @@ class InteractiveBroker:
         """
         self._check_connection()
         # TODO - implement (?)
-        
-        response = self.api.trade.list(accountID=self.ACCOUNT_ID, ids=int(trade_ID))
-        trade = response.body['trades'][0]
-        
-        details = {'direction': int(np.sign(trade.currentUnits)), 
-                   'stop_loss': 82.62346473606581, 
-                   'order_time': datetime.datetime.strptime(trade.openTime[:-4], '%Y-%m-%dT%H:%M:%S.%f'), 
-                   'instrument': trade.instrument, 
-                   'size': trade.currentUnits,
-                   'order_price': trade.price, 
-                   'order_ID': trade.id, 
-                   'time_filled': trade.openTime, 
-                   'entry_price': trade.price, 
-                   'unrealised_PL': trade.unrealizedPL, 
-                   'margin_required': trade.marginUsed}
-        
-        # Get associated trades
-        related = []
-        try:
-            details['take_profit'] = trade.takeProfitOrder.price
-            related.append(trade.takeProfitOrder.id)
-        except:
-            pass
-        
-        try:
-            details['stop_loss'] = trade.stopLossOrder.price
-            related.append(trade.stopLossOrder.id)
-        except:
-            pass
-        details['related_orders'] = related
-        
-        return details
+        return {}
     
     
     def get_price(self, symbol: str, snapshot: bool = True, **kwargs):
@@ -253,7 +210,7 @@ class InteractiveBroker:
             order_status = order_status_dict['status']
             
             if order_status == 'Filled':
-                # Order is still active (not yet filled)
+                # Trade order has been filled
                 new_trade = {}
                 new_trade['order_ID']           = order_dict['orderId']
                 new_trade['order_stop_price']   = order_dict['auxPrice']
@@ -298,11 +255,10 @@ class InteractiveBroker:
         open_positions : dict
             A dictionary containing details of the open positions.
         """
+        self._check_connection()
         
         symbol_attr = 'symbol' if local_symbol is None else 'localSymbol'
         matching_symbol = symbol if local_symbol is None else local_symbol
-        
-        self._check_connection()
         
         all_positions = self.ib.portfolio()
         open_positions = {}
