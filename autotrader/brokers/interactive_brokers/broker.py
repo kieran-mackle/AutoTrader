@@ -15,14 +15,15 @@ Notes and considerations:
       
 TODO:
     - Futures contract building
-    - Generalise symbol construction (eg. EUR + USD -> EUR.USD, localSymbol, etc.)
-
 
 IMPORTANT DOCUMENTATION:
     - when closing a position using close_position(), if there are attached SL
       and/or TP orders, they must be closed manually using cancel_pending_order().
       Usually only one of the pair needs to be cancelled, and the other will too.
-
+    - get_open_trades is ambiguous - use get_open_positions
+    - There are some methods missing between virtual broker and this one...
+      ideally all public methods should be shared across brokers, and private
+      methods can be broker-specific. Can then just use wrappers where necessary.
 '''
 
 class InteractiveBroker:
@@ -220,9 +221,6 @@ class InteractiveBroker:
     def cancel_pending_order(self, order_id: int):
         """Cancels pending order by order ID.
         """
-        # TODO - is this a private method? Cancelling by order id isn't natural... but it is
-        # consistent with virtual broker
-        
         self._check_connection()
         
         open_trades = self.ib.openTrades()
@@ -304,7 +302,7 @@ class InteractiveBroker:
         for position in all_positions:
             units = position.position
             pnl = position.unrealizedPNL
-            pos_symbol = position.contract.localSymbol # TODO - this may need to be changed
+            pos_symbol = position.contract.symbol # TODO - this may need to be changed
             pos_dict = {'long_units': units if np.sign(units) > 0 else 0,
                         'long_PL': pnl if np.sign(units) > 0 else 0,
                         'long_margin': None,
@@ -345,18 +343,23 @@ class InteractiveBroker:
         
         self._refresh()
         
+    
+    def get_historical_data(self, symbol: str, interval: str, 
+                            from_time: str, to_time: str):
+        """Returns historical price data.
+        """
+        self._check_connection()
         
-    def close_position(self, order_details: dict, **kwargs):
-        """Closes open position of symbol.
+        # TODO - implement (?)
+        self.ib.reqHistoricalData()
+        
+        
+    def _close_position(self, order_details: dict, **kwargs):
+        """Closes open position of symbol by placing opposing market order.
         """
         self._check_connection()
         
         symbol = order_details['instrument']
-        # TODO - generalise what the symbol is - probably wont match up to the 
-        # symbol returned by get_open_positions(symbol), or rather, eg:
-        # EURUSD order is placed by symbol=EUR, currency=USD. Ie. instrument = EUR
-        # but then the symbol gets converted to EUR.USD ...
-        # How can I handle these inconsistencies?
         position = self.get_open_positions(symbol)[symbol]
         position_units = position['position']
         
@@ -367,18 +370,6 @@ class InteractiveBroker:
         contract = position['contract']
         self.ib.qualifyContracts(contract)
         self.ib.placeOrder(contract, order)
-        
-        # return trade
-    
-    
-    def get_historical_data(self, symbol: str, interval: str, 
-                            from_time: str, to_time: str):
-        """Returns historical price data.
-        """
-        self._check_connection()
-        
-        # TODO - implement
-        self.ib.reqHistoricalData()
         
     
     def _place_market_order(self, order_details: dict):
