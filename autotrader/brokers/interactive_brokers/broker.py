@@ -15,8 +15,14 @@ Notes and considerations:
       
 TODO:
     - Futures contract building
-    - Closing position with bracket orders (first try making OCA, else manual)
     - Generalise symbol construction (eg. EUR + USD -> EUR.USD, localSymbol, etc.)
+
+
+IMPORTANT DOCUMENTATION:
+    - when closing a position using close_position(), if there are attached SL
+      and/or TP orders, they must be closed manually using cancel_pending_order().
+      Usually only one of the pair needs to be cancelled, and the other will too.
+
 '''
 
 class InteractiveBroker:
@@ -344,8 +350,6 @@ class InteractiveBroker:
         """Closes open position of symbol.
         """
         self._check_connection()
-        # TODO - what happens when there are bracket orders?
-        # Need to manually close (one of) the others
         
         symbol = order_details['instrument']
         # TODO - generalise what the symbol is - probably wont match up to the 
@@ -478,7 +482,8 @@ class InteractiveBroker:
             self.ib.placeOrder(contract, order)
     
     
-    def _convert_to_oca(self, orders: list) -> list:
+    def _convert_to_oca(self, orders: list, oca_group: str = None, 
+                        oca_type: int = 1) -> list:
         """Converts a list of Orders to One Cancels All group of orders.
 
         Parameters
@@ -492,8 +497,11 @@ class InteractiveBroker:
             The orders modified to be in a OCA group.
         """
         self._check_connection()
-        # TODO - verify functionality
-        oca_orders = self.ib.oneCancelsAll(orders)
+        
+        if oca_group is None:
+            oca_group = f'OCA_{self.ib.client.getReqId()}'
+        
+        oca_orders = self.ib.oneCancelsAll(orders, oca_group, oca_type)
         return oca_orders
     
     
@@ -552,7 +560,7 @@ class InteractiveBroker:
             currency = order_details['currency'] if 'currency' in order_details else 'USD'
             symbol='' # eg. 'ES', 'CL'
             lastTradeDateOrContractMonth='' # eg. '20170721' or '201707'
-            # TODO - if last trade date not in dict, create using datetime.now() and offset to next month
+            localSymbol = '' # TODO - make this required for futures?
             contract = contract_object(symbol=symbol, exchange=exchange, currency=currency)
             
         elif security_type == 'ContFuture':
@@ -589,7 +597,7 @@ class InteractiveBroker:
         
         return contract
     
-    
+
     class Response:
         """Response oject for handling errors."""
         # TODO - implement
