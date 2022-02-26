@@ -310,6 +310,36 @@ class AutoTrader:
         self.broker_name = 'virtual'
         
     
+    def optimise(self, opt_params: list, bounds: list, Ns: int = 4) -> None:
+        """Optimisation configuration.
+        
+        Parameters
+        ----------
+        opt_params : list
+            The parameters to be optimised, as they  are named in the 
+            strategy configuration file.
+        
+        bounds : list(tuples)
+            The bounds on each of the parameters to be optimised, specified
+            as a tuple of the form (lower, upper) for each parameter.
+        
+        Ns : int
+            The number of points along each dimension of the optimisation grid.
+        """
+        
+        if type(bounds) == str:
+            full_tuple = literal_eval(bounds)
+            bounds = [(x[0], x[-1]) for x in full_tuple]
+
+        if type(opt_params) == str:
+            opt_params = opt_params.split(',')
+        
+        self.optimise_mode = True
+        self.opt_params = opt_params
+        self.bounds = bounds
+        self.Ns = Ns
+        
+        
     def add_data(self, data_dict: dict = None, quote_data: dict = None, 
                  data_directory: str = 'price_data', abs_dir_path: str = None, 
                  auxdata: dict = None) -> None:
@@ -877,8 +907,21 @@ class AutoTrader:
     
     @staticmethod
     def print_backtest_results(backtest_results: dict) -> None:
-        """Prints backtest results. Backtest results can be found using
-        bot.backtest_summary. 
+        """Prints backtest results.
+
+        Parameters
+        ----------
+        backtest_results : dict
+            The backtest results dictionary.
+
+        Returns
+        -------
+        None
+            Backtest results will be printed.
+
+        See Also
+        ----------
+        Analyse backtest.
         """
         start_date = backtest_results['start'].strftime("%b %d %Y %H:%M:%S")
         end_date = backtest_results['end'].strftime("%b %d %Y %H:%M:%S")
@@ -976,35 +1019,6 @@ class AutoTrader:
             print("There were no short trades.")
 
 
-    def optimise(self, opt_params: list, bounds: list, Ns: int = 4) -> None:
-        '''
-        Optimisation configuration.
-        
-            Parameters: 
-                opt_params (list): the parameters to be optimised, as they 
-                are named in the strategy configuration file.
-                
-                bounds (list of tuples): the bounds on each of the 
-                parameters to be optimised, specified as a tuple of the form
-                (lower, upper) for each parameter.
-                
-                Ns (int): the number of points along each dimension of the 
-                optimisation grid.
-        '''
-        
-        if type(bounds) == str:
-            full_tuple = literal_eval(bounds)
-            bounds = [(x[0], x[-1]) for x in full_tuple]
-
-        if type(opt_params) == str:
-            opt_params = opt_params.split(',')
-        
-        self.optimise_mode = True
-        self.opt_params = opt_params
-        self.bounds = bounds
-        self.Ns = Ns
-        
-        
     def _main(self) -> None:
         """Run AutoTrader with configured settings.
         """
