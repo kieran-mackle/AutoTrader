@@ -195,11 +195,11 @@ class AutoTrader:
         
     
     def __repr__(self):
-        return 'AutoTrader'
+        return 'AutoTrader instance'
     
     
     def __str__(self):
-        return 'AutoTrader'
+        return 'AutoTrader instance'
     
     
     def add_strategy(self, strategy_filename: str = None, 

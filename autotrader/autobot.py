@@ -1,11 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-'''
-Module: AutoBot
-Purpose: trading bot deplyed by AutoTrader
-Author: Kieran Mackle
-'''
-
 import sys
 import os
 import importlib
@@ -923,9 +915,8 @@ class AutoTraderBot:
             
 
     def create_backtest_summary(self, balance, NAV, margin):
-        '''
-        Constructs backtest summary dictionary for further processing.
-        '''
+        """Constructs backtest summary dictionary for further processing.
+        """
         
         trade_summary = self.broker_utils.trade_summary(self.instrument, self.broker.closed_positions)
         open_trade_summary = self.broker_utils.open_order_summary(self.instrument, self.broker.open_positions)
