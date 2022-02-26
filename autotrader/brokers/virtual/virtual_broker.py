@@ -11,7 +11,7 @@ class Broker:
         self.spread             = 0
         self.margin_available   = 0
         self.portfolio_balance  = 0
-        self.pending_orders  = {}
+        self.pending_orders     = {}
         self.open_positions     = {}
         self.closed_positions   = {}
         self.cancelled_orders   = {}
@@ -342,8 +342,8 @@ class Broker:
                                      exit_price=exit_price)
     
     
-    def _close_trade(self, candle: pd.core.series.Series = None, exit_price: float = None,
-                    order_no: int = None) -> None:
+    def _close_trade(self, candle: pd.core.series.Series = None, 
+                     exit_price: float = None, order_no: int = None) -> None:
         """Closes trade by order number.
         """
         entry_price = self.open_positions[order_no]['entry_price']
@@ -355,7 +355,7 @@ class Broker:
         commission = self._calculate_commissions(order_no, exit_price, size)
         net_profit = gross_PL - commission
         
-        self.add_funds(net_profit)
+        self._add_funds(net_profit)
         if net_profit > 0:
             self.profitable_trades += 1
         
@@ -439,7 +439,7 @@ class Broker:
         
         net_profit  = gross_PL - commission
         
-        self.add_funds(net_profit)
+        self._add_funds(net_profit)
         
         if net_profit > 0:
             self.profitable_trades += 1
@@ -465,7 +465,8 @@ class Broker:
         self._update_MDD()
     
     
-    def _calculate_commissions(self, order_no, exit_price, units=None):
+    def _calculate_commissions(self, order_no: int, exit_price: float, 
+                               units: float = None) -> float:
         'Calculates trade commissions.'
         if self.commission_scheme == 'percentage':
             entry_price = self.open_positions[order_no]['entry_price']
@@ -483,7 +484,7 @@ class Broker:
         return commission
     
     
-    def get_pending_orders(self, instrument = None):
+    def get_pending_orders(self, instrument: str = None) -> dict:
         ''' Returns pending orders. '''
         
         pending_orders = {}
@@ -498,7 +499,7 @@ class Broker:
         return pending_orders
     
     
-    def cancel_pending_order(self, order_id: int, reason: str = None):
+    def cancel_pending_order(self, order_id: int, reason: str = None) -> None:
         """Moves an order from pending_orders into cancelled_orders.
         """
         self.cancelled_orders[order_id] = self.pending_orders[order_id]
@@ -610,13 +611,13 @@ class Broker:
         return cancelled_orders
     
     
-    def add_funds(self, amount: float) -> None:
+    def _add_funds(self, amount: float) -> None:
         """Adds funds to brokerage account.
         """
         self.portfolio_balance  += amount
     
     
-    def make_deposit(self, deposit: float) -> None:
+    def _make_deposit(self, deposit: float) -> None:
         """Adds deposit to account balance and NAV.
         """
         
@@ -661,7 +662,9 @@ class Broker:
         self.margin_available = self.portfolio_balance - margin_used
 
 
-    def get_price(self, instrument, data=None, conversion_data=None, i=None):
+    def get_price(self, instrument: str, data: pd.core.series.Series = None, 
+                  conversion_data: pd.core.series.Series = None, 
+                  i: int = None) -> dict:
         """Returns the price data dict.
         """
         
@@ -694,7 +697,7 @@ class Broker:
         return price
     
     
-    def _update_MDD(self):
+    def _update_MDD(self) -> None:
         """Function to calculate maximum portfolio drawdown.
         """
         balance     = self.portfolio_balance
@@ -714,19 +717,19 @@ class Broker:
             self.max_drawdown = MDD
     
     
-    def get_NAV(self):
+    def get_NAV(self) -> float:
         """Returns Net Asset Value of account.
         """
         return self.NAV
     
     
-    def get_margin_available(self):
+    def get_margin_available(self) -> float:
         """Returns the margin available on the account.
         """
         return self.margin_available
     
     
-    def _modify_order(self, modification_order):
+    def _modify_order(self, modification_order: dict) -> None:
         """Modify order with updated parameters. Called when order_type = 'modify', 
         modifies trade specified by related_orders key.
         """
@@ -745,14 +748,15 @@ class Broker:
                                      modification_order['take_profit'])
         
         
-    def _update_stop_loss(self, trade_id, new_stop_loss, new_stop_type='limit'):
+    def _update_stop_loss(self, trade_id: int, new_stop_loss: float, 
+                          new_stop_type: str = 'limit') -> None:
         """Updates stop loss on open trade.
         """
         self.open_positions[trade_id]['stop_loss'] = new_stop_loss
         self.open_positions[trade_id]['stop_type'] = new_stop_type
     
     
-    def _update_take_profit(self, trade_id, new_take_profit):
+    def _update_take_profit(self, trade_id: int, new_take_profit: float) -> None:
         """Updates take profit on open trade.
         """
         self.open_positions[trade_id]['take_profit'] = new_take_profit

@@ -22,7 +22,7 @@ from autotrader.lib.read_yaml import read_yaml
 from autotrader.autostream import AutoStream
 
 
-class AutoTraderBot():
+class AutoTraderBot:
     '''
     AutoTrader Bot
     ---------------
