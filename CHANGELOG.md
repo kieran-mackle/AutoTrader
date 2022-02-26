@@ -39,7 +39,7 @@ Features:
 - Docstrings and type hints
 - Distinction of broker and feed, allowing specification of broker and feed 
   separately
-  
+- New broker template directory 
 
 ### 0.5.32
 - fix: trailing stops bug in virtual broker

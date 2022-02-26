@@ -1,6 +1,5 @@
 from autotrader.brokers.broker_utils import BrokerUtils
 
-# TODO - fill in arguments, types and outputs
 """
 Notes:
     - Public methods are called from outside the broker module, and so must
@@ -16,7 +15,7 @@ class Broker:
         
         self.utils = utils if utils is not None else BrokerUtils()
         
-        # Upack config and connect to broker-side API
+        # Unpack config and connect to broker-side API
         
     
     def __repr__(self):
@@ -27,64 +26,55 @@ class Broker:
         return 'AutoTrader Broker interface'
     
     
-    def get_summary(self):
-        """Returns account summary.
-        """
-        pass
-    
-    
-    def get_NAV(self):
+    def get_NAV(self) -> float:
         """Returns the net asset/liquidation value of the account.
         """
         pass
     
     
-    def get_balance(self):
+    def get_balance(self) -> float:
         """Returns account balance.
         """
         pass
         
     
-    def get_trade_details(self, trade_ID: str):
+    def get_trade_details(self, trade_ID: str) -> dict:
         """Returns the details of the trade specified by trade_ID.
         """
         pass
     
     
-    def get_price(self, symbol: str, snapshot: bool = True, **kwargs):
+    def get_price(self, symbol: str, **kwargs) -> dict:
         """Returns current price (bid+ask) and home conversion factors.
         """
         pass
     
     
-    def get_pending_orders(self, symbol=None):
+    def get_pending_orders(self, symbol: str = None, **kwargs) -> dict:
         """Returns all pending orders (have not been filled) in the account.
         """
         pass
     
     
-    def cancel_pending_order(self, order_id: int):
+    def cancel_pending_order(self, order_id: int, **kwargs) -> None:
         """Cancels pending order by order ID.
         """
         pass
     
     
-    def get_open_trades(self, symbol: str = None):
+    def get_open_trades(self, symbol: str = None, **kwargs) -> dict:
         """Returns the open trades held by the account. 
         """
         pass
     
     
-    def get_open_positions(self, symbol: str = None, 
-                           local_symbol: str = None) -> dict:
+    def get_open_positions(self, symbol: str = None, **kwargs) -> dict:
         """Gets the current positions open on the account.
         
         Parameters
         ----------
         symbol : str, optional
             The product symbol. The default is None.
-        local_symbol : str, optional
-            The exchange-local product symbol. The default is None.
             
         Returns
         -------
@@ -94,17 +84,10 @@ class Broker:
         pass
     
     
-    def place_order(self, order_details: dict) -> None:
+    def place_order(self, order_details: dict, **kwargs) -> None:
         """Disassemble order_details dictionary to place order.
         """
         pass
         
     
-    def get_historical_data(self, symbol: str, interval: str, 
-                            from_time: str, to_time: str):
-        """Returns historical price data.
-        """
-        pass
-        
-        
     # Define here any private methods to support the public methods above
