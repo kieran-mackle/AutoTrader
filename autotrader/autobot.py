@@ -15,34 +15,11 @@ from autotrader.autostream import AutoStream
 
 
 class AutoTraderBot:
-    '''
-    AutoTrader Bot
-    ---------------
-    
-    Attributes
-    ----------
-    broker : class
-        The broker class instance.
-        
-    instrument : str
-        The instrument being traded by the bot.
-    
-    strategy : class
-         The strategy being traded by the bot.
-    
-
-    Methods
-    -------
-    update(i):
-        Update strategy with latest data and generate latest signal.
-    
-    '''
+    """AutoTrader Trading Bot.
+    """
     
     def __init__(self, instrument, strategy_config, broker, data_dict, 
                  quote_data_dict, auxdata, autotrader_instance):
-        '''
-        AutoTrader Bot initialisation. 
-        '''
 
         # Inherit user options from autotrader
         self.home_dir           = autotrader_instance.home_dir
@@ -701,15 +678,6 @@ class AutoTraderBot:
             if (len(order_signal_dict) > 0) and ((order_signal_dict["order_type"] == 'modify') or (order_signal_dict["direction"] != 0)):
                 self._process_signal(order_signal_dict, i, self.data, 
                                     self.quote_data, self.instrument)
-        
-        # TODO - implement the following, maybe
-        # else:
-        #     signal_type = order_signal_dict["signal_type"] if "signal_type" in order_signal_dict else None
-            
-        #     if signal_type == 'deployment':
-        #         # Strategy deployment signal
-        #         runfile = os.path.join(self.home_dir, order_signal_dict['runfile'])
-        #         os.system("nohup python3 {} &".format(runfile))
         
         if int(self.verbosity) > 1:
             if len(self.latest_orders) > 0:

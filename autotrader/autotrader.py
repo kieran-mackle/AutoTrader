@@ -43,67 +43,24 @@ class AutoTrader:
     
     Version: 0.6
 
-    Attributes
-    ----------
-    Note: many of the following attributes are set from the configure method of AutoTrader.
-    
-    feed : str 
-        The data feed to be used (eg. Yahoo, Oanda).
-                
-    verbosity : int
-        The verbosity of AutoTrader (0, 1 or 2).
-    
-    notify : int
-        The level of email notification (0, 1 or 2).
-    
-    home_dir : str 
-        The project home directory.
-    
-    use_stream : bool 
-        Set to True to use price stream as data feed.
-    
-    detach_bot : bool 
-        Set to True to spawn new thread for each bot deployed. Bots will then
-        continue to trade until a termination signal is recieved from the strategy.
-    
-    check_data_alignment : bool
-        Verify time of latest candle in data recieved against current time.
-    
-    allow_dancing_bears : bool
-        Allow incomplete candles to be passed to strategy.
-    
-    account_id : str
-        The brokerage account ID to use in this instance.
-    
-    environment : str
-        The trading environment of this instance.
-    
-    show_plot : bool
-        Automatically display plot of results.
-    
-    MTF_initialisation : bool
-        Only download mutliple time frame data when initialising the strategy, 
-        rather than every update.
-
-
     Methods
     -------
-    run():
-        Runs AutoTrader with configured settings.
-    configure():
+    configure(): 
         Configures run settings for AutoTrader.
     add_strategy():
         Adds a strategy to the active AutoTrader instance. 
-    plot_settings():
-        Configures the plot settings for AutoPlot.
     backtest():
         Configures backtest settings.
-    add_data():
-        Specify local data files to use for backtests.
     scan():
         Configures scan settings.
     optimise():
         Configures optimisation settings.
+    plot_settings():
+        Configures the plot settings for AutoPlot.
+    add_data():
+        Specify local data files to use for backtests.
+    run():
+        Runs AutoTrader with configured settings.
     analyse_backtest():
         Analyse backtest results of a single trading bot.
     multibot_backtest_analysis():
@@ -116,7 +73,6 @@ class AutoTrader:
         Prints backtest results.
     print_multibot_backtest_results():
         Prints a multi-bot backtest results.
-    
     """
     
     def __init__(self) -> None:
@@ -240,60 +196,6 @@ class AutoTrader:
             self.strategies[name] = new_strategy
     
     
-    def backtest(self, start: str = None, end: str = None, 
-                 initial_balance: float = 1000, spread: float = 0, 
-                 commission: float = 0, leverage: int = 1,
-                 base_currency: str = 'AUD', start_dt: datetime = None, 
-                 end_dt: datetime = None) -> None:
-        """Configures settings for backtesting.
-
-        Parameters
-        ----------
-        start : str, optional
-            Start date for backtesting, in format dd/mm/yyyy. The default is None.
-        end : str, optional
-            End date for backtesting, in format dd/mm/yyyy. The default is None.
-        start_dt : datetime, optional
-            Datetime object corresponding to start time. The default is None.
-        end_dt : datetime, optional
-            Datetime object corresponding to end time. The default is None.
-        initial_balance : float, optional
-            DESCRIPTION. The default is 1000.
-        spread : float, optional
-            The bid/ask spread to use in backtest. The default is 0.
-        commission : float, optional
-            Trading commission as percentage per trade. The default is 0.
-        leverage : int, optional
-            Account leverage. The default is 1.
-        base_currency : str, optional
-            The base currency of the account. The default is 'AUD'.
-            
-        Notes
-        ------
-            Start and end times must be specified as the same type. For
-            example, both start and end arguments must be provided together, 
-            or alternatively, start_dt and end_dt must both be provided.
-        """
-        
-        # Convert start and end strings to datetime objects
-        if start_dt is None and end_dt is None:
-            start_dt    = datetime.strptime(start + '+0000', '%d/%m/%Y%z')
-            end_dt      = datetime.strptime(end + '+0000', '%d/%m/%Y%z')
-        
-        # Assign attributes
-        self.backtest_mode = True
-        self.data_start = start_dt
-        self.data_end = end_dt
-        self.backtest_initial_balance = initial_balance
-        self.backtest_spread = spread
-        self.backtest_commission = commission
-        self.backtest_leverage = leverage
-        self.backtest_base_currency = base_currency
-        
-        # Enforce virtual broker
-        self.broker_name = 'virtual'
-        
-    
     def configure(self, verbosity: int = 1, broker: str = 'virtual', 
                   feed: str = 'yahoo', notify: int = 0, 
                   home_dir: str = None, use_stream: bool = False, 
@@ -361,6 +263,60 @@ class AutoTrader:
         self.jupyter_notebook = jupyter_notebook
         
         
+    def backtest(self, start: str = None, end: str = None, 
+                 initial_balance: float = 1000, spread: float = 0, 
+                 commission: float = 0, leverage: int = 1,
+                 base_currency: str = 'AUD', start_dt: datetime = None, 
+                 end_dt: datetime = None) -> None:
+        """Configures settings for backtesting.
+
+        Parameters
+        ----------
+        start : str, optional
+            Start date for backtesting, in format dd/mm/yyyy. The default is None.
+        end : str, optional
+            End date for backtesting, in format dd/mm/yyyy. The default is None.
+        start_dt : datetime, optional
+            Datetime object corresponding to start time. The default is None.
+        end_dt : datetime, optional
+            Datetime object corresponding to end time. The default is None.
+        initial_balance : float, optional
+            DESCRIPTION. The default is 1000.
+        spread : float, optional
+            The bid/ask spread to use in backtest. The default is 0.
+        commission : float, optional
+            Trading commission as percentage per trade. The default is 0.
+        leverage : int, optional
+            Account leverage. The default is 1.
+        base_currency : str, optional
+            The base currency of the account. The default is 'AUD'.
+            
+        Notes
+        ------
+            Start and end times must be specified as the same type. For
+            example, both start and end arguments must be provided together, 
+            or alternatively, start_dt and end_dt must both be provided.
+        """
+        
+        # Convert start and end strings to datetime objects
+        if start_dt is None and end_dt is None:
+            start_dt    = datetime.strptime(start + '+0000', '%d/%m/%Y%z')
+            end_dt      = datetime.strptime(end + '+0000', '%d/%m/%Y%z')
+        
+        # Assign attributes
+        self.backtest_mode = True
+        self.data_start = start_dt
+        self.data_end = end_dt
+        self.backtest_initial_balance = initial_balance
+        self.backtest_spread = spread
+        self.backtest_commission = commission
+        self.backtest_leverage = leverage
+        self.backtest_base_currency = base_currency
+        
+        # Enforce virtual broker
+        self.broker_name = 'virtual'
+        
+    
     def add_data(self, data_dict: dict = None, quote_data: dict = None, 
                  data_directory: str = 'price_data', abs_dir_path: str = None, 
                  auxdata: dict = None) -> None:
@@ -418,8 +374,6 @@ class AutoTrader:
         # (requiring different data) are added to the instance
         
         dir_path = abs_dir_path if abs_dir_path is not None else os.path.join(self.home_dir, data_directory)
-        
-        # TODO - wrap the loops below into a signle for loop with dict assignment
         
         # Trading data
         if data_dict is not None:
@@ -847,18 +801,14 @@ class AutoTrader:
         print("")
         
     
-    def print_backtest_results(self, backtest_results: dict) -> None:
-        ''' 
-        Prints backtest results. Backtest results can be found using
+    @staticmethod
+    def print_backtest_results(backtest_results: dict) -> None:
+        """Prints backtest results. Backtest results can be found using
         bot.backtest_summary. 
-        '''
-        
-        # TODO - change output based on verbosity (include as input)
-        
+        """
         start_date = backtest_results['start'].strftime("%b %d %Y %H:%M:%S")
         end_date = backtest_results['end'].strftime("%b %d %Y %H:%M:%S")
         
-        # params      = self.strategy_params
         no_trades   = backtest_results['no_trades']
         if no_trades > 0:
             win_rate    = backtest_results['all_trades']['win_rate']
@@ -879,15 +829,6 @@ class AutoTrader:
         print("\n----------------------------------------------")
         print("               Backtest Results")
         print("----------------------------------------------")
-        # TODO - the below are all strategy specific. Maybe if only one strategy
-        # is used (ie len(self.strategies) = 1), that can be used. Otherwise,
-        # not sure. However, the granularity has to be the same ... until 
-        # time indexing becomes a thing
-        # print("Strategy: {}".format(self.strategy.name))
-        # print("Timeframe:               {}".format(params['granularity']))
-        # if params is not None and 'RR' in params:
-        #     print("Risk to reward ratio:    {}".format(params['RR']))
-        #     print("Profitable win rate:     {}%".format(round(100/(1+params['RR']), 1)))
         if no_trades > 0:
             print("Start date:              {}".format(start_date))
             print("End date:                {}".format(end_date))
@@ -1313,10 +1254,6 @@ class AutoTrader:
         
         opt_params = result[0]
         opt_value = result[1]
-        
-        # TODO - use the below for heatmap plotting
-        # grid_points = result[2]
-        # grid_values = result[3]
         
         ''' --------------------------------------------------------------- '''
         '''                           Print output                          '''
