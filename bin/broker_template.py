@@ -1,5 +1,14 @@
 from autotrader.brokers.broker_utils import BrokerUtils
 
+# TODO - fill in arguments, types and outputs
+"""
+Notes:
+    - Public methods are called from outside the broker module, and so must
+      retain functionality of input arguments. If necessary, they can simply
+      be wrapper methods.
+    - Private methods are broker-specific.
+"""
+
 class Broker:
     def __init__(self, config: dict, utils: BrokerUtils = None) -> None:
         """AutoTrader Broker Class constructor.

@@ -111,7 +111,7 @@ class Broker:
         size            = self.pending_orders[order_no]['size']
         HCF             = self.pending_orders[order_no]['HCF']
         position_value  = abs(size) * current_price * HCF
-        margin_required = self.calculate_margin(position_value)
+        margin_required = self._calculate_margin(position_value)
         
         spread_cost = abs(size) * self.spread * pip_value
         spread_shift = 0.5 * np.sign(size) * self.spread * pip_value
@@ -135,10 +135,10 @@ class Broker:
             self.cancel_pending_order(order_no, cancel_reason)
     
     
-    def _update_positions(self, candle, instrument):
-        ''' 
-            Updates orders and open positions based on current candle. 
-        '''
+    def _update_positions(self, candle: pd.core.series.Series, 
+                          instrument: str) -> None:
+        """Updates orders and open positions based on current candle.
+        """
 
         # Tally for positions opened this update
         opened_positions = 0
@@ -164,7 +164,7 @@ class Broker:
                     
                     elif self.pending_orders[order_no]['order_type'] == 'modify':
                         # Modification order
-                        self.modify_order(self.pending_orders[order_no])
+                        self._modify_order(self.pending_orders[order_no])
                         
                         opened_positions += 1 # To remove from pending orders
                         modification_orders.append(order_no)
@@ -187,7 +187,7 @@ class Broker:
                                 
                 if self.pending_orders[order_no]['order_type'] == 'close':
                     related_order = self.pending_orders[order_no]['related_orders']
-                    self.close_position(self.pending_orders[order_no]['instrument'],
+                    self._close_position(self.pending_orders[order_no]['instrument'],
                                         candle, 
                                         candle.Close,
                                         order_no = related_order
@@ -195,7 +195,7 @@ class Broker:
                     opened_positions += 1 # To remove from pending orders
                     modification_orders.append(order_no)
                 elif self.pending_orders[order_no]['order_type'] == 'reduce':
-                    self.reduce_position(self.pending_orders[order_no])
+                    self._reduce_position(self.pending_orders[order_no])
         
                 
         # Remove position from pending positions
@@ -259,14 +259,14 @@ class Broker:
                     if self.open_positions[order_no]['stop_loss'] is not None and \
                         candle.Low < self.open_positions[order_no]['stop_loss']:
                         # Stop loss hit
-                        self.close_position(self.open_positions[order_no]['instrument'], 
+                        self._close_position(self.open_positions[order_no]['instrument'], 
                                             candle, 
                                             self.open_positions[order_no]['stop_loss'],
                                             order_no)
                     elif self.open_positions[order_no]['take_profit'] is not None and \
                         candle.High > self.open_positions[order_no]['take_profit']:
                         # Take Profit hit
-                        self.close_position(self.open_positions[order_no]['instrument'], 
+                        self._close_position(self.open_positions[order_no]['instrument'], 
                                             candle, 
                                             self.open_positions[order_no]['take_profit'],
                                             order_no)
@@ -289,14 +289,14 @@ class Broker:
                     if self.open_positions[order_no]['stop_loss'] is not None and \
                         candle.High > self.open_positions[order_no]['stop_loss']:
                         # Stop loss hit
-                        self.close_position(self.open_positions[order_no]['instrument'], 
+                        self._close_position(self.open_positions[order_no]['instrument'], 
                                             candle, 
                                             self.open_positions[order_no]['stop_loss'],
                                             order_no)
                     elif self.open_positions[order_no]['take_profit'] is not None and \
                         candle.Low < self.open_positions[order_no]['take_profit']:
                         # Take Profit hit
-                        self.close_position(self.open_positions[order_no]['instrument'], 
+                        self._close_position(self.open_positions[order_no]['instrument'], 
                                             candle, 
                                             self.open_positions[order_no]['take_profit'],
                                             order_no)
@@ -315,7 +315,7 @@ class Broker:
                         self.open_positions[order_no]['unrealised_PL'] = trade_PL
         
         # Update margin available
-        self.update_margin()
+        self._update_margin()
         
         # Update unrealised P/L
         self.unrealised_PL = unrealised_PL
@@ -324,33 +324,35 @@ class Broker:
         self.NAV = self.portfolio_balance + self.unrealised_PL
     
     
-    def close_position(self, instrument, candle, exit_price,
-                           order_no=None):
-        ''' Closes position. '''
+    def _close_position(self, instrument: str, candle: pd.core.series.Series, 
+                        exit_price: float, order_no=None) -> None:
+        """Closes position in instrument.
+        """
         if order_no is not None:
             # single order specified to close
-            self.close_trade(order_no=order_no, 
+            self._close_trade(order_no=order_no, 
                              candle=candle, 
                              exit_price=exit_price)
         else:
             # Close all positions for instrument
             for order_no in self.open_positions.copy():
                 if self.open_positions[order_no]['instrument'] == instrument:
-                    self.close_trade(order_no=order_no, 
+                    self._close_trade(order_no=order_no, 
                                      candle=candle, 
                                      exit_price=exit_price)
     
     
-    def close_trade(self, candle=None, exit_price=None,
-                           order_no=None):
-        ''' Closes trade by order number. '''
+    def _close_trade(self, candle: pd.core.series.Series = None, exit_price: float = None,
+                    order_no: int = None) -> None:
+        """Closes trade by order number.
+        """
         entry_price = self.open_positions[order_no]['entry_price']
         size        = self.open_positions[order_no]['size']
         HCF         = self.open_positions[order_no]['HCF']
         
         # Update portfolio with profit/loss
         gross_PL = size*(exit_price - entry_price)*HCF
-        commission = self.calculate_commissions(order_no, exit_price, size)
+        commission = self._calculate_commissions(order_no, exit_price, size)
         net_profit = gross_PL - commission
         
         self.add_funds(net_profit)
@@ -375,10 +377,10 @@ class Broker:
         self.open_positions.pop(order_no, 0)
         
         # Update maximum drawdown
-        self.update_MDD()
+        self._update_MDD()
     
     
-    def reduce_position(self, order_details):
+    def _reduce_position(self, order_details: dict) -> None:
         ''' 
         Reduces the position of the specified instrument by FIFO. 
         
@@ -409,21 +411,22 @@ class Broker:
                     if units_to_reduce > open_trades[order_no]['size']:
                         # Entire trade must be closed
                         last_price = open_trades[order_no]['last_price']
-                        self.close_trade(order_no = order_no, exit_price=last_price)
+                        self._close_trade(order_no = order_no, exit_price=last_price)
                         
                         # Update units_to_reduce
                         units_to_reduce -= abs(self.closed_positions[order_no]['size'])
                         
                     else:
                         # Partially close trade
-                        self.partial_trade_close(order_no, units_to_reduce)
+                        self._partial_trade_close(order_no, units_to_reduce)
                         
                         # Update units_to_reduce
                         units_to_reduce = 0
                     
     
-    def partial_trade_close(self, trade_ID, units):
-        ''' Partially closes a trade. '''
+    def _partial_trade_close(self, trade_ID: int, units: float) -> None:
+        """Partially closes a trade.
+        """
         entry_price = self.open_positions[trade_ID]['entry_price']
         size        = self.open_positions[trade_ID]['size']
         HCF         = self.open_positions[trade_ID]['HCF']
@@ -432,7 +435,7 @@ class Broker:
         
         # Update portfolio with profit/loss
         gross_PL = units*(last_price - entry_price)*HCF
-        commission = self.calculate_commissions(trade_ID, last_price, units)
+        commission = self._calculate_commissions(trade_ID, last_price, units)
         
         net_profit  = gross_PL - commission
         
@@ -459,10 +462,10 @@ class Broker:
         self.open_positions[trade_ID]['size'] = remaining_size
         
         # Update maximum drawdown
-        self.update_MDD()
+        self._update_MDD()
     
     
-    def calculate_commissions(self, order_no, exit_price, units=None):
+    def _calculate_commissions(self, order_no, exit_price, units=None):
         'Calculates trade commissions.'
         if self.commission_scheme == 'percentage':
             entry_price = self.open_positions[order_no]['entry_price']
@@ -495,16 +498,16 @@ class Broker:
         return pending_orders
     
     
-    def cancel_pending_order(self, order_id, reason=None):
-        ''' Moves an order from pending_orders into cancelled_orders. '''
-        
+    def cancel_pending_order(self, order_id: int, reason: str = None):
+        """Moves an order from pending_orders into cancelled_orders.
+        """
         self.cancelled_orders[order_id] = self.pending_orders[order_id]
         self.cancelled_orders[order_id]['reason'] = reason
     
     
-    def get_open_trades(self, instruments=None):
-        ''' Returns open trades for the specified instrument. '''
-        
+    def get_open_trades(self, instruments: str = None) -> dict:
+        """Returns open trades for the specified instrument.
+        """
         # Check data type of input
         if instruments is not None:
             # Non-None input provided, check type
@@ -526,12 +529,13 @@ class Broker:
         return open_trades
     
     
-    def get_trade_details(self, trade_ID):
-        'Returns the details of the trade specified by trade_ID.'
+    def get_trade_details(self, trade_ID: int) -> dict:
+        """Returns the details of the trade specified by trade_ID.
+        """
         return self.open_positions[trade_ID]
     
     
-    def get_open_positions(self, instruments=None):
+    def get_open_positions(self, instruments: str = None) -> dict:
         ''' Returns the open positions in the account. '''
         
         if instruments is None:
@@ -591,9 +595,9 @@ class Broker:
         return open_positions
     
     
-    def get_cancelled_orders(self, instrument = None):
-        ''' Returns cancelled orders. '''
-        
+    def get_cancelled_orders(self, instrument = None) -> dict:
+        """Returns cancelled orders.
+        """
         cancelled_orders = {}
         
         if instrument is not None:
@@ -606,16 +610,15 @@ class Broker:
         return cancelled_orders
     
     
-    def add_funds(self, amount):
-        ''' Add's funds to brokerage account. '''
-        
+    def add_funds(self, amount: float) -> None:
+        """Adds funds to brokerage account.
+        """
         self.portfolio_balance  += amount
     
     
-    def make_deposit(self, deposit):
-        '''
-        Adds deposit to account balance and NAV.
-        '''
+    def make_deposit(self, deposit: float) -> None:
+        """Adds deposit to account balance and NAV.
+        """
         
         if self.portfolio_balance == 0:
             # If this is the initial deposit, set peak and low values for MDD
@@ -624,31 +627,32 @@ class Broker:
             
         self.portfolio_balance += deposit
         self.NAV += deposit
-        self.update_margin()
+        self._update_margin()
     
     
-    def get_balance(self):
-        ''' Returns balance of account. '''
+    def get_balance(self) -> float:
+        """Returns balance of account.
+        """
         return self.portfolio_balance
     
     
-    def calculate_margin(self, position_value):
-        ''' Calculates margin required to take a position. '''
+    def _calculate_margin(self, position_value: float) -> float:
+        """Calculates margin required to take a position.
+        """
         margin = position_value / self.leverage
-        
         return margin
     
     
-    def update_margin(self):
-        ''' Updates margin available in account. '''
-        
+    def _update_margin(self) -> None:
+        """Updates margin available in account.
+        """        
         margin_used = 0
         for order_no in self.open_positions:
             size            = self.open_positions[order_no]['size']
             HCF             = self.open_positions[order_no]['HCF']
             last_price      = self.open_positions[order_no]['last_price']
             position_value  = abs(size) * last_price * HCF
-            margin_required = self.calculate_margin(position_value)
+            margin_required = self._calculate_margin(position_value)
             margin_used     += margin_required
             
             # Update margin required in trade dict
@@ -658,7 +662,8 @@ class Broker:
 
 
     def get_price(self, instrument, data=None, conversion_data=None, i=None):
-        ''' Returns the price data dict. '''
+        """Returns the price data dict.
+        """
         
         # TODO - include bid/ask spread here
         
@@ -689,8 +694,9 @@ class Broker:
         return price
     
     
-    def update_MDD(self):
-        ''' Function to calculate maximum portfolio drawdown '''
+    def _update_MDD(self):
+        """Function to calculate maximum portfolio drawdown.
+        """
         balance     = self.portfolio_balance
         peak_value  = self.peak_value
         low_value   = self.low_value
@@ -709,20 +715,21 @@ class Broker:
     
     
     def get_NAV(self):
-        ''' Returns Net Asset Value of account. '''
+        """Returns Net Asset Value of account.
+        """
         return self.NAV
     
     
     def get_margin_available(self):
-        ''' Returns the margin available on the account. '''
+        """Returns the margin available on the account.
+        """
         return self.margin_available
     
     
-    def modify_order(self, modification_order):
-        ''' 
-        Modify order with updated parameters. Called when order_type = 'modify', 
+    def _modify_order(self, modification_order):
+        """Modify order with updated parameters. Called when order_type = 'modify', 
         modifies trade specified by related_orders key.
-        '''
+        """
         
         # Get ID of trade to modify
         modify_trade_id = modification_order['related_orders']
@@ -739,13 +746,15 @@ class Broker:
         
         
     def _update_stop_loss(self, trade_id, new_stop_loss, new_stop_type='limit'):
-        ''' Updates stop loss on open trade. '''
+        """Updates stop loss on open trade.
+        """
         self.open_positions[trade_id]['stop_loss'] = new_stop_loss
         self.open_positions[trade_id]['stop_type'] = new_stop_type
     
     
     def _update_take_profit(self, trade_id, new_take_profit):
-        ''' Updates take profit on open trade. '''
+        """Updates take profit on open trade.
+        """
         self.open_positions[trade_id]['take_profit'] = new_take_profit
         
         
