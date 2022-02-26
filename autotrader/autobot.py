@@ -230,6 +230,7 @@ class AutoTraderBot:
         
         self.AS.update_bot = True
     
+    
     def _update_strategy_data(self, data=None):
         '''
         Method to update strategy with latest data. Called by the bot manager
@@ -901,6 +902,7 @@ class AutoTraderBot:
             self.broker.place_order(order_details)
             self.latest_orders.append(order_details)
     
+    
     def _next_candle_open(self, granularity):
         '''
         Returns the UTC datetime object corresponding to the open time of the 
@@ -938,6 +940,7 @@ class AutoTraderBot:
         
         self.backtest_summary = backtest_dict
     
+    
     def _get_iteration_range(self):
         '''
         Checks mode of operation and returns data iteration range. For backtesting,
@@ -953,11 +956,13 @@ class AutoTraderBot:
 
         return start_range, end_range
     
+    
     def _replace_data(self, data):
         ''' Function to replace the data assigned locally and to the strategy. '''
         
         self.data = data
         self.strategy.data = data
+    
     
     def _match_quote_data(self, data, quote_data):
         ''' Function to match index of trading data and quote data. '''

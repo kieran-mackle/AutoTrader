@@ -1,17 +1,10 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-'''
-Module: lib.autodata
-Purpose: Automated data retrieval module
-Author: Kieran Mackle
-'''
-
-import pandas as pd
 import v20
+import pandas as pd
 import yfinance as yf
 from datetime import datetime, timedelta
 
-class GetData():
+
+class GetData:
     """
     GetData class to retrieve price data.
 
@@ -326,12 +319,14 @@ class GetData():
         
         return data
     
+    
     def yahoo_quote_data(self, data, pair, interval, from_date, to_date):
         ''' 
             Returns nominal price data - quote conversion not supported for 
             Yahoo finance API.
         '''
         return data
+    
     
     def _check_oanda_response(self, response):
         'Placeholder method to check Oanda API response.'
