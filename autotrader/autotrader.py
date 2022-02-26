@@ -433,15 +433,24 @@ class AutoTrader:
     
     def scan(self, strategy_filename: str = None, 
              strategy_dict: dict = None, scan_index: str = None) -> None:
-        '''
-        Configure AutoTrader scan. 
-            
-            Parameters:
-                strategy_filename (str): prefix of yaml strategy
-                configuration file, located in home_dir/config.
-                    
-                scan_index (str): index to scan.
-        '''
+        """Configure AutoTrader scan settings. 
+        
+        Parameters
+        ----------
+        strategy_filename : str, optional
+             The prefix of yaml strategy configuration file, located in 
+             home_dir/config. The default is None.
+        strategy_dict : dict, optional
+            A strategy configuration dictionary. The default is None.
+        scan_index : str, optional
+            Forex scan index. The default is None.
+
+        Returns
+        -------
+        None
+            The scan settings of the active AutoTrader instance will be
+            configured.
+        """
         
         # If a strategy is provided here, add it
         if strategy_filename is not None:
@@ -463,7 +472,7 @@ class AutoTrader:
     
     
     def run(self) -> None:
-        """Perform essential checks and run AutoTrader.
+        """Performs essential checks and run AutoTrader.
         """
         
         # Define home_dir if undefined
@@ -522,12 +531,13 @@ class AutoTrader:
     
     
     def option_help(self, option: str) -> None:
-        '''
-        Prints help for a user option of AutoTrader.
+        """Prints help for a user option of AutoTrader.
         
-            Parameters:
-                option (str): user option to request help for.
-        '''
+        Parameters
+        -----------
+        option : str
+            User option to request help for.
+        """
         printout.option_help(option)
         
         
@@ -537,7 +547,40 @@ class AutoTrader:
                       top_fig_height: int = 150, bottom_fig_height: int = 150, 
                       jupyter_notebook: bool = False, show_cancelled: bool = True,
                       chart_timeframe: str = 'default') -> None:
-        ''' Configures settings for AutoPlot. '''
+        """Configure the plot settings.
+
+        Parameters
+        ----------
+        max_indis_over : int, optional
+            Maximum number of indicators overlaid on the main chart. The 
+            default is 3.
+        max_indis_below : int, optional
+            Maximum number of indicators below the main chart. The default is 2.
+        fig_tools : str, optional
+            The figure tools. The default is "pan,wheel_zoom,box_zoom,undo,
+            redo,reset,save,crosshair".
+        ohlc_height : int, optional
+            The height (px) of the main chart. The default is 400.
+        ohlc_width : int, optional
+            The width (px) of the main chart. The default is 800.
+        top_fig_height : int, optional
+            The height (px) of the figure above the main chart. The default is 150.
+        bottom_fig_height : int, optional
+            The height (px) of the figure(s) below the main chart. The default is 150.
+        jupyter_notebook : bool, optional
+            Boolean flag when running in Jupyter Notebooks, to allow inline
+            plotting. The default is False.
+        show_cancelled : bool, optional
+            Show/hide cancelled trades. The default is True.
+        chart_timeframe : str, optional
+            The bar timeframe to use when gerating the chart. The timeframe
+            provided must be a part of the strategy dataset. The default is 'default'.
+
+        Returns
+        -------
+        None
+            The plot settings will be saved to the active AutoTrader instance.
+        """
         
         # Assign attributes
         self.max_indis_over     = max_indis_over
@@ -553,12 +596,19 @@ class AutoTrader:
     
     
     def plot_backtest(self, bot=None) -> None:
-        '''
-        Plots backtest results of an AutoTrader Bot.
-            
-            Parameters:
-                bot (class): AutoTrader bot class containing backtest results.
-        '''
+        """Plots backtest results of an AutoTrader Bot.
+        
+        Parameters
+        ----------
+        bot : AutoTrader bot instance, optional
+            AutoTrader bot class containing backtest results. The default 
+            is None.
+
+        Returns
+        -------
+        None
+            A chart will be generated and shown.
+        """
         
         if bot is None:
             if len(self.bots_deployed) == 1:
