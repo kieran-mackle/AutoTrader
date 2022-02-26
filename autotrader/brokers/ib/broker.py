@@ -16,10 +16,18 @@ IMPORTANT DOCUMENTATION:
 '''
 
 class Broker:
+    """AutoTrader-InteractiveBrokers API interface.
+
+    Parameters
+    ----------
+    config : dict
+        The IB configuration dictionary. This can contain the host, port, 
+        clientID and read_only boolean flag.
+    utils : Utils, optional
+        Broker utilities class instance. The default is None.
+    """
+    
     def __init__(self, config: dict, utils: Utils = None) -> None:
-        """AutoTrader-InteractiveBroker Class constructor.
-        """
-        
         self.utils = utils if utils is not None else Utils()
         
         host = config['host'] if 'host' in config else '127.0.0.1'
@@ -43,7 +51,7 @@ class Broker:
         return 'AutoTrader-InteractiveBrokers interface'
     
     
-    def get_summary(self):
+    def get_summary(self) -> dict:
         """Returns account summary.
         """
         self._check_connection()
@@ -53,7 +61,7 @@ class Broker:
         return summary
     
     
-    def get_NAV(self):
+    def get_NAV(self) -> float:
         """Returns the net asset/liquidation value of the account.
         """
         self._check_connection()
@@ -61,7 +69,7 @@ class Broker:
         return float(summary['NetLiquidation']['value'])
     
     
-    def get_balance(self):
+    def get_balance(self) -> float:
         """Returns account balance.
         """
         self._check_connection()
@@ -69,16 +77,38 @@ class Broker:
         return float(summary['TotalCashValue']['value'])
         
     
-    def get_trade_details(self, trade_ID: str):
+    def get_trade_details(self, trade_ID: str) -> dict:
         """Returns the details of the trade specified by trade_ID.
+
+        Parameters
+        ----------
+        trade_ID : str
+            The ID of the trade.
+
+        Returns
+        -------
+        dict
+            The details of the trade.
         """
         self._check_connection()
         # TODO - implement (?)
         return {}
     
     
-    def get_price(self, symbol: str, snapshot: bool = True, **kwargs):
+    def get_price(self, symbol: str, snapshot: bool = True, **kwargs) -> dict:
         """Returns current price (bid+ask) and home conversion factors.
+        
+        Parameters
+        ----------
+        symbol : str
+            The product symbol.
+        snapshot : bool, optional
+            Request a snapshot of the price. The default is True.
+
+        Returns
+        -------
+        dict
+            A dictionary containing the bid and ask prices.
         """
         self._check_connection()
         # TODO - verify functionality
@@ -95,8 +125,19 @@ class Broker:
         return price
     
     
-    def get_pending_orders(self, symbol=None):
+    def get_pending_orders(self, symbol: str = None) -> dict:
         """Returns all pending orders (have not been filled) in the account.
+
+        Parameters
+        ----------
+        symbol : str, optional
+            The product symbol. The default is None.
+
+        Returns
+        -------
+        dict
+            Pending orders for the requested symbol. If no symbol is provided,
+            all pending orders will be returned.
         """
         self._check_connection()
         
@@ -140,8 +181,19 @@ class Broker:
         return pending_orders
     
     
-    def cancel_pending_order(self, order_id: int):
+    def cancel_pending_order(self, order_id: int) -> list:
         """Cancels pending order by order ID.
+        
+        Parameters
+        ----------
+        order_id : int
+            The ID of the order to be concelled.
+
+        Returns
+        -------
+        list
+            A list of the cancelled trades.
+
         """
         self._check_connection()
         
@@ -156,8 +208,18 @@ class Broker:
         return cancelled_trades
     
     
-    def get_open_trades(self, symbol: str = None):
+    def get_open_trades(self, symbol: str = None) -> dict:
         """Returns the open trades held by the account. 
+
+        Parameters
+        ----------
+        symbol : str, optional
+            The product symbol. The default is None.
+
+        Returns
+        -------
+        dict
+            The open trades.
         """
         self._check_connection()
         
@@ -254,7 +316,17 @@ class Broker:
     
     
     def place_order(self, order_details: dict) -> None:
-        """Disassemble order_details dictionary to place order.
+        """Disassembles order_details dictionary to place order.
+
+        Parameters
+        ----------
+        order_details : dict
+            A dictionary containing order details.
+
+        Returns
+        -------
+        None
+            Orders will be placed.
         """
         self._check_connection()
         
@@ -424,7 +496,8 @@ class Broker:
     
     
     def _process_orders(self, contract: ib_insync.Contract, orders: list) -> None:
-        
+        """Processes a list of orders for a given contract.
+        """
         self._check_connection()
         
         # Submit orders
@@ -461,6 +534,8 @@ class Broker:
     
     
     def _create_take_profit_order(self, order_details: dict, parentId: int):
+        """Constructs a take profit order.
+        """
         quantity = order_details["size"]
         takeProfitPrice = order_details["take_profit"]
         action = 'BUY' if order_details["size"] < 0 else 'SELL'
@@ -474,7 +549,8 @@ class Broker:
     
     
     def _create_stop_loss_order(self, order_details: dict, parentId: int):
-        
+        """Constructs a stop loss order.
+        """
         # TODO - add support for trailing SL
         quantity = order_details["size"]
         stopLossPrice = order_details["stop_loss"]
@@ -490,9 +566,8 @@ class Broker:
     
     @staticmethod
     def _build_contract(order_details: dict) -> ib_insync.contract.Contract:
-        """Builds IB contract based on provided symbol and security type.
+        """Builds IB contract from the order details.
         """
-        
         symbol = order_details['instrument']
         security_type = order_details['secType']
         
