@@ -39,6 +39,18 @@ class Broker:
         return 'AutoTrader Virtual Broker'
     
     
+    def get_NAV(self) -> float:
+        """Returns Net Asset Value of account.
+        """
+        return self.NAV
+    
+    
+    def get_balance(self) -> float:
+        """Returns balance of account.
+        """
+        return self.portfolio_balance
+    
+    
     def place_order(self, order_details: dict) -> None:
         """Place order with broker.
         """
@@ -98,6 +110,174 @@ class Broker:
             
         # Update trade tally
         self.total_trades += 1
+    
+    
+    def get_pending_orders(self, instrument: str = None) -> dict:
+        ''' Returns pending orders. '''
+        
+        pending_orders = {}
+        
+        if instrument is not None:
+            for order_no in self.pending_orders:
+                if self.pending_orders[order_no]['instrument'] == instrument:
+                    pending_orders[order_no] = self.pending_orders[order_no]
+        else:
+            pending_orders = self.pending_orders.copy()
+        
+        return pending_orders
+    
+    
+    def cancel_pending_order(self, order_id: int, reason: str = None) -> None:
+        """Moves an order from pending_orders into cancelled_orders.
+        """
+        self.cancelled_orders[order_id] = self.pending_orders[order_id]
+        self.cancelled_orders[order_id]['reason'] = reason
+    
+    
+    def get_open_trades(self, instruments: str = None) -> dict:
+        """Returns open trades for the specified instrument.
+        """
+        # Check data type of input
+        if instruments is not None:
+            # Non-None input provided, check type
+            if type(instruments) is str:
+                # Single instrument provided, put into list
+                instruments = [instruments]
+                
+        open_trades = {}
+        
+        if instruments is not None:
+            # Specific instruments requested
+            for order_no in self.open_positions:
+                if self.open_positions[order_no]['instrument'] in instruments:
+                    open_trades[order_no] = self.open_positions[order_no]
+        else:
+            # Return all currently open positions
+            open_trades = self.open_positions.copy()
+        
+        return open_trades
+    
+    
+    def get_trade_details(self, trade_ID: int) -> dict:
+        """Returns the details of the trade specified by trade_ID.
+        """
+        return self.open_positions[trade_ID]
+    
+    
+    def get_open_positions(self, instruments: str = None) -> dict:
+        ''' Returns the open positions in the account. '''
+        
+        if instruments is None:
+            # No specific instrument requested, get all open
+            instruments = []
+            for order_no in self.open_positions: 
+                instruments.append(self.open_positions[order_no]['instrument'])
+        else:
+            # Non-None input provided, check type
+            if type(instruments) is str:
+                # Single instrument provided, put into list
+                instruments = [instruments]
+        
+        open_positions = {}
+        for instrument in instruments:
+            # First get open trades
+            open_trades = self.get_open_trades(instrument)
+            
+            if len(open_trades) > 0:
+                # Trades exist for current instrument, collate
+                long_units = 0
+                long_PL = 0
+                long_margin = 0
+                short_units = 0
+                short_PL = 0
+                short_margin = 0
+                total_margin = 0
+                trade_IDs = []
+                
+                for order_no in open_trades:
+                    trade_IDs.append(order_no)
+                    total_margin += open_trades[order_no]['margin_required']
+                    if open_trades[order_no]['size'] > 0:
+                        # Long trade
+                        long_units += open_trades[order_no]['size']
+                        long_PL += open_trades[order_no]['unrealised_PL']
+                        long_margin += open_trades[order_no]['margin_required']
+                    else:
+                        # Short trade
+                        short_units += open_trades[order_no]['size']
+                        short_PL += open_trades[order_no]['unrealised_PL']
+                        short_margin += open_trades[order_no]['margin_required']
+            
+                # Construct instrument position dict
+                instrument_position = {'long_units': long_units,
+                                        'long_PL': long_PL,
+                                        'long_margin': long_margin,
+                                        'short_units': short_units,
+                                        'short_PL': short_PL,
+                                        'short_margin': short_margin,
+                                        'total_margin': total_margin,
+                                        'trade_IDs': trade_IDs}
+                
+                # Append position dict to open_positions dict
+                open_positions[instrument] = instrument_position
+                        
+        return open_positions
+    
+    
+    def get_cancelled_orders(self, instrument = None) -> dict:
+        """Returns cancelled orders.
+        """
+        cancelled_orders = {}
+        
+        if instrument is not None:
+            for order_no in self.cancelled_orders:
+                if self.cancelled_orders[order_no]['instrument'] == instrument:
+                    cancelled_orders[order_no] = self.cancelled_orders[order_no]
+        else:
+            cancelled_orders = self.cancelled_orders.copy()
+        
+        return cancelled_orders
+    
+    
+    def get_price(self, instrument: str, data: pd.core.series.Series = None, 
+                  conversion_data: pd.core.series.Series = None, 
+                  i: int = None) -> dict:
+        """Returns the price data dict.
+        """
+        
+        # TODO - include bid/ask spread here
+        
+        if conversion_data is not None:
+            ask = data.Close[i]
+            bid = data.Close[i]
+            conversion_price = conversion_data.Close[i]
+            
+            if bid == conversion_price:
+                negativeHCF = 1
+                positiveHCF = 1
+            else:
+                negativeHCF = 1/conversion_price
+                positiveHCF = 1/conversion_price
+        else:
+            # Allow calling get_price as placeholder for livetrading
+            ask = data.Close[i]
+            bid = data.Close[i]
+            negativeHCF = 1
+            positiveHCF = 1
+        
+        price = {"ask": ask,
+                 "bid": bid,
+                 "negativeHCF": negativeHCF,
+                 "positiveHCF": positiveHCF
+                 }
+        
+        return price
+    
+    
+    def get_margin_available(self) -> float:
+        """Returns the margin available on the account.
+        """
+        return self.margin_available
     
     
     def _open_position(self, order_no: int, candle: pd.core.series.Series, 
@@ -484,133 +664,6 @@ class Broker:
         return commission
     
     
-    def get_pending_orders(self, instrument: str = None) -> dict:
-        ''' Returns pending orders. '''
-        
-        pending_orders = {}
-        
-        if instrument is not None:
-            for order_no in self.pending_orders:
-                if self.pending_orders[order_no]['instrument'] == instrument:
-                    pending_orders[order_no] = self.pending_orders[order_no]
-        else:
-            pending_orders = self.pending_orders.copy()
-        
-        return pending_orders
-    
-    
-    def cancel_pending_order(self, order_id: int, reason: str = None) -> None:
-        """Moves an order from pending_orders into cancelled_orders.
-        """
-        self.cancelled_orders[order_id] = self.pending_orders[order_id]
-        self.cancelled_orders[order_id]['reason'] = reason
-    
-    
-    def get_open_trades(self, instruments: str = None) -> dict:
-        """Returns open trades for the specified instrument.
-        """
-        # Check data type of input
-        if instruments is not None:
-            # Non-None input provided, check type
-            if type(instruments) is str:
-                # Single instrument provided, put into list
-                instruments = [instruments]
-                
-        open_trades = {}
-        
-        if instruments is not None:
-            # Specific instruments requested
-            for order_no in self.open_positions:
-                if self.open_positions[order_no]['instrument'] in instruments:
-                    open_trades[order_no] = self.open_positions[order_no]
-        else:
-            # Return all currently open positions
-            open_trades = self.open_positions.copy()
-        
-        return open_trades
-    
-    
-    def get_trade_details(self, trade_ID: int) -> dict:
-        """Returns the details of the trade specified by trade_ID.
-        """
-        return self.open_positions[trade_ID]
-    
-    
-    def get_open_positions(self, instruments: str = None) -> dict:
-        ''' Returns the open positions in the account. '''
-        
-        if instruments is None:
-            # No specific instrument requested, get all open
-            instruments = []
-            for order_no in self.open_positions: 
-                instruments.append(self.open_positions[order_no]['instrument'])
-        else:
-            # Non-None input provided, check type
-            if type(instruments) is str:
-                # Single instrument provided, put into list
-                instruments = [instruments]
-        
-        open_positions = {}
-        for instrument in instruments:
-            # First get open trades
-            open_trades = self.get_open_trades(instrument)
-            
-            if len(open_trades) > 0:
-                # Trades exist for current instrument, collate
-                long_units = 0
-                long_PL = 0
-                long_margin = 0
-                short_units = 0
-                short_PL = 0
-                short_margin = 0
-                total_margin = 0
-                trade_IDs = []
-                
-                for order_no in open_trades:
-                    trade_IDs.append(order_no)
-                    total_margin += open_trades[order_no]['margin_required']
-                    if open_trades[order_no]['size'] > 0:
-                        # Long trade
-                        long_units += open_trades[order_no]['size']
-                        long_PL += open_trades[order_no]['unrealised_PL']
-                        long_margin += open_trades[order_no]['margin_required']
-                    else:
-                        # Short trade
-                        short_units += open_trades[order_no]['size']
-                        short_PL += open_trades[order_no]['unrealised_PL']
-                        short_margin += open_trades[order_no]['margin_required']
-            
-                # Construct instrument position dict
-                instrument_position = {'long_units': long_units,
-                                        'long_PL': long_PL,
-                                        'long_margin': long_margin,
-                                        'short_units': short_units,
-                                        'short_PL': short_PL,
-                                        'short_margin': short_margin,
-                                        'total_margin': total_margin,
-                                        'trade_IDs': trade_IDs}
-                
-                # Append position dict to open_positions dict
-                open_positions[instrument] = instrument_position
-                        
-        return open_positions
-    
-    
-    def get_cancelled_orders(self, instrument = None) -> dict:
-        """Returns cancelled orders.
-        """
-        cancelled_orders = {}
-        
-        if instrument is not None:
-            for order_no in self.cancelled_orders:
-                if self.cancelled_orders[order_no]['instrument'] == instrument:
-                    cancelled_orders[order_no] = self.cancelled_orders[order_no]
-        else:
-            cancelled_orders = self.cancelled_orders.copy()
-        
-        return cancelled_orders
-    
-    
     def _add_funds(self, amount: float) -> None:
         """Adds funds to brokerage account.
         """
@@ -629,12 +682,6 @@ class Broker:
         self.portfolio_balance += deposit
         self.NAV += deposit
         self._update_margin()
-    
-    
-    def get_balance(self) -> float:
-        """Returns balance of account.
-        """
-        return self.portfolio_balance
     
     
     def _calculate_margin(self, position_value: float) -> float:
@@ -662,41 +709,6 @@ class Broker:
         self.margin_available = self.portfolio_balance - margin_used
 
 
-    def get_price(self, instrument: str, data: pd.core.series.Series = None, 
-                  conversion_data: pd.core.series.Series = None, 
-                  i: int = None) -> dict:
-        """Returns the price data dict.
-        """
-        
-        # TODO - include bid/ask spread here
-        
-        if conversion_data is not None:
-            ask = data.Close[i]
-            bid = data.Close[i]
-            conversion_price = conversion_data.Close[i]
-            
-            if bid == conversion_price:
-                negativeHCF = 1
-                positiveHCF = 1
-            else:
-                negativeHCF = 1/conversion_price
-                positiveHCF = 1/conversion_price
-        else:
-            # Allow calling get_price as placeholder for livetrading
-            ask = data.Close[i]
-            bid = data.Close[i]
-            negativeHCF = 1
-            positiveHCF = 1
-        
-        price = {"ask": ask,
-                 "bid": bid,
-                 "negativeHCF": negativeHCF,
-                 "positiveHCF": positiveHCF
-                 }
-        
-        return price
-    
-    
     def _update_MDD(self) -> None:
         """Function to calculate maximum portfolio drawdown.
         """
@@ -715,18 +727,6 @@ class Broker:
         
         if MDD < self.max_drawdown:
             self.max_drawdown = MDD
-    
-    
-    def get_NAV(self) -> float:
-        """Returns Net Asset Value of account.
-        """
-        return self.NAV
-    
-    
-    def get_margin_available(self) -> float:
-        """Returns the margin available on the account.
-        """
-        return self.margin_available
     
     
     def _modify_order(self, modification_order: dict) -> None:
