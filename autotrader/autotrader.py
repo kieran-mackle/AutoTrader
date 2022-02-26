@@ -41,7 +41,7 @@ class AutoTrader:
     
     Author: Kieran Mackle
     
-    Version: 0.5
+    Version: 0.6
 
     Attributes
     ----------
@@ -245,34 +245,35 @@ class AutoTrader:
                  commission: float = 0, leverage: int = 1,
                  base_currency: str = 'AUD', start_dt: datetime = None, 
                  end_dt: datetime = None) -> None:
-        '''
-        Configures settings for backtesting.
-        
-            Parameters:
-                start (str): start date for backtesting, in format d/m/yyyy.
-                
-                end (str): end date for backtesting, in format d/m/yyyy.
-                
-                initial_balance (float): initial account balance in base currency 
-                units.
-                
-                spread (float): bid/ask spread of instrument.
-                
-                commission (float): trading commission as percentage per trade.
-                
-                leverage (int): account leverage.
-                
-                base_currency (str): base currency of account.
-                
-                start_dt (datetime): datetime object corresponding to start time.
-                
-                end_dt (datetime): datetime object corresponding to end time.
-                
-            Note: 
-                Start and end times must be specified as the same type. For
-                example, both start and end arguments must be provided together, 
-                or alternatively, start_dt and end_dt must both be provided.
-        '''
+        """Configures settings for backtesting.
+
+        Parameters
+        ----------
+        start : str, optional
+            Start date for backtesting, in format dd/mm/yyyy. The default is None.
+        end : str, optional
+            End date for backtesting, in format dd/mm/yyyy. The default is None.
+        start_dt : datetime, optional
+            Datetime object corresponding to start time. The default is None.
+        end_dt : datetime, optional
+            Datetime object corresponding to end time. The default is None.
+        initial_balance : float, optional
+            DESCRIPTION. The default is 1000.
+        spread : float, optional
+            The bid/ask spread to use in backtest. The default is 0.
+        commission : float, optional
+            Trading commission as percentage per trade. The default is 0.
+        leverage : int, optional
+            Account leverage. The default is 1.
+        base_currency : str, optional
+            The base currency of the account. The default is 'AUD'.
+            
+        Notes
+        ------
+            Start and end times must be specified as the same type. For
+            example, both start and end arguments must be provided together, 
+            or alternatively, start_dt and end_dt must both be provided.
+        """
         
         # Convert start and end strings to datetime objects
         if start_dt is None and end_dt is None:
@@ -282,13 +283,16 @@ class AutoTrader:
         # Assign attributes
         self.backtest_mode = True
         self.data_start = start_dt
-        self.data_end   = end_dt
+        self.data_end = end_dt
         self.backtest_initial_balance = initial_balance
         self.backtest_spread = spread
         self.backtest_commission = commission
         self.backtest_leverage = leverage
         self.backtest_base_currency = base_currency
-    
+        
+        # Enforce virtual broker
+        self.broker_name = 'virtual'
+        
     
     def configure(self, verbosity: int = 1, broker: str = 'virtual', 
                   feed: str = 'yahoo', notify: int = 0, 
@@ -488,7 +492,7 @@ class AutoTrader:
     
     
     def run(self) -> None:
-        """Run AutoTrader.
+        """Perform essential checks and run AutoTrader.
         """
         
         # Define home_dir if undefined
@@ -532,6 +536,11 @@ class AutoTrader:
             else:
                 print("Please set backtest parameters to run optimisation.")
         else:
+            if not self.backtest_mode and self.broker_name == 'virtual':
+                raise Exception("Live-trade mode requires setting the "+\
+                                "broker. Please do so using the "+\
+                                "AutoTrade configure method.")
+                
             self._main()
     
     
