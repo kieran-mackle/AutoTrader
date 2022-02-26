@@ -1,17 +1,3 @@
-#!/usr/bin/python3
-# -*- coding: utf-8 -*-
-"""
----------------------------------------------------------------------------
-         _   _   _ _____ ___ _____ ____      _    ____  _____ ____  
-        / \ | | | |_   _/ _ \_   _|  _ \    / \  |  _ \| ____|  _ \ 
-       / _ \| | | | | || | | || | | |_) |  / _ \ | | | |  _| | |_) |
-      / ___ \ |_| | | || |_| || | |  _ <  / ___ \| |_| | |___|  _ < 
-     /_/   \_\___/  |_| \___/ |_| |_| \_\/_/   \_\____/|_____|_| \_\
-    
----------------------------------------------------------------------------
-     A Python-Based Development Platform For Automated Trading Systems
-"""
-
 import os
 import sys
 import time
@@ -160,14 +146,21 @@ class AutoTrader:
     
     def add_strategy(self, strategy_filename: str = None, 
                      strategy_dict: dict = None) -> None:
-        """Adds a strategy to AutoTrader. 
-        
-            Parameters:
-                strategy_filename (str): prefix of yaml strategy
-                configuration file, located in home_dir/config.
-                
-                strategy_dict (dict): alternative to strategy_filename,
-                the strategy dictionary can be passed directly.
+        """Adds a strategy to AutoTrader.
+
+        Parameters
+        ----------
+        strategy_filename : str, optional
+            prefix of yaml strategy configuration file, located in 
+            home_dir/config. The default is None.
+        strategy_dict : dict, optional
+            alternative to strategy_filename, the strategy dictionary can 
+            be passed directly. The default is None.
+
+        Returns
+        -------
+        None
+            The strategy will be added to the active AutoTrader instance.
         """
         
         if self.home_dir is None:
@@ -320,56 +313,80 @@ class AutoTrader:
     def add_data(self, data_dict: dict = None, quote_data: dict = None, 
                  data_directory: str = 'price_data', abs_dir_path: str = None, 
                  auxdata: dict = None) -> None:
-        ''' 
-        Add local data to run backtest on. Note that to ensure proper directory 
-        configuration, this method should only be called after calling 
-        autotrader.configure().
+        """Specify local data to run a backtest on.
+
+        Parameters
+        ----------
+        data_dict : dict, optional
+            A dictionary containing the filenames of the datasets
+            to be used. The default is None.
+        quote_data : dict, optional
+            A dictionary containing the quote data filenames 
+            of the datasets provided in data_dict. The default is None.
+        data_directory : str, optional
+            The name of the sub-directory containing price
+            data files. This directory should be located in the project
+            home directory (at.home_dir). The default is 'price_data'.
+        abs_dir_path : str, optional
+            The absolute path to the data_directory. This parameter
+            may be used when the datafiles are stored outside of the project
+            directory. The default is None.
+        auxdata : dict, optional
+            A dictionary containing raw data to supplement the 
+            data passed to the strategy module. For strategies involving 
+            multiple products, the keys of this dictionary must correspond
+            to the products, with the auxdata in nested dictionaries or 
+            otherwise. The default is None.
+
+        Raises
+        ------
+        Exception
+            When multiple quote-data files are provided per instrument traded.
+
+        Returns
+        -------
+        None
+            Data will be assigned to the active AutoTrader instance for
+            later use.
         
-        Parameters:
-            data_dict (dict): a dictionary containing the filenames of the datasets
-                 to be used. For example:
-                    data_dict = {'product1': 'filename1.csv',
-                                 'product2': 'filename2.csv'}
-                 
-                 In the case of MTF data, the data_dict will look as follows:
-                     data_dict = {'product1': {'H1': 'product1_H1.csv',
-                                               'D': 'product1_D.csv'},
-                                  'product2': {'H1': 'product2_H1.csv',
-                                               'D': 'product2_D.csv'}
-                                  }
-                 
-                 Note that the filenames in the dict above must be present in the 
-                 data directory, as specified by the data_directory or abs_dir_path
-                 parameters.
-                
-            quote_data (dict): a dictionary containing the quote data filenames 
-                of the datasets provided in data_dict. For example:
-                    quote_data = {'product1': 'product1_quote.csv',
-                                  'product2': 'product2_quote.csv'}
-                
-                In the case of MTF data, quote data should only be provided for
-                    the base timeframe (ie. the data which will be iterated on
-                    when backtesting). Therefore, the quote_data dict will look
-                    the same for single timeframe and MTF backtests.
+        Notes
+        ------
+            To ensure proper directory configuration, this method should only 
+            be called after calling autotrader.configure().
             
-            data_directory (str): the name of the sub-directory containing price
-                data files. This directory should be located in the project
-                home directory (at.home_dir).
+        Examples
+        --------
+            An example data_dict is shown below.
             
-            abs_dir_path: the absolute path to the data_directory. This parameter
-                may be used when the datafiles are stored outside of the project
-                directory.
+            >>> data_dict = {'product1': 'filename1.csv',
+                             'product2': 'filename2.csv'}
             
-            auxdata (dict): a dictionary containing raw data to supplement the 
-                data passed to the strategy module. For strategies involving 
-                multiple products, the keys of this dictionary must correspond
-                to the products, with the auxdata in nested dictionaries or 
-                otherwise. Examples include:
-                    auxdata = {'product1': aux_price_data,
-                               'product2': {'extra_data1': dataset1,
-                                            'extra_data2': dataset2}
-                               }
-        '''
+            For MTF data, data_dict should take the form shown below. In 
+            the case of MTF data, quote data should only be provided for
+            the base timeframe (ie. the data which will be iterated on
+            when backtesting). Therefore, the quote_data dict will look
+            the same for single timeframe and MTF backtests.
+            
+            >>> data_dict = {'product1': {'H1': 'product1_H1.csv',
+                                          'D': 'product1_D.csv'},
+                             'product2': {'H1': 'product2_H1.csv',
+                                          'D': 'product2_D.csv'}
+                             }
+        
+            An example for the quate_data dictionary is shown below.
+        
+            >>> quote_data = {'product1': 'product1_quote.csv',
+                              'product2': 'product2_quote.csv'}
+        
+            The auxdata dictionary can take the form shown below. This data 
+            will be passed on to your strategy.
+        
+            >>> auxdata = {'product1': aux_price_data, 
+                           'product2': {'extra_data1': dataset1,
+                                        'extra_data2': dataset2}
+                           }
+            
+        """
         # TODO - add option to specify strategy, in case multiple strategies
         # (requiring different data) are added to the instance
         
