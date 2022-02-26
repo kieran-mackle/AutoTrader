@@ -43,42 +43,6 @@ class Broker:
         return 'AutoTrader-InteractiveBrokers interface'
     
     
-    def _connect(self, host, port, client_id, read_only, account):
-        """Connects from IB application.
-        """
-        self.ib.connect(host=host, port=port, clientId=client_id, 
-                        readonly=read_only, account=account)
-        
-    
-    def _disconnect(self):
-        """Disconnects from IB application.
-        """
-        self.ib.disconnect()
-        
-
-    def _check_connection(self):
-        """Checks if there is an active connection to IB.
-        """
-        self._refresh()
-        connected = self.ib.isConnected()
-        if not connected:
-            raise ConnectionError("No active connection to IB.")
-    
-    
-    def _refresh(self):
-        """Refreshes IB session events.
-        """
-        self.ib.sleep(0)
-    
-    
-    def _get_account(self,):
-        """Gets first managed account.
-        """
-        self._check_connection()
-        accounts = self.ib.managedAccounts()
-        return accounts[0]
-    
-    
     def get_summary(self):
         """Returns account summary.
         """
@@ -318,6 +282,42 @@ class Broker:
         self.ib.reqHistoricalData()
         
         
+    def _connect(self, host, port, client_id, read_only, account):
+        """Connects from IB application.
+        """
+        self.ib.connect(host=host, port=port, clientId=client_id, 
+                        readonly=read_only, account=account)
+        
+    
+    def _disconnect(self):
+        """Disconnects from IB application.
+        """
+        self.ib.disconnect()
+        
+
+    def _check_connection(self):
+        """Checks if there is an active connection to IB.
+        """
+        self._refresh()
+        connected = self.ib.isConnected()
+        if not connected:
+            raise ConnectionError("No active connection to IB.")
+    
+    
+    def _refresh(self):
+        """Refreshes IB session events.
+        """
+        self.ib.sleep(0)
+    
+    
+    def _get_account(self,):
+        """Gets first managed account.
+        """
+        self._check_connection()
+        accounts = self.ib.managedAccounts()
+        return accounts[0]
+    
+    
     def _close_position(self, order_details: dict, **kwargs):
         """Closes open position of symbol by placing opposing market order.
         """
