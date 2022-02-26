@@ -1,17 +1,7 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-'''
-Module: lib.environment_manager
-Purpose: Construct configuration dictionary based on trading environment
-Author: Kieran Mackle
-'''
-
-def get_config(environment, global_config, feed):
-    '''
-        Returns the configuration dictionary based on the requested 
-        environment.
-        
-    '''
+def get_config(environment: str, global_config: dict, feed: str) -> dict:
+    """Returns the configuration dictionary based on the requested 
+    environment.
+    """    
     
     if environment.lower() == 'real':
         # Live trading
@@ -22,11 +12,11 @@ def get_config(environment, global_config, feed):
             account_id      = global_config['OANDA']['DEFAULT_ACCOUNT_ID']
             port            = global_config['OANDA']['PORT']
             
-            config_dict = {'data_source'    : data_source,
-                           'API'            : api, 
-                           'ACCESS_TOKEN'   : access_token, 
-                           'ACCOUNT_ID'     : account_id, 
-                           'PORT'           : port}
+            config_dict = {'data_source': data_source,
+                           'API': api, 
+                           'ACCESS_TOKEN': access_token, 
+                           'ACCOUNT_ID': account_id, 
+                           'PORT': port}
             
         elif feed.upper() == 'IB':
             print("WARNING: Interactive brokers not fully supported yet.")
@@ -35,7 +25,7 @@ def get_config(environment, global_config, feed):
             config_dict = {'data_source'    : data_source}
             # Any extra information will be added to the config_dict above
             
-        elif feed.lower() == 'yahoo':
+        elif feed.upper() == 'YAHOO':
             data_source = 'yfinance'
             config_dict = {'data_source'    : data_source}
             
@@ -52,27 +42,25 @@ def get_config(environment, global_config, feed):
             account_id      = global_config['OANDA']['DEFAULT_ACCOUNT_ID']
             port            = global_config['OANDA']['PORT']
             
-            config_dict = {'data_source'    : data_source,
-                           'API'            : api, 
-                           'ACCESS_TOKEN'   : access_token, 
-                           'ACCOUNT_ID'     : account_id, 
-                           'PORT'           : port}
+            config_dict = {'data_source': data_source,
+                           'API': api, 
+                           'ACCESS_TOKEN': access_token, 
+                           'ACCOUNT_ID': account_id, 
+                           'PORT': port}
             
         elif feed.upper() == 'IB':
             print("WARNING: Interactive brokers not fully supported yet.")
             
             data_source = 'IB'
-            config_dict = {'data_source'    : data_source}
+            config_dict = {'data_source': data_source}
             # Any extra information will be added to the config_dict above
-            
             
         elif feed.upper() == 'YAHOO':
             data_source = 'yfinance'
-            config_dict = {'data_source'    : data_source}
+            config_dict = {'data_source': data_source}
             
         else:
-            print("Unrecognised data feed {}.".format(feed) + \
+            raise Exception(f"Unrecognised data feed: '{feed}'. " + \
                   "Please check global config and retry.")
-    
     
     return config_dict

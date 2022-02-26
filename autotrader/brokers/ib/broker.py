@@ -15,7 +15,7 @@ IMPORTANT DOCUMENTATION:
       require symbol, exchange and contract_month)
 '''
 
-class InteractiveBroker:
+class Broker:
     def __init__(self, config: dict, utils: Utils = None) -> None:
         """AutoTrader-InteractiveBroker Class constructor.
         """

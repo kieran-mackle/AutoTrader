@@ -22,9 +22,9 @@ import pandas as pd
 import timeit
 from scipy.optimize import brute
 from ast import literal_eval
-from autotrader.brokers.oanda import Oanda
+# from autotrader.brokers.oanda import Oanda
 # from autotrader.brokers.interactive_brokers import ib_broker
-from autotrader.brokers.virtual.virtual_broker import Broker
+# from autotrader.brokers.virtual.virtual_broker import Broker
 from autotrader.lib import instrument_list, environment_manager, printout
 from autotrader.lib.read_yaml import read_yaml
 from autotrader import autoplot
@@ -559,49 +559,60 @@ class AutoTrader:
         self.backtest_base_currency = base_currency
     
     
-    def configure(self, feed='yahoo', verbosity=1, notify=0, home_dir=None,
-                  use_stream=False, detach_bot=False,
-                  check_data_alignment=True, allow_dancing_bears=False,
-                  account_id=None, environment='demo', show_plot=False,
-                  MTF_initialisation=False, jupyter_notebook=False):
-        '''
-        AutoTrader Run Configuration
-        -------------------------------
-        
-        Configures various run settings for AutoTrader.
-        
-            Parameters:
-                feed (str): the data feed to be used (eg. Yahoo, Oanda).
-                
-                verbosity (int): the verbosity of AutoTrader (0, 1 or 2).
-                
-                notify (int): the level of email notification (0, 1 or 2).
-                
-                home_dir (str): the project home directory.
-                
-                use_stream (bool): set to True to use price stream as data feed.
-                
-                detach_bot (bool): set to True to spawn new thread for each bot
-                deployed.
-                
-                check_data_alignment (bool): verify time of latest candle in
-                data recieved against current time.
-                
-                allow_dancing_bears (bool): allow incomplete candles to be 
-                passed to strategy.
-                
-                account_id (str): the brokerage account ID to use in this instance.
-                
-                environment (str): the trading environment of this instance.
-                
-                show_plot (bool): automatically display plot of results.
-                
-                MTF_initialisation (bool): only download mutliple time frame 
-                data when initialising the strategy, rather than every update.
-        '''
-        
-        self.feed = feed
+    def configure(self, verbosity: int = 1, broker: str = 'virtual', 
+                  feed: str = 'yahoo', notify: int = 0, 
+                  home_dir: str = None, use_stream: bool = False, 
+                  detach_bot: bool = False, check_data_alignment: bool = True, 
+                  allow_dancing_bears: bool = False, account_id: str = None, 
+                  environment: str = 'demo', show_plot: bool = False,
+                  MTF_initialisation: bool = False, 
+                  jupyter_notebook: bool = False) -> None:
+        """Configures run settings for AutoTrader.
+
+        Parameters
+        ----------
+        verbosity : int, optional
+            The verbosity of AutoTrader (0, 1, 2). The default is 1.
+        broker : str, optional
+            DESCRIPTION. The default is 'virtual'.
+        feed : str, optional
+            The data feed to be used ('yahoo', 'oanda', 'ib'). The default is 'yahoo'.
+        notify : int, optional
+            The level of email notifications (0, 1, 2). The default is 0.
+        home_dir : str, optional
+            The project home directory. The default is the current working directory.
+        use_stream : bool, optional
+            Use price stream as data feed (Oanda only). The default is False.
+        detach_bot : bool, optional
+            Spawn new thread for each bot deployed. The default is False.
+        check_data_alignment : bool, optional
+            Verify time of latest candle in data recieved against current 
+            time. The default is True.
+        allow_dancing_bears : bool, optional
+            Allow incomplete candles to be passed to the strategy. The default is False.
+        account_id : str, optional
+            The brokerage account ID to be used. The default is None.
+        environment : str, optional
+            The trading environment of this instance ('demo', 'real'). The 
+            default is 'demo'.
+        show_plot : bool, optional
+            Automatically generate backtest chart. The default is False.
+        MTF_initialisation : bool, optional
+            Only download mutliple time-frame data when initialising the 
+            strategy, rather than every update. The default is False.
+        jupyter_notebook : bool, optional
+            Set to True when running in Jupyter notebook environment. The 
+            default is False.
+
+        Returns
+        -------
+        None
+            Calling this method configures the internal settings of 
+            the active AutoTrader instance.
+        """
         self.verbosity = verbosity
+        self.feed = feed
+        self.broker_name = broker
         self.notify = notify
         self.home_dir = home_dir if home_dir is not None else os.getcwd()
         self.use_stream = use_stream
@@ -613,6 +624,7 @@ class AutoTrader:
         self.show_plot = show_plot
         self.MTF_initialisation = MTF_initialisation
         self.jupyter_notebook = jupyter_notebook
+        
         
     def add_data(self, data_dict=None, quote_data=None, 
                  data_directory='price_data', abs_dir_path=None, auxdata=None):
@@ -1010,64 +1022,37 @@ class AutoTrader:
         print("")
         
     
-    def _assign_broker(self, broker_config):
-        '''
-        Configures and assigns appropriate broker for trading.
-        '''
+    def _assign_broker(self, broker_config: dict) -> None:
+        """Configures and assigns appropriate broker for trading.
+        """
+        # Import relevant broker and utilities modules
+        broker_module = importlib.import_module(f'autotrader.brokers.{self.broker_name}.broker')
+        utils_module = importlib.import_module(f'autotrader.brokers.{self.broker_name}.utils')
+        
+        # Create broker and utils instances
+        utils = utils_module.Utils()
+        broker = broker_module.Broker(broker_config, utils)
         
         if self.backtest_mode is True:
             # Backtesting; use virtual broker
-            utils_module    = importlib.import_module('autotrader.brokers.virtual.utils')
-            
-            utils           = utils_module.Utils()
-            broker          = Broker(broker_config, utils)
-            
-            initial_deposit = self.backtest_initial_balance
-            spread          = self.backtest_spread
-            leverage        = self.backtest_leverage
-            commission      = self.backtest_commission
-            base_currency   = self.backtest_base_currency
-            
-            broker._make_deposit(initial_deposit)
-            broker.fee      = spread
-            broker.leverage = leverage
-            broker.commission = commission
-            broker.spread   = spread
-            broker.base_currency = base_currency
-            # self.get_data.base_currency = base_currency
-            
             if int(self.verbosity) > 0:
                 banner = pyfiglet.figlet_format("AutoBacktest")
                 print(banner)
                 
-        else:
-            # Live/demo trading
-            if self.feed.lower() == 'yahoo':
-                # Assign virtual broker for Yahoo API
-                utils_module    = importlib.import_module('autotrader.brokers.virtual.utils')
-                utils           = utils_module.Utils()
-                broker          = Broker(broker_config, utils)
-                
-            elif self.feed.lower() == 'oanda':
-                # Oanda v20 API
-                utils_module    = importlib.import_module('autotrader.brokers.{}.utils'.format(self.feed.lower()))
-                utils           = utils_module.Utils()
-                broker          = Oanda.Oanda(broker_config, utils)
-                
-            elif self.feed.lower() == 'ib':
-                # Interactive Brokers API
-                utils_module    = importlib.import_module('autotrader.brokers.interactive_brokers.utils')
-                utils           = utils_module.Utils()
-                # broker          = ib_broker.interac_broker(broker_config, utils)
+            broker._make_deposit(self.backtest_initial_balance)
+            broker.fee = self.backtest_spread
+            broker.leverage = self.backtest_leverage
+            broker.commission = self.backtest_commission
+            broker.spread = self.backtest_spread
+            broker.base_currency = self.backtest_base_currency
         
         self.broker = broker
         self.broker_utils = utils
     
     
-    def _configure_emailing(self, global_config):
-        '''
-        Configure email settings.
-        '''
+    def _configure_emailing(self, global_config: dict) -> None:
+        """Configure email settings.
+        """
         # TODO - allow setting email in this method
         
         if int(self.notify) > 0:
@@ -1100,6 +1085,7 @@ class AutoTrader:
                 os.mkdir(logfiles_path)
             
             self.order_summary_fp = order_summary_fp
+
 
     def print_backtest_results(self, backtest_results):
         ''' 

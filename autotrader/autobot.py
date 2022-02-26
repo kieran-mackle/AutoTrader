@@ -159,6 +159,10 @@ class AutoTraderBot:
         self.get_data = autodata.GetData(broker_config, self.allow_dancing_bears)
         data, quote_data, MTF_data = self._retrieve_data(instrument, self.feed)
         
+        # Check data
+        if len(data) == 0:
+            raise Exception("Error retrieving data.")
+        
         # Data assignment
         if MTF_data is None:
             strat_data = data
@@ -602,6 +606,7 @@ class AutoTraderBot:
                         MTF_data = None
             
             return data, None, MTF_data
+
 
     def _check_data_period(self, data, from_date, to_date):
         ''' 

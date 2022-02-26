@@ -33,6 +33,14 @@ Features:
 - feat: improved robustness of generic indicator line plotting
 - feat: added capability to plot multiple indicator lines on same figure
 
+## Version 0.6.0
+- Interactive Brokers is now supported
+- Improvements to public broker methods for clarity
+- Docstrings and type hints
+- Distinction of broker and feed, allowing specification of broker and feed 
+  separately
+  
+
 ### 0.5.32
 - fix: trailing stops bug in virtual broker
 - fix: pending order method in Oanda module

@@ -245,10 +245,21 @@ class GetData():
         
         return dataframe
     
-    def granularity_to_seconds(self, granularity, feed):
-        '''Converts the granularity to time in seconds'''
-        
+    
+    @staticmethod
+    def granularity_to_seconds(granularity: str, feed: str):
+        """Converts the granularity to time in seconds.
+        """
         if feed.lower() == 'oanda':
+            allowed_granularities = ('S5', 'S10', 'S15', 'S30',
+                                       'M1', 'M2', 'M4', 'M5', 'M10', 'M15', 'M30',
+                                       'H1', 'H2', 'H3', 'H4', 'H6', 'H8', 'H12',
+                                       'D', 'W', 'M')
+            
+            if granularity not in allowed_granularities:
+                raise Exception(f"Invalid granularity '{granularity}' for "+\
+                                "{feed} data feed.")
+            
             letter = granularity[0]
             
             if len(granularity) > 1:

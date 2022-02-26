@@ -8,7 +8,7 @@ import sys
 import time
 
 
-class Oanda:
+class Broker:
     def __init__(self, oanda_config, utils):
         ''' Create v20 context. '''
         self.API             = oanda_config["API"]
