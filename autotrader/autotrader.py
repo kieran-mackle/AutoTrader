@@ -644,13 +644,14 @@ class AutoTrader:
         
     
     def multibot_backtest_analysis(self, bots=None) -> dict:
-        '''
-        Analyses backtest results of multiple bots to create an overall 
+        """Analyses backtest results of multiple bots to create an overall 
         performance summary.
         
-            Parameters:
-                bots (list): a list of AutoTrader bots to analyse.
-        '''
+        Parameters
+        -----------
+        bots : list(bots)
+            A list of AutoTrader bots to analyse.
+        """
         
         instruments = []
         win_rate    = []
@@ -701,12 +702,13 @@ class AutoTrader:
         
     
     def analyse_backtest(self, bot=None) -> dict:
-        '''
-        Analyses bot backtest results to extract key statistics.
+        """Analyses bot backtest results to extract key statistics.
         
-            Parameters:
-                bot (class): An AutoBot class instance.
-        '''
+        Parameters
+        ----------
+        bot : AutoTraderBot
+            An AutoTraderBot class instance.
+        """
         
         if bot is None:
             if len(self.bots_deployed) == 1:
@@ -822,12 +824,17 @@ class AutoTrader:
     
     
     def print_multibot_backtest_results(self, backtest_results: dict = None) -> None:
-        '''
-        Prints to console the backtest results of a multi-bot backtest.
+        """Prints to console the backtest results of a multi-bot backtest.
         
-            Parameters:
-                backtest_results (dict): dictionary containing backtest results.
-        '''
+        Parameters
+        -----------
+        backtest_results : dict
+            A dictionary containing backtest results.
+            
+        See Also
+        --------
+        Analyse backtest method to generate backtest_results.
+        """
         
         bot = self.bots_deployed[0]
         account_history = bot.backtest_summary['account_history']
