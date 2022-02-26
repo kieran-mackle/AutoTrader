@@ -27,24 +27,24 @@ class GetData:
     
     """
     
-    def __init__(self, broker_config=None, allow_dancing_bears=False):
+    def __init__(self, broker_config: dict = None, 
+                 allow_dancing_bears: bool = False) -> None:
         
         if broker_config is not None:
             if broker_config['data_source'] == 'OANDA':
-                API                     = broker_config["API"]
-                ACCESS_TOKEN            = broker_config["ACCESS_TOKEN"]
-                port                    = broker_config["PORT"]
-                self.api                = v20.Context(hostname=API, 
-                                                      token=ACCESS_TOKEN, 
-                                                      port=port)
+                API = broker_config["API"]
+                ACCESS_TOKEN = broker_config["ACCESS_TOKEN"]
+                port = broker_config["PORT"]
+                self.api = v20.Context(hostname=API, token=ACCESS_TOKEN, port=port)
+            # Define API for other data sources
+            
         self.allow_dancing_bears = allow_dancing_bears
-        self.home_currency      = None
+        self.home_currency = None
         
 
-    def oanda(self, instrument, granularity, count=None, start_time=None, end_time=None):
-        ''' 
-        
-        Retrieves historical price data of a instrument from Oanda v20 API.
+    def oanda(self, instrument: str, granularity: str, count: int = None, 
+              start_time: datetime = None, end_time: datetime = None) -> pd.DataFrame:
+        '''Retrieves historical price data of a instrument from Oanda v20 API.
         
         
             Parameters:
