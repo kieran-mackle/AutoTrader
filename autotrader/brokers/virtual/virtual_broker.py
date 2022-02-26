@@ -1,49 +1,12 @@
 import numpy as np
-
+import pandas as pd
+from autotrader.brokers.broker_utils import BrokerUtils
 
 class Broker:
-    """Virtual broker to simulate trading environment.
-
-    Attributes
-    ----------
-    broker_config : dict
-        the broker configuration dictionary
-    
-    leverage : int
-        the leverage on the account (default 1)
-    
-    commission_scheme : str
-        the commission scheme to use ('percentage' or 'fixed')
-    
-    commission : int
-        the brokers commission, either as a percentage of trade volume,
-        or as a fixed amount per unit traded.
-        
-    spread : int
-        the bid/ask spread (default 0)
-    
-    utils : class
-        the broker utilities class
-    
-    home_curreny : str
-        the home currency of the account (used for retrieving quote data)
-
-
-    Methods
-    -------
-    place_order(order_details):
-        Places an order with the virtual broker.
-    
-    open_position(order_no, candle, limit_price = None):
-        Opens an order to enter the market as a trade. 
-    
-    update_positions(candle):
-        Updates orders and open positions based on current candle. 
-
+    """Autotrader virtual broker to simulate trading.
     """
     
-    
-    def __init__(self, broker_config, utils):
+    def __init__(self, broker_config: dict, utils: BrokerUtils) -> None:
         self.leverage           = 1
         self.spread             = 0
         self.margin_available   = 0
@@ -67,8 +30,16 @@ class Broker:
         self.commission_scheme  = 'percentage'
         self.commission         = 0
         
-
-    def place_order(self, order_details):
+    
+    def __repr__(self):
+        return 'AutoTrader Virtual Broker'
+    
+    
+    def __str__(self):
+        return 'AutoTrader Virtual Broker'
+    
+    
+    def place_order(self, order_details: dict) -> None:
         """Place order with broker.
         """
         instrument  = order_details["instrument"]
@@ -129,8 +100,10 @@ class Broker:
         self.total_trades += 1
     
     
-    def open_position(self, order_no, candle, limit_price = None):
-        ''' Opens position with broker. '''
+    def _open_position(self, order_no: int, candle: pd.core.series.Series, 
+                       limit_price: float = None) -> None:
+        """Fills or cancels a pending order.
+        """
         
         # Calculate margin requirements
         current_price   = candle.Open
@@ -162,7 +135,7 @@ class Broker:
             self.cancel_pending_order(order_no, cancel_reason)
     
     
-    def update_positions(self, candle, instrument):
+    def _update_positions(self, candle, instrument):
         ''' 
             Updates orders and open positions based on current candle. 
         '''
@@ -178,7 +151,7 @@ class Broker:
                 if candle.name > self.pending_orders[order_no]['order_time']:
                     if self.pending_orders[order_no]['order_type'] == 'market':
                         # Market order type
-                        self.open_position(order_no, candle)
+                        self._open_position(order_no, candle)
                         opened_positions += 1
                     
                     elif self.pending_orders[order_no]['order_type'] == 'stop-limit':
@@ -202,12 +175,12 @@ class Broker:
                         # Limit order type
                         if self.pending_orders[order_no]['size'] > 0:
                             if candle.Low < self.pending_orders[order_no]['order_limit_price']:
-                                self.open_position(order_no, candle, 
+                                self._open_position(order_no, candle, 
                                                    self.pending_orders[order_no]['order_limit_price'])
                                 opened_positions += 1
                         else:
                             if candle.High > self.pending_orders[order_no]['order_limit_price']:
-                                self.open_position(order_no, candle, 
+                                self._open_position(order_no, candle, 
                                                    self.pending_orders[order_no]['order_limit_price'])
                                 opened_positions += 1
                                 

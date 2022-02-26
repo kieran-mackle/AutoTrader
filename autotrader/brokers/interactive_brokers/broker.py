@@ -1,5 +1,4 @@
-# from autotrader.brokers.interactive_brokers.utils import Utils
-from utils import Utils
+from autotrader.brokers.interactive_brokers.utils import Utils
 import numpy as np
 import ib_insync
 
@@ -290,7 +289,7 @@ class InteractiveBroker:
         return open_positions
     
     
-    def place_order(self, order_details: dict):
+    def place_order(self, order_details: dict) -> None:
         """Disassemble order_details dictionary to place order.
         """
         self._check_connection()

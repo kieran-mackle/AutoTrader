@@ -790,12 +790,11 @@ class AutoTraderBot():
                                                self.email_params['host_email'])
                     
     
-    def _update_backtest(self, i):
-        '''
-        Updates virtual broker with latest price data.
-        '''
+    def _update_backtest(self, i: int) -> None:
+        """Updates virtual broker with latest price data for backtesting.
+        """
         candle = self.data.iloc[i]
-        self.broker.update_positions(candle, self.instrument)
+        self.broker._update_positions(candle, self.instrument)
     
     
     def _process_signal(self, order_signal_dict, i, data, quote_data, 

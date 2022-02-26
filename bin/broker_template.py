@@ -85,7 +85,7 @@ class Broker:
         pass
     
     
-    def place_order(self, order_details: dict):
+    def place_order(self, order_details: dict) -> None:
         """Disassemble order_details dictionary to place order.
         """
         pass
