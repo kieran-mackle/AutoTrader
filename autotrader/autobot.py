@@ -18,8 +18,9 @@ class AutoTraderBot:
     """AutoTrader Trading Bot.
     """
     
-    def __init__(self, instrument, strategy_config, broker, data_dict, 
-                 quote_data_dict, auxdata, autotrader_instance):
+    def __init__(self, instrument: str, strategy_config: dict, 
+                 broker, data_dict: dict, quote_data_dict: dict, 
+                 auxdata: dict, autotrader_instance) -> None:
 
         # Inherit user options from autotrader
         self.home_dir           = autotrader_instance.home_dir
@@ -169,10 +170,9 @@ class AutoTraderBot:
                                                          strategy_config['NAME']))
     
     
-    def _initiate_stream(self):
-        '''
-        Spawns AutoStream into a new thread.
-        '''
+    def _initiate_stream(self) -> None:
+        """Spawns AutoStream into a new thread.
+        """
         
         record_ticks = False
         record_candles = False
@@ -200,19 +200,17 @@ class AutoTraderBot:
         stream_thread.start()
         
     
-    def _recieve_stream_data(self):
-        '''
-        Method to tell AutoStream to send data to bot. Called from bot manager.
-        '''
+    def _recieve_stream_data(self) -> None:
+        """Method to tell AutoStream to send data to bot. Called from bot manager.
+        """
         
         self.AS.update_bot = True
     
     
-    def _update_strategy_data(self, data=None):
-        '''
-        Method to update strategy with latest data. Called by the bot manager
+    def _update_strategy_data(self, data: pd.DataFrame = None) -> None:
+        """Method to update strategy with latest data. Called by the bot manager
         and autostream.
-        '''
+        """
         
         if data is not None:
             # Update data attribute (for livetrade compatibility)
@@ -233,10 +231,9 @@ class AutoTraderBot:
         self.strategy.initialise_strategy(strat_data)
         
     
-    def _retrieve_data(self, instrument, feed, base_data = None):
-        '''
-        Retrieves price data from AutoData.
-        '''
+    def _retrieve_data(self, instrument, feed, base_data = None) -> pd.DataFrame:
+        """Retrieves price data from AutoData.
+        """
         
         interval    = self.strategy_params['granularity']
         period      = self.strategy_params['period']
@@ -578,12 +575,11 @@ class AutoTraderBot:
             return data, None, MTF_data
 
 
-    def _check_data_period(self, data, from_date, to_date):
-        ''' 
-        Checks and returns the dataset matching the backtest start and 
+    def _check_data_period(self, data: pd.DataFame, from_date: datetime, 
+                           to_date: datetime) -> pd.DataFrame:
+        """Checks and returns the dataset matching the backtest start and 
         end dates (as close as possible).
-        '''
-        
+        """
         return data[(data.index >= from_date) & (data.index <= to_date)]
         
 
@@ -651,10 +647,9 @@ class AutoTraderBot:
         return data
     
     
-    def _update(self, i):
-        '''
-        Update strategy with latest data and generate latest signal.
-        '''
+    def _update(self, i: int) -> None:
+        """Update strategy with latest data and generate latest signal.
+        """
         
         # First clear self.latest_orders
         self.latest_orders = []
@@ -763,11 +758,11 @@ class AutoTraderBot:
         self.broker._update_positions(candle, self.instrument)
     
     
-    def _process_signal(self, order_signal_dict, i, data, quote_data, 
-                       instrument):
-        '''
-            Process order_signal_dict and send orders to broker.
-        '''
+    def _process_signal(self, order_signal_dict: dict, i: int, 
+                        data: pd.DataFrame, quote_data: pd.DataFrame, 
+                       instrument: str) -> None:
+        """Process order_signal_dict and send orders to broker.
+        """
         signal = order_signal_dict["direction"]
         
         # Entry signal detected, get price data
@@ -871,11 +866,10 @@ class AutoTraderBot:
             self.latest_orders.append(order_details)
     
     
-    def _next_candle_open(self, granularity):
-        '''
-        Returns the UTC datetime object corresponding to the open time of the 
+    def _next_candle_open(self, granularity: str) -> datetime:
+        """Returns the UTC datetime object corresponding to the open time of the 
         next candle.
-        '''
+        """
         
         current_ts = datetime.now(tz=pytz.utc).timestamp()
         granularity_in_seconds = self.broker_utils.interval_to_seconds(granularity)
@@ -884,7 +878,8 @@ class AutoTraderBot:
         return datetime.fromtimestamp(next_candle_open_ts, tz=pytz.utc)
             
 
-    def create_backtest_summary(self, balance, NAV, margin):
+    def create_backtest_summary(self, balance: pd.Series, NAV: pd.Series, 
+                                margin: pd.Series) -> dict:
         """Constructs backtest summary dictionary for further processing.
         """
         
@@ -909,12 +904,11 @@ class AutoTraderBot:
         self.backtest_summary = backtest_dict
     
     
-    def _get_iteration_range(self):
-        '''
-        Checks mode of operation and returns data iteration range. For backtesting,
+    def _get_iteration_range(self) -> int:
+        """Checks mode of operation and returns data iteration range. For backtesting,
         the entire dataset is iterated over. For livetrading, only the latest candle
         is used.
-        '''
+        """
         
         if self.backtest_mode:
             start_range = 0
@@ -925,15 +919,17 @@ class AutoTraderBot:
         return start_range, end_range
     
     
-    def _replace_data(self, data):
-        ''' Function to replace the data assigned locally and to the strategy. '''
-        
+    def _replace_data(self, data: pd.DataFrame) -> None:
+        """Function to replace the data assigned locally and to the strategy.
+        """
         self.data = data
         self.strategy.data = data
     
     
-    def _match_quote_data(self, data, quote_data):
-        ''' Function to match index of trading data and quote data. '''
+    def _match_quote_data(self, data: pd.DataFrame, 
+                          quote_data: pd.DataFrame) -> pd.DataFrame:
+        """Function to match index of trading data and quote data.
+        """
         datasets = [data, quote_data]
         adjusted_datasets = []
         
