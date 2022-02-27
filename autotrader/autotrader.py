@@ -625,6 +625,21 @@ class AutoTrader:
         self.chart_timeframe    = chart_timeframe
     
     
+    def get_bots_deployed(self) -> dict:
+        """Returns a dictionary of AutoTrader trading bots, organised by 
+        instrument traded.
+
+        Returns
+        -------
+        dict
+            A dictionary of deployed AutoTrader bot instances.
+        """
+        bots = {}
+        for bot in self.bots_deployed:
+            bots[bot.instrument] = bot
+        return bots
+        
+    
     def plot_backtest(self, bot=None) -> None:
         """Plots backtest results of an AutoTrader Bot.
         
