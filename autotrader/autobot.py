@@ -583,14 +583,14 @@ class AutoTraderBot:
         return data[(data.index >= from_date) & (data.index <= to_date)]
         
 
-    def _verify_data_alignment(self, data, instrument, feed, period, price_data_path):
-        '''
-        Verifies data time-alignment based on current time and last
+    def _verify_data_alignment(self, data: pd.DataFame, instrument: str, 
+                               feed: str, period: str, 
+                               price_data_path: str) -> pd.DataFame:
+        """Verifies data time-alignment based on current time and last
         candle in data. 
         
         When using MTF data, this method will only check the base timeframe.
-        '''
-        
+        """
         interval = self.strategy_params['granularity'].split(',')[0]
         
         # Check data time alignment
@@ -650,7 +650,6 @@ class AutoTraderBot:
     def _update(self, i: int) -> None:
         """Update strategy with latest data and generate latest signal.
         """
-        
         # First clear self.latest_orders
         self.latest_orders = []
         
@@ -870,7 +869,6 @@ class AutoTraderBot:
         """Returns the UTC datetime object corresponding to the open time of the 
         next candle.
         """
-        
         current_ts = datetime.now(tz=pytz.utc).timestamp()
         granularity_in_seconds = self._broker_utils.interval_to_seconds(granularity)
         next_candle_open_ts = granularity_in_seconds * np.ceil(current_ts / granularity_in_seconds)
@@ -882,7 +880,6 @@ class AutoTraderBot:
                                 margin: pd.Series) -> dict:
         """Constructs backtest summary dictionary for further processing.
         """
-        
         trade_summary = self._broker_utils.trade_summary(self.instrument, self._broker.closed_positions)
         open_trade_summary = self._broker_utils.open_order_summary(self.instrument, self._broker.open_positions)
         cancelled_summary = self._broker_utils.cancelled_order_summary(self.instrument, self._broker.cancelled_orders)
@@ -909,7 +906,6 @@ class AutoTraderBot:
         the entire dataset is iterated over. For livetrading, only the latest candle
         is used.
         """
-        
         if self._backtest_mode:
             start_range = 0
         else:
