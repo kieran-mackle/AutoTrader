@@ -173,7 +173,6 @@ class AutoTraderBot:
     def _initiate_stream(self) -> None:
         """Spawns AutoStream into a new thread.
         """
-        
         record_ticks = False
         record_candles = False
         if self.base_interval == 'tick' or self.base_interval == 'ticks':
@@ -203,7 +202,6 @@ class AutoTraderBot:
     def _recieve_stream_data(self) -> None:
         """Method to tell AutoStream to send data to bot. Called from bot manager.
         """
-        
         self.AS.update_bot = True
     
     
