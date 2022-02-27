@@ -180,7 +180,6 @@ class AutoTraderBot:
         else:
             record_candles = True
         
-        
         stream_granularity = self.base_interval
         self.no_candles = self.strategy_params['period']
         
@@ -209,7 +208,6 @@ class AutoTraderBot:
         """Method to update strategy with latest data. Called by the bot manager
         and autostream.
         """
-        
         if data is not None:
             # Update data attribute (for livetrade compatibility)
             self.data = data
@@ -232,9 +230,8 @@ class AutoTraderBot:
     def _retrieve_data(self, instrument, feed, base_data = None) -> pd.DataFrame:
         """Retrieves price data from AutoData.
         """
-        
-        interval    = self.strategy_params['granularity']
-        period      = self.strategy_params['period']
+        interval = self.strategy_params['granularity']
+        period = self.strategy_params['period']
         price_data_path = os.path.join(self._home_dir, 'price_data')
         
         if self._backtest_mode is True:
@@ -573,7 +570,7 @@ class AutoTraderBot:
             return data, None, MTF_data
 
 
-    def _check_data_period(self, data: pd.DataFame, from_date: datetime, 
+    def _check_data_period(self, data: pd.DataFrame, from_date: datetime, 
                            to_date: datetime) -> pd.DataFrame:
         """Checks and returns the dataset matching the backtest start and 
         end dates (as close as possible).
@@ -581,9 +578,9 @@ class AutoTraderBot:
         return data[(data.index >= from_date) & (data.index <= to_date)]
         
 
-    def _verify_data_alignment(self, data: pd.DataFame, instrument: str, 
+    def _verify_data_alignment(self, data: pd.DataFrame, instrument: str, 
                                feed: str, period: str, 
-                               price_data_path: str) -> pd.DataFame:
+                               price_data_path: str) -> pd.DataFrame:
         """Verifies data time-alignment based on current time and last
         candle in data. 
         
