@@ -99,6 +99,8 @@ class AutoTrader:
         self._backtest_mode = False
         self._data_start = None
         self._data_end = None
+        self._data_file = None
+        self._MTF_data_files = None
         self._local_data = None
         self._local_quote_data = None
         self._auxdata = None
@@ -133,7 +135,7 @@ class AutoTrader:
         
     
     def __repr__(self):
-        return 'AutoTrader instance'
+        return f'AutoTrader instance in {self._feed} {self._environment} environment'
     
     
     def __str__(self):
