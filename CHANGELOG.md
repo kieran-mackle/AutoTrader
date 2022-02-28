@@ -1,5 +1,18 @@
 # AutoTrader Changelog
 
+## Version 0.6.0
+- Interactive Brokers is now supported
+- Improvements to public broker methods for clarity
+- Docstrings and type hints
+- Distinction of broker and feed, allowing specification of broker and feed 
+  separately
+- New broker template directory 
+- All AutoTrader attributes have been made private to avoid confusion - the 
+  configuration methods should be used exclusively to set the attributes.
+  This also clarifies and promotes visibility of public methods.
+- New method `get_bots_deployed` added to AutoTrader
+
+
 
 ## Version 0.5.0
 Breaking change:
@@ -32,14 +45,7 @@ Features:
 - feat: new indicator: halftrend
 - feat: improved robustness of generic indicator line plotting
 - feat: added capability to plot multiple indicator lines on same figure
-
-## Version 0.6.0
-- Interactive Brokers is now supported
-- Improvements to public broker methods for clarity
-- Docstrings and type hints
-- Distinction of broker and feed, allowing specification of broker and feed 
-  separately
-- New broker template directory 
+  
 
 ### 0.5.32
 - fix: trailing stops bug in virtual broker
