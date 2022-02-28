@@ -270,24 +270,19 @@ class AutoTraderBot:
                     if not self._abs_data_filepath else custom_data_file
                 if int(self._verbosity) > 1:
                     print("Using data file specified ({}).".format(custom_data_file))
-                data = pd.read_csv(custom_data_filepath, index_col = 0)
-                data.index = pd.to_datetime(data.index, utc=True)
-                
-                # Adjust for start and end dates
-                data = self._check_data_period(data, from_date, to_date)
+                data = self._get_data.local(custom_data_filepath, self._data_start, 
+                                            self._data_end)
                 
                 # Load quote data
                 if self._quote_data_file is not None:
-                    quote_data = pd.read_csv(self._quote_data_file, index_col = 0)
-                    quote_data.index = pd.to_datetime(quote_data.index, utc=True)
-                    quote_data = self._check_data_period(quote_data, from_date, 
-                                                         to_date)
+                    quote_data = self._get_data.local(self._quote_data_file, 
+                                                      self._data_start, 
+                                                      self._data_end)
                 else:
                     quote_data = data
                 
                 # Correct any data mismatches
                 data, quote_data = self._match_quote_data(data, quote_data)
-                
                 MTF_data = None
             
             elif self._MTF_data_files is not None:
@@ -304,22 +299,15 @@ class AutoTraderBot:
                         if not self._abs_data_filepath else custom_data_file
                     if int(self._verbosity) > 1:
                         print("Using data file specified ({}).".format(MTF_data_files[granularity]))
-                    data = pd.read_csv(custom_data_filepath, index_col = 0)
-                    data.index = pd.to_datetime(data.index, utc=True)
-                    
-                    # Adjust for start and end dates
-                    data = self._check_data_period(data, from_date, to_date)
+                    data = self._get_data.local(custom_data_filepath, self._data_start, 
+                                                self._data_end)
                     
                     if granularity == MTF_granularities[0]:
                         # Assign quote data for backtesting
                         if self._quote_data_file is not None:
-                            quote_data = pd.read_csv(self._quote_data_file, 
-                                                     index_col = 0)
-                            quote_data.index = pd.to_datetime(quote_data.index,
-                                                              utc=True)
-                            quote_data = self._check_data_period(quote_data, 
-                                                                 from_date,
-                                                                 to_date)
+                            quote_data = self._get_data.local(self._quote_data_file, 
+                                                              self._data_start, 
+                                                              self._data_end)
                             data, quote_data = self._match_quote_data(data, 
                                                                       quote_data)
                         else:
@@ -336,7 +324,7 @@ class AutoTraderBot:
             else:
                 # No data file(s) provided, proceed to download
                 if int(self._verbosity) > 1:
-                    print("\nDownloading OHLC price data for {}.".format(instrument))
+                    print(f"\nDownloading OHLC price data for {instrument}.")
                 
                 if self._optimise_mode is True:
                     # Check if historical data already exists
@@ -371,12 +359,9 @@ class AutoTraderBot:
                         
                     else:
                         # Data file does exist, import it as dataframe
-                        data = pd.read_csv(historical_data_file_path, 
-                                           index_col = 0)
-                        quote_data = pd.read_csv(historical_quote_data_file_path, 
-                                                 index_col = 0)
-                    
-                    # TODO - add support of MTF for optimisation
+                        data = self._get_data.local(historical_data_file_path)
+                        quote_data = self._get_data.local(historical_quote_data_file_path)
+
                     MTF_data = None
                         
                 else:
@@ -391,10 +376,7 @@ class AutoTraderBot:
                         # Only get quote data for first granularity
                         if granularity == interval.split(',')[0]:
                             quote_data = getattr(self._get_data, feed.lower() + '_quote_data')(data,
-                                                                            instrument,
-                                                                            granularity,
-                                                                            from_date,
-                                                                            to_date)
+                                                 instrument, granularity, from_date, to_date)
                         
                             data, quote_data = self._broker_utils.check_dataframes(data.drop_duplicates(), 
                                                                                   quote_data.drop_duplicates())
@@ -416,7 +398,6 @@ class AutoTraderBot:
         
         else:
             # Running in livetrade mode or scan mode
-            
             if self._use_stream:
                 # Streaming data
                 
@@ -463,8 +444,7 @@ class AutoTraderBot:
                             if datetime.now(tz=pytz.utc) > self._time_to_download[granularity]:
                                 # Update MTF data
                                 data = getattr(self._get_data, feed.lower())(instrument,
-                                                                            granularity = granularity,
-                                                                            count = period)
+                                               granularity = granularity, count = period)
                             
                                 if self._check_data_alignment:
                                     data = self._verify_data_alignment(data, instrument, feed, period, 
@@ -482,7 +462,6 @@ class AutoTraderBot:
                         
                         # Update self.MTF_data with latest MTF data
                         self.MTF_data = MTF_data
-                                
                             
                 else:
                     # There is only one timeframe of data
@@ -491,7 +470,6 @@ class AutoTraderBot:
             
             elif self._data_file is not None:
                 # Using price stream data file
-                
                 custom_data_filepath = self._data_file
                 
                 # Make copy of file to prevent read-write errors
@@ -517,8 +495,7 @@ class AutoTraderBot:
                     # Stream has not had enough time to write data yet, revert 
                     # to downloading M1 data
                     data = getattr(self._get_data, feed.lower())(instrument,
-                                                                granularity = 'M1',
-                                                                count = period)
+                                   granularity = 'M1', count = period)
                     
                     if self._check_data_alignment:
                         data = self._verify_data_alignment(data, instrument, feed, period, 
@@ -533,8 +510,7 @@ class AutoTraderBot:
                         # MTF_data has not been retrieved yet
                         for granularity in self._MTF_intervals:
                             data = getattr(self._get_data, feed.lower())(instrument,
-                                                                        granularity = granularity,
-                                                                        count=period)
+                                           granularity = granularity, count=period)
                             
                             if self._check_data_alignment:
                                 data = self._verify_data_alignment(data, instrument, feed, period, 
@@ -555,8 +531,7 @@ class AutoTraderBot:
                     # Download MTF data each update
                     for granularity in self._MTF_intervals:
                         data = getattr(self._get_data, feed.lower())(instrument,
-                                                                    granularity = granularity,
-                                                                    count=period)
+                                       granularity = granularity, count=period)
                         
                         if self._check_data_alignment:
                             data = self._verify_data_alignment(data, instrument, feed, period, 
@@ -580,8 +555,7 @@ class AutoTraderBot:
                         sys.exit(0)
                         
                     data = getattr(self._get_data, feed.lower())(instrument,
-                                                                granularity = granularity,
-                                                                count=period)
+                                   granularity = granularity, count=period)
                     
                     if self._check_data_alignment:
                         data = self._verify_data_alignment(data, instrument, feed, period, 
@@ -598,7 +572,8 @@ class AutoTraderBot:
             return data, None, MTF_data
 
 
-    def _check_data_period(self, data: pd.DataFrame, from_date: datetime, 
+    @staticmethod
+    def _check_data_period(data: pd.DataFrame, from_date: datetime, 
                            to_date: datetime) -> pd.DataFrame:
         """Checks and returns the dataset matching the backtest start and 
         end dates (as close as possible).

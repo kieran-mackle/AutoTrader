@@ -344,7 +344,7 @@ class GetData:
     @staticmethod
     def local(filepath: str, start_date: str | datetime = None, 
               end_date: str | datetime = None, utc: bool = True) -> pd.DataFrame:
-        """
+        """Read local price data.
 
         Parameters
         ----------
@@ -365,20 +365,18 @@ class GetData:
         data = pd.read_csv(filepath, index_col = 0)
         data.index = pd.to_datetime(data.index, utc=utc)
         
+        if start_date is not None and end_date is not None:
+            # Filter by date range
+            data = GetData._check_data_period(data, start_date, 
+                                              end_date)
+            
         return data
     
     
     @staticmethod
-    def local_MTF():
-        """Wrapper method for fetching local MTF data.
-        """
-        pass
-    
-    
-    @staticmethod
-    def _check_data_period(data: pd.DataFrame, from_date: datetime, 
-                           to_date: datetime) -> pd.DataFrame:
+    def _check_data_period(data: pd.DataFrame, start_date: datetime, 
+                           end_date: datetime) -> pd.DataFrame:
         """Checks and returns the dataset matching the backtest start and 
         end dates (as close as possible).
         """
-        return data[(data.index >= from_date) & (data.index <= to_date)]
+        return data[(data.index >= start_date) & (data.index <= end_date)]
