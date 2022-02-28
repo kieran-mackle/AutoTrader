@@ -66,74 +66,70 @@ class AutoTrader:
         instance.
         """
         
-        self.home_dir       = None
-        self.order_summary_fp = None
+        self._home_dir = None
+        self._order_summary_fp = None
         
-        self.verbosity      = 1
-        self.broker_verbosity = 0
-        self.notify         = 0
-        self.email_params   = None
-        self.show_help      = None
-        self.show_plot      = False
+        self._verbosity = 1
+        self._broker_verbosity = 0
+        self._notify = 0
+        self._email_params = None
+        self._show_help = None
+        self._show_plot = False
         
         # Livetrade Parameters
-        self.detach_bot     = False
-        self.check_data_alignment = True
-        self.allow_dancing_bears = False
-        self.use_stream     = False
-        self.MTF_initialisation = False
-        self.stream_config  = None
+        self._detach_bot = False
+        self._check_data_alignment = True
+        self._allow_dancing_bears = False
+        self._use_stream = False
+        self._MTF_initialisation = False
+        self._stream_config = None
         
-        self.broker         = None
-        self.broker_utils   = None
-        self.environment    = 'demo'
-        self.account_id     = None
+        self._broker = None
+        self._broker_utils = None
+        self._environment = 'demo'
+        self._account_id = None
         
-        self.strategies     = {}
+        self.strategies = {}
         self._uninitiated_strat_files = []
         self._uninitiated_strat_dicts = []
-        self.feed           = 'yahoo'
-        self.bots_deployed  = []
+        self._feed = 'yahoo'
+        self._bots_deployed = []
         
         # Backtesting Parameters
-        self.backtest_mode = False
-        self.data_start = None
-        self.data_end   = None
-        self.data_file  = None
-        self.MTF_data_files = None
-        self.local_data = None
-        self.local_quote_data = None
-        self.auxdata = None
-        self.backtest_initial_balance = None
-        self.backtest_spread = None
-        self.backtest_commission = None
-        self.backtest_leverage = None
-        self.backtest_base_currency = None
+        self._backtest_mode = False
+        self._data_start = None
+        self._data_end = None
+        self._local_data = None
+        self._local_quote_data = None
+        self._auxdata = None
+        self._backtest_initial_balance = None
+        self._backtest_spread = None
+        self._backtest_commission = None
+        self._backtest_leverage = None
+        self._backtest_base_currency = None
         
         # Optimisation Parameters
-        self.optimisation_config = None
-        self.optimise_mode = False
-        self.opt_params = None
-        self.bounds = None
-        self.Ns = None
+        self._optimise_mode = False
+        self._opt_params = None
+        self._bounds = None
+        self._Ns = None
         
         # Scan Parameters
-        self.scan_mode = False
-        self.scan_index = None
-        self.scan_watchlist = None
-        self.scan_results = {}
+        self._scan_mode = False
+        self._scan_index = None
+        self._scan_watchlist = None
         
         # Plotting
-        self.max_indis_over = 3
-        self.max_indis_below = 2
-        self.fig_tools = "pan,wheel_zoom,box_zoom,undo,redo,reset,save,crosshair"
-        self.ohlc_height = 400
-        self.ohlc_width = 800
-        self.top_fig_height = 150
-        self.bottom_fig_height = 150
-        self.jupyter_notebook = False
-        self.show_cancelled = True
-        self.chart_timeframe = 'default'
+        self._max_indis_over = 3
+        self._max_indis_below = 2
+        self._fig_tools = "pan,wheel_zoom,box_zoom,undo,redo,reset,save,crosshair"
+        self._ohlc_height = 400
+        self._ohlc_width = 800
+        self._top_fig_height = 150
+        self._bottom_fig_height = 150
+        self._jupyter_notebook = False
+        self._show_cancelled = True
+        self._chart_timeframe = 'default'
         
     
     def __repr__(self):
@@ -163,7 +159,7 @@ class AutoTrader:
             The strategy will be added to the active AutoTrader instance.
         """
         
-        if self.home_dir is None:
+        if self._home_dir is None:
             # Home directory has not yet been set, postpone strategy addition
             if strategy_filename is None:
                 self._uninitiated_strat_dicts.append(strategy_dict)
@@ -172,7 +168,7 @@ class AutoTrader:
             
         else:
             if strategy_dict is None:
-                config_file_path = os.path.join(self.home_dir, 'config', strategy_filename)
+                config_file_path = os.path.join(self._home_dir, 'config', strategy_filename)
                 new_strategy = read_yaml(config_file_path + '.yaml')
             else:
                 new_strategy = strategy_dict
@@ -240,20 +236,20 @@ class AutoTrader:
             Calling this method configures the internal settings of 
             the active AutoTrader instance.
         """
-        self.verbosity = verbosity
-        self.feed = feed
-        self.broker_name = broker
-        self.notify = notify
-        self.home_dir = home_dir if home_dir is not None else os.getcwd()
-        self.use_stream = use_stream
-        self.detach_bot = detach_bot
-        self.check_data_alignment = check_data_alignment
-        self.allow_dancing_bears = allow_dancing_bears
-        self.account_id = account_id
-        self.environment = environment
-        self.show_plot = show_plot
-        self.MTF_initialisation = MTF_initialisation
-        self.jupyter_notebook = jupyter_notebook
+        self._verbosity = verbosity
+        self._feed = feed
+        self._broker_name = broker
+        self._notify = notify
+        self._home_dir = home_dir if home_dir is not None else os.getcwd()
+        self._use_stream = use_stream
+        self._detach_bot = detach_bot
+        self._check_data_alignment = check_data_alignment
+        self._allow_dancing_bears = allow_dancing_bears
+        self._account_id = account_id
+        self._environment = environment
+        self._show_plot = show_plot
+        self._MTF_initialisation = MTF_initialisation
+        self._jupyter_notebook = jupyter_notebook
         
         
     def backtest(self, start: str = None, end: str = None, 
@@ -297,17 +293,17 @@ class AutoTrader:
             end_dt      = datetime.strptime(end + '+0000', '%d/%m/%Y%z')
         
         # Assign attributes
-        self.backtest_mode = True
-        self.data_start = start_dt
-        self.data_end = end_dt
-        self.backtest_initial_balance = initial_balance
-        self.backtest_spread = spread
-        self.backtest_commission = commission
-        self.backtest_leverage = leverage
-        self.backtest_base_currency = base_currency
+        self._backtest_mode = True
+        self._data_start = start_dt
+        self._data_end = end_dt
+        self._backtest_initial_balance = initial_balance
+        self._backtest_spread = spread
+        self._backtest_commission = commission
+        self._backtest_leverage = leverage
+        self._backtest_base_currency = base_currency
         
         # Enforce virtual broker
-        self.broker_name = 'virtual'
+        self._broker_name = 'virtual'
         
     
     def optimise(self, opt_params: list, bounds: list, Ns: int = 4) -> None:
@@ -334,10 +330,10 @@ class AutoTrader:
         if type(opt_params) == str:
             opt_params = opt_params.split(',')
         
-        self.optimise_mode = True
-        self.opt_params = opt_params
-        self.bounds = bounds
-        self.Ns = Ns
+        self._optimise_mode = True
+        self._opt_params = opt_params
+        self._bounds = bounds
+        self._Ns = Ns
         
         
     def add_data(self, data_dict: dict = None, quote_data: dict = None, 
@@ -420,7 +416,7 @@ class AutoTrader:
         # TODO - add option to specify strategy, in case multiple strategies
         # (requiring different data) are added to the instance
         
-        dir_path = abs_dir_path if abs_dir_path is not None else os.path.join(self.home_dir, data_directory)
+        dir_path = abs_dir_path if abs_dir_path is not None else os.path.join(self._home_dir, data_directory)
         
         # Trading data
         if data_dict is not None:
@@ -440,7 +436,7 @@ class AutoTrader:
                     # Single timeframe data
                     local_data[product] = os.path.join(dir_path, data_dict[product])
                     
-            self.local_data = local_data
+            self._local_data = local_data
         
         # Quote data
         if quote_data is not None:
@@ -456,9 +452,9 @@ class AutoTrader:
                 else:
                     local_quote_data[product] = os.path.join(dir_path, quote_data[product])
             
-            self.local_quote_data = local_quote_data
+            self._local_quote_data = local_quote_data
         
-        self.auxdata = auxdata
+        self._auxdata = auxdata
     
     
     def scan(self, strategy_filename: str = None, 
@@ -490,15 +486,15 @@ class AutoTrader:
         
         # If scan index provided, use that. Else, use strategy watchlist
         if scan_index is not None:
-            self.scan_watchlist = instrument_list.get_watchlist(scan_index,
-                                                                self.feed)
+            self._scan_watchlist = instrument_list.get_watchlist(scan_index,
+                                                                self._feed)
 
         else:
             scan_index = 'Strategy watchlist'
             
-        self.scan_mode = True
-        self.scan_index = scan_index
-        self.check_data_alignment = False
+        self._scan_mode = True
+        self._scan_index = scan_index
+        self._check_data_alignment = False
     
     
     def run(self) -> None:
@@ -506,8 +502,8 @@ class AutoTrader:
         """
         
         # Define home_dir if undefined
-        if self.home_dir is None:
-            self.home_dir = os.getcwd()
+        if self._home_dir is None:
+            self._home_dir = os.getcwd()
         
         # Load uninitiated strategies
         for strat_dict in self._uninitiated_strat_dicts:
@@ -515,38 +511,38 @@ class AutoTrader:
         for strat_config_file in self._uninitiated_strat_files:
             self.add_strategy(strategy_filename=strat_config_file)
         
-        if self.scan_watchlist is not None:
+        if self._scan_watchlist is not None:
             # Scan watchlist has not overwritten strategy watchlist
             self._update_strategy_watchlist()
         
         # Print help
-        if self.show_help is not None:
-            printout.option_help(self.show_help)
+        if self._show_help is not None:
+            printout.option_help(self._show_help)
         
         if len(self.strategies) == 0:
             print("Error: no strategy has been provided. Do so by using the" +\
                   " 'add_strategy' method of AutoTrader.")
             sys.exit(0)
             
-        if sum([self.backtest_mode, self.scan_mode]) > 1:
+        if sum([self._backtest_mode, self._scan_mode]) > 1:
             print("Error: backtest mode and scan mode are both set to True," +\
                   " but only one of these can run at a time.")
             print("Please check your inputs and try again.")
             sys.exit(0)
         
-        if self.backtest_mode:
-            if self.notify > 0:
-                print("Warning: notify set to {} ".format(self.notify) + \
+        if self._backtest_mode:
+            if self._notify > 0:
+                print("Warning: notify set to {} ".format(self._notify) + \
                       "during backtest. Setting to zero to prevent emails.")
-                self.notify = 0
+                self._notify = 0
         
-        if self.optimise_mode:
-            if self.backtest_mode:
+        if self._optimise_mode:
+            if self._backtest_mode:
                 self._run_optimise()
             else:
                 print("Please set backtest parameters to run optimisation.")
         else:
-            if not self.backtest_mode and self.broker_name == 'virtual':
+            if not self._backtest_mode and self._broker_name == 'virtual':
                 raise Exception("Live-trade mode requires setting the "+\
                                 "broker. Please do so using the "+\
                                 "AutoTrade configure method.")
@@ -613,16 +609,16 @@ class AutoTrader:
         """
         
         # Assign attributes
-        self.max_indis_over     = max_indis_over
-        self.max_indis_below    = max_indis_below
-        self.fig_tools          = fig_tools
-        self.ohlc_height        = ohlc_height
-        self.ohlc_width         = ohlc_width
-        self.top_fig_height     = top_fig_height
-        self.bottom_fig_height  = bottom_fig_height
-        self.jupyter_notebook   = jupyter_notebook
-        self.show_cancelled     = show_cancelled
-        self.chart_timeframe    = chart_timeframe
+        self._max_indis_over     = max_indis_over
+        self._max_indis_below    = max_indis_below
+        self._fig_tools          = fig_tools
+        self._ohlc_height        = ohlc_height
+        self._ohlc_width         = ohlc_width
+        self._top_fig_height     = top_fig_height
+        self._bottom_fig_height  = bottom_fig_height
+        self._jupyter_notebook   = jupyter_notebook
+        self._show_cancelled     = show_cancelled
+        self._chart_timeframe    = chart_timeframe
     
     
     def get_bots_deployed(self, instrument: str = None) -> dict:
@@ -640,7 +636,7 @@ class AutoTrader:
             A dictionary of deployed AutoTrader bot instances.
         """
         bots = {}
-        for bot in self.bots_deployed:
+        for bot in self._bots_deployed:
             bots[bot.instrument] = bot
         
         if instrument is not None:
@@ -669,8 +665,8 @@ class AutoTrader:
         """
         
         if bot is None:
-            if len(self.bots_deployed) == 1:
-                bot = self.bots_deployed[0]
+            if len(self._bots_deployed) == 1:
+                bot = self._bots_deployed[0]
             else:
                 # Multi-bot backtest
                 self.plot_multibot_backtest()
@@ -688,7 +684,7 @@ class AutoTrader:
         """Plots the backtest results for multiple trading bots.
         """
         cpl_dict = {}
-        for bot in self.bots_deployed:
+        for bot in self._bots_deployed:
             profit_df = pd.merge(bot.data, 
                      bot.backtest_summary['trade_summary']['Profit'], 
                      left_index=True, right_index=True).Profit.cumsum()
@@ -722,7 +718,7 @@ class AutoTrader:
         no_short    = []
         
         if bots is None:
-            bots = self.bots_deployed
+            bots = self._bots_deployed
         
         for bot in bots:
             backtest_results = self.analyse_backtest(bot)
@@ -769,8 +765,8 @@ class AutoTrader:
         """
         
         if bot is None:
-            if len(self.bots_deployed) == 1:
-                bot = self.bots_deployed[0]
+            if len(self._bots_deployed) == 1:
+                bot = self._bots_deployed[0]
             else:
                 print("Reverting to multi-bot backtest.")
                 return self.multibot_backtest_analysis()
@@ -800,7 +796,7 @@ class AutoTrader:
             avg_loss    = abs(np.mean(loss.Profit))
             max_loss    = abs(np.min(loss.Profit))
             win_rate    = 100*len(wins)/no_trades
-            longest_win_streak, longest_lose_streak  = self.broker_utils.get_streaks(trade_summary)
+            longest_win_streak, longest_lose_streak  = self._broker_utils.get_streaks(trade_summary)
             avg_trade_duration = np.mean(trade_summary.Trade_duration.values)
             min_trade_duration = min(trade_summary.Trade_duration.values)
             max_trade_duration = max(trade_summary.Trade_duration.values)
@@ -833,8 +829,8 @@ class AutoTrader:
             backtest_results['all_trades']['total_fees']    = total_fees
             
         # Cancelled and open orders
-        cancelled_orders = self.broker.get_cancelled_orders(instrument)
-        open_trades      = self.broker.get_open_positions(instrument)
+        cancelled_orders = self._broker.get_cancelled_orders(instrument)
+        open_trades      = self._broker.get_open_positions(instrument)
         backtest_results['no_open'] = len(open_trades)
         backtest_results['no_cancelled'] = len(cancelled_orders)
         
@@ -894,7 +890,7 @@ class AutoTrader:
         Analyse backtest method to generate backtest_results.
         """
         
-        bot = self.bots_deployed[0]
+        bot = self._bots_deployed[0]
         account_history = bot.backtest_summary['account_history']
         
         start_date = account_history.index[0]
@@ -1055,39 +1051,39 @@ class AutoTrader:
         '''                         Load configuration                     '''
         ''' -------------------------------------------------------------- '''
         # Construct broker config
-        global_config_fp = os.path.join(self.home_dir, 'config', 'GLOBAL.yaml')
+        global_config_fp = os.path.join(self._home_dir, 'config', 'GLOBAL.yaml')
         if os.path.isfile(global_config_fp):
             global_config = read_yaml(global_config_fp)
         else:
             global_config = None
-        broker_config = environment_manager.get_config(self.environment,
+        broker_config = environment_manager.get_config(self._environment,
                                                        global_config,
-                                                       self.feed)
+                                                       self._feed)
         
         # Construct stream_config dict
-        if self.use_stream:
-            self.stream_config = broker_config
+        if self._use_stream:
+            self._stream_config = broker_config
         
-        if self.account_id is not None:
+        if self._account_id is not None:
             # Overwrite default account in global config
-            broker_config['ACCOUNT_ID'] = self.account_id
+            broker_config['ACCOUNT_ID'] = self._account_id
         
         # Append broker verbosity to broker_config
-        broker_config['verbosity'] = self.broker_verbosity
+        broker_config['verbosity'] = self._broker_verbosity
         
         self._assign_broker(broker_config)
         self._configure_emailing(global_config)
         
-        if self.backtest_mode:
+        if self._backtest_mode:
             NAV     = []
             balance = []
             margin  = []
         
-        if int(self.verbosity) > 0:
-            if self.backtest_mode:
+        if int(self._verbosity) > 0:
+            if self._backtest_mode:
                 print("Beginning new backtest.")
 
-            elif self.scan_mode:
+            elif self._scan_mode:
                 print("AutoTrader - AutoScan")
                 print("Time: {}\n".format(datetime.now().strftime("%A, %B %d %Y, "+
                                                                   "%H:%M:%S")))
@@ -1102,54 +1098,54 @@ class AutoTrader:
         ''' -------------------------------------------------------------- '''
         for strategy in self.strategies:
             for instrument in self.strategies[strategy]['WATCHLIST']:
-                data_dict = self.local_data[instrument] if self.local_data is not None else None
-                quote_data_dict = self.local_quote_data[instrument] if self.local_quote_data is not None else None
-                auxdata = self.auxdata[instrument] if self.auxdata is not None else None
+                data_dict = self._local_data[instrument] if self._local_data is not None else None
+                quote_data_dict = self._local_quote_data[instrument] if self._local_quote_data is not None else None
+                auxdata = self._auxdata[instrument] if self._auxdata is not None else None
                 bot = AutoTraderBot(instrument, self.strategies[strategy],
-                                    self.broker, data_dict, quote_data_dict, 
+                                    self._broker, data_dict, quote_data_dict, 
                                     auxdata, self)
                 
-                if self.detach_bot is True and self.backtest_mode is False:
+                if self._detach_bot is True and self._backtest_mode is False:
                     # Send bot to bot manager to monitor stream
                     print("Passing bot to bot manager...")
                     bot_name_string = "{}_{}_{}".format(strategy.replace(' ',''),
                                                         self.strategies[strategy]['INTERVAL'].split(',')[0],
                                                         instrument)
-                    ManageBot(bot, self.home_dir, bot_name_string, self.use_stream)
+                    ManageBot(bot, self._home_dir, bot_name_string, self._use_stream)
                 else:
-                    self.bots_deployed.append(bot)
+                    self._bots_deployed.append(bot)
                     
         
         ''' -------------------------------------------------------------- '''
         '''                  Analyse price data using strategy             '''
         ''' -------------------------------------------------------------- '''
-        if int(self.verbosity) > 0 and self.backtest_mode:
+        if int(self._verbosity) > 0 and self._backtest_mode:
             # Check data lengths of each bot
             self._check_bot_data()
             
             print("\nTrading...\n")
             backtest_start_time = timeit.default_timer()
             
-        if not self.detach_bot:
-            start_range, end_range = self.bots_deployed[0]._get_iteration_range()
+        if not self._detach_bot:
+            start_range, end_range = self._bots_deployed[0]._get_iteration_range()
             
             for i in range(start_range, end_range):
                 
                 # Update each bot with latest data to generate signal
-                for bot in self.bots_deployed:
+                for bot in self._bots_deployed:
                     
                     # If backtesting, update virtual broker with latest data
-                    if self.backtest_mode:
+                    if self._backtest_mode:
                         bot._update_backtest(i)
                     
                     # Update bot
                     bot._update(i)
                     
                 
-                if self.backtest_mode is True:
-                    NAV.append(self.broker.NAV)
-                    balance.append(self.broker.portfolio_balance)
-                    margin.append(self.broker.margin_available)
+                if self._backtest_mode is True:
+                    NAV.append(self._broker.NAV)
+                    balance.append(self._broker.portfolio_balance)
+                    margin.append(self._broker.margin_available)
         
         backtest_end_time = timeit.default_timer()
         
@@ -1157,15 +1153,15 @@ class AutoTrader:
         '''                     Backtest Post-Processing                   '''
         ''' -------------------------------------------------------------- '''
         # Data iteration complete - proceed to post-processing
-        if self.backtest_mode is True:
+        if self._backtest_mode is True:
             # Create backtest summary for each bot 
-            for bot in self.bots_deployed:
+            for bot in self._bots_deployed:
                 bot._create_backtest_summary(balance, NAV, margin)            
             
-            if int(self.verbosity) > 0:
+            if int(self._verbosity) > 0:
                 print(f"Backtest complete (runtime {round((backtest_end_time - backtest_start_time), 3)} s).")
-                if len(self.bots_deployed) == 1:
-                    bot = self.bots_deployed[0]
+                if len(self._bots_deployed) == 1:
+                    bot = self._bots_deployed[0]
                     backtest_results = self.analyse_backtest(bot)
                     self.print_backtest_results(backtest_results)
                     
@@ -1178,18 +1174,18 @@ class AutoTrader:
                     print("Individual bot results can be found in the")
                     print("'bots_deployed' attribute of the AutoTrader instance.")
             
-            if self.show_plot:
-                if len(self.bots_deployed) == 1:
-                    if len(self.bots_deployed[0].backtest_summary['trade_summary']) > 0:
-                        self.plot_backtest(bot=self.bots_deployed[0])
+            if self._show_plot:
+                if len(self._bots_deployed) == 1:
+                    if len(self._bots_deployed[0].backtest_summary['trade_summary']) > 0:
+                        self.plot_backtest(bot=self._bots_deployed[0])
                 
                 else:
                     # Backtest run with multiple bots
                     self.plot_multibot_backtest()
         
-        elif self.scan_mode and self.show_plot:
+        elif self._scan_mode and self._show_plot:
             # Show plots for scanned instruments
-            for bot in self.bots_deployed:
+            for bot in self._bots_deployed:
                 ap = self._instantiate_autoplot(bot.data)
                 ap.plot(indicators = bot.strategy.indicators, 
                         instrument = bot.instrument)
@@ -1205,38 +1201,38 @@ class AutoTrader:
     def _clear_bots(self) -> None:
         """Removes all deployed bots in autotrader instance.
         """
-        self.bots_deployed = []
+        self._bots_deployed = []
     
     
     def _instantiate_autoplot(self, data: pd.DataFrame):
         """Creates instance of AutoPlot.
         """
         # TODO - check length of data to prevent plotting over some length...
-        if self.chart_timeframe == 'default':
+        if self._chart_timeframe == 'default':
             ap = autoplot.AutoPlot(data)
         else:
             # Instantiate AutoPlot with requested chart timeframe
-            if self.chart_timeframe in self.bots_deployed[0].MTF_data.keys():
+            if self._chart_timeframe in self._bots_deployed[0].MTF_data.keys():
                 # Valid timeframe requested
-                ap = autoplot.AutoPlot(self.bots_deployed[0].MTF_data[self.chart_timeframe])
+                ap = autoplot.AutoPlot(self._bots_deployed[0].MTF_data[self._chart_timeframe])
                 ap._add_backtest_price_data(data) # provide nominal timeframe data for merge operations
             else:
-                warning_str = f'The chart timeframe requested ({self.chart_timeframe}) was not found ' + \
+                warning_str = f'The chart timeframe requested ({self._chart_timeframe}) was not found ' + \
                     'in the MTF data. Please ensure that the timeframe provided matches ' + \
                     'the format provided in the strategy configuration file, or the local ' + \
                     'data provided.'
                 raise Exception(warning_str)
                 
         # Assign attributes
-        ap.max_indis_over     = self.max_indis_over
-        ap.max_indis_below    = self.max_indis_below
-        ap.fig_tools          = self.fig_tools
-        ap.ohlc_height        = self.ohlc_height
-        ap.ohlc_width         = self.ohlc_width
-        ap.top_fig_height     = self.top_fig_height
-        ap.bottom_fig_height  = self.bottom_fig_height
-        ap.jupyter_notebook   = self.jupyter_notebook
-        ap.show_cancelled     = self.show_cancelled
+        ap.max_indis_over     = self._max_indis_over
+        ap.max_indis_below    = self._max_indis_below
+        ap.fig_tools          = self._fig_tools
+        ap.ohlc_height        = self._ohlc_height
+        ap.ohlc_width         = self._ohlc_width
+        ap.top_fig_height     = self._top_fig_height
+        ap.bottom_fig_height  = self._bottom_fig_height
+        ap.jupyter_notebook   = self._jupyter_notebook
+        ap.show_cancelled     = self._show_cancelled
         
         return ap
     
@@ -1245,35 +1241,35 @@ class AutoTrader:
         """Updates the watchlist of each strategy with the scan watchlist.
         """
         for strategy in self.strategies:
-            self.strategies[strategy]['WATCHLIST'] = self.scan_watchlist
+            self.strategies[strategy]['WATCHLIST'] = self._scan_watchlist
     
     
     def _assign_broker(self, broker_config: dict) -> None:
         """Configures and assigns appropriate broker for trading.
         """
         # Import relevant broker and utilities modules
-        broker_module = importlib.import_module(f'autotrader.brokers.{self.broker_name}.broker')
-        utils_module = importlib.import_module(f'autotrader.brokers.{self.broker_name}.utils')
+        broker_module = importlib.import_module(f'autotrader.brokers.{self._broker_name}.broker')
+        utils_module = importlib.import_module(f'autotrader.brokers.{self._broker_name}.utils')
         
         # Create broker and utils instances
         utils = utils_module.Utils()
         broker = broker_module.Broker(broker_config, utils)
         
-        if self.backtest_mode is True:
+        if self._backtest_mode is True:
             # Backtesting; use virtual broker
-            if int(self.verbosity) > 0:
+            if int(self._verbosity) > 0:
                 banner = pyfiglet.figlet_format("AutoBacktest")
                 print(banner)
                 
-            broker._make_deposit(self.backtest_initial_balance)
-            broker.fee = self.backtest_spread
-            broker.leverage = self.backtest_leverage
-            broker.commission = self.backtest_commission
-            broker.spread = self.backtest_spread
-            broker.base_currency = self.backtest_base_currency
+            broker._make_deposit(self._backtest_initial_balance)
+            broker.fee = self._backtest_spread
+            broker.leverage = self._backtest_leverage
+            broker.commission = self._backtest_commission
+            broker.spread = self._backtest_spread
+            broker.base_currency = self._backtest_base_currency
         
-        self.broker = broker
-        self.broker_utils = utils
+        self._broker = broker
+        self._broker_utils = utils
     
     
     def _configure_emailing(self, global_config: dict) -> None:
@@ -1281,7 +1277,7 @@ class AutoTrader:
         """
         # TODO - allow setting email in this method
         
-        if int(self.notify) > 0:
+        if int(self._notify) > 0:
             host_email      = None
             mailing_list    = None
             
@@ -1302,15 +1298,15 @@ class AutoTrader:
                 
             email_params = {'mailing_list': mailing_list,
                             'host_email': host_email}
-            self.email_params = email_params
+            self._email_params = email_params
             
-            logfiles_path = os.path.join(self.home_dir, 'logfiles')
+            logfiles_path = os.path.join(self._home_dir, 'logfiles')
             order_summary_fp = os.path.join(logfiles_path, 'order_history.txt')
             
             if not os.path.isdir(logfiles_path):
                 os.mkdir(logfiles_path)
             
-            self.order_summary_fp = order_summary_fp
+            self._order_summary_fp = order_summary_fp
 
 
     def _run_optimise(self) -> None:
@@ -1318,9 +1314,9 @@ class AutoTrader:
         """
         
         # Modify verbosity for optimisation
-        verbosity = self.verbosity
-        self.verbosity = 0
-        self.show_plot = False
+        verbosity = self._verbosity
+        self._verbosity = 0
+        self._show_plot = False
         
         self.objective      = 'profit + MDD'
         
@@ -1339,16 +1335,16 @@ class AutoTrader:
         ''' --------------------------------------------------------------- '''
         '''                      Define optimisation inputs                 '''
         ''' --------------------------------------------------------------- '''
-        my_args     = (config_dict, self.opt_params, self.verbosity)
+        my_args = (config_dict, self._opt_params, self._verbosity)
         
         ''' --------------------------------------------------------------- '''
         '''                             Run Optimiser                       '''
         ''' --------------------------------------------------------------- '''
         start = timeit.default_timer()
         result = brute(func         = self._optimisation_helper_function, 
-                       ranges       = self.bounds, 
+                       ranges       = self._bounds, 
                        args         = my_args, 
-                       Ns           = self.Ns,
+                       Ns           = self._Ns,
                        full_output  = True)
         stop = timeit.default_timer()
         
@@ -1359,10 +1355,10 @@ class AutoTrader:
         pair                    = config_dict["WATCHLIST"][0]
         historical_data_name    = 'hist_{0}{1}.csv'.format(granularity, pair)
         historical_quote_data_name = 'hist_{0}{1}_quote.csv'.format(granularity, pair)
-        historical_data_file_path = os.path.join(self.home_dir, 
+        historical_data_file_path = os.path.join(self._home_dir, 
                                                  'price_data',
                                                  historical_data_name)
-        historical_quote_data_file_path = os.path.join(self.home_dir, 
+        historical_quote_data_file_path = os.path.join(self._home_dir, 
                                                        'price_data',
                                                        historical_quote_data_name)
         os.remove(historical_data_file_path)
@@ -1382,7 +1378,7 @@ class AutoTrader:
         print(opt_value)
         
         # Reset verbosity
-        self.verbosity = verbosity
+        self._verbosity = verbosity
     
     
     def _optimisation_helper_function(self, params: list, config_dict: dict, 
@@ -1408,7 +1404,7 @@ class AutoTrader:
         self.add_strategy(strategy_dict = config_dict)
         self._main()
         
-        bot = self.bots_deployed[0]
+        bot = self._bots_deployed[0]
             
         backtest_results    = self.analyse_backtest(bot)
         
@@ -1426,7 +1422,7 @@ class AutoTrader:
         """Function to compare lengths of bot data. 
         """
         
-        data_lengths = [len(bot.data) for bot in self.bots_deployed]
+        data_lengths = [len(bot.data) for bot in self._bots_deployed]
         
         if min(data_lengths) != np.mean(data_lengths):
             print("\nWarning: mismatched data lengths detected. Correcting via row reduction.")
@@ -1439,7 +1435,7 @@ class AutoTrader:
         """
         
         # Construct list of bot data
-        data = [bot.data for bot in self.bots_deployed]
+        data = [bot.data for bot in self._bots_deployed]
         
         for i, dat in enumerate(data):
             # Initialise common index
@@ -1453,7 +1449,7 @@ class AutoTrader:
             adj_data = dat[dat.index.isin(comm_index)]
             
             # Re-assign bot data
-            self.bots_deployed[i]._replace_data(adj_data)
+            self._bots_deployed[i]._replace_data(adj_data)
         
     
 if __name__ == '__main__':

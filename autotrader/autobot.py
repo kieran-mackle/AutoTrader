@@ -23,29 +23,29 @@ class AutoTraderBot:
                  broker, data_dict: dict, quote_data_dict: dict, 
                  auxdata: dict, autotrader_instance) -> None:
         # Inherit user options from autotrader
-        self._home_dir = autotrader_instance.home_dir
-        self._scan_mode = autotrader_instance.scan_mode
-        self._scan_index = autotrader_instance.scan_index
+        self._home_dir = autotrader_instance._home_dir
+        self._scan_mode = autotrader_instance._scan_mode
+        self._scan_index = autotrader_instance._scan_index
         self._scan_results = {}
-        self._broker_utils = autotrader_instance.broker_utils
-        self._email_params = autotrader_instance.email_params
-        self._notify = autotrader_instance.notify
-        self._verbosity = autotrader_instance.verbosity
-        self._order_summary_fp = autotrader_instance.order_summary_fp
-        self._backtest_mode = autotrader_instance.backtest_mode
-        self._data_start = autotrader_instance.data_start
-        self._data_end = autotrader_instance.data_end
-        self._base_currency = autotrader_instance.backtest_base_currency
-        self._environment = autotrader_instance.environment
-        self._feed = autotrader_instance.feed
-        self._data_file = autotrader_instance.data_file
-        self._MTF_data_files = autotrader_instance.MTF_data_files
-        self._optimise_mode = autotrader_instance.optimise_mode
-        self._check_data_alignment = autotrader_instance.check_data_alignment
-        self._allow_dancing_bears = autotrader_instance.allow_dancing_bears
-        self._use_stream = autotrader_instance.use_stream
-        self._stream_config = autotrader_instance.stream_config
-        self._MTF_initialisation = autotrader_instance.MTF_initialisation
+        self._broker_utils = autotrader_instance._broker_utils
+        self._email_params = autotrader_instance._email_params
+        self._notify = autotrader_instance._notify
+        self._verbosity = autotrader_instance._verbosity
+        self._order_summary_fp = autotrader_instance._order_summary_fp
+        self._backtest_mode = autotrader_instance._backtest_mode
+        self._data_start = autotrader_instance._data_start
+        self._data_end = autotrader_instance._data_end
+        self._base_currency = autotrader_instance._backtest_base_currency
+        self._environment = autotrader_instance._environment
+        self._feed = autotrader_instance._feed
+        self._data_file = autotrader_instance._data_file
+        self._MTF_data_files = autotrader_instance._MTF_data_files
+        self._optimise_mode = autotrader_instance._optimise_mode
+        self._check_data_alignment = autotrader_instance._check_data_alignment
+        self._allow_dancing_bears = autotrader_instance._allow_dancing_bears
+        self._use_stream = autotrader_instance._use_stream
+        self._stream_config = autotrader_instance._stream_config
+        self._MTF_initialisation = autotrader_instance._MTF_initialisation
         
         # Assign local attributes
         self.instrument = instrument
