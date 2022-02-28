@@ -334,13 +334,6 @@ class GetData:
         return data
     
     
-    def _check_oanda_response(self, response):
-        """Placeholder method to check Oanda API response.
-        """
-        if response.status != 200:
-            print(response.reason)
-    
-    
     @staticmethod
     def local(filepath: str, start_date: str | datetime = None, 
               end_date: str | datetime = None, utc: bool = True) -> pd.DataFrame:
@@ -371,6 +364,13 @@ class GetData:
                                               end_date)
             
         return data
+    
+    
+    def _check_oanda_response(self, response):
+        """Placeholder method to check Oanda API response.
+        """
+        if response.status != 200:
+            print(response.reason)
     
     
     @staticmethod
