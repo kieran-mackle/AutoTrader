@@ -332,15 +332,15 @@ class AutoTraderBot:
                     historical_quote_data_name = f'hist_{interval}{instrument}_quote.csv'
                     data_dir_path = os.path.join(self._home_dir, 'price_data')
                     historical_data_file_path = os.path.join(self._home_dir, 
-                                                             'price_data',
-                                                             historical_data_name)
+                                        'price_data', historical_data_name)
                     historical_quote_data_file_path = os.path.join(self._home_dir, 
-                                                             'price_data',
-                                                             historical_quote_data_name)
+                                        'price_data', historical_quote_data_name)
                     
-                    if not os.path.exists(historical_data_file_path):
-                        # TODO - convert this to try/except loop
-                        # Data file does not yet exist
+                    try:
+                        data = self._get_data.local(historical_data_file_path)
+                        quote_data = self._get_data.local(historical_quote_data_file_path)
+                    except:
+                        # Data file does not yet exist, download
                         data = getattr(self._get_data, feed.lower())(instrument,
                                        granularity = interval, start_time = from_date,
                                        end_time = to_date)
@@ -356,11 +356,6 @@ class AutoTraderBot:
                         # Save data in file/s
                         data.to_csv(historical_data_file_path)
                         quote_data.to_csv(historical_quote_data_file_path)
-                        
-                    else:
-                        # Data file does exist, import it as dataframe
-                        data = self._get_data.local(historical_data_file_path)
-                        quote_data = self._get_data.local(historical_quote_data_file_path)
 
                     MTF_data = None
                         
