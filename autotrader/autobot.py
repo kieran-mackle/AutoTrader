@@ -54,33 +54,43 @@ class AutoTraderBot:
         # Unpack strategy parameters and assign to strategy_params
         interval = strategy_config["INTERVAL"]
         period = strategy_config["PERIOD"]
-        risk_pc = strategy_config["RISK_PC"] if 'RISK_PC' in strategy_config else 0
-        sizing = strategy_config["SIZING"] if 'SIZING' in strategy_config else 0
+        risk_pc = strategy_config["RISK_PC"] if 'RISK_PC' in strategy_config \
+            else 0
+        sizing = strategy_config["SIZING"] if 'SIZING' in strategy_config \
+            else 0
         params = strategy_config["PARAMETERS"]
         strategy_params = params
-        strategy_params['granularity'] = strategy_params['granularity'] if 'granularity' in strategy_params else interval
-        strategy_params['risk_pc'] = strategy_params['risk_pc'] if 'risk_pc' in strategy_params else risk_pc
-        strategy_params['sizing'] = strategy_params['sizing'] if 'sizing' in strategy_params else sizing
-        strategy_params['period'] = strategy_params['period'] if 'period' in strategy_params else period
+        strategy_params['granularity'] = strategy_params['granularity'] \
+            if 'granularity' in strategy_params else interval
+        strategy_params['risk_pc'] = strategy_params['risk_pc'] \
+            if 'risk_pc' in strategy_params else risk_pc
+        strategy_params['sizing'] = strategy_params['sizing'] \
+            if 'sizing' in strategy_params else sizing
+        strategy_params['period'] = strategy_params['period'] \
+            if 'period' in strategy_params else period
         self._strategy_params = strategy_params
         
         # Import Strategy
         strat_module = strategy_config["MODULE"]
         strat_name = strategy_config["CLASS"]
         strat_package_path = os.path.join(self._home_dir, "strategies") 
-        strat_module_path = os.path.join(strat_package_path, strat_module) + '.py'
-        strat_spec = importlib.util.spec_from_file_location(strat_module, strat_module_path)
+        strat_module_path = os.path.join(strat_package_path, 
+                                         strat_module) + '.py'
+        strat_spec = importlib.util.spec_from_file_location(strat_module, 
+                                                            strat_module_path)
         strategy_module = importlib.util.module_from_spec(strat_spec)
         strat_spec.loader.exec_module(strategy_module)
         strategy = getattr(strategy_module, strat_name)
         
         # Get broker configuration 
-        global_config_fp = os.path.join(self._home_dir, 'config', 'GLOBAL.yaml')
+        global_config_fp = os.path.join(self._home_dir, 'config', 
+                                        'GLOBAL.yaml')
         if os.path.isfile(global_config_fp):
             global_config = read_yaml(global_config_fp)
         else:
             global_config = None
-        broker_config = environment_manager.get_config(self._environment, global_config,
+        broker_config = environment_manager.get_config(self._environment, 
+                                                       global_config,
                                                        self._feed)
    
         # Start price streaming
@@ -125,8 +135,10 @@ class AutoTraderBot:
         else:
             self._abs_data_filepath = False
         
-        self._get_data = autodata.GetData(broker_config, self._allow_dancing_bears)
-        data, quote_data, MTF_data = self._retrieve_data(instrument, self._feed)
+        self._get_data = autodata.GetData(broker_config, 
+                                          self._allow_dancing_bears)
+        data, quote_data, MTF_data = self._retrieve_data(instrument, 
+                                                         self._feed)
         
         # Check data
         if len(data) == 0:
@@ -144,9 +156,11 @@ class AutoTraderBot:
                           'aux': auxdata}
         
         # Instantiate Strategy
-        include_broker = strategy_config['INCLUDE_BROKER'] if 'INCLUDE_BROKER' in strategy_config else False
+        include_broker = strategy_config['INCLUDE_BROKER'] \
+            if 'INCLUDE_BROKER' in strategy_config else False
         if include_broker:
-            my_strat = strategy(params, strat_data, instrument, self._broker, self._broker_utils)
+            my_strat = strategy(params, strat_data, instrument, 
+                                self._broker, self._broker_utils)
         else:
             my_strat = strategy(params, strat_data, instrument)
             
@@ -206,14 +220,15 @@ class AutoTraderBot:
         
     
     def _recieve_stream_data(self) -> None:
-        """Method to tell AutoStream to send data to bot. Called from bot manager.
+        """Method to tell AutoStream to send data to bot. Called from 
+        bot manager.
         """
         self._AS.update_bot = True
     
     
     def _update_strategy_data(self, data: pd.DataFrame = None) -> None:
-        """Method to update strategy with latest data. Called by the bot manager
-        and autostream.
+        """Method to update strategy with latest data. Called by the bot
+        manager and autostream.
         """
         if data is not None:
             # Update data attribute (for livetrade compatibility)
@@ -242,16 +257,18 @@ class AutoTraderBot:
         price_data_path = os.path.join(self._home_dir, 'price_data')
         
         if self._backtest_mode is True:
-            ' ~~~~~~~~~~~~~~~~~~~ Running in backtest mode ~~~~~~~~~~~~~~~~~~ '
+            # Running in backtest mode 
             self._get_data.base_currency = self._base_currency
             
-            from_date       = self._data_start
-            to_date         = self._data_end
+            from_date = self._data_start
+            to_date = self._data_end
             
             if self._data_file is not None:
                 # Read local data file
-                custom_data_file        = self._data_file
-                custom_data_filepath    = os.path.join(price_data_path, custom_data_file) if not self._abs_data_filepath else custom_data_file
+                custom_data_file = self._data_file
+                custom_data_filepath = os.path.join(price_data_path, 
+                                                    custom_data_file) \
+                    if not self._abs_data_filepath else custom_data_file
                 if int(self._verbosity) > 1:
                     print("Using data file specified ({}).".format(custom_data_file))
                 data = pd.read_csv(custom_data_filepath, index_col = 0)
@@ -264,7 +281,8 @@ class AutoTraderBot:
                 if self._quote_data_file is not None:
                     quote_data = pd.read_csv(self._quote_data_file, index_col = 0)
                     quote_data.index = pd.to_datetime(quote_data.index, utc=True)
-                    quote_data = self._check_data_period(quote_data, from_date, to_date)
+                    quote_data = self._check_data_period(quote_data, from_date, 
+                                                         to_date)
                 else:
                     quote_data = data
                 
@@ -282,7 +300,9 @@ class AutoTraderBot:
                 for granularity in MTF_data_files:
                     # Extract data 
                     custom_data_file = MTF_data_files[granularity]
-                    custom_data_filepath = os.path.join(price_data_path, custom_data_file) if not self._abs_data_filepath else custom_data_file
+                    custom_data_filepath = os.path.join(price_data_path, 
+                                                        custom_data_file) \
+                        if not self._abs_data_filepath else custom_data_file
                     if int(self._verbosity) > 1:
                         print("Using data file specified ({}).".format(MTF_data_files[granularity]))
                     data = pd.read_csv(custom_data_filepath, index_col = 0)
@@ -294,10 +314,15 @@ class AutoTraderBot:
                     if granularity == MTF_granularities[0]:
                         # Assign quote data for backtesting
                         if self._quote_data_file is not None:
-                            quote_data = pd.read_csv(self._quote_data_file, index_col = 0)
-                            quote_data.index = pd.to_datetime(quote_data.index, utc=True)
-                            quote_data = self._check_data_period(quote_data, from_date, to_date)
-                            data, quote_data = self._match_quote_data(data, quote_data)
+                            quote_data = pd.read_csv(self._quote_data_file, 
+                                                     index_col = 0)
+                            quote_data.index = pd.to_datetime(quote_data.index,
+                                                              utc=True)
+                            quote_data = self._check_data_period(quote_data, 
+                                                                 from_date,
+                                                                 to_date)
+                            data, quote_data = self._match_quote_data(data, 
+                                                                      quote_data)
                         else:
                             quote_data = data
                     
@@ -316,8 +341,8 @@ class AutoTraderBot:
                 
                 if self._optimise_mode is True:
                     # Check if historical data already exists
-                    historical_data_name = 'hist_{0}{1}.csv'.format(interval, instrument)
-                    historical_quote_data_name = 'hist_{0}{1}_quote.csv'.format(interval, instrument)
+                    historical_data_name = f'hist_{interval}{instrument}.csv'
+                    historical_quote_data_name = f'hist_{interval}{instrument}_quote.csv'
                     data_dir_path = os.path.join(self._home_dir, 'price_data')
                     historical_data_file_path = os.path.join(self._home_dir, 
                                                              'price_data',
@@ -328,16 +353,12 @@ class AutoTraderBot:
                     
                     if not os.path.exists(historical_data_file_path):
                         # Data file does not yet exist
-                        data        = getattr(self._get_data, feed.lower())(instrument,
-                                                         granularity = interval,
-                                                         start_time = from_date,
-                                                         end_time = to_date)
-                        quote_data  = getattr(self._get_data, feed.lower() + '_quote_data')(data,
-                                                                                      instrument,
-                                                                                      interval,
-                                                                                      from_date,
-                                                                                      to_date)
-                        data, quote_data    = self._broker_utils.check_dataframes(data, quote_data)
+                        data = getattr(self._get_data, feed.lower())(instrument,
+                                       granularity = interval, start_time = from_date,
+                                       end_time = to_date)
+                        quote_data = getattr(self._get_data, feed.lower() + '_quote_data')(data,
+                                             instrument, interval, from_date, to_date)
+                        data, quote_data = self._broker_utils.check_dataframes(data, quote_data)
                         
                         # Check if price_data folder exists
                         if not os.path.exists(data_dir_path):
@@ -362,14 +383,14 @@ class AutoTraderBot:
                     # Running in single backtest mode
                     MTF_data = {}
                     for granularity in interval.split(','):
-                        data        = getattr(self._get_data, feed.lower())(instrument,
+                        data = getattr(self._get_data, feed.lower())(instrument,
                                                              granularity = granularity,
                                                              start_time = from_date,
                                                              end_time = to_date)
                         
                         # Only get quote data for first granularity
                         if granularity == interval.split(',')[0]:
-                            quote_data  = getattr(self._get_data, feed.lower() + '_quote_data')(data,
+                            quote_data = getattr(self._get_data, feed.lower() + '_quote_data')(data,
                                                                             instrument,
                                                                             granularity,
                                                                             from_date,
@@ -394,7 +415,7 @@ class AutoTraderBot:
             return data, quote_data, MTF_data
         
         else:
-            ' ~~~~~~~~~~ Running in livetrade mode or scan mode ~~~~~~~~~~~~~ '
+            # Running in livetrade mode or scan mode
             
             if self._use_stream:
                 # Streaming data
