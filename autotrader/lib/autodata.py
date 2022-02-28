@@ -17,12 +17,11 @@ class GetData:
 
     Methods
     -------
-    oanda(instrument, granularity, count=None, start_time=None, end_time=None):
+    oanda():
         Retrieves historical price data of a instrument from Oanda v20 API.
         
-    yahoo(self, instrument, granularity=None, start_time=None, end_time=None):
+    yahoo():
         Retrieves historical price data from yahoo finance. 
-    
     """
     
     def __init__(self, broker_config: dict = None, 
@@ -340,3 +339,46 @@ class GetData:
         """
         if response.status != 200:
             print(response.reason)
+    
+    
+    @staticmethod
+    def local(filepath: str, start_date: str | datetime = None, 
+              end_date: str | datetime = None, utc: bool = True) -> pd.DataFrame:
+        """
+
+        Parameters
+        ----------
+        filepath : str
+            The absolute filepath of the local price data.
+        start_date : str | datetime, optional
+            The data start date. The default is None.
+        end_date : str | datetime, optional
+            The data end data. The default is None.
+        utc : bool, optional
+            Localise data to UTC. The default is True.
+
+        Returns
+        -------
+        data : pd.DataFrame
+            The price data, as an OHLC DataFrame.
+        """
+        data = pd.read_csv(filepath, index_col = 0)
+        data.index = pd.to_datetime(data.index, utc=utc)
+        
+        return data
+    
+    
+    @staticmethod
+    def local_MTF():
+        """Wrapper method for fetching local MTF data.
+        """
+        pass
+    
+    
+    @staticmethod
+    def _check_data_period(data: pd.DataFrame, from_date: datetime, 
+                           to_date: datetime) -> pd.DataFrame:
+        """Checks and returns the dataset matching the backtest start and 
+        end dates (as close as possible).
+        """
+        return data[(data.index >= from_date) & (data.index <= to_date)]
