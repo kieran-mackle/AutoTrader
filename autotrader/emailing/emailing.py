@@ -1,27 +1,14 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-'''
-Module: lib.emailing
-Purpose: AutoTrader email communications module
-Author: Kieran Mackle
-'''
-
-# Email
+import os
+import pandas as pd
 import smtplib, ssl
+from datetime import datetime
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from datetime import datetime
-import pandas as pd
-
-# Path management
-import os
 
 
-
-def send_order(order_details, mailing_list, host_email):
-    '''
-    Send order summary from oanda.
-    '''
+def send_order(order_details: dict, mailing_list: dict, host_email: dict) -> None:
+    """Send order summary from oanda.
+    """
     
     instrument      = order_details['instrument']
     order_type      = order_details['order_type']
@@ -142,10 +129,9 @@ def send_order(order_details, mailing_list, host_email):
         os.remove(email_message_path)
 
 
-def send_order_summary(filepath, mailing_list, host_email):
-    '''
-    Send summary of orders placed with AutoTrader.
-    '''
+def send_order_summary(filepath: str, mailing_list: dict, host_email: dict) -> None:
+    """Send summary of orders placed with AutoTrader.
+    """
     
     file_dir        = os.path.dirname(os.path.abspath(__file__))
     order_history   = pd.read_csv(filepath, index_col=0, skipinitialspace=True)
@@ -244,11 +230,10 @@ def send_order_summary(filepath, mailing_list, host_email):
         os.remove(filepath)
 
 
-def send_scan_results(scan_results, scan_details, mailing_list, host_email):
-    '''
-    Send results of market scan.
-    
-    '''
+def send_scan_results(scan_results: dict, scan_details: dict, 
+                      mailing_list: dict, host_email: dict) -> None:
+    """Send results of market scan.
+    """
     time            = datetime.now().strftime("%H:%M:%S")
     index           = scan_details['index']
     strategy_name   = scan_details['strategy']
@@ -376,9 +361,8 @@ def send_scan_results(scan_results, scan_details, mailing_list, host_email):
         os.remove(email_message_path)
 
 
-def send_message(mailing_list, host_email, message):
-    '''
-    A method to email a generic message.
+def send_message(mailing_list: dict, host_email: dict, message: str) -> None:
+    """A method to email a generic message.
     
     Parameters:
         mailing_list (dict): a dictionary containing email contacts.
@@ -390,7 +374,7 @@ def send_message(mailing_list, host_email, message):
     
     Refer to the AutoTrader documentation for more information:
     https://kieran-mackle.github.io/AutoTrader/docs/configuration-global#emailing
-    '''
+    """
 
     # Email configuration settings
     sender_email = host_email['email']
