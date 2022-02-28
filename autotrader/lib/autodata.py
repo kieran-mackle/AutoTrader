@@ -5,9 +5,7 @@ from datetime import datetime, timedelta
 
 
 class GetData:
-    """
-    GetData class to retrieve price data.
-
+    """GetData class to retrieve price data.
 
     Attributes
     ----------
@@ -44,42 +42,46 @@ class GetData:
 
     def oanda(self, instrument: str, granularity: str, count: int = None, 
               start_time: datetime = None, end_time: datetime = None) -> pd.DataFrame:
-        '''Retrieves historical price data of a instrument from Oanda v20 API.
-        
-        
-            Parameters:
-                instrument (str): the instrument to fetch data for 
-                    
-                granularity (str): candlestick granularity (eg. "M15", "H4", "D")
-                
-                count (int): number of candles to fetch (maximum 5000)
-                
-                start_time (datetime object): data start time 
-                
-                end_time (datetime object): data end time 
+        """Retrieves historical price data of a instrument from Oanda v20 API.
+
+        Parameters
+        ----------
+        instrument : str
+            the instrument to fetch data for.
+        granularity : str
+            candlestick granularity (eg. "M15", "H4", "D").
+        count : int, optional
+            number of candles to fetch (maximum 5000). The default is None.
+        start_time : datetime, optional
+            data start time. The default is None.
+        end_time : datetime, optional
+            data end time. The default is None.
+
+        Returns
+        -------
+        data : DataFrame
+            The price data, as an OHLC DataFrame.
             
-            Note:
-                If a candlestick count is provided, only one of start time or end
-                time should be provided. If neither is provided, the N most
-                recent candles will be provided.
+        Notes
+        -----
+            If a candlestick count is provided, only one of start time or end
+            time should be provided. If neither is provided, the N most
+            recent candles will be provided.
+        
+        Examples
+        --------
+        >>> data = GetData.oanda("EUR_USD", granularity="M15", 
+                                 start_time=from_dt, end_time=to_dt)
             
-            Examples:
-                data = GetData.oanda("EUR_USD", granularity="M15", start_time=from_dt, end_time=to_dt)
-                
-                data = GetData.oanda("EUR_USD", granularity="M15", start_time=from_dt, count=2110)
-                
-                data = GetData.oanda("EUR_USD", granularity="M15", end_time=to_dt, count=2110)
-                
-                data = GetData.oanda("EUR_USD", granularity="M15", count=2110)
+        >>> data = GetData.oanda("EUR_USD", granularity="M15",
+                                 start_time=from_dt, count=2110)
         
-        '''
-        # what if I wanted to request 25,000 candles, rather than specifying 
-        # a time range? Would need to modify function again...
-        #       Ignore this as an edge case for now. 
-        # This would basically be the inverse of what I have already done, 
-        # instead of stepping forward, I would step backward with partial_to
-        # times until my requested count is hit.
+        >>> data = GetData.oanda("EUR_USD", granularity="M15",
+                                 end_time=to_dt, count=2110)
         
+        >>> data = GetData.oanda("EUR_USD", granularity="M15", 
+                                 count=2110)
+        """
         if count is not None:
             # either of count, start_time+count, end_time+count (or start_time+end_time+count)
             # if count is provided, count must be less than 5000
@@ -160,41 +162,36 @@ class GetData:
     
     
     def get_extended_oanda_data(self, instrument, granularity, from_time, to_time):
-        ''' Returns historical data between a date range. '''
-        # Currently does not accept count input, but in the future...
+        """Returns historical data between a date range."""
+        max_candles = 5000
         
-        max_candles     = 5000
-        
-        my_int          = self.granularity_to_seconds(granularity, 'oanda')
-        end_time        = to_time - my_int
-        partial_from    = from_time
-        response        = self.api.instrument.candles(instrument,
-                                                 granularity = granularity,
-                                                 fromTime = partial_from,
-                                                 count = max_candles
-                                                 )
-        data            = self.response_to_df(response)
-        last_time       = data.index[-1].timestamp()
+        my_int = self.granularity_to_seconds(granularity, 'oanda')
+        end_time = to_time - my_int
+        partial_from = from_time
+        response = self.api.instrument.candles(instrument,
+                                               granularity = granularity,
+                                               fromTime = partial_from,
+                                               count = max_candles)
+        data = self.response_to_df(response)
+        last_time = data.index[-1].timestamp()
         
         while last_time < end_time:
-            partial_from    = last_time
-            response        = self.api.instrument.candles(instrument,
-                                                     granularity = granularity,
-                                                     fromTime = partial_from,
-                                                     count = max_candles
-                                                     )
+            partial_from = last_time
+            response = self.api.instrument.candles(instrument,
+                                                   granularity = granularity,
+                                                   fromTime = partial_from,
+                                                   count = max_candles)
             
-            partial_data    = self.response_to_df(response)
-            data            = data.append(partial_data)
-            last_time       = data.index[-1].timestamp()
+            partial_data = self.response_to_df(response)
+            data = data.append(partial_data)
+            last_time = data.index[-1].timestamp()
             
         return data
     
     
     def oanda_quote_data(self, data, pair, granularity, start_time, end_time):
-        '''
-            Function to retrieve price conversion data.
-        '''
+        """Function to retrieve price conversion data.
+        """
         quote_currency  = pair[-3:]
         
         if self.home_currency is None or quote_currency == self.home_currency:
@@ -210,8 +207,8 @@ class GetData:
     
     
     def response_to_df(self, response):
-        ''' Function to convert api response into a pandas dataframe. '''
-        
+        """Function to convert api response into a pandas dataframe.
+        """
         candles = response.body["candles"]
         times = []
         close_price, high_price, low_price, open_price = [], [], [], []
@@ -284,28 +281,39 @@ class GetData:
         return my_int
     
 
-    def yahoo(self, instrument, granularity=None, count=None, start_time=None, end_time=None):
-        '''
-            Retrieves historical price data from yahoo finance. 
-            
-                Parameters:
-                    instrument (str, list): list of tickers to download
-                    
-                    start_string (str): start time as YYYY-MM-DD string or _datetime. 
-                    
-                    end_string (str): end_time as YYYY-MM-DD string or _datetime. 
-                    
-                    granularity (str): candlestick granularity
-                        valid intervals: 
-                            1m, 2m, 5m, 15m, 30m, 60m, 90m, 1h, 1d, 5d, 1wk, 1mo.
-                
-                Notes:
-                    1. If you are encountering a JSON error when using the yahoo
-                       finance API, try updating by running:
-                           pip install yfinance --upgrade --no-cache-dir
-                    2. Intraday data cannot exceed 60 days.
+    def yahoo(self, instrument: str, granularity: str = None, count: int = None, 
+              start_time: str = None, end_time: str = None) -> pd.DataFrame:
+        """Retrieves historical price data from yahoo finance. 
+
+        Parameters
+        ----------
+        instrument : str
+            Ticker to dowload data for.
+        granularity : str, optional
+            The candlestick granularity. The default is None.
+        count : int, optional
+            DESCRIPTION. The default is None.
+        start_time : str, optional
+            The start time as YYYY-MM-DD string or datetime object. The default 
+            is None.
+        end_time : str, optional
+            The end_time as YYYY-MM-DD string or datetime object. The default 
+            is None.
+
+        Returns
+        -------
+        data : pd.DataFrame
+            The price data, as an OHLC DataFrame.
+
+        Notes
+        -----
+        - If you are encountering a JSON error when using the yahoo finance API,
+        try updating by running
         
-        '''
+        >>> pip install yfinance --upgrade --no-cache-dir
+        
+        - Intraday data cannot exceed 60 days.
+        """
         
         if count is not None:
             # Convert count to start and end dates (currently assumes end=now)
@@ -321,14 +329,14 @@ class GetData:
     
     
     def yahoo_quote_data(self, data, pair, interval, from_date, to_date):
-        ''' 
-            Returns nominal price data - quote conversion not supported for 
+        """Returns nominal price data - quote conversion not supported for 
             Yahoo finance API.
-        '''
+        """
         return data
     
     
     def _check_oanda_response(self, response):
-        'Placeholder method to check Oanda API response.'
+        """Placeholder method to check Oanda API response.
+        """
         if response.status != 200:
             print(response.reason)

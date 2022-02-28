@@ -259,7 +259,6 @@ class AutoTraderBot:
         if self._backtest_mode is True:
             # Running in backtest mode 
             self._get_data.base_currency = self._base_currency
-            
             from_date = self._data_start
             to_date = self._data_end
             
@@ -352,6 +351,7 @@ class AutoTraderBot:
                                                              historical_quote_data_name)
                     
                     if not os.path.exists(historical_data_file_path):
+                        # TODO - convert this to try/except loop
                         # Data file does not yet exist
                         data = getattr(self._get_data, feed.lower())(instrument,
                                        granularity = interval, start_time = from_date,
@@ -380,7 +380,7 @@ class AutoTraderBot:
                     MTF_data = None
                         
                 else:
-                    # Running in single backtest mode
+                    # Running in single-instrument MTF backtest mode
                     MTF_data = {}
                     for granularity in interval.split(','):
                         data = getattr(self._get_data, feed.lower())(instrument,
