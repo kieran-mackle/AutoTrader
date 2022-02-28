@@ -22,7 +22,6 @@ class AutoTraderBot:
     def __init__(self, instrument: str, strategy_config: dict, 
                  broker, data_dict: dict, quote_data_dict: dict, 
                  auxdata: dict, autotrader_instance) -> None:
-
         # Inherit user options from autotrader
         self._home_dir = autotrader_instance.home_dir
         self._scan_mode = autotrader_instance.scan_mode
@@ -63,7 +62,7 @@ class AutoTraderBot:
         strategy_params['risk_pc'] = strategy_params['risk_pc'] if 'risk_pc' in strategy_params else risk_pc
         strategy_params['sizing'] = strategy_params['sizing'] if 'sizing' in strategy_params else sizing
         strategy_params['period'] = strategy_params['period'] if 'period' in strategy_params else period
-        self.strategy_params = strategy_params
+        self._strategy_params = strategy_params
         
         # Import Strategy
         strat_module = strategy_config["MODULE"]
@@ -90,18 +89,18 @@ class AutoTraderBot:
             # Check how many granularities were requested
             if len(interval.split(',')) > 1:
                 # MTF strategy
-                self.base_interval = interval.split(',')[0]
-                self.MTF_intervals = interval.split(',')[1:]
+                self._base_interval = interval.split(',')[0]
+                self._MTF_intervals = interval.split(',')[1:]
                 
                 # Initiate time_to_download dict
-                self.time_to_download = {}
-                for granularity in self.MTF_intervals:
-                    self.time_to_download[granularity] = datetime.now(tz=pytz.utc)
+                self._time_to_download = {}
+                for granularity in self._MTF_intervals:
+                    self._time_to_download[granularity] = datetime.now(tz=pytz.utc)
                 
             else:
                 # Single timeframe strategy
-                self.base_interval = interval
-                self.MTF_intervals = []
+                self._base_interval = interval
+                self._MTF_intervals = []
             
             # Start stream
             self._initiate_stream()
@@ -113,10 +112,10 @@ class AutoTraderBot:
             self.MTF_data = None
         
         # Data retrieval
-        self.quote_data_file = quote_data_dict
+        self._quote_data_file = quote_data_dict
         if data_dict is not None:
             # Local data files provided
-            self.abs_data_filepath = True
+            self._abs_data_filepath = True
             if type(data_dict) == str:
                 # Single timeframe data file provided
                 self._data_file = data_dict
@@ -124,9 +123,9 @@ class AutoTraderBot:
                 # MTF data provided
                 self._MTF_data_files = data_dict
         else:
-            self.abs_data_filepath = False
+            self._abs_data_filepath = False
         
-        self.get_data = autodata.GetData(broker_config, self._allow_dancing_bears)
+        self._get_data = autodata.GetData(broker_config, self._allow_dancing_bears)
         data, quote_data, MTF_data = self._retrieve_data(instrument, self._feed)
         
         # Check data
@@ -152,22 +151,30 @@ class AutoTraderBot:
             my_strat = strategy(params, strat_data, instrument)
             
         # Assign strategy to local attributes
-        self.strategy           = my_strat
-        self.data               = data
-        self.MTF_data           = MTF_data
-        self.quote_data         = quote_data
-        self.latest_orders      = []
+        self._strategy = my_strat
+        self.data = data
+        self.MTF_data = MTF_data
+        self.quote_data = quote_data
+        self._latest_orders = []
         
         # Assign strategy attributes for tick-based strategy development
         if self._backtest_mode:
-            self.strategy._backtesting = True
+            self._strategy._backtesting = True
         if interval.split(',')[0] == 'tick':
-            self.strategy._tick_data = True
+            self._strategy._tick_data = True
         
         if int(self._verbosity) > 0:
                 print("\nAutoTraderBot assigned to trade {}".format(instrument),
-                      "on {} timeframe using {}.".format(self.strategy_params['granularity'],
+                      "on {} timeframe using {}.".format(self._strategy_params['granularity'],
                                                          strategy_config['NAME']))
+    
+    
+    def __repr__(self):
+        return f'{self.instrument} AutoTraderBot'
+    
+    
+    def __str__(self):
+        return 'AutoTraderBot instance'
     
     
     def _initiate_stream(self) -> None:
@@ -175,24 +182,24 @@ class AutoTraderBot:
         """
         record_ticks = False
         record_candles = False
-        if self.base_interval == 'tick' or self.base_interval == 'ticks':
+        if self._base_interval == 'tick' or self._base_interval == 'ticks':
             record_ticks = True
         else:
             record_candles = True
         
-        stream_granularity = self.base_interval
-        self.no_candles = self.strategy_params['period']
+        stream_granularity = self._base_interval
+        self._no_candles = self._strategy_params['period']
         
-        self.AS = AutoStream(self._home_dir, 
+        self._AS = AutoStream(self._home_dir, 
                              self._stream_config, 
                              self.instrument, 
                              granularity = stream_granularity,
                              record_ticks = record_ticks, 
                              record_candles = record_candles,
-                             no_candles = self.no_candles,
+                             no_candles = self._no_candles,
                              bot = self)
         
-        stream_thread = threading.Thread(target = self.AS.start, 
+        stream_thread = threading.Thread(target = self._AS.start, 
                                          args=(), daemon=False)
         print('Spawning new thread to stream data.')
         stream_thread.start()
@@ -201,7 +208,7 @@ class AutoTraderBot:
     def _recieve_stream_data(self) -> None:
         """Method to tell AutoStream to send data to bot. Called from bot manager.
         """
-        self.AS.update_bot = True
+        self._AS.update_bot = True
     
     
     def _update_strategy_data(self, data: pd.DataFrame = None) -> None:
@@ -224,19 +231,19 @@ class AutoTraderBot:
             strat_data = MTF_data
         
         # Update strategy with new data
-        self.strategy.initialise_strategy(strat_data)
+        self._strategy.initialise_strategy(strat_data)
         
     
     def _retrieve_data(self, instrument, feed, base_data = None) -> pd.DataFrame:
         """Retrieves price data from AutoData.
         """
-        interval = self.strategy_params['granularity']
-        period = self.strategy_params['period']
+        interval = self._strategy_params['granularity']
+        period = self._strategy_params['period']
         price_data_path = os.path.join(self._home_dir, 'price_data')
         
         if self._backtest_mode is True:
             ' ~~~~~~~~~~~~~~~~~~~ Running in backtest mode ~~~~~~~~~~~~~~~~~~ '
-            self.get_data.base_currency = self._base_currency
+            self._get_data.base_currency = self._base_currency
             
             from_date       = self._data_start
             to_date         = self._data_end
@@ -244,7 +251,7 @@ class AutoTraderBot:
             if self._data_file is not None:
                 # Read local data file
                 custom_data_file        = self._data_file
-                custom_data_filepath    = os.path.join(price_data_path, custom_data_file) if not self.abs_data_filepath else custom_data_file
+                custom_data_filepath    = os.path.join(price_data_path, custom_data_file) if not self._abs_data_filepath else custom_data_file
                 if int(self._verbosity) > 1:
                     print("Using data file specified ({}).".format(custom_data_file))
                 data = pd.read_csv(custom_data_filepath, index_col = 0)
@@ -254,8 +261,8 @@ class AutoTraderBot:
                 data = self._check_data_period(data, from_date, to_date)
                 
                 # Load quote data
-                if self.quote_data_file is not None:
-                    quote_data = pd.read_csv(self.quote_data_file, index_col = 0)
+                if self._quote_data_file is not None:
+                    quote_data = pd.read_csv(self._quote_data_file, index_col = 0)
                     quote_data.index = pd.to_datetime(quote_data.index, utc=True)
                     quote_data = self._check_data_period(quote_data, from_date, to_date)
                 else:
@@ -275,7 +282,7 @@ class AutoTraderBot:
                 for granularity in MTF_data_files:
                     # Extract data 
                     custom_data_file = MTF_data_files[granularity]
-                    custom_data_filepath = os.path.join(price_data_path, custom_data_file) if not self.abs_data_filepath else custom_data_file
+                    custom_data_filepath = os.path.join(price_data_path, custom_data_file) if not self._abs_data_filepath else custom_data_file
                     if int(self._verbosity) > 1:
                         print("Using data file specified ({}).".format(MTF_data_files[granularity]))
                     data = pd.read_csv(custom_data_filepath, index_col = 0)
@@ -286,8 +293,8 @@ class AutoTraderBot:
                     
                     if granularity == MTF_granularities[0]:
                         # Assign quote data for backtesting
-                        if self.quote_data_file is not None:
-                            quote_data = pd.read_csv(self.quote_data_file, index_col = 0)
+                        if self._quote_data_file is not None:
+                            quote_data = pd.read_csv(self._quote_data_file, index_col = 0)
                             quote_data.index = pd.to_datetime(quote_data.index, utc=True)
                             quote_data = self._check_data_period(quote_data, from_date, to_date)
                             data, quote_data = self._match_quote_data(data, quote_data)
@@ -321,11 +328,11 @@ class AutoTraderBot:
                     
                     if not os.path.exists(historical_data_file_path):
                         # Data file does not yet exist
-                        data        = getattr(self.get_data, feed.lower())(instrument,
+                        data        = getattr(self._get_data, feed.lower())(instrument,
                                                          granularity = interval,
                                                          start_time = from_date,
                                                          end_time = to_date)
-                        quote_data  = getattr(self.get_data, feed.lower() + '_quote_data')(data,
+                        quote_data  = getattr(self._get_data, feed.lower() + '_quote_data')(data,
                                                                                       instrument,
                                                                                       interval,
                                                                                       from_date,
@@ -355,14 +362,14 @@ class AutoTraderBot:
                     # Running in single backtest mode
                     MTF_data = {}
                     for granularity in interval.split(','):
-                        data        = getattr(self.get_data, feed.lower())(instrument,
+                        data        = getattr(self._get_data, feed.lower())(instrument,
                                                              granularity = granularity,
                                                              start_time = from_date,
                                                              end_time = to_date)
                         
                         # Only get quote data for first granularity
                         if granularity == interval.split(',')[0]:
-                            quote_data  = getattr(self.get_data, feed.lower() + '_quote_data')(data,
+                            quote_data  = getattr(self._get_data, feed.lower() + '_quote_data')(data,
                                                                             instrument,
                                                                             granularity,
                                                                             from_date,
@@ -403,14 +410,14 @@ class AutoTraderBot:
                 # Now retrieve MTF data
                 if len(interval.split(',')) > 1:
                     # Fetch MTF data
-                    MTF_data = {self.base_interval: data}
+                    MTF_data = {self._base_interval: data}
                     
                     if self._MTF_initialisation:
                         # Download MTF data for strategy initialisation only
                         if self.MTF_data is None:
                             # MTF_data has not been retrieved yet
-                            for granularity in self.MTF_intervals:
-                                data = getattr(self.get_data, feed.lower())(instrument,
+                            for granularity in self._MTF_intervals:
+                                data = getattr(self._get_data, feed.lower())(instrument,
                                                                             granularity = granularity,
                                                                             count=period)
                                 
@@ -427,14 +434,14 @@ class AutoTraderBot:
                             MTF_data = self.MTF_data
                             
                             # Replace base_interval data with latest data
-                            MTF_data[self.base_interval] = data
+                            MTF_data[self._base_interval] = data
                             
                     else:
                         # Download MTF data each update
-                        for granularity in self.MTF_intervals:
-                            if datetime.now(tz=pytz.utc) > self.time_to_download[granularity]:
+                        for granularity in self._MTF_intervals:
+                            if datetime.now(tz=pytz.utc) > self._time_to_download[granularity]:
                                 # Update MTF data
-                                data = getattr(self.get_data, feed.lower())(instrument,
+                                data = getattr(self._get_data, feed.lower())(instrument,
                                                                             granularity = granularity,
                                                                             count = period)
                             
@@ -446,7 +453,7 @@ class AutoTraderBot:
                                 MTF_data[granularity] = data
                                 
                                 # Update next time_to_download
-                                self.time_to_download[granularity] = self._next_candle_open(granularity)
+                                self._time_to_download[granularity] = self._next_candle_open(granularity)
                             
                             else:
                                 # Use previously downloaded MTF data
@@ -488,7 +495,7 @@ class AutoTraderBot:
                 else:
                     # Stream has not had enough time to write data yet, revert 
                     # to downloading M1 data
-                    data = getattr(self.get_data, feed.lower())(instrument,
+                    data = getattr(self._get_data, feed.lower())(instrument,
                                                                 granularity = 'M1',
                                                                 count = period)
                     
@@ -497,14 +504,14 @@ class AutoTraderBot:
                                                            price_data_path)
                 
                 # Fetch MTF data
-                MTF_data = {self.base_interval: data}
+                MTF_data = {self._base_interval: data}
                 
                 if self._MTF_initialisation:
                     # Download MTF data for strategy initialisation only
                     if self.MTF_data is None:
                         # MTF_data has not been retrieved yet
-                        for granularity in self.MTF_intervals:
-                            data = getattr(self.get_data, feed.lower())(instrument,
+                        for granularity in self._MTF_intervals:
+                            data = getattr(self._get_data, feed.lower())(instrument,
                                                                         granularity = granularity,
                                                                         count=period)
                             
@@ -521,12 +528,12 @@ class AutoTraderBot:
                         MTF_data = self.MTF_data
                         
                         # Replace base_interval data with latest data
-                        MTF_data[self.base_interval] = data
+                        MTF_data[self._base_interval] = data
                         
                 else:
                     # Download MTF data each update
-                    for granularity in self.MTF_intervals:
-                        data = getattr(self.get_data, feed.lower())(instrument,
+                    for granularity in self._MTF_intervals:
+                        data = getattr(self._get_data, feed.lower())(instrument,
                                                                     granularity = granularity,
                                                                     count=period)
                         
@@ -551,7 +558,7 @@ class AutoTraderBot:
                               "strategy configuration. Exiting.")
                         sys.exit(0)
                         
-                    data = getattr(self.get_data, feed.lower())(instrument,
+                    data = getattr(self._get_data, feed.lower())(instrument,
                                                                 granularity = granularity,
                                                                 count=period)
                     
@@ -586,7 +593,7 @@ class AutoTraderBot:
         
         When using MTF data, this method will only check the base timeframe.
         """
-        interval = self.strategy_params['granularity'].split(',')[0]
+        interval = self._strategy_params['granularity'].split(',')[0]
         
         # Check data time alignment
         current_time        = datetime.now(tz=pytz.utc)
@@ -601,7 +608,7 @@ class AutoTraderBot:
                       "({}/{}).".format(data.index[-1].minute, last_candle_closed.minute),
                       "Trying again...")
                 time.sleep(3) # wait 3 seconds...
-                data    = getattr(self.get_data, feed.lower())(instrument,
+                data    = getattr(self._get_data, feed.lower())(instrument,
                                     granularity = interval,
                                     count=period)
                 data_ts = data.index[-1].to_pydatetime().timestamp()
@@ -645,8 +652,8 @@ class AutoTraderBot:
     def _update(self, i: int) -> None:
         """Update strategy with latest data and generate latest signal.
         """
-        # First clear self.latest_orders
-        self.latest_orders = []
+        # First clear self._latest_orders
+        self._latest_orders = []
         
         if self._scan_mode:
             open_positions      = None
@@ -654,7 +661,7 @@ class AutoTraderBot:
             open_positions      = self._broker.get_open_positions(self.instrument)
         
         # Run strategy to get signals
-        signal_dict = self.strategy.generate_signal(i, open_positions)
+        signal_dict = self._strategy.generate_signal(i, open_positions)
         
         if 0 not in signal_dict:
             # Single order signal, nest in dictionary to allow iteration
@@ -669,8 +676,8 @@ class AutoTraderBot:
                                     self.quote_data, self.instrument)
         
         if int(self._verbosity) > 1:
-            if len(self.latest_orders) > 0:
-                for order in self.latest_orders:
+            if len(self._latest_orders) > 0:
+                for order in self._latest_orders:
                     order_string = "{}: {} {}".format(order['order_time'].strftime("%b %d %Y %H:%M:%S"), 
                                                       order['instrument'], 
                                                       order['order_type']) + \
@@ -685,30 +692,30 @@ class AutoTraderBot:
         # Check for orders placed and/or scan hits
         if int(self._notify) > 0 and self._backtest_mode is False:
             
-            for order_details in self.latest_orders:
+            for order_details in self._latest_orders:
                 self._broker_utils.write_to_order_summary(order_details, 
                                                          self._order_summary_fp)
             
             if int(self._notify) > 1 and \
                 self._email_params['mailing_list'] is not None and \
                 self._email_params['host_email'] is not None:
-                    if int(self._verbosity) > 0 and len(self.latest_orders) > 0:
+                    if int(self._verbosity) > 0 and len(self._latest_orders) > 0:
                             print("Sending emails ...")
                             
-                    for order_details in self.latest_orders:
+                    for order_details in self._latest_orders:
                         emailing.send_order(order_details,
                                             self._email_params['mailing_list'],
                                             self._email_params['host_email'])
                         
-                    if int(self._verbosity) > 0 and len(self.latest_orders) > 0:
+                    if int(self._verbosity) > 0 and len(self._latest_orders) > 0:
                             print("  Done.\n")
             
         # Check scan results
         if self._scan_mode:
             # Construct scan details dict
             scan_details    = {'index'      : self._scan_index,
-                               'strategy'   : self.strategy.name,
-                               'timeframe'  : self.strategy_params['granularity']
+                               'strategy'   : self._strategy.name,
+                               'timeframe'  : self._strategy_params['granularity']
                                 }
             
             # Report AutoScan results
@@ -812,13 +819,13 @@ class AutoTraderBot:
             take_profit = order_signal_dict["take_profit"] if 'take_profit' in order_signal_dict else None
         
         # Calculate risked amount
-        amount_risked = self._broker.get_balance() * self.strategy_params['risk_pc'] / 100
+        amount_risked = self._broker.get_balance() * self._strategy_params['risk_pc'] / 100
         
         # Calculate size
         if 'size' in order_signal_dict:
             size = order_signal_dict['size']
         else:
-            if self.strategy_params['sizing'] == 'risk':
+            if self._strategy_params['sizing'] == 'risk':
                 size            = self._broker_utils.get_size(instrument,
                                                  amount_risked, 
                                                  working_price, 
@@ -826,17 +833,17 @@ class AutoTraderBot:
                                                  HCF,
                                                  stop_distance)
             else:
-                size = self.strategy_params['sizing']
+                size = self._strategy_params['sizing']
         
         # Construct order dict by building on signal_dict
         order_details                   = order_signal_dict
         order_details["order_time"]     = datetime_stamp
-        order_details["strategy"]       = self.strategy.name
+        order_details["strategy"]       = self._strategy.name
         order_details["instrument"]     = order_signal_dict['instrument'] if 'instrument' in order_signal_dict else instrument
         order_details["size"]           = signal*size
         order_details["order_price"]    = order_price
         order_details["HCF"]            = HCF
-        order_details["granularity"]    = self.strategy_params['granularity']
+        order_details["granularity"]    = self._strategy_params['granularity']
         order_details["stop_distance"]  = stop_distance
         order_details["stop_loss"]      = stop_price
         order_details["take_profit"]    = take_profit
@@ -857,7 +864,7 @@ class AutoTraderBot:
         else:
             # Bot is trading
             self._broker.place_order(order_details)
-            self.latest_orders.append(order_details)
+            self._latest_orders.append(order_details)
     
     
     def _next_candle_open(self, granularity: str) -> datetime:
@@ -887,9 +894,9 @@ class AutoTraderBot:
                                                               'drawdown': np.array(NAV)/np.maximum.accumulate(NAV) - 1}, 
                                                         index=self.data.index)
         backtest_dict['trade_summary']  = trade_summary
-        backtest_dict['indicators']     = self.strategy.indicators if hasattr(self.strategy, 'indicators') else None
+        backtest_dict['indicators']     = self._strategy.indicators if hasattr(self._strategy, 'indicators') else None
         backtest_dict['instrument']     = self.instrument
-        backtest_dict['interval']       = self.strategy_params['granularity']
+        backtest_dict['interval']       = self._strategy_params['granularity']
         backtest_dict['open_trades']    = open_trade_summary
         backtest_dict['cancelled_trades'] = cancelled_summary
         
@@ -914,7 +921,7 @@ class AutoTraderBot:
         """Function to replace the data assigned locally and to the strategy.
         """
         self.data = data
-        self.strategy.data = data
+        self._strategy.data = data
     
     
     def _match_quote_data(self, data: pd.DataFrame, 
