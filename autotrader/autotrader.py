@@ -1160,7 +1160,7 @@ class AutoTrader:
         if self.backtest_mode is True:
             # Create backtest summary for each bot 
             for bot in self.bots_deployed:
-                bot.create_backtest_summary(balance, NAV, margin)            
+                bot._create_backtest_summary(balance, NAV, margin)            
             
             if int(self.verbosity) > 0:
                 print(f"Backtest complete (runtime {round((backtest_end_time - backtest_start_time), 3)} s).")

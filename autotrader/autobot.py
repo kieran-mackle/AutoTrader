@@ -878,7 +878,7 @@ class AutoTraderBot:
         return datetime.fromtimestamp(next_candle_open_ts, tz=pytz.utc)
             
 
-    def create_backtest_summary(self, balance: pd.Series, NAV: pd.Series, 
+    def _create_backtest_summary(self, balance: pd.Series, NAV: pd.Series, 
                                 margin: pd.Series) -> dict:
         """Constructs backtest summary dictionary for further processing.
         """
