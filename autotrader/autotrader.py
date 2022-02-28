@@ -625,10 +625,15 @@ class AutoTrader:
         self.chart_timeframe    = chart_timeframe
     
     
-    def get_bots_deployed(self) -> dict:
+    def get_bots_deployed(self, instrument: str = None) -> dict:
         """Returns a dictionary of AutoTrader trading bots, organised by 
         instrument traded.
 
+        Parameters
+        ----------
+        instrument : str, optional
+            The instrument of the bot to retrieve. The default is None.
+            
         Returns
         -------
         dict
@@ -637,6 +642,14 @@ class AutoTrader:
         bots = {}
         for bot in self.bots_deployed:
             bots[bot.instrument] = bot
+        
+        if instrument is not None:
+            # Retrieve bot requested
+            try:
+                bots = bots[instrument]
+            except:
+                raise Exception(f"There were no bots found to be trading '{instrument}'.")
+                
         return bots
         
     
