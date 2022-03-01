@@ -40,5 +40,4 @@ setuptools.setup(
             'setuptools_scm',
         ],
     package_data={'': ['data/*.js']},
-    # include_package_data=True,
 )
