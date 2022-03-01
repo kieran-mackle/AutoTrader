@@ -10,7 +10,7 @@ from ast import literal_eval
 from scipy.optimize import brute
 from datetime import datetime, timedelta
 
-from autotrader import autoplot
+from autotrader.autoplot import AutoPlot
 from autotrader.autobot import AutoTraderBot
 from autotrader.lib.read_yaml import read_yaml
 from autotrader.lib.bot_manager import ManageBot
@@ -1220,12 +1220,12 @@ class AutoTrader:
         """
         # TODO - check length of data to prevent plotting over some length...
         if self._chart_timeframe == 'default':
-            ap = autoplot.AutoPlot(data)
+            ap = AutoPlot(data)
         else:
             # Instantiate AutoPlot with requested chart timeframe
             if self._chart_timeframe in self._bots_deployed[0].MTF_data.keys():
                 # Valid timeframe requested
-                ap = autoplot.AutoPlot(self._bots_deployed[0].MTF_data[self._chart_timeframe])
+                ap = AutoPlot(self._bots_deployed[0].MTF_data[self._chart_timeframe])
                 ap._add_backtest_price_data(data) # provide nominal timeframe data for merge operations
             else:
                 warning_str = f'The chart timeframe requested ({self._chart_timeframe}) was not found ' + \

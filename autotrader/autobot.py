@@ -9,10 +9,11 @@ import pandas as pd
 from shutil import copy2
 from datetime import datetime
 
+from autotrader.autodata import GetData
 from autotrader.emailing import emailing
 from autotrader.autostream import AutoStream
 from autotrader.lib.read_yaml import read_yaml
-from autotrader.lib import autodata, environment_manager
+from autotrader.lib import environment_manager
 
 
 class AutoTraderBot:
@@ -135,8 +136,7 @@ class AutoTraderBot:
         else:
             self._abs_data_filepath = False
         
-        self._get_data = autodata.GetData(broker_config, 
-                                          self._allow_dancing_bears)
+        self._get_data = GetData(broker_config, self._allow_dancing_bears)
         data, quote_data, MTF_data = self._retrieve_data(instrument, 
                                                          self._feed)
         

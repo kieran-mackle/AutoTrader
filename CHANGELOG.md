@@ -11,7 +11,7 @@
   configuration methods should be used exclusively to set the attributes.
   This also clarifies and promotes visibility of public methods.
 - New method `get_bots_deployed` added to AutoTrader
-
+- Project heirarchy: note changes in location of autodata
 
 
 ## Version 0.5.0
