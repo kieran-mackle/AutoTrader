@@ -1,34 +1,29 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-'''
-Module: AutoPlot
-Purpose: Automated plotting module
-Author: Kieran Mackle
-'''
-
-import pandas as pd
-import numpy as np
 import os
+import numpy as np
+import pandas as pd
+from math import pi
 
-# Bokeh
 from bokeh.models.annotations import Title
 from bokeh.plotting import figure, output_file, show, save
 from bokeh.io import output_notebook
-from bokeh.models import (
-    CustomJS,
-    ColumnDataSource,
-    HoverTool,
-    CrosshairTool,
-    Span
-)
+from bokeh.models import (CustomJS,
+                          ColumnDataSource,
+                          HoverTool,
+                          CrosshairTool,
+                          Span)
 from bokeh.layouts import gridplot, layout
 from bokeh.transform import factor_cmap, cumsum
 from bokeh.palettes import Category20c
-from math import pi
 
 
-class AutoPlot():
-    '''
+class AutoPlot:
+    """AutoPlot trading chart generator.
+    
+    Parameters
+    ----------
+    data : pd.DataFrame
+        The OHLC price data to be charted. 
+    
     Attributes
     ----------
     data : df
@@ -59,10 +54,6 @@ class AutoPlot():
 
     Methods
     -------
-    __init__(data):
-        Initialise AutoPlot with the lowest timeframe data being used for 
-        plotting.
-    
     add_tool(tool_name):
         Add bokeh tool to plot. This adds the tool_name string to the fig_tools
         attribute.
@@ -70,24 +61,23 @@ class AutoPlot():
     plot(backtest_dict=None, cumulative_PL=None, indicators=None, instrument=None, show_fig=True):
         Creates a plot.
     
-    '''
+    """
     
-    def __init__(self, data):
-        self.max_indis_over     = 3
-        self.max_indis_below    = 2
-        self._modified_data     = None
-        self.fig_tools          = "pan,wheel_zoom,box_zoom,undo,redo,reset,save,crosshair"
-        self.ohlc_height        = 400
-        self.ohlc_width         = 800
-        self.top_fig_height     = 150
-        self.bottom_fig_height  = 150
-        # self.total_height       = 1000
-        self.jupyter_notebook   = False
-        self.show_cancelled     = True
+    def __init__(self, data: pd.DataFrame):
+        self.max_indis_over = 3
+        self.max_indis_below = 2
+        self._modified_data = None
+        self.fig_tools = "pan,wheel_zoom,box_zoom,undo,redo,reset,save,crosshair"
+        self.ohlc_height = 400
+        self.ohlc_width = 800
+        self.top_fig_height = 150
+        self.bottom_fig_height = 150
+        self.jupyter_notebook = False
+        self.show_cancelled = True
         
         # Modify data index
-        self.data               = self._reindex_data(data)
-        self.backtest_data      = None
+        self.data = self._reindex_data(data)
+        self.backtest_data = None
         
         # Load JavaScript code for auto-scaling 
         with open(os.path.join(os.path.dirname(__file__), 'lib/autoscale.js'),
@@ -95,21 +85,41 @@ class AutoPlot():
             self._autoscale_code = _f.read()
         
         
-    def add_tool(self, tool_name):
-        '''
-        Adds a tool to the plot. 
+    def add_tool(self, tool_name: str) -> None:
+        """Adds a tool to the plot. 
+
+        Parameters
+        ----------
+        tool_name : str
+            The name of tool to add (see Bokeh documentation).
+
+        Returns
+        -------
+        None
+            The tool will be added to the chart produced.
+        """
         
-            Parameters:
-                tool_name (str): name of tool to add (see Bokeh documentation).
-        '''
+        self.fig_tools = self.fig_tools + "," + tool_name
+    
+    
+    def configure(self):
         
-        self.fig_tools          = self.fig_tools + "," + tool_name
+        self.max_indis_over = 3
+        self.max_indis_below = 2
+        self._modified_data = None
+        self.fig_tools = "pan,wheel_zoom,box_zoom,undo,redo,reset,save,crosshair"
+        self.ohlc_height = 400
+        self.ohlc_width = 800
+        self.top_fig_height = 150
+        self.bottom_fig_height = 150
+        self.jupyter_notebook = False
+        self.show_cancelled = True
+        pass
     
     
     def _reindex_data(self, data):
-        '''
-        Resets index of data to obtain integer indexing.
-        '''
+        """Resets index of data to obtain integer indexing.
+        """
         
         modified_data           = data.copy()
         modified_data['date']   = modified_data.index
@@ -118,34 +128,31 @@ class AutoPlot():
         
         return modified_data
     
+    
     def _resample_data(self, data):
-        ''' Resamples data to match the time index of the base data. '''
-        
+        """Resamples data to match the time index of the base data.
+        """
         return data.reindex(self.data.date, method='ffill')
     
+    
     def _check_data(self, data):
-        ''' 
-        Checks the length of the inputted data against the base data, 
+        """Checks the length of the inputted data against the base data, 
         and resamples it if necessary.
-        '''
-        
+        """
         if len(data) != len(self.data):
             data = self._resample_data(data)
-        
         return data
         
+    
     def _merge_data(self, data, name=None):
-        '''
-        Merges the provided data with the base data, using the data of the 
+        """Merges the provided data with the base data, using the data of the 
         base data and the index of the data to be merged.
         
         Parameters:
             data: the data to be merged
             name: the desired column name of the merged data
-        '''
-        
+        """
         # TODO - need to add handling of different data types, ie. list vs. series vs. df
-        
         merged_data = pd.merge(self.data, data, left_on='date', 
                                right_index=True).fillna('')
         
@@ -154,24 +161,50 @@ class AutoPlot():
         
         return merged_data
     
+    
     def _add_backtest_price_data(self, backtest_price_data):
-        ''' 
-        Processes backtest price data to included integer index of base 
+        """Processes backtest price data to included integer index of base 
         data.
-        '''
+        """
         temp_data = self.data.copy()
         temp_data.index = temp_data['date']
         
         self.backtest_data = temp_data.reindex(backtest_price_data.index, method='ffill')
     
+    
     ''' ------------------- FIGURE MANAGEMENT METHODS --------------------- '''
-    def plot(self, backtest_dict=None, cumulative_PL=None, indicators=None, 
-             instrument=None, show_fig=True):
-        ''' 
-        Creates chart of price data and indicators. 
-        '''
+    def plot(self, instrument: str = None, backtest_dict: dict = None, 
+             indicators: dict = None, cumulative_PL: list = None,
+             show_fig: bool = True) -> None:
+        """Creates a trading chart of OHLC price data and indicators.
+
+        Parameters
+        ----------
+        instrument : str, optional
+            The traded instrument name. The default is None.
+        backtest_dict : dict, optional
+            The backtest results dictionary. The default is None.
+        indicators : dict, optional
+            Indicators dictionary. The default is None.
+        cumulative_PL : list, optional
+            Cumulative PL history. The default is None.
+        show_fig : bool, optional
+            Flag to show the chart. The default is True.
+
+        Returns
+        -------
+        None
+            Calling this method will automatically generate and open a chart.
         
-        # Preparation ------------------------------------------------------- #
+        See Also
+        --------
+        - To generate the backtest_dict, use the analyse_backtest method of 
+          AutoTrader after running a backtest. 
+        - See the following link for more information: 
+            https://kieran-mackle.github.io/AutoTrader/docs/autoplot
+        """
+        
+        # Preparation
         if backtest_dict is None:
             if instrument is not None:
                 title_string = "AutoTrader IndiView - {}".format(instrument)
@@ -312,7 +345,7 @@ class AutoPlot():
         # TODO - merge this into self.plot method?
         # First, clean up individual plots (pie, etc) into new methods
         
-        # Preparation ----------------------------------- #
+        # Preparation
         output_file("candlestick.html",
                     title = "AutoTrader Multi-Bot Backtest Results")
         
@@ -324,7 +357,7 @@ class AutoPlot():
             
         MBR = ColumnDataSource(multibot_backtest_results)
         
-        # ----------------------- Account Balance -------------------------- #
+        # Account Balance 
         navfig = figure(plot_width = self.ohlc_width,
                         plot_height = self.top_fig_height,
                         title = None,
@@ -351,7 +384,7 @@ class AutoPlot():
         navfig.legend.label_text_font_size = '8pt'
         navfig.add_tools(linked_crosshair)
         
-        # ----------------------- Win rate bar chart ----------------------- #
+        # Win rate bar chart
         instruments = multibot_backtest_results.index.values
         
         winrate = self._plot_bars(instruments, 'win_rate', MBR, 
@@ -361,7 +394,7 @@ class AutoPlot():
         winrate.sizing_mode = 'stretch_width'
         
         
-        # ----------------- Pie chart of trades per bot --------------------- #
+        # Pie chart of trades per bot
         pie_data = pd.Series(multibot_backtest_results.no_trades).reset_index(name='value').rename(columns={'index':'instrument'})
         pie_data['angle'] = pie_data['value']/pie_data['value'].sum() * 2*pi
         if len(multibot_backtest_results) < 3:
@@ -383,7 +416,7 @@ class AutoPlot():
         pie.legend.margin              = 0
         pie.legend.label_text_font_size = '8pt'
         
-        # --------------- Bar plot for avg/max win/loss -------------------- #
+        # Bar plot for avg/max win/loss
         win_metrics = ['Average Win', 'Max. Win']
         lose_metrics = ['Average Loss', 'Max. Loss']
         
@@ -444,7 +477,7 @@ class AutoPlot():
         plbars.sizing_mode = 'stretch_width'
     
     
-        # --------------------- Cumulative PL ------------------------------ #
+        # Cumulative PL
         cplfig = figure(plot_width = navfig.plot_width,
                         plot_height = self.top_fig_height,
                         title = None,
@@ -487,7 +520,7 @@ class AutoPlot():
                 }
         cplfig.xaxis.bounds   = (0, self.data.index[-1])
         
-        # --------------------- Margin Available --------------------------- #
+        # Margin Available 
         marfig = figure(plot_width = self.ohlc_width,
                         plot_height = self.top_fig_height,
                         title = None,
@@ -516,7 +549,7 @@ class AutoPlot():
         marfig.add_tools(linked_crosshair)
         
         
-        # -------------------- Construct final figure ---------------------- #     
+        # Construct final figure     
         final_fig = layout([  
                                    [navfig],
                             [winrate, pie, plbars],
@@ -775,7 +808,6 @@ class AutoPlot():
     
     
     ''' ------------------------ OVERLAY PLOTTING ------------------------- '''
-    
     def _plot_candles(self, source):
         ''' Plots OHLC data onto new figure. '''
         bull_colour             = "#D5E1DD"
@@ -813,6 +845,7 @@ class AutoPlot():
         
         return candle_plot
     
+    
     def _plot_swings(self, swings, linked_fig):
         '''
         Plots swing detection indicator.
@@ -825,6 +858,7 @@ class AutoPlot():
                             size = 15,
                             fill_color = 'black',
                             legend_label = 'Last Swing Price Level')
+    
     
     def _plot_supertrend(self, st_data, linked_fig):
         ''' Plots supertrend indicator. '''
@@ -847,6 +881,7 @@ class AutoPlot():
                     size = 5,
                     fill_color = 'red',
                     legend_label = 'Down trend support')
+    
     
     def _plot_halftrend(self, htdf, linked_fig):
         ''' Plots halftrend indicator. '''
@@ -881,6 +916,7 @@ class AutoPlot():
                          'inverted_triangle', 'red', 'Sell Signals', 
                          linked_fig, 10)
     
+    
     def _plot_signals(self, linked_fig, signals_df):
         ' Plots long and short entry signals over OHLC chart. '
         
@@ -895,6 +931,7 @@ class AutoPlot():
                          'inverted_triangle', 'orangered', 'Sell Signals', 
                          linked_fig, 12)
     
+    
     def _plot_grid(self, grid_levels, linked_fig, linewidth=0.5):
         for price in grid_levels:
             hline = Span(location=price, 
@@ -903,6 +940,7 @@ class AutoPlot():
                          line_dash='dashed',
                          line_width=linewidth)
             linked_fig.add_layout(hline)
+    
     
     def _plot_pivot_points(self, pivot_dict, linked_fig, levels=1):
         ''' Adds pivot points to OHLC chart '''
@@ -971,6 +1009,7 @@ class AutoPlot():
                                        line_color = 'red',
                                        legend_label = 'Resistance 3')
         
+        
     def _plot_trading_session(self, session_plot_data, linked_fig):
         'Shades trading session times'
         
@@ -1007,7 +1046,6 @@ class AutoPlot():
         
         
     ''' ----------------------- TOP FIG PLOTTING -------------------------- '''
-    
     def _plot_trade(self, x_data, y_data, marker_type, marker_colour, 
                     label, linked_fig, scatter_size=15):
         '''
@@ -1019,6 +1057,7 @@ class AutoPlot():
                            size         = scatter_size,
                            fill_color   = marker_colour,
                            legend_label = label)
+    
     
     def _plot_trade_history(self, trade_summary, linked_fig, 
                             cancelled_summary=False, open_summary=False):
@@ -1132,7 +1171,6 @@ class AutoPlot():
     
     
     ''' --------------------- BOTTOM FIG PLOTTING ------------------------- '''
-    
     def _plot_macd(self, x_range, macd_data, linked_fig):
         ''' Plots MACD indicator. '''
         # Initialise figure
@@ -1174,6 +1212,7 @@ class AutoPlot():
     
         return fig
     
+    
     ''' -------------------- MISCELLANEOUS PLOTTING ----------------------- '''
     def _plot_bars(self, x_vals, data_name, source, linked_fig=None, fig_height=250,
                    fig_title=None, hover_name=None):
@@ -1191,6 +1230,7 @@ class AutoPlot():
                  source = source)
         
         return fig
+    
     
     def _plot_pie(self, source, fig_title=None, fig_height=250):
         
@@ -1211,6 +1251,7 @@ class AutoPlot():
                   source=source)
         
         return pie
+    
     
     def _plot_bands(self, plot_data, linked_fig=None, new_fig = True,
                     fill_color = 'blue', fill_alpha = 0.3, line_color='black',
@@ -1272,5 +1313,4 @@ class AutoPlot():
             legend_label = plot_data['mid_name'] if 'mid_name' in plot_data else 'Band Mid Line')
         
         return fig
-    
     
