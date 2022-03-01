@@ -12,9 +12,8 @@ from datetime import datetime, timedelta
 
 from autotrader.autoplot import AutoPlot
 from autotrader.autobot import AutoTraderBot
-from autotrader.lib.read_yaml import read_yaml
 from autotrader.lib.bot_manager import ManageBot
-from autotrader.lib import instrument_list, environment_manager
+from autotrader.utilities import read_yaml, get_config, get_watchlist
 
 
 class AutoTrader:
@@ -487,8 +486,7 @@ class AutoTrader:
         
         # If scan index provided, use that. Else, use strategy watchlist
         if scan_index is not None:
-            self._scan_watchlist = instrument_list.get_watchlist(scan_index,
-                                                                self._feed)
+            self._scan_watchlist = get_watchlist(scan_index, self._feed)
 
         else:
             scan_index = 'Strategy watchlist'
@@ -1045,9 +1043,7 @@ class AutoTrader:
             global_config = read_yaml(global_config_fp)
         else:
             global_config = None
-        broker_config = environment_manager.get_config(self._environment,
-                                                       global_config,
-                                                       self._feed)
+        broker_config = get_config(self._environment, global_config, self._feed)
         
         # Construct stream_config dict
         if self._use_stream:

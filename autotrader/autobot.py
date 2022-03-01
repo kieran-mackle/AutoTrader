@@ -12,8 +12,7 @@ from datetime import datetime
 from autotrader.autodata import GetData
 from autotrader.emailing import emailing
 from autotrader.autostream import AutoStream
-from autotrader.lib.read_yaml import read_yaml
-from autotrader.lib import environment_manager
+from autotrader.utilities import read_yaml, get_config
 
 
 class AutoTraderBot:
@@ -90,9 +89,7 @@ class AutoTraderBot:
             global_config = read_yaml(global_config_fp)
         else:
             global_config = None
-        broker_config = environment_manager.get_config(self._environment, 
-                                                       global_config,
-                                                       self._feed)
+        broker_config = get_config(self._environment, global_config, self._feed)
    
         # Start price streaming
         if self._use_stream and self._backtest_mode is False:

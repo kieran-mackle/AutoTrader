@@ -1,11 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-'''
-Module: lib.bot_manager
-Purpose: AutoBot manager module
-Author: Kieran Mackle
-'''
-
 # import autostream
 import threading
 import time
@@ -14,7 +6,7 @@ import sys
 import traceback
 
 
-class ManageBot():
+class ManageBot:
     """
     AutoTrader Bot Manager
     ----------------------
@@ -93,6 +85,7 @@ class ManageBot():
             thread.start()
         else:
             print("Notice: Bot has already been deployed. Exiting.")
+        
         
     def manage_bot(self):
         '''
@@ -198,10 +191,12 @@ class ManageBot():
                         sleep_time = 0.25*self.granularity_to_seconds(base_granularity)
                         time.sleep(sleep_time)
 
+
     def suspend(self):
         while os.path.exists(self.suspendfile):
             pass    
             
+        
     def write_bot_to_log(self):
         '''
         Adds the bot being managed to the bots_deployed logfile.
@@ -209,6 +204,7 @@ class ManageBot():
         
         with open(self.active_bot_path, 'w') as f:
             pass
+    
     
     def remove_bot_from_log(self):
         '''

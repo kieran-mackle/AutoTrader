@@ -1,7 +1,7 @@
 import os
 import sys
 from getopt import getopt
-from autotrader.lib.read_yaml import read_yaml
+from autotrader.utilities import read_yaml
 from autotrader.emailing import send_order_summary
 
 
