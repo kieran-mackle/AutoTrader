@@ -102,77 +102,54 @@ class AutoPlot:
         self.fig_tools = self.fig_tools + "," + tool_name
     
     
-    def configure(self):
-        
-        self.max_indis_over = 3
-        self.max_indis_below = 2
-        self._modified_data = None
-        self.fig_tools = "pan,wheel_zoom,box_zoom,undo,redo,reset,save,crosshair"
-        self.ohlc_height = 400
-        self.ohlc_width = 800
-        self.top_fig_height = 150
-        self.bottom_fig_height = 150
-        self.jupyter_notebook = False
-        self.show_cancelled = True
-        pass
-    
-    
-    def _reindex_data(self, data):
-        """Resets index of data to obtain integer indexing.
+    def configure(self, max_indis_over: int = None, max_indis_below: int = None, 
+                  fig_tools: str = None, ohlc_height: int = None, 
+                  ohlc_width: int = None, top_fig_height: int = None, 
+                  bottom_fig_height: int = None, jupyter_notebook: bool = None, 
+                  show_cancelled: bool = None):
+        """Configure the plot settings.
+
+        Parameters
+        ----------
+        max_indis_over : int, optional
+            Maximum number of indicators overlaid on the main chart. The 
+            default is 3.
+        max_indis_below : int, optional
+            Maximum number of indicators below the main chart. The default is 2.
+        fig_tools : str, optional
+            The figure tools. The default is "pan,wheel_zoom,box_zoom,undo,
+            redo,reset,save,crosshair".
+        ohlc_height : int, optional
+            The height (px) of the main chart. The default is 400.
+        ohlc_width : int, optional
+            The width (px) of the main chart. The default is 800.
+        top_fig_height : int, optional
+            The height (px) of the figure above the main chart. The default is 150.
+        bottom_fig_height : int, optional
+            The height (px) of the figure(s) below the main chart. The default is 150.
+        jupyter_notebook : bool, optional
+            Boolean flag when running in Jupyter Notebooks, to allow inline
+            plotting. The default is False.
+        show_cancelled : bool, optional
+            Show/hide cancelled trades. The default is True.
+
+        Returns
+        -------
+        None
+            The plot settings will be saved to the active AutoTrader instance.
         """
         
-        modified_data           = data.copy()
-        modified_data['date']   = modified_data.index
-        modified_data           = modified_data.reset_index(drop = True)
-        modified_data['data_index'] = modified_data.index
-        
-        return modified_data
+        self.max_indis_over = max_indis_over if max_indis_over is not None else self.max_indis_over
+        self.max_indis_below = max_indis_below if max_indis_below is not None else self.max_indis_below
+        self.fig_tools = fig_tools if fig_tools is not None else self.fig_tools
+        self.ohlc_height = ohlc_height if ohlc_height is not None else self.ohlc_height
+        self.ohlc_width = ohlc_width if ohlc_width is not None else self.ohlc_width
+        self.top_fig_height = top_fig_height if top_fig_height is not None else self.top_fig_height
+        self.bottom_fig_height = bottom_fig_height if bottom_fig_height is not None else self.bottom_fig_height
+        self.jupyter_notebook = jupyter_notebook if jupyter_notebook is not None else jupyter_notebook
+        self.show_cancelled = show_cancelled if show_cancelled is not None else self.show_cancelled
     
     
-    def _resample_data(self, data):
-        """Resamples data to match the time index of the base data.
-        """
-        return data.reindex(self.data.date, method='ffill')
-    
-    
-    def _check_data(self, data):
-        """Checks the length of the inputted data against the base data, 
-        and resamples it if necessary.
-        """
-        if len(data) != len(self.data):
-            data = self._resample_data(data)
-        return data
-        
-    
-    def _merge_data(self, data, name=None):
-        """Merges the provided data with the base data, using the data of the 
-        base data and the index of the data to be merged.
-        
-        Parameters:
-            data: the data to be merged
-            name: the desired column name of the merged data
-        """
-        # TODO - need to add handling of different data types, ie. list vs. series vs. df
-        merged_data = pd.merge(self.data, data, left_on='date', 
-                               right_index=True).fillna('')
-        
-        if name is not None:
-            merged_data.rename(columns={data.name: name}, inplace=True)
-        
-        return merged_data
-    
-    
-    def _add_backtest_price_data(self, backtest_price_data):
-        """Processes backtest price data to included integer index of base 
-        data.
-        """
-        temp_data = self.data.copy()
-        temp_data.index = temp_data['date']
-        
-        self.backtest_data = temp_data.reindex(backtest_price_data.index, method='ffill')
-    
-    
-    ''' ------------------- FIGURE MANAGEMENT METHODS --------------------- '''
     def plot(self, instrument: str = None, backtest_dict: dict = None, 
              indicators: dict = None, cumulative_PL: list = None,
              show_fig: bool = True) -> None:
@@ -228,7 +205,7 @@ class AutoPlot:
                    'change')
         
         
-        # Plotting ---------------------------------------------------------- #
+        # Plotting
         # OHLC candlestick plot
         candle_plot = self._plot_candles(source)
         
@@ -267,9 +244,8 @@ class AutoPlot:
         if indicators is not None:
             bottom_figs = self._plot_indicators(indicators, candle_plot)
         
-        
-        # Compile plots for final figure ------------------------------------ #
-        # Auto-scale y-axis of candlestick chart - TODO - improve
+        # Compile plots for final figure
+        # Auto-scale y-axis of candlestick chart # TODO - improve
         autoscale_args      = dict(y_range  = candle_plot.y_range, 
                                    source   = source)
         candle_plot.x_range.js_on_change('end', CustomJS(args = autoscale_args, 
@@ -329,6 +305,62 @@ class AutoPlot:
             save(fig)
     
     
+    def _reindex_data(self, data):
+        """Resets index of data to obtain integer indexing.
+        """
+        
+        modified_data           = data.copy()
+        modified_data['date']   = modified_data.index
+        modified_data           = modified_data.reset_index(drop = True)
+        modified_data['data_index'] = modified_data.index
+        
+        return modified_data
+    
+    
+    def _resample_data(self, data):
+        """Resamples data to match the time index of the base data.
+        """
+        return data.reindex(self.data.date, method='ffill')
+    
+    
+    def _check_data(self, data):
+        """Checks the length of the inputted data against the base data, 
+        and resamples it if necessary.
+        """
+        if len(data) != len(self.data):
+            data = self._resample_data(data)
+        return data
+        
+    
+    def _merge_data(self, data, name=None):
+        """Merges the provided data with the base data, using the data of the 
+        base data and the index of the data to be merged.
+        
+        Parameters:
+            data: the data to be merged
+            name: the desired column name of the merged data
+        """
+        # TODO - need to add handling of different data types, ie. list vs. series vs. df
+        merged_data = pd.merge(self.data, data, left_on='date', 
+                               right_index=True).fillna('')
+        
+        if name is not None:
+            merged_data.rename(columns={data.name: name}, inplace=True)
+        
+        return merged_data
+    
+    
+    def _add_backtest_price_data(self, backtest_price_data):
+        """Processes backtest price data to included integer index of base 
+        data.
+        """
+        temp_data = self.data.copy()
+        temp_data.index = temp_data['date']
+        
+        self.backtest_data = temp_data.reindex(backtest_price_data.index, method='ffill')
+    
+    
+    ''' ------------------- FIGURE MANAGEMENT METHODS --------------------- '''
     def _plot_multibot_backtest(self, multibot_backtest_results, NAV, cpl_dict,
                                 margin_available):
         ''' 

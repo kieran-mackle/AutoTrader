@@ -688,7 +688,7 @@ class AutoTrader:
                              bot.backtest_summary['trade_summary']['Profit'], 
                              left_index=True, right_index=True).Profit.cumsum()
         
-        ap.plot(bot.backtest_summary, cumulative_PL=profit_df)
+        ap.plot(backtest_dict=bot.backtest_summary, cumulative_PL=profit_df)
     
     
     def plot_multibot_backtest(self,) -> None:
