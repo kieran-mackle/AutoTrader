@@ -24,60 +24,35 @@ class AutoPlot:
     data : pd.DataFrame
         The OHLC price data to be charted. 
     
-    Attributes
-    ----------
-    data : df
-        The base data used to plot candles. Required upon instantiation.
-    
-    max_inis_over : int
-        The maximum number of indicators to overlay onto the candlestick plot.
-    
-    max_indis_below : int
-        The maximum number of indicators to plot on new figures below the main
-        candlestick plot.
-    
-    fig_tools : str
-        A comma separated string of Bokeh plotting tools.
-        
-    ohlc_height : int
-        The height of the candlestick plot in pixels.
-    
-    ohlc_width : int
-        The width of the candlestick plot in pixels.
-        
-    top_fig_height : int
-        The height of the figure above the candlestick plot in pixels.
-    
-    bottom_fig_height : int
-        The height of the figures below the candlestick plot in pixels.
-
-
     Methods
     -------
+    configure():
+        Configure the plot settings.
+    
     add_tool(tool_name):
         Add bokeh tool to plot. This adds the tool_name string to the fig_tools
         attribute.
     
-    plot(backtest_dict=None, cumulative_PL=None, indicators=None, instrument=None, show_fig=True):
-        Creates a plot.
+    plot():
+        Creates a trading chart of OHLC price data and indicators.
     
     """
     
     def __init__(self, data: pd.DataFrame):
-        self.max_indis_over = 3
-        self.max_indis_below = 2
+        self._max_indis_over = 3
+        self._max_indis_below = 2
         self._modified_data = None
-        self.fig_tools = "pan,wheel_zoom,box_zoom,undo,redo,reset,save,crosshair"
-        self.ohlc_height = 400
-        self.ohlc_width = 800
-        self.top_fig_height = 150
-        self.bottom_fig_height = 150
-        self.jupyter_notebook = False
-        self.show_cancelled = True
+        self._fig_tools = "pan,wheel_zoom,box_zoom,undo,redo,reset,save,crosshair"
+        self._ohlc_height = 400
+        self._ohlc_width = 800
+        self._top_fig_height = 150
+        self._bottom_fig_height = 150
+        self._jupyter_notebook = False
+        self._show_cancelled = True
         
         # Modify data index
-        self.data = self._reindex_data(data)
-        self.backtest_data = None
+        self._data = self._reindex_data(data)
+        self._backtest_data = None
         
         # Load JavaScript code for auto-scaling 
         with open(os.path.join(os.path.dirname(__file__), 'lib/autoscale.js'),
@@ -99,7 +74,7 @@ class AutoPlot:
             The tool will be added to the chart produced.
         """
         
-        self.fig_tools = self.fig_tools + "," + tool_name
+        self._fig_tools = self._fig_tools + "," + tool_name
     
     
     def configure(self, max_indis_over: int = None, max_indis_below: int = None, 
@@ -107,7 +82,7 @@ class AutoPlot:
                   ohlc_width: int = None, top_fig_height: int = None, 
                   bottom_fig_height: int = None, jupyter_notebook: bool = None, 
                   show_cancelled: bool = None):
-        """Configure the plot settings.
+        """Configures the plot settings.
 
         Parameters
         ----------
@@ -139,19 +114,19 @@ class AutoPlot:
             The plot settings will be saved to the active AutoTrader instance.
         """
         
-        self.max_indis_over = max_indis_over if max_indis_over is not None else self.max_indis_over
-        self.max_indis_below = max_indis_below if max_indis_below is not None else self.max_indis_below
-        self.fig_tools = fig_tools if fig_tools is not None else self.fig_tools
-        self.ohlc_height = ohlc_height if ohlc_height is not None else self.ohlc_height
-        self.ohlc_width = ohlc_width if ohlc_width is not None else self.ohlc_width
-        self.top_fig_height = top_fig_height if top_fig_height is not None else self.top_fig_height
-        self.bottom_fig_height = bottom_fig_height if bottom_fig_height is not None else self.bottom_fig_height
-        self.jupyter_notebook = jupyter_notebook if jupyter_notebook is not None else jupyter_notebook
-        self.show_cancelled = show_cancelled if show_cancelled is not None else self.show_cancelled
+        self._max_indis_over = max_indis_over if max_indis_over is not None else self._max_indis_over
+        self._max_indis_below = max_indis_below if max_indis_below is not None else self._max_indis_below
+        self._fig_tools = fig_tools if fig_tools is not None else self._fig_tools
+        self._ohlc_height = ohlc_height if ohlc_height is not None else self._ohlc_height
+        self._ohlc_width = ohlc_width if ohlc_width is not None else self._ohlc_width
+        self._top_fig_height = top_fig_height if top_fig_height is not None else self._top_fig_height
+        self._bottom_fig_height = bottom_fig_height if bottom_fig_height is not None else self._bottom_fig_height
+        self._jupyter_notebook = jupyter_notebook if jupyter_notebook is not None else jupyter_notebook
+        self._show_cancelled = show_cancelled if show_cancelled is not None else self._show_cancelled
     
     
-    def plot(self, instrument: str = None, backtest_dict: dict = None, 
-             indicators: dict = None, cumulative_PL: list = None,
+    def plot(self, instrument: str = None, indicators: dict = None, 
+             backtest_dict: dict = None, cumulative_PL: list = None,
              show_fig: bool = True) -> None:
         """Creates a trading chart of OHLC price data and indicators.
 
@@ -200,8 +175,8 @@ class AutoPlot:
             output_file("{}-backtest-chart.html".format(instrument),
                         title = "AutoTrader Backtest Results - {}".format(instrument))
         
-        source = ColumnDataSource(self.data)
-        source.add((self.data.Close >= self.data.Open).values.astype(np.uint8).astype(str),
+        source = ColumnDataSource(self._data)
+        source.add((self._data.Close >= self._data.Open).values.astype(np.uint8).astype(str),
                    'change')
         
         
@@ -235,7 +210,7 @@ class AutoPlot:
             
             # Overlay trades 
             self._plot_trade_history(trade_summary, candle_plot)
-            if len(cancelled_trades) > 0 and self.show_cancelled:
+            if len(cancelled_trades) > 0 and self._show_cancelled:
                 self._plot_trade_history(cancelled_trades, candle_plot, cancelled_summary=True)
             if len(open_trades) > 0:
                 self._plot_trade_history(open_trades, candle_plot, open_summary=True)
@@ -260,9 +235,9 @@ class AutoPlot:
         for plot in plots:
             if plot is not None:
                 plot.xaxis.major_label_overrides = {
-                    i: date.strftime('%b %d %Y') for i, date in enumerate(pd.to_datetime(self.data["date"]))
+                    i: date.strftime('%b %d %Y') for i, date in enumerate(pd.to_datetime(self._data["date"]))
                 }
-                plot.xaxis.bounds   = (0, self.data.index[-1])
+                plot.xaxis.bounds   = (0, self._data.index[-1])
                 plot.sizing_mode    = 'stretch_width'
                 
                 if titled == 0:
@@ -297,7 +272,7 @@ class AutoPlot:
         fig.sizing_mode     = 'stretch_width'
         
         if show_fig:
-            if self.jupyter_notebook:
+            if self._jupyter_notebook:
                 output_notebook()
                 
             show(fig)
@@ -320,14 +295,14 @@ class AutoPlot:
     def _resample_data(self, data):
         """Resamples data to match the time index of the base data.
         """
-        return data.reindex(self.data.date, method='ffill')
+        return data.reindex(self._data.date, method='ffill')
     
     
     def _check_data(self, data):
         """Checks the length of the inputted data against the base data, 
         and resamples it if necessary.
         """
-        if len(data) != len(self.data):
+        if len(data) != len(self._data):
             data = self._resample_data(data)
         return data
         
@@ -341,7 +316,7 @@ class AutoPlot:
             name: the desired column name of the merged data
         """
         # TODO - need to add handling of different data types, ie. list vs. series vs. df
-        merged_data = pd.merge(self.data, data, left_on='date', 
+        merged_data = pd.merge(self._data, data, left_on='date', 
                                right_index=True).fillna('')
         
         if name is not None:
@@ -354,10 +329,10 @@ class AutoPlot:
         """Processes backtest price data to included integer index of base 
         data.
         """
-        temp_data = self.data.copy()
+        temp_data = self._data.copy()
         temp_data.index = temp_data['date']
         
-        self.backtest_data = temp_data.reindex(backtest_price_data.index, method='ffill')
+        self._backtest_data = temp_data.reindex(backtest_price_data.index, method='ffill')
     
     
     ''' ------------------- FIGURE MANAGEMENT METHODS --------------------- '''
@@ -390,22 +365,22 @@ class AutoPlot:
         MBR = ColumnDataSource(multibot_backtest_results)
         
         # Account Balance 
-        navfig = figure(plot_width = self.ohlc_width,
-                        plot_height = self.top_fig_height,
+        navfig = figure(plot_width = self._ohlc_width,
+                        plot_height = self._top_fig_height,
                         title = None,
                         active_drag = 'pan',
                         active_scroll = 'wheel_zoom')
         
         # Add glyphs
-        navfig.line(self.data.index, 
+        navfig.line(self._data.index, 
                     NAV, 
                     line_color = 'black',
                     legend_label = 'Backtest Net Asset Value')
         
         navfig.xaxis.major_label_overrides = {
-                    i: date.strftime('%b %d %Y') for i, date in enumerate(pd.to_datetime(self.data["date"]))
+                    i: date.strftime('%b %d %Y') for i, date in enumerate(pd.to_datetime(self._data["date"]))
                 }
-        navfig.xaxis.bounds = (0, self.data.index[-1])
+        navfig.xaxis.bounds = (0, self._data.index[-1])
         navfig.sizing_mode = 'stretch_width'
         navfig.legend.location = 'top_left'
         navfig.legend.border_line_width   = 1
@@ -511,13 +486,13 @@ class AutoPlot:
     
         # Cumulative PL
         cplfig = figure(plot_width = navfig.plot_width,
-                        plot_height = self.top_fig_height,
+                        plot_height = self._top_fig_height,
                         title = None,
                         active_drag = 'pan',
                         active_scroll = 'wheel_zoom',
                         x_range = navfig.x_range)
         
-        # self.data['data_index'] = self.data.reset_index(drop=True).index
+        # self._data['data_index'] = self._data.reset_index(drop=True).index
         
         if len(multibot_backtest_results) < 3:
             colors = Category20c[3][0:len(multibot_backtest_results)]
@@ -530,7 +505,7 @@ class AutoPlot:
             cpldata['date'] = cpldata.index
             cpldata         = cpldata.reset_index(drop = True)
             
-            cpldata = pd.merge(self.data, cpldata, left_on='date', right_on='date')
+            cpldata = pd.merge(self._data, cpldata, left_on='date', right_on='date')
             
             cplfig.line(cpldata.data_index.values,
                         cpldata.Profit.values,
@@ -548,28 +523,28 @@ class AutoPlot:
         cplfig.add_tools(linked_crosshair)
         
         cplfig.xaxis.major_label_overrides = {
-                    i: date.strftime('%b %d %Y') for i, date in enumerate(pd.to_datetime(self.data["date"]))
+                    i: date.strftime('%b %d %Y') for i, date in enumerate(pd.to_datetime(self._data["date"]))
                 }
-        cplfig.xaxis.bounds   = (0, self.data.index[-1])
+        cplfig.xaxis.bounds   = (0, self._data.index[-1])
         
         # Margin Available 
-        marfig = figure(plot_width = self.ohlc_width,
-                        plot_height = self.top_fig_height,
+        marfig = figure(plot_width = self._ohlc_width,
+                        plot_height = self._top_fig_height,
                         title = None,
                         active_drag = 'pan',
                         active_scroll = 'wheel_zoom',
                         x_range = navfig.x_range)
         
         # Add glyphs
-        marfig.line(self.data.index, 
+        marfig.line(self._data.index, 
                     margin_available, 
                     line_color = 'black',
                     legend_label = 'Margin Available')
         
         marfig.xaxis.major_label_overrides = {
-                    i: date.strftime('%b %d %Y') for i, date in enumerate(pd.to_datetime(self.data["date"]))
+                    i: date.strftime('%b %d %Y') for i, date in enumerate(pd.to_datetime(self._data["date"]))
                 }
-        marfig.xaxis.bounds = (0, self.data.index[-1])
+        marfig.xaxis.bounds = (0, self._data.index[-1])
         marfig.sizing_mode = 'stretch_width'
         marfig.legend.location = 'top_left'
         marfig.legend.border_line_width   = 1
@@ -590,7 +565,7 @@ class AutoPlot:
                         ])
         final_fig.sizing_mode = 'scale_width'
         
-        if self.jupyter_notebook:
+        if self._jupyter_notebook:
             output_notebook()
         show(final_fig)
     
@@ -602,7 +577,7 @@ class AutoPlot:
         "below", it will be plotted on a new figure below the OHLC chart.
         '''
         
-        x_range   = self.data.index
+        x_range   = self._data.index
         
         plot_type = {'MACD'        : 'below',
                      'MA'          : 'over',
@@ -636,7 +611,7 @@ class AutoPlot:
             
             if indi_type in plot_type:
                 # The indicator plot type is recognised
-                if plot_type[indi_type] == 'over' and indis_over < self.max_indis_over:
+                if plot_type[indi_type] == 'over' and indis_over < self._max_indis_over:
                     if indi_type == 'Supertrend':
                         self._plot_supertrend(indicators[indicator]['data'], 
                                               linked_fig)
@@ -671,7 +646,7 @@ class AutoPlot:
                         # Generic overlay indicator - plot as line
                         if type(indicators[indicator]['data']) == pd.Series:
                             # Merge indexes
-                            merged_indicator_data = pd.merge(self.data, 
+                            merged_indicator_data = pd.merge(self._data, 
                                                              indicators[indicator]['data'], 
                                                              left_on='date', 
                                                              right_index=True)
@@ -689,7 +664,7 @@ class AutoPlot:
                                         line_color = indicators[indicator]['color'] if 'color' in indicators[indicator] else colours[indis_over])
                     indis_over     += 1
                     
-                elif plot_type[indi_type] == 'below' and indis_below < self.max_indis_below:
+                elif plot_type[indi_type] == 'below' and indis_below < self._max_indis_below:
                     if indi_type == 'MACD':
                         new_fig     = self._plot_macd(x_range,
                                                       indicators[indicator], 
@@ -706,7 +681,7 @@ class AutoPlot:
                         new_fig.x_range = linked_fig.x_range
                         new_fig.y_range = linked_fig.y_range
                         new_fig.title = indicator
-                        indis_below   += self.max_indis_below # To block any other new plots below.
+                        indis_below   += self._max_indis_below # To block any other new plots below.
                     
                     elif indi_type == 'RSI':
                         new_fig = self._plot_line(indicators[indicator]['data'], linked_fig,
@@ -728,7 +703,7 @@ class AutoPlot:
                         for dataset in list(indicators[indicator].keys())[1:]:
                             if type(indicators[indicator][dataset]['data']) == pd.Series:
                                 # Merge indexes
-                                merged_indicator_data = pd.merge(self.data, 
+                                merged_indicator_data = pd.merge(self._data, 
                                                                  indicators[indicator][dataset]['data'], 
                                                                  left_on='date', 
                                                                  right_index=True)
@@ -751,7 +726,7 @@ class AutoPlot:
                         # Generic indicator - plot as line
                         if type(indicators[indicator]['data']) == pd.Series:
                             # Merge indexes
-                            merged_indicator_data = pd.merge(self.data, 
+                            merged_indicator_data = pd.merge(self._data, 
                                                              indicators[indicator]['data'], 
                                                              left_on='date', 
                                                              right_index=True)
@@ -780,7 +755,7 @@ class AutoPlot:
                     bottom_figs.append(new_fig)
             else:
                 # The indicator plot type is not recognised - plotting on new fig
-                if indis_below < self.max_indis_below:
+                if indis_below < self._max_indis_below:
                     print("Indicator type '{}' not recognised in AutoPlot.".format(indi_type))
                     new_fig = self._plot_line(indicators[indicator]['data'], 
                                               linked_fig, new_fig=True, 
@@ -805,7 +780,7 @@ class AutoPlot:
             fig = figure(plot_width     = linked_fig.plot_width,
                          plot_height    = fig_height,
                          title          = fig_title,
-                         tools          = self.fig_tools,
+                         tools          = self._fig_tools,
                          active_drag    = 'pan',
                          active_scroll  = 'wheel_zoom',
                          x_range        = linked_fig.x_range)
@@ -813,12 +788,12 @@ class AutoPlot:
             fig = linked_fig
         
         # Add glyphs
-        if len(plot_data) != len(self.data):
+        if len(plot_data) != len(self._data):
             # Mismatched timeframe
             merged_data = self._merge_data(plot_data, name='plot_data')
             source = ColumnDataSource(merged_data)
         else:
-            source = ColumnDataSource(self.data)
+            source = ColumnDataSource(self._data)
             source.add(plot_data, 'plot_data')
         
         fig.line('data_index', 'plot_data', 
@@ -853,9 +828,9 @@ class AutoPlot:
                                    ("Low", "@Low{0.0000}"),
                                    ("Close", "@Close{0.0000}")]
     
-        candle_plot = figure(plot_width     = self.ohlc_width, 
-                             plot_height    = self.ohlc_height, 
-                             tools          = self.fig_tools,
+        candle_plot = figure(plot_width     = self._ohlc_width, 
+                             plot_height    = self._ohlc_height, 
+                             tools          = self._fig_tools,
                              active_drag    = 'pan',
                              active_scroll  = 'wheel_zoom')
     
@@ -882,7 +857,7 @@ class AutoPlot:
         '''
         Plots swing detection indicator.
         '''
-        swings = pd.merge(self.data, swings, left_on='date', right_index=True).fillna('')
+        swings = pd.merge(self._data, swings, left_on='date', right_index=True).fillna('')
         
         linked_fig.scatter(list(swings.index),
                             list(swings.Last.values),
@@ -984,7 +959,7 @@ class AutoPlot:
         pivot_df = self._check_data(pivot_df)
         
         # Merge to integer index
-        pivot_df = pd.merge(self.data, pivot_df, left_on='date', right_index=True)
+        pivot_df = pd.merge(self._data, pivot_df, left_on='date', right_index=True)
         
         # Remove NaNs
         pivot_df = pivot_df.fillna('')
@@ -1057,9 +1032,9 @@ class AutoPlot:
                  'frankfurt': {'start': '07:00', 'end': '15:00'}
                  }
         
-        index_data = self.data.set_index('date')
+        index_data = self._data.set_index('date')
         
-        midpoint = max(self.data.High.values)
+        midpoint = max(self._data.High.values)
         height = 2*midpoint
         
         session_start = times[session]['start']
@@ -1097,12 +1072,12 @@ class AutoPlot:
         
         exit_summary = trade_summary.copy()
         
-        if self.backtest_data is not None:
+        if self._backtest_data is not None:
             # Charting on different timeframe data
-            trade_summary = pd.merge(self.backtest_data, trade_summary, 
+            trade_summary = pd.merge(self._backtest_data, trade_summary, 
                                      left_index=True, right_index=True)
         else:
-            trade_summary = pd.merge(self.data, trade_summary, 
+            trade_summary = pd.merge(self._data, trade_summary, 
                                      left_on='date', right_index=True)
         
         # Backtesting signals
@@ -1111,12 +1086,12 @@ class AutoPlot:
         
         if cancelled_summary is False and open_summary is False:
             
-            if self.backtest_data is not None:
+            if self._backtest_data is not None:
                 # Charting on different timeframe data
-                exit_summary = pd.merge(self.backtest_data, exit_summary, 
+                exit_summary = pd.merge(self._backtest_data, exit_summary, 
                                         left_index=True, right_on='Exit_time')
             else:
-                exit_summary = pd.merge(self.data, exit_summary, 
+                exit_summary = pd.merge(self._data, exit_summary, 
                                         left_on='date', right_on='Exit_time')
             
             profitable_longs        = long_trades[(long_trades['Profit'] > 0)]
@@ -1207,7 +1182,7 @@ class AutoPlot:
         ''' Plots MACD indicator. '''
         # Initialise figure
         fig = figure(plot_width     = linked_fig.plot_width,
-                     plot_height    = self.bottom_fig_height,
+                     plot_height    = self._bottom_fig_height,
                      title          = None,
                      tools          = linked_fig.tools,
                      active_drag    = linked_fig.tools[0],
@@ -1291,7 +1266,7 @@ class AutoPlot:
         '''
         Plots a shaded region bound by upper and lower vaues.
         
-        lower, upper and mid data must have same length as self.data.
+        lower, upper and mid data must have same length as self._data.
         
         Parameters: 
             plot_data (dict): a dictionary containing keys 'lower', 'upper', 
@@ -1316,7 +1291,7 @@ class AutoPlot:
         if new_fig:
             # Plot on new fig
             fig = figure(plot_width     = linked_fig.plot_width,
-                         plot_height    = self.bottom_fig_height,
+                         plot_height    = self._bottom_fig_height,
                          title          = None,
                          tools          = linked_fig.tools,
                          active_drag    = linked_fig.tools[0],

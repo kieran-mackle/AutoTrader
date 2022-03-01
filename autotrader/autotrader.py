@@ -1235,15 +1235,15 @@ class AutoTrader:
                 raise Exception(warning_str)
                 
         # Assign attributes
-        ap.max_indis_over     = self._max_indis_over
-        ap.max_indis_below    = self._max_indis_below
-        ap.fig_tools          = self._fig_tools
-        ap.ohlc_height        = self._ohlc_height
-        ap.ohlc_width         = self._ohlc_width
-        ap.top_fig_height     = self._top_fig_height
-        ap.bottom_fig_height  = self._bottom_fig_height
-        ap.jupyter_notebook   = self._jupyter_notebook
-        ap.show_cancelled     = self._show_cancelled
+        ap.configure(max_indis_over=self._max_indis_over, 
+                     max_indis_below = self._max_indis_below,
+                     fig_tools = self._fig_tools, 
+                     ohlc_height = self._ohlc_height, 
+                     ohlc_width = self._ohlc_width, 
+                     top_fig_height = self._top_fig_height,
+                     bottom_fig_height = self._bottom_fig_height,
+                     jupyter_notebook = self._jupyter_notebook,
+                     show_cancelled = self._show_cancelled)
         
         return ap
     
