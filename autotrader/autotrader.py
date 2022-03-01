@@ -636,6 +636,11 @@ class AutoTrader:
         -------
         dict
             A dictionary of deployed AutoTrader bot instances.
+        
+        Notes
+        -----
+        If there is only one trading bot deployed, this will be returned 
+        directly, rather than in a dict.
         """
         bots = {}
         for bot in self._bots_deployed:
@@ -647,7 +652,11 @@ class AutoTrader:
                 bots = bots[instrument]
             except:
                 raise Exception(f"There were no bots found to be trading '{instrument}'.")
-                
+        
+        if len(bots) == 1:
+            # Single bot backtest, return directly
+            bots = bots[list(bots.keys())[0]]
+        
         return bots
         
     
