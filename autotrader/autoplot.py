@@ -72,6 +72,11 @@ class AutoPlot:
         -------
         None
             The tool will be added to the chart produced.
+        
+        References
+        ----------
+        Documentation for Bokeh plot tools can be found at:
+        https://docs.bokeh.org/en/latest/docs/user_guide/tools.html
         """
         
         self._fig_tools = self._fig_tools + "," + tool_name
