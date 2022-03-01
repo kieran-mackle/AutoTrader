@@ -14,7 +14,7 @@ from autotrader.autoplot import AutoPlot
 from autotrader.autobot import AutoTraderBot
 from autotrader.lib.read_yaml import read_yaml
 from autotrader.lib.bot_manager import ManageBot
-from autotrader.lib import instrument_list, environment_manager, printout
+from autotrader.lib import instrument_list, environment_manager
 
 
 class AutoTrader:
@@ -73,7 +73,6 @@ class AutoTrader:
         self._broker_verbosity = 0
         self._notify = 0
         self._email_params = None
-        self._show_help = None
         self._show_plot = False
         
         # Livetrade Parameters
@@ -517,10 +516,6 @@ class AutoTrader:
             # Scan watchlist has not overwritten strategy watchlist
             self._update_strategy_watchlist()
         
-        # Print help
-        if self._show_help is not None:
-            printout.option_help(self._show_help)
-        
         if len(self.strategies) == 0:
             print("Error: no strategy has been provided. Do so by using the" +\
                   " 'add_strategy' method of AutoTrader.")
@@ -552,23 +547,6 @@ class AutoTrader:
             self._main()
     
     
-    def usage(self) -> None:
-        """Prints usage instructions for AutoTrader.
-        """
-        printout.usage()
-    
-    
-    def option_help(self, option: str) -> None:
-        """Prints help for a user option of AutoTrader.
-        
-        Parameters
-        -----------
-        option : str
-            User option to request help for.
-        """
-        printout.option_help(option)
-        
-        
     def plot_settings(self, max_indis_over: int = 3, max_indis_below: int = 2,
                       fig_tools: str = "pan,wheel_zoom,box_zoom,undo,redo,reset,save,crosshair",
                       ohlc_height: int = 400, ohlc_width: int = 800, 
@@ -1462,7 +1440,3 @@ class AutoTrader:
             # Re-assign bot data
             self._bots_deployed[i]._replace_data(adj_data)
         
-    
-if __name__ == '__main__':
-    autotrader = AutoTrader()
-    autotrader.usage()

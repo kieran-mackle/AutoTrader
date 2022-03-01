@@ -12,6 +12,8 @@
   This also clarifies and promotes visibility of public methods.
 - New method `get_bots_deployed` added to AutoTrader
 - Project heirarchy: note changes in location of autodata
+- Deprecated `help` and `usage` methods of AutoTrader (replaced by in-code
+  docstrings)
 
 
 ## Version 0.5.0
