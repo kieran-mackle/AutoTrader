@@ -150,6 +150,9 @@ class AutoPlot:
         
         Indicator Keys
         --------------
+        The following lists the keys corresponding to various indicators,
+        which can be included in the chart using the indicators argument.
+        
         over : over
             Generic line indicator over chart with key: data
         below : below
@@ -220,8 +223,6 @@ class AutoPlot:
         source.add((self._data.Close >= self._data.Open).values.astype(np.uint8).astype(str),
                    'change')
         
-        
-        # Plotting
         # OHLC candlestick plot
         candle_plot = self._plot_candles(source)
         
@@ -243,10 +244,6 @@ class AutoPlot:
                                       hover_name='NAV')
             self._plot_line(balance, top_fig, legend_label='Account Balance', 
                             hover_name='P/L', line_colour='blue')
-            # if cumulative_PL is not None:
-            #     self._plot_line(cumulative_PL, top_fig, 
-            #                     legend_label='Cumulative P/L', 
-            #                     hover_name='P/L')
             top_figs.append(top_fig)
             
             # Overlay trades 
