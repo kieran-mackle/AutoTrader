@@ -8,9 +8,8 @@ import numpy as np
 import pandas as pd
 from shutil import copy2
 from datetime import datetime
-
 from autotrader.autodata import GetData
-from autotrader.emailing import emailing
+from autotrader.comms import emailing
 from autotrader.autostream import AutoStream
 from autotrader.utilities import read_yaml, get_config
 

@@ -5,6 +5,7 @@ import time
 import threading
 import traceback
 
+
 def read_yaml(file_path: str) -> dict:
     """Function to read and extract contents from .yaml file.
     

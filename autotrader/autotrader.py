@@ -9,7 +9,6 @@ import pandas as pd
 from ast import literal_eval
 from scipy.optimize import brute
 from datetime import datetime, timedelta
-
 from autotrader.autoplot import AutoPlot
 from autotrader.autobot import AutoTraderBot
 from autotrader.utilities import read_yaml, get_config, get_watchlist, ManageBot
