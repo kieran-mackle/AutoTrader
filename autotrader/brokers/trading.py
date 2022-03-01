@@ -4,10 +4,21 @@ from __future__ import annotations
 class Order:
     """AutoTrader Order
     """
-    def __init__(self):
+    def __init__(self, order_type: str = 'market', direction: int = 0, 
+                 **kwargs) -> Order:
         
-        self.order_type = 'market'
-        self.direction = None
+        # Required attributes
+        self.order_type = order_type
+        self.direction = direction
+        
+        # Unpack kwargs
+        for item in kwargs:
+            setattr(self, item, kwargs[item])
+        
+        # Inferable attributes
+        # whatever hasn't been assigned...
+        
+        
         self.order_time = None
         self.instrument = None
         self.order_price = None
@@ -33,6 +44,7 @@ class Order:
         self.submitted = False
         self.filled = False
     
+    
     def __repr__(self):
         aux_str = ''
         if self.submitted:
@@ -41,7 +53,7 @@ class Order:
             aux_str = '(filled)'
         
         if self.direction is not None:
-            return f'{abs(self.size)} unit {self.order_type} order {aux_str}'
+            return f'{self.size} unit {self.order_type} order {aux_str}'
         else:
             return self.__str__()
         
@@ -52,7 +64,10 @@ class Order:
     
     @classmethod
     def from_dict(cls, order_dict: dict) -> Order:
-        pass
+        order = Order()
+        for key in order_dict:
+            setattr(order, key, order_dict[key])
+        return order
 
 
 class Trade(Order):
