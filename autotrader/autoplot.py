@@ -1,4 +1,4 @@
-import os
+# import os
 import numpy as np
 import pandas as pd
 from math import pi
@@ -14,6 +14,13 @@ from bokeh.models import (CustomJS,
 from bokeh.layouts import gridplot, layout
 from bokeh.transform import factor_cmap, cumsum
 from bokeh.palettes import Category20c
+
+try:
+    import importlib.resources as pkg_resources
+except ImportError:
+    # Try backported to PY<37 `importlib_resources`
+    import importlib_resources as pkg_resources
+from . import data as pkgdata
 
 
 class AutoPlot:
@@ -55,9 +62,7 @@ class AutoPlot:
         self._backtest_data = None
         
         # Load JavaScript code for auto-scaling 
-        with open(os.path.join(os.path.dirname(__file__), 'lib/autoscale.js'),
-                  encoding = 'utf-8') as _f:
-            self._autoscale_code = _f.read()
+        self._autoscale_code = pkg_resources.read_text(pkgdata, 'autoscale.js')
         
         
     def add_tool(self, tool_name: str) -> None:

@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name='autotrader',
-    version='0.5.32',
+    version='0.6.0',
     author='Kieran Mackle',
     author_email='kemackle98@gmail.com',
     description="A Python-based platform for developing, optimising and deploying automated trading systems.",
@@ -39,6 +39,6 @@ setuptools.setup(
             'setuptools_git',
             'setuptools_scm',
         ],
-    package_data={'': ['*.js']},
-    include_package_data=True,
+    package_data={'': ['data/*.js']},
+    # include_package_data=True,
 )

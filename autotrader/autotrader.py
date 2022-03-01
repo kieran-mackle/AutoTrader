@@ -12,8 +12,7 @@ from datetime import datetime, timedelta
 
 from autotrader.autoplot import AutoPlot
 from autotrader.autobot import AutoTraderBot
-from autotrader.lib.bot_manager import ManageBot
-from autotrader.utilities import read_yaml, get_config, get_watchlist
+from autotrader.utilities import read_yaml, get_config, get_watchlist, ManageBot
 
 
 class AutoTrader:
