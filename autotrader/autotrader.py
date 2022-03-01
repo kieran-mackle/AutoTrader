@@ -85,7 +85,8 @@ class AutoTrader:
         self._environment = 'demo'
         self._account_id = None
         
-        self.strategies = {}
+        self._strategy_configs = {}
+        self._strategy_classes = {}
         self._uninitiated_strat_files = []
         self._uninitiated_strat_dicts = []
         self._feed = 'yahoo'
@@ -138,18 +139,20 @@ class AutoTrader:
         return 'AutoTrader instance'
     
     
-    def add_strategy(self, strategy_filename: str = None, 
-                     strategy_dict: dict = None) -> None:
+    def add_strategy(self, config_filename: str = None, 
+                     config_dict: dict = None, strategy = None) -> None:
         """Adds a strategy to AutoTrader.
 
         Parameters
         ----------
-        strategy_filename : str, optional
-            prefix of yaml strategy configuration file, located in 
+        config_filename : str, optional
+            The prefix of the yaml strategy configuration file, located in 
             home_dir/config. The default is None.
-        strategy_dict : dict, optional
-            alternative to strategy_filename, the strategy dictionary can 
-            be passed directly. The default is None.
+        config_dict : dict, optional
+            Alternative to config_filename, a strategy configuration 
+            dictionary can be passed directly. The default is None.
+        strategy : AutoTrader Strategy, optional
+            The strategy class object. The default is None.
 
         Returns
         -------
@@ -159,29 +162,33 @@ class AutoTrader:
         
         if self._home_dir is None:
             # Home directory has not yet been set, postpone strategy addition
-            if strategy_filename is None:
-                self._uninitiated_strat_dicts.append(strategy_dict)
+            if config_filename is None:
+                self._uninitiated_strat_dicts.append(config_dict)
             else:
-                self._uninitiated_strat_files.append(strategy_filename)
+                self._uninitiated_strat_files.append(config_filename)
             
         else:
-            if strategy_dict is None:
-                config_file_path = os.path.join(self._home_dir, 'config', strategy_filename)
+            # Home directory has been set
+            if config_dict is None:
+                config_file_path = os.path.join(self._home_dir, 'config', config_filename)
                 new_strategy = read_yaml(config_file_path + '.yaml')
             else:
-                new_strategy = strategy_dict
+                new_strategy = config_dict
             
             name = new_strategy['NAME']
             
-            if name in self.strategies:
+            if name in self._strategy_configs:
                 print("Warning: duplicate strategy name deteced. Please check " + \
                       "the NAME field of your strategy configuration file and " + \
                       "make sure it is not the same as other strategies being " + \
                       "run from this instance.")
                 print("Conflicting name:", name)
             
-            self.strategies[name] = new_strategy
-    
+            self._strategy_configs[name] = new_strategy
+            
+        if strategy is not None:
+            self._strategy_classes[strategy.__name__] = strategy
+            
     
     def configure(self, verbosity: int = 1, broker: str = 'virtual', 
                   feed: str = 'yahoo', notify: int = 0, 
@@ -512,7 +519,7 @@ class AutoTrader:
             # Scan watchlist has not overwritten strategy watchlist
             self._update_strategy_watchlist()
         
-        if len(self.strategies) == 0:
+        if len(self._strategy_configs) == 0:
             print("Error: no strategy has been provided. Do so by using the" +\
                   " 'add_strategy' method of AutoTrader.")
             sys.exit(0)
@@ -1032,9 +1039,7 @@ class AutoTrader:
         """Run AutoTrader with configured settings.
         """
         
-        ''' -------------------------------------------------------------- '''
-        '''                         Load configuration                     '''
-        ''' -------------------------------------------------------------- '''
+        # Load configuration
         # Construct broker config
         global_config_fp = os.path.join(self._home_dir, 'config', 'GLOBAL.yaml')
         if os.path.isfile(global_config_fp):
@@ -1076,15 +1081,21 @@ class AutoTrader:
                 print("Time: {}\n".format(datetime.now().strftime("%A, %B %d %Y, "+
                                                                   "%H:%M:%S")))
         
-        ''' -------------------------------------------------------------- '''
-        '''    Assign strategy to bot for each instrument in watchlist     '''
-        ''' -------------------------------------------------------------- '''
-        for strategy in self.strategies:
-            for instrument in self.strategies[strategy]['WATCHLIST']:
-                data_dict = self._local_data[instrument] if self._local_data is not None else None
-                quote_data_dict = self._local_quote_data[instrument] if self._local_quote_data is not None else None
-                auxdata = self._auxdata[instrument] if self._auxdata is not None else None
-                bot = AutoTraderBot(instrument, self.strategies[strategy],
+        # Assign strategy to bot for each instrument in watchlist 
+        for strategy in self._strategy_configs:
+            for instrument in self._strategy_configs[strategy]['WATCHLIST']:
+                data_dict = self._local_data[instrument] \
+                    if self._local_data is not None else None
+                quote_data_dict = self._local_quote_data[instrument] \
+                    if self._local_quote_data is not None else None
+                auxdata = self._auxdata[instrument] \
+                    if self._auxdata is not None else None
+                
+                strategy_class = self._strategy_configs[strategy]['CLASS']
+                strategy_dict = {'config': self._strategy_configs[strategy],
+                                 'class': self._strategy_classes[strategy_class] \
+                                     if strategy_class in self._strategy_classes else None}
+                bot = AutoTraderBot(instrument, strategy_dict,
                                     self._broker, data_dict, quote_data_dict, 
                                     auxdata, self)
                 
@@ -1092,16 +1103,14 @@ class AutoTrader:
                     # Send bot to bot manager to monitor stream
                     print("Passing bot to bot manager...")
                     bot_name_string = "{}_{}_{}".format(strategy.replace(' ',''),
-                                                        self.strategies[strategy]['INTERVAL'].split(',')[0],
+                           self._strategy_configs[strategy]['INTERVAL'].split(',')[0],
                                                         instrument)
                     ManageBot(bot, self._home_dir, bot_name_string, self._use_stream)
                 else:
                     self._bots_deployed.append(bot)
                     
         
-        ''' -------------------------------------------------------------- '''
-        '''                  Analyse price data using strategy             '''
-        ''' -------------------------------------------------------------- '''
+        # Analyse price data using strategy
         if int(self._verbosity) > 0 and self._backtest_mode:
             # Check data lengths of each bot
             self._check_bot_data()
@@ -1132,9 +1141,7 @@ class AutoTrader:
         
         backtest_end_time = timeit.default_timer()
         
-        ''' -------------------------------------------------------------- '''
-        '''                     Backtest Post-Processing                   '''
-        ''' -------------------------------------------------------------- '''
+        # Backtest Post-Processing
         # Data iteration complete - proceed to post-processing
         if self._backtest_mode is True:
             # Create backtest summary for each bot 
@@ -1178,7 +1185,7 @@ class AutoTrader:
     def _clear_strategies(self) -> None:
         """Removes all strategies saved in autotrader instance.
         """
-        self.strategies = {}
+        self._strategy_configs = {}
     
     
     def _clear_bots(self) -> None:
@@ -1223,8 +1230,8 @@ class AutoTrader:
     def _update_strategy_watchlist(self) -> None:
         """Updates the watchlist of each strategy with the scan watchlist.
         """
-        for strategy in self.strategies:
-            self.strategies[strategy]['WATCHLIST'] = self._scan_watchlist
+        for strategy in self._strategy_configs:
+            self._strategy_configs[strategy]['WATCHLIST'] = self._scan_watchlist
     
     
     def _assign_broker(self, broker_config: dict) -> None:
@@ -1307,13 +1314,13 @@ class AutoTrader:
         '''                          Unpack user options                    '''
         ''' --------------------------------------------------------------- '''
         
-        # Look in self.strategies for config
-        if len(self.strategies) > 1:
+        # Look in self._strategy_configs for config
+        if len(self._strategy_configs) > 1:
             print("Error: please optimise one strategy at a time.")
             print("Exiting.")
             sys.exit(0)
         else:
-            config_dict = self.strategies[list(self.strategies.keys())[0]]
+            config_dict = self._strategy_configs[list(self._strategy_configs.keys())[0]]
                 
         ''' --------------------------------------------------------------- '''
         '''                      Define optimisation inputs                 '''

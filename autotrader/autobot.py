@@ -18,7 +18,7 @@ class AutoTraderBot:
     """AutoTrader Trading Bot.
     """
     
-    def __init__(self, instrument: str, strategy_config: dict, 
+    def __init__(self, instrument: str, strategy_dict: dict, 
                  broker, data_dict: dict, quote_data_dict: dict, 
                  auxdata: dict, autotrader_instance) -> None:
         # Inherit user options from autotrader
@@ -51,6 +51,7 @@ class AutoTraderBot:
         self._broker = broker
         
         # Unpack strategy parameters and assign to strategy_params
+        strategy_config = strategy_dict['config']
         interval = strategy_config["INTERVAL"]
         period = strategy_config["PERIOD"]
         risk_pc = strategy_config["RISK_PC"] if 'RISK_PC' in strategy_config \
@@ -70,16 +71,19 @@ class AutoTraderBot:
         self._strategy_params = strategy_params
         
         # Import Strategy
-        strat_module = strategy_config["MODULE"]
-        strat_name = strategy_config["CLASS"]
-        strat_package_path = os.path.join(self._home_dir, "strategies") 
-        strat_module_path = os.path.join(strat_package_path, 
-                                         strat_module) + '.py'
-        strat_spec = importlib.util.spec_from_file_location(strat_module, 
-                                                            strat_module_path)
-        strategy_module = importlib.util.module_from_spec(strat_spec)
-        strat_spec.loader.exec_module(strategy_module)
-        strategy = getattr(strategy_module, strat_name)
+        if strategy_dict['class'] is not None:
+            strategy = strategy_dict['class']
+        else:
+            strat_module = strategy_config["MODULE"]
+            strat_name = strategy_config["CLASS"]
+            strat_package_path = os.path.join(self._home_dir, "strategies") 
+            strat_module_path = os.path.join(strat_package_path, 
+                                             strat_module) + '.py'
+            strat_spec = importlib.util.spec_from_file_location(strat_module, 
+                                                                strat_module_path)
+            strategy_module = importlib.util.module_from_spec(strat_spec)
+            strat_spec.loader.exec_module(strategy_module)
+            strategy = getattr(strategy_module, strat_name)
         
         # Get broker configuration 
         global_config_fp = os.path.join(self._home_dir, 'config', 
