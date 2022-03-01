@@ -758,18 +758,18 @@ class AutoTraderBot:
         signal = order_signal_dict["direction"]
         
         # Entry signal detected, get price data
-        price_data      = self._broker.get_price(instrument=instrument, 
-                                                data=data, 
-                                                conversion_data=quote_data, 
-                                                i=i)
-        datetime_stamp  = data.index[i]
+        price_data = self._broker.get_price(instrument=instrument, 
+                                            data=data, 
+                                            conversion_data=quote_data, 
+                                            i=i)
+        datetime_stamp = data.index[i]
         
         if signal < 0:
             order_price = price_data['bid']
-            HCF         = price_data['negativeHCF']
+            HCF = price_data['negativeHCF']
         else:
             order_price = price_data['ask']
-            HCF         = price_data['positiveHCF']
+            HCF = price_data['positiveHCF']
         
         
         # Define 'working_price' to calculate size and TP
@@ -779,7 +779,7 @@ class AutoTraderBot:
             working_price = order_price
         
         # Calculate exit levels
-        pip_value   = self._broker_utils.get_pip_ratio(instrument)
+        pip_value = self._broker_utils.get_pip_ratio(instrument)
         stop_distance = order_signal_dict['stop_distance'] if 'stop_distance' in order_signal_dict else None
         
         # Calculate stop loss price
