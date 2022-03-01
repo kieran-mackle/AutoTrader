@@ -1,6 +1,7 @@
 import v20
 import pandas as pd
 import yfinance as yf
+from typing import Union
 from datetime import datetime, timedelta
 
 
@@ -335,8 +336,8 @@ class GetData:
     
     
     @staticmethod
-    def local(filepath: str, start_date: str | datetime = None, 
-              end_date: str | datetime = None, utc: bool = True) -> pd.DataFrame:
+    def local(filepath: str, start_date: Union[str, datetime] = None, 
+              end_date: Union[str, datetime] = None, utc: bool = True) -> pd.DataFrame:
         """Read local price data.
 
         Parameters
