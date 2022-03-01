@@ -148,6 +148,47 @@ class AutoPlot:
         None
             Calling this method will automatically generate and open a chart.
         
+        Indicator Keys
+        --------------
+        over : over
+            Generic line indicator over chart with key: data
+        below : below
+            Generic line indicator below chart with key: data
+        MACD : below
+            MACD indicator with keys: macd, signal, histogram
+        MA : over
+             Moving average overlay indicator with key: data
+        RSI : below
+            RSI indicator with key: data
+        STOCHASTIC : below
+            Stochastics indicator with keys: K, D
+        Heikin-Ashi : below
+            Heikin Ashi candlesticks with key: data
+        Supertrend : over
+            Supertrend indicator with key: data
+        Swings : over
+            Swing levels indicator with key: data
+        Engulfing : below
+            Engulfing candlestick pattern with key: data
+        Crossover : below
+            Crossover indicator with key: data
+        Grid : over
+            Grid levels with key: data
+        Pivot : over
+            Pivot points with keys: data
+        HalfTrend : over
+            Halftrend indicator with key: data
+        multi : below
+            Multiple indicator type (https://kieran-mackle.github.io/AutoTrader/docs/autoplot#multiple-line-plot)
+        signals : over
+            Trading signals plot with key: data (https://kieran-mackle.github.io/AutoTrader/docs/autoplot#trade-signals-plot)
+        bands : over
+            Shaded bands indicator type (https://kieran-mackle.github.io/AutoTrader/docs/autoplot#shaded-bands-plot)
+        threshold : below
+            Threshold indicator type (https://kieran-mackle.github.io/AutoTrader/docs/autoplot#shaded-threshold-plot)
+        trading-session : over
+            Highlighted trading session times with key: data
+        
         See Also
         --------
         - To generate the backtest_dict, use the analyse_backtest method of 
@@ -571,11 +612,10 @@ class AutoPlot:
     
         
     def _plot_indicators(self, indicators, linked_fig):
-        ''' 
-        Plots indicators based on indicator type. If inidcator type is 
+        """Plots indicators based on indicator type. If inidcator type is 
         "over", it will be plotted on top of linked_fig. If indicator type is 
         "below", it will be plotted on a new figure below the OHLC chart.
-        '''
+        """
         
         x_range   = self._data.index
         
