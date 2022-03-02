@@ -1,34 +1,27 @@
 from __future__ import annotations
+import numpy as np
+from datetime import datetime
+# Broker utils
 
 
 class Order:
     """AutoTrader Order
     """
-    def __init__(self, order_type: str = 'market', direction: int = 0, 
-                 **kwargs) -> Order:
+    def __init__(self, instrument: str, direction: int, units: int, 
+                 order_type: str = 'market', **kwargs) -> Order:
         
         # Required attributes
+        self.instrument = instrument
         self.order_type = order_type
         self.direction = direction
-        
-        # Unpack kwargs
-        for item in kwargs:
-            setattr(self, item, kwargs[item])
-        
-        # Inferable attributes
-        # whatever hasn't been assigned...
-        
-        # Need to think about how all attributes will be assigned when building
-        # order from dict
-        
-        self.order_time = None
-        self.instrument = None
+        self.size = units
         self.order_price = None
+        self.order_time = None
+        self.order_limit_price = None
+        self.order_limit_price = None
         
-        self.size = None
         self.HCF = None
         
-        self.granularity = None
         self.stop_type = None
         self.stop_loss = None
         self.stop_distance = None
@@ -38,22 +31,35 @@ class Order:
         
         self.related_orders = None
         
-        # Plus other keys...
-        self.order_limit_price = None
-        self.order_limit_price = None
-        
         self.strategy = None
+        self.granularity = None
         
+        # Unpack kwargs
+        for item in kwargs:
+            setattr(self, item, kwargs[item])
+        
+        # Inferable attributes
+        if self.order_price is not None:
+            self._infer_attributes(self.order_price)
+            
+        # Meta-data
+        self.order_id = None
         self.submitted = False
         self.filled = False
+        self.active = False
+        self.status = None
     
     
-    def _infer_attributes(self):
+    def _infer_attributes(self, order_price: float, order_time: datetime, 
+                          HCF: float = 1, risk_pc: float = 0,
+                          sizing: str | float = 'risk') -> None:
         """Infers unassigned attributes.
         """
         
-        order_price = 0 # TODO - comes from price data dict... maybe fill in
-        # on broker side
+        # Assign attributes
+        self.HCF = HCF
+        self.order_price = order_price
+        self.order_time = order_time
         
         # Define 'working_price' to calculate size and TP
         if self.order_type == 'limit' or self.order_type == 'stop-limit':
@@ -61,38 +67,29 @@ class Order:
         else:
             working_price = order_price
         
-        # Calculate exit levels
-        pip_value = self._broker_utils.get_pip_ratio(instrument)
-        stop_distance = self.stop_distance                      # Might be None
-        take_distance = self.take_distance
-        
         # Calculate stop loss price
+        pip_value = self._broker_utils.get_pip_ratio(instrument)
         if not self.stop_loss and self.stop_distance:
             # Stop loss provided as pip distance, convert to price
-            stop_price = working_price - np.sign(self.direction)*stop_distance*pip_value
-        else:
-            # Stop loss provided as price or does not exist
-            stop_price = self.stop_loss
+            self.stop_loss = working_price - np.sign(self.direction)*\
+                self.stop_distance*pip_value
         
         # Set stop type
-        if stop_price is not None:
-            stop_type = self.stop_type if self.stop_type is not None else 'limit'
-        else:
-            # No stop loss specified
-            stop_type = None
-            
+        if self.stop_loss is not None:
+            self.stop_type = self.stop_type if self.stop_type is \
+                not None else 'limit'
+
         # Calculate take profit price
         if not self.take_profit and self.take_distance:
-            # Take profit pip distance specified
-            take_profit = working_price + np.sign(self.direction)*take_distance*pip_value
+            # Take profit pip distance specified, convert to price
+            self.take_profit = working_price + np.sign(self.direction)*\
+                self.take_distance*pip_value
         else:
             # Take profit price specified, or no take profit specified at all
-            take_profit = self.take_profit
-        
-        # Calculate risked amount
-        amount_risked = self._broker.get_balance() * self._strategy_params['risk_pc'] / 100
+            self.take_profit = self.take_profit
         
         # Calculate size
+        amount_risked = self._broker.get_balance() * risk_pc / 100
         if self.size:
             # Size provided
             size = self.size
@@ -100,53 +97,14 @@ class Order:
             # Size not provided, need to calculate it
             if self._strategy_params['sizing'] == 'risk':
                 size = self._broker_utils.get_size(instrument,
-                                                 amount_risked, 
-                                                 working_price, 
-                                                 stop_price, 
-                                                 HCF,
-                                                 stop_distance)
-            else:
-                size = self._strategy_params['sizing']
-    
-        # Construct order dict by building on signal_dict
-        # order_details["order_time"]     = datetime_stamp
-        # order_details["strategy"]       = self._strategy.name
-        # order_details["instrument"]     = order_signal_dict['instrument'] if 'instrument' in order_signal_dict else instrument
-        # order_details["size"]           = signal*size
-        # order_details["order_price"]    = order_price
-        # order_details["HCF"]            = HCF
-        # order_details["granularity"]    = self._strategy_params['granularity']
-        # order_details["stop_distance"]  = stop_distance
-        # order_details["stop_loss"]      = stop_price
-        # order_details["take_profit"]    = take_profit
-        # order_details["stop_type"]      = stop_type
-        # order_details["related_orders"] = order_signal_dict['related_orders'] if 'related_orders' in order_signal_dict else None
+                            amount_risked, working_price, 
+                            stop_price, HCF, self.stop_distance)
+            # ~ OTHER SIZING METHODS ~
+                
+        # Vectorise and save size
+        self.size = self.direction * size
 
 
-        self.order_time = None
-        self.instrument = None
-        self.order_price = None
-        
-        self.size = None
-        self.HCF = None
-        
-        self.granularity = None
-        self.stop_type = None
-        self.stop_loss = None
-        self.stop_distance = None
-        
-        self.take_profit = None
-        
-        self.related_orders = None
-        
-        # Plus other keys...
-        self.order_limit_price = None
-        self.order_limit_price = None
-        
-        self.strategy = None
-    
-    
-    
     def __repr__(self):
         aux_str = ''
         if self.submitted:
@@ -180,7 +138,22 @@ class Trade(Order):
     """AutoTrader Trade
     """
     def __init__(self):
-        pass
+        
+        # Trade data
+        self.unrealised_PL = None
+        self.margin_required = None
+        self.time_filled = None
+        self.fill_price = None
+        
+        self.last_price = None
+        self.last_time = None
+        
+        self.profit = None
+        self.balance = None
+        self.exit_price = None
+        self.exit_time = None
+        self.fees = None
+        
     
     def __str__(self):
         return 'AutoTrader Trade'
