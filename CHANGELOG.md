@@ -1,12 +1,12 @@
 # AutoTrader Changelog
 
 ## Version 0.6.0
-- Interactive Brokers is now supported
-- Improvements to public broker methods for clarity
-- Docstrings and type hints
+- Interactive Brokers is now supported.
+- Improvements to public broker methods for clarity.
+- Docstrings and type hints.
 - Distinction of broker and feed, allowing specification of broker and feed 
-  separately
-- New broker template directory 
+  separately.
+- New broker template directory added.
 - All AutoTrader attributes have been made private to avoid confusion - the 
   configuration methods should be used exclusively to set the attributes.
   This also clarifies and promotes visibility of public methods.
@@ -15,6 +15,8 @@
   other modules previously in the `lib/` directory.
 - Deprecated `help` and `usage` methods of AutoTrader (replaced by in-code
   docstrings).
+- AutoTrader method `add_strategy` now accepts strategy classes as input 
+  argument, to directly provide strategy class objects.
 
 
 ## Version 0.5.0
