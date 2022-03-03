@@ -1046,6 +1046,11 @@ class AutoTrader:
             global_config = read_yaml(global_config_fp)
         else:
             global_config = None
+            if not global_config and self._feed.lower() != 'yahoo':
+                raise Exception(f'Data feed "{self._feed}" requires a global '+\
+                                'configuration file. If one exists, make sure '+\
+                                'to specify the home_dir.')
+            
         broker_config = get_config(self._environment, global_config, self._feed)
         
         # Construct stream_config dict
