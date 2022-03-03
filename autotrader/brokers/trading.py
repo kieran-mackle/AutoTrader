@@ -47,10 +47,11 @@ class Order:
                 not None else 'limit'
                 
         # Meta-data
+        # TODO - make use of these
         self.order_id = None
         self.submitted = False
         self.filled = False
-        self.status = None
+        self.status = None 
     
     
     def __repr__(self):
@@ -61,7 +62,7 @@ class Order:
             aux_str = '(filled)'
         
         if self.size is not None:
-            return f'{self.size} unit {self.order_type} order {aux_str}'
+            return f'{round(self.size,3)} unit {self.instrument} {self.order_type} order {aux_str}'
         else:
             return self.__str__()
         
@@ -72,12 +73,16 @@ class Order:
     
     def __call__(self, broker, order_price, 
                  order_time: datetime = datetime.now()) -> None:
+        # TODO - when is this being called?
         self.order_price = order_price
         self.order_time = order_time
         
         self._set_working_price()
         self._calculate_exit_prices(broker)
         self._calculate_position_size(broker)
+        
+        self.status = 'submitted'
+        self.submitted = True
         
         
     def _set_working_price(self, order_price: float = None) -> None:
@@ -157,7 +162,11 @@ class Order:
 class Trade(Order):
     """AutoTrader Trade.
     """
-    def __init__(self):
+    def __init__(self, order: Order) -> Trade:
+        
+        # Inherit Order attributes
+        self._inheret_order(order)
+        order.filled = True
         
         # Trade data
         self.unrealised_PL = None
@@ -175,8 +184,17 @@ class Trade(Order):
         self.fees = None
         
     
+    def __repr__(self):
+        return f'{round(self.size,3)} unit {self.instrument} trade'
+        
+    
     def __str__(self):
         return 'AutoTrader Trade'
+    
+    
+    def _inheret_order(self, order: Order) -> None:
+        for attribute, value in order.__dict__.items():
+            setattr(self, attribute, value)
 
 
 if __name__ == '__main__':
