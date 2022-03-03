@@ -8,8 +8,9 @@ import numpy as np
 import pandas as pd
 from shutil import copy2
 from datetime import datetime
-from autotrader.autodata import GetData
 from autotrader.comms import emailing
+from autotrader.autodata import GetData
+from autotrader.brokers.trading import Order
 from autotrader.autostream import AutoStream
 from autotrader.utilities import read_yaml, get_config
 
@@ -830,7 +831,7 @@ class AutoTraderBot:
         
         # Construct order dict by building on signal_dict
         order_details                   = order_signal_dict
-        order_details["order_time"]     = datetime_stamp
+        order_details["order_time"]     = datetime_stamp # TODO - need to think how this can be added to order ...
         order_details["strategy"]       = self._strategy.name
         order_details["instrument"]     = order_signal_dict['instrument'] if 'instrument' in order_signal_dict else instrument
         order_details["size"]           = signal*size
@@ -842,7 +843,11 @@ class AutoTraderBot:
         order_details["take_profit"]    = take_profit
         order_details["stop_type"]      = stop_type
         order_details["related_orders"] = order_signal_dict['related_orders'] if 'related_orders' in order_signal_dict else None
-
+        
+        # Convert to Order object
+        # TODO - make default 
+        order = Order._from_dict(order_details)
+        
         # Place order
         if self._scan_mode:
             # Bot is scanning
@@ -856,8 +861,8 @@ class AutoTraderBot:
             
         else:
             # Bot is trading
-            self._broker.place_order(order_details)
-            self._latest_orders.append(order_details)
+            self._broker.place_order(order)
+            self._latest_orders.append(order)
     
     
     def _next_candle_open(self, granularity: str) -> datetime:
