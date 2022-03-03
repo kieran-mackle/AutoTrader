@@ -55,10 +55,10 @@ class Order:
     
     def __repr__(self):
         aux_str = ''
-        if self.submitted:
-            aux_str = ' (submitted)'
-        if self.filled:
-            aux_str = ' (filled)'
+        # if self.submitted:
+        #     aux_str = ' (submitted)'
+        # if self.filled:
+        #     aux_str = ' (filled)'
         
         if self.size is not None:
             return f'{round(self.size,3)} unit {self.instrument} {self.order_type} order{aux_str}'
@@ -178,11 +178,12 @@ class Order:
 class Trade(Order):
     """AutoTrader Trade.
     """
-    def __init__(self, order: Order) -> Trade:
+    def __init__(self, order: Order = None) -> Trade:
         
-        # Inherit Order attributes
-        self._inheret_order(order)
-        order.filled = True
+        # Inherit order attributes
+        if order:
+            self._inheret_order(order)
+            order.filled = True
         
         # Trade data
         self.unrealised_PL = None
@@ -200,6 +201,7 @@ class Trade(Order):
         self.fees = None
         
         # Meta data
+        self.parent_id = None
         self.trade_id = None # TODO - order.id, trade.order_id + trade.id
         self.status = None # options: open -> closed | (partially closed?)
         
@@ -217,10 +219,18 @@ class Trade(Order):
             setattr(self, attribute, value)
             
     @classmethod
-    def _split(cls, trade):
+    def _split(cls, trade: Trade) -> Trade:
         """Splits parent trade into new trade object for partial trade 
         closures."""
-        pass
+        split_trade = cls()
+        for attribute, value in trade.__dict__.items():
+            setattr(split_trade, attribute, value)
+        
+        # Reset ID
+        split_trade.parent_id = trade.order_id
+        split_trade.order_id = None
+        
+        return split_trade
 
 
 class Position:
