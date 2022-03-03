@@ -51,7 +51,7 @@ class Order:
         self.order_id = None
         self.submitted = False
         self.filled = False
-        self.status = None 
+        self.status = None      # options: cancelled
     
     
     def __repr__(self):
@@ -151,7 +151,24 @@ class Order:
     
     
     def _check_precision(self,):
+        # TODO - implement
         pass
+    
+    
+    def as_dict(self) -> dict:
+        """Converts Order object to dictionary.
+
+        Returns
+        -------
+        dict
+            DESCRIPTION.
+
+        Notes
+        -----
+        This method enables legacy code operation, returning order/trade
+        objects as a dictionary.
+        """
+        return self.__dict__
     
 
     @classmethod
