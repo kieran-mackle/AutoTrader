@@ -1,3 +1,4 @@
+from __future__ import annotations
 import numpy as np
 import pandas as pd
 from autotrader.brokers.broker_utils import BrokerUtils
@@ -342,6 +343,12 @@ class Broker:
         # Update pending positions
         for order_no, order in self.orders.items():
             # Filter orders by instrument type since candle is instrument specific
+            
+            # trade = Trade(order)
+            # self.trades[1] = trade
+            # partial_trade = Trade._split(trade, 0.3*trade.size)
+            
+            
             if order.instrument == instrument and order.status == 'open': # TODO - open or pending??
                 if candle.name > order.order_time:
                     if order.order_type == 'market':
@@ -525,6 +532,7 @@ class Broker:
                      exit_price: float = None, order_no: int = None) -> None:
         """Closes trade by order number.
         """
+        # TODO - make candle and exit price optional
         trade = self.trades[order_no]
         entry_price = trade.entry_price
         size = trade.size
@@ -535,7 +543,6 @@ class Broker:
         commission = self._calculate_commissions(order_no, exit_price, size)
         net_profit = gross_PL - commission
         
-        self._add_funds(net_profit)
         if net_profit > 0:
             self.profitable_trades += 1
         
@@ -550,13 +557,8 @@ class Broker:
             trade.exit_time = candle.name 
         trade.status = 'closed'
         
-        # Add to closed positions dictionary
-        # self.closed_positions[order_no] = trade
-        
-        # Remove position from open positions
-        # self.trades.pop(order_no, 0)
-        
-        # Update maximum drawdown
+        # Update account
+        self._add_funds(net_profit)
         self._update_MDD()
     
     
@@ -608,14 +610,11 @@ class Broker:
         The original trade ID remains, but the trade size may be reduced. The
         portion that gets closed is assigned a new ID.
         """
-        # TODO - need to update for new objects
         
         trade = self.trades[trade_ID]
         entry_price = trade.entry_price
-        size = trade.size
         HCF = trade.HCF
         last_price = trade.last_price
-        remaining_size = size - units
         
         # Update portfolio with profit/loss
         gross_PL = units*(last_price - entry_price)*HCF
@@ -625,33 +624,34 @@ class Broker:
         if net_profit > 0:
             self.profitable_trades += 1
         
-        # Add trade to closed trades
         # Create new trade for reduced amount
-        
-        closed_position = self.trades[trade_ID].copy()
-        closed_position['size'] = units
-        closed_position['profit'] = net_profit
-        closed_position['balance'] = self.portfolio_balance
-        closed_position['exit_price'] = last_price
-        closed_position['exit_time'] = self.trades[trade_ID].last_time
-        closed_position['fees'] = commission
-        
-        # Add to closed positions dictionary
-        partial_trade_close_ID = self.total_trades + 1
-        self.closed_positions[partial_trade_close_ID] = closed_position
+        partial_trade = Trade._split(trade, units)
         self.total_trades += 1
         
-        # Modify remaining portion of trade
-        self.trades[trade_ID].size = remaining_size
+        # TODO - this info is normally added in self._close_trade()
+        partial_trade.profit = net_profit
+        partial_trade.balance = self.portfolio_balance
+        partial_trade.exit_price = last_price
+        partial_trade.exit_time = self.trades[trade_ID].last_time
+        partial_trade.fees = commission
         
-        # Update account
+        # Close partial trade
+        partial_trade_close_ID = self.total_trades + 1
+        partial_trade.order_id = partial_trade_close_ID
+        
+        partial_trade.status = 'closed'
+        self.trades[partial_trade_close_ID] = partial_trade
+        # self._close_trade(partial_trade_close_ID) # TODO - pass through here
+        
+        # Update account # TODO - also taken care of in close trade
         self._add_funds(net_profit)
         self._update_MDD()
     
     
     def _calculate_commissions(self, order_no: int, exit_price: float, 
                                units: float = None) -> float:
-        'Calculates trade commissions.'
+        """Calculates trade commissions.
+        """
         if self.commission_scheme == 'percentage':
             entry_price = self.trades[order_no].entry_price
             size = self.trades[order_no].size if units is None else units
@@ -737,8 +737,6 @@ class Broker:
         """Modify order with updated parameters. Called when order_type = 'modify', 
         modifies trade specified by related_orders key.
         """
-        # TODO - update
-        
         # Get ID of trade to modify
         modify_trade_id = order.related_orders
         

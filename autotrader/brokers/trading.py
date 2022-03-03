@@ -219,9 +219,12 @@ class Trade(Order):
             setattr(self, attribute, value)
             
     @classmethod
-    def _split(cls, trade: Trade) -> Trade:
+    def _split(cls, trade: Trade, split_units: float) -> Trade:
         """Splits parent trade into new trade object for partial trade 
-        closures."""
+        closures.
+        
+        split units are given to the new trade.
+        """
         split_trade = cls()
         for attribute, value in trade.__dict__.items():
             setattr(split_trade, attribute, value)
@@ -229,6 +232,10 @@ class Trade(Order):
         # Reset ID
         split_trade.parent_id = trade.order_id
         split_trade.order_id = None
+        
+        # Transfer units
+        split_trade.size = split_units
+        trade.size -= split_units
         
         return split_trade
 
