@@ -194,9 +194,10 @@ class BrokerUtils:
     
     
     def trade_summary(self, pair, closed_positions_dict):
-        ''' Creates backtest trade summary dataframe. '''
-        product     = []
-        order_ID    = []
+        """Creates backtest trade summary dataframe.
+        """
+        product = []
+        order_ID = []
         times_list  = []
         order_price = []
         entry_time  = []
@@ -212,6 +213,9 @@ class BrokerUtils:
         fees = []
         
         # TODO - dont filter pair by conditional, rather by indexing after df
+        # TODO - alos Dont need to have cancelled orders separate to other orderds,
+        # and other trades separate... just look at trade.status to include in 
+        # full df, then filter from there
         
         for order in closed_positions_dict:
             if closed_positions_dict[order]['instrument'] == pair or \

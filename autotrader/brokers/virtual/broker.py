@@ -11,16 +11,24 @@ class Broker:
     def __init__(self, broker_config: dict, utils: BrokerUtils) -> None:
         self.utils = utils
         
+        # Currently working on phasing out order and trade distinction by dict,
+        # just have orders and trades in their own lists,
+        
+        # TODO - rename order_no to more relevant, ie order_id or trade_id
+        # TODO - need to avoid having multiple dicts of orders and trades, just use status to filter
+        # TODO - use lists instead of dicts? Dont key by id, just list
+        # TODO - margin calls
+        
         # Orders
         self.last_order_id = 0
-        self.pending_orders = {}
-        self.cancelled_orders = {} # perhaps redundant, by order.status
+        self.orders = {}
+        # self.cancelled_orders = {} # perhaps redundant, by order.status
         
         # Trades
+        self.total_trades = 0
         self.trades = {}
         # TODO - should trades have unique ID's (independent from order ID?)
-        self.total_trades = 0
-        self.closed_positions = {} # TODO - eventually merge open and closed trades, then just filter by trade status
+        # self.closed_positions = {} # TODO - eventually merge open and closed trades, then just filter by trade status
         
         # Account 
         self.leverage = 1
@@ -101,38 +109,40 @@ class Broker:
         if invalid_order:
             if self.verbosity > 0:
                 print(f"  Order {order.order_id} rejected.\n")
-                print(reason)
-            order.reason = reason
-            # TODO - use cancel orders method
-            self.cancelled_orders[order.order_id] = order
+            self.cancel_pending_order(order.order_id, reason)
         else:
-            # Add position to self.pending_orders
-            self.pending_orders[order.order_id] = order
+            order.status = 'pending'
+        
+        # Append order to orders 
+        self.orders[order.order_id] = order
         
         # Update last order ID
         self.last_order_id = order.order_id
     
     
     def get_pending_orders(self, instrument: str = None) -> dict:
-        """Returns pending orders.
+        """Returns pending (open) orders.
         """
+        # TODO - name change (to get_orders)? Document...
         pending_orders = {}
-        if instrument is not None:
-            for order_no in self.pending_orders:
-                if self.pending_orders[order_no].instrument == instrument:
-                    pending_orders[order_no] = self.pending_orders[order_no]
+        if instrument:
+            for order_no, order in self.orders.items():
+                if order.instrument == instrument:
+                    pending_orders[order_no] = order
         else:
-            pending_orders = self.pending_orders.copy()
+            pending_orders = self.orders.copy()
         return pending_orders
     
     
     def cancel_pending_order(self, order_id: int, reason: str = None) -> None:
-        """Moves an order from pending_orders into cancelled_orders.
+        """Changes the status of an order to cancelled.
         """
-        self.cancelled_orders[order_id] = self.pending_orders[order_id]
-        self.cancelled_orders[order_id].reason = reason
-        self.cancelled_orders[order_id].status = 'cancelled'
-        # TODO - does the order get removed from pending orders?
+        # TODO - name change (to cancel_order)? Document...
+        self.orders[order_id].reason = reason
+        self.orders[order_id].status = 'cancelled'
+        
+        if self.verbosity > 0 and reason:
+            print(reason)
     
     
     def get_open_trades(self, instruments: str = None) -> dict:
@@ -149,9 +159,9 @@ class Broker:
         
         if instruments is not None:
             # Specific instruments requested
-            for order_no in self.trades:
-                if self.trades[order_no].instrument in instruments:
-                    open_trades[order_no] = self.trades[order_no]
+            for order_no, trade in self.trades.items():
+                if trade.instrument in instruments:
+                    open_trades[order_no] = trade
         else:
             # Return all currently open positions
             open_trades = self.trades
@@ -166,7 +176,7 @@ class Broker:
     
     
     def get_open_positions(self, instruments: str = None) -> dict:
-        """Returns the open positions in the account.
+        """Returns the open positions (including all open trades) in the account.
         """
         if instruments is None:
             # No specific instrument requested, get all open
@@ -210,6 +220,7 @@ class Broker:
                         short_margin += open_trades[order_no].margin_required
             
                 # Construct instrument position dict
+                # TODO - make Position object
                 instrument_position = {'long_units': long_units,
                                         'long_PL': long_PL,
                                         'long_margin': long_margin,
@@ -231,11 +242,13 @@ class Broker:
         cancelled_orders = {}
         
         if instrument is not None:
-            for order_no in self.cancelled_orders:
-                if self.cancelled_orders[order_no].instrument == instrument:
-                    cancelled_orders[order_no] = self.cancelled_orders[order_no]
+            for order_no, order in self.orders:
+                if order.instrument == instrument and order.status == 'cancelled':
+                    cancelled_orders[order_no] = order
         else:
-            cancelled_orders = self.cancelled_orders.copy()
+            for order_no, order in self.orders:
+                if order.status == 'cancelled':
+                    cancelled_orders[order_no] = order
         
         return cancelled_orders
     
@@ -269,8 +282,7 @@ class Broker:
         price = {"ask": ask,
                  "bid": bid,
                  "negativeHCF": negativeHCF,
-                 "positiveHCF": positiveHCF
-                 }
+                 "positiveHCF": positiveHCF}
         
         return price
     
@@ -287,13 +299,13 @@ class Broker:
         """
         # TODO - rename to fill order or similar
         
-        order = self.pending_orders[order_no]
+        order = self.orders[order_no]
         
         # Calculate margin requirements
         current_price = candle.Open
         pip_value = self.utils.get_pip_ratio(order.instrument)
-        size = self.pending_orders[order_no].size
-        HCF = self.pending_orders[order_no].HCF
+        size = self.orders[order_no].size
+        HCF = self.orders[order_no].HCF
         position_value = abs(size) * current_price * HCF
         margin_required = self._calculate_margin(position_value)
         
@@ -329,54 +341,54 @@ class Broker:
         modification_orders = []
         
         # Update pending positions
-        for order_no in self.pending_orders:
+        for order_no, order in self.orders.items():
             # Filter orders by instrument type since candle is instrument specific
-            if self.pending_orders[order_no].instrument == instrument:
-                if candle.name > self.pending_orders[order_no].order_time:
-                    if self.pending_orders[order_no].order_type == 'market':
+            if order.instrument == instrument:
+                if candle.name > order.order_time:
+                    if order.order_type == 'market':
                         # Market order type - proceed to fill
                         self._open_position(order_no, candle)
                         opened_positions += 1
                     
-                    elif self.pending_orders[order_no].order_type == 'stop-limit':
+                    elif order.order_type == 'stop-limit':
                         # Check if order_stop_price has been reached yet
-                        if candle.Low < self.pending_orders[order_no].order_stop_price < candle.High:
+                        if candle.Low < order.order_stop_price < candle.High:
                             # order_stop_price has been reached, change order type to 'limit'
-                            self.pending_orders[order_no].order_type = 'limit'
+                            order.order_type = 'limit'
                     
-                    elif self.pending_orders[order_no].order_type == 'modify':
+                    elif order.order_type == 'modify':
                         # Modification order
-                        self._modify_order(self.pending_orders[order_no])
+                        self._modify_order(order)
                         
                         opened_positions += 1 # To remove from pending orders
                         modification_orders.append(order_no)
                         
                     # This is in a separate if statement, as stop-limit order may
                     # eventually be changed to limit orders
-                    if self.pending_orders[order_no].order_type == 'limit':
+                    if order.order_type == 'limit':
                         # Limit order type
-                        if self.pending_orders[order_no].size > 0:
-                            if candle.Low < self.pending_orders[order_no].order_limit_price:
+                        if order.size > 0:
+                            if candle.Low < order.order_limit_price:
                                 self._open_position(order_no, candle, 
-                                                    self.pending_orders[order_no].order_limit_price)
+                                                    order.order_limit_price)
                                 opened_positions += 1
                         else:
-                            if candle.High > self.pending_orders[order_no].order_limit_price:
+                            if candle.High > order.order_limit_price:
                                 self._open_position(order_no, candle, 
-                                                    self.pending_orders[order_no].order_limit_price)
+                                                    order.order_limit_price)
                                 opened_positions += 1
                   
                 # Check for close order type
-                if self.pending_orders[order_no].order_type == 'close':
-                    related_order = self.pending_orders[order_no].related_orders
-                    self._close_position(self.pending_orders[order_no].instrument,
+                if order.order_type == 'close':
+                    related_order = order.related_orders
+                    self._close_position(order.instrument,
                                         candle, 
                                         candle.Close,
                                         order_no = related_order)
                     opened_positions += 1 # To remove from pending orders
                     modification_orders.append(order_no)
-                elif self.pending_orders[order_no].order_type == 'reduce':
-                    self._reduce_position(self.pending_orders[order_no])
+                elif order.order_type == 'reduce':
+                    self._reduce_position(order)
         
         # Remove orders from pending orders dict
         # TODO - need to update for trade objects, move away from this?
@@ -396,96 +408,95 @@ class Broker:
         # Update trailing stops
         # For other methods, move the stop update to an external function
         # Can this be moved into the loop below?
-        for order_no in self.trades: # TODO - for trade_id, trade in self.trades
-            if self.trades[order_no].instrument == instrument:
-                if self.trades[order_no].stop_type == 'trailing':
+        for order_no, trade in self.trades.items():
+            if trade.instrument == instrument:
+                if trade.stop_type == 'trailing':
                     # Trailing stop loss type, check if price has moved SL
-                    if self.trades[order_no].stop_distance is not None:
-                        pip_value = self.utils.get_pip_ratio(self.trades[order_no].instrument)
-                        pip_distance = self.trades[order_no].stop_distance
+                    if trade.stop_distance is not None:
+                        pip_value = self.utils.get_pip_ratio(trade.instrument)
+                        pip_distance = trade.stop_distance
                         distance = pip_distance*pip_value # price units
                     else:
-                        distance = abs(self.trades[order_no].entry_price - \
-                                       self.trades[order_no].stop_loss)
-                        pip_value = self.utils.get_pip_ratio(self.trades[order_no].instrument)
-                        self.trades[order_no].stop_distance = distance / pip_value
+                        distance = abs(trade.entry_price - \
+                                       trade.stop_loss)
+                        pip_value = self.utils.get_pip_ratio(trade.instrument)
+                        trade.stop_distance = distance / pip_value
                         
-                    if self.trades[order_no].size > 0:
+                    if trade.size > 0:
                         # long position, stop loss only moves up
                         new_stop = candle.High - distance
-                        if new_stop > self.trades[order_no].stop_loss:
+                        if new_stop > trade.stop_loss:
                             self._update_stop_loss(order_no, new_stop, new_stop_type='trailing')
                         
                     else:
                         # short position, stop loss only moves down
                         new_stop = candle.Low + distance
-                        if new_stop < self.trades[order_no].stop_loss:
+                        if new_stop < trade.stop_loss:
                             self._update_stop_loss(order_no, new_stop, new_stop_type='trailing')
         
         # Update self.trades
-        open_position_orders = list(self.trades.keys())
-        unrealised_PL = 0        # Un-leveraged value
-        for order_no in open_position_orders: # TODO - for trade_id, trade in self.trades
-            if self.trades[order_no].instrument == instrument:
-                if self.trades[order_no].size > 0:
+        unrealised_PL = 0 # Un-leveraged value
+        for order_no, trade in self.trades.items():
+            if trade.instrument == instrument:
+                if trade.size > 0:
                     # Long trade
-                    if self.trades[order_no].stop_loss and \
-                        candle.Low < self.trades[order_no].stop_loss:
+                    if trade.stop_loss and \
+                        candle.Low < trade.stop_loss:
                         # Stop loss hit
-                        self._close_position(self.trades[order_no].instrument, 
+                        self._close_position(trade.instrument, 
                                             candle, 
-                                            self.trades[order_no].stop_loss,
+                                            trade.stop_loss,
                                             order_no)
-                    elif self.trades[order_no].take_profit and \
-                        candle.High > self.trades[order_no].take_profit:
+                    elif trade.take_profit and \
+                        candle.High > trade.take_profit:
                         # Take Profit hit
-                        self._close_position(self.trades[order_no].instrument, 
+                        self._close_position(trade.instrument, 
                                             candle, 
-                                            self.trades[order_no].take_profit,
+                                            trade.take_profit,
                                             order_no)
                     else:
                         # Position is still open, update value of holding
-                        size        = self.trades[order_no].size
-                        entry_price = self.trades[order_no].entry_price
+                        size        = trade.size
+                        entry_price = trade.entry_price
                         price       = candle.Close
-                        HCF         = self.trades[order_no].HCF
+                        HCF         = trade.HCF
                         trade_PL    = size*(price - entry_price)*HCF
                         unrealised_PL += trade_PL
                         
                         # Update PL of trade
-                        self.trades[order_no].last_price = price
-                        self.trades[order_no].last_time = candle.name
-                        self.trades[order_no].unrealised_PL = trade_PL
+                        trade.last_price = price
+                        trade.last_time = candle.name
+                        trade.unrealised_PL = trade_PL
                 
                 else:
                     # Short trade
-                    if self.trades[order_no].stop_loss is not None and \
-                        candle.High > self.trades[order_no].stop_loss:
+                    if trade.stop_loss is not None and \
+                        candle.High > trade.stop_loss:
                         # Stop loss hit
-                        self._close_position(self.trades[order_no].instrument, 
+                        self._close_position(trade.instrument, 
                                             candle, 
-                                            self.trades[order_no].stop_loss,
+                                            trade.stop_loss,
                                             order_no)
-                    elif self.trades[order_no].take_profit is not None and \
-                        candle.Low < self.trades[order_no].take_profit:
+                    elif trade.take_profit is not None and \
+                        candle.Low < trade.take_profit:
                         # Take Profit hit
-                        self._close_position(self.trades[order_no].instrument, 
+                        self._close_position(trade.instrument, 
                                             candle, 
-                                            self.trades[order_no].take_profit,
+                                            trade.take_profit,
                                             order_no)
                     else:
                         # Position is still open, update value of holding
-                        size        = self.trades[order_no].size
-                        entry_price = self.trades[order_no].entry_price
+                        size        = trade.size
+                        entry_price = trade.entry_price
                         price       = candle.Close
-                        HCF         = self.trades[order_no].HCF
+                        HCF         = trade.HCF
                         trade_PL    = size*(price - entry_price)*HCF
                         unrealised_PL += trade_PL
                         
                         # Update PL of trade
-                        self.trades[order_no].last_price = price
-                        self.trades[order_no].last_time = candle.name
-                        self.trades[order_no].unrealised_PL = trade_PL
+                        trade.last_price = price
+                        trade.last_time = candle.name
+                        trade.unrealised_PL = trade_PL
         
         # Update margin available
         self._update_margin()
@@ -503,14 +514,12 @@ class Broker:
         """
         if order_no is not None:
             # single order specified to close
-            self._close_trade(order_no=order_no, 
-                             candle=candle, 
-                             exit_price=exit_price)
+            self._close_trade(order_no=order_no, candle=candle,
+                              exit_price=exit_price)
         else:
             # Close all positions for instrument
-            # TODO - update for trade objects
-            for order_no in self.trades.copy(): # <-- This bit******
-                if self.trades[order_no].instrument == instrument:
+            for order_no, trade in self.trades.items():
+                if trade.instrument == instrument:
                     self._close_trade(order_no=order_no, candle=candle, 
                                       exit_price=exit_price)
     

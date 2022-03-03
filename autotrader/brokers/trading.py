@@ -34,6 +34,8 @@ class Order:
         
         self.related_orders = None
         
+        self.reason = None
+        
         self.strategy = None
         self.granularity = None
         
@@ -47,22 +49,19 @@ class Order:
                 not None else 'limit'
                 
         # Meta-data
-        # TODO - make use of these
         self.order_id = None
-        self.submitted = False
-        self.filled = False
-        self.status = None      # options: cancelled
+        self.status = None      # options: pending -> open -> cancelled | filled
     
     
     def __repr__(self):
         aux_str = ''
         if self.submitted:
-            aux_str = '(submitted)'
+            aux_str = ' (submitted)'
         if self.filled:
-            aux_str = '(filled)'
+            aux_str = ' (filled)'
         
         if self.size is not None:
-            return f'{round(self.size,3)} unit {self.instrument} {self.order_type} order {aux_str}'
+            return f'{round(self.size,3)} unit {self.instrument} {self.order_type} order{aux_str}'
         else:
             return self.__str__()
         
@@ -200,6 +199,9 @@ class Trade(Order):
         self.exit_time = None
         self.fees = None
         
+        # Meta data
+        self.status = None # options: open -> closed | (partially closed?)
+        
     
     def __repr__(self):
         return f'{round(self.size,3)} unit {self.instrument} trade'
@@ -212,6 +214,11 @@ class Trade(Order):
     def _inheret_order(self, order: Order) -> None:
         for attribute, value in order.__dict__.items():
             setattr(self, attribute, value)
+
+
+class Position:
+    def __init__(self):
+        pass
 
 
 if __name__ == '__main__':
