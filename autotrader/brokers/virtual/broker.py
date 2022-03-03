@@ -1,34 +1,41 @@
 import numpy as np
 import pandas as pd
 from autotrader.brokers.broker_utils import BrokerUtils
+from autotrader.brokers.trading import Order, Trade
+
 
 class Broker:
     """Autotrader virtual broker to simulate trading.
     """
     
     def __init__(self, broker_config: dict, utils: BrokerUtils) -> None:
-        self.leverage           = 1
-        self.spread             = 0
-        self.margin_available   = 0
-        self.portfolio_balance  = 0
-        self.pending_orders     = {}
-        self.open_positions     = {}
-        self.closed_positions   = {}
-        self.cancelled_orders   = {}
-        self.total_trades       = 0
-        self.profitable_trades  = 0
-        self.peak_value         = 0
-        self.low_value          = 0
-        self.max_drawdown       = 0
-        self.home_currency      = 'AUD'
-        self.NAV                = 0
-        self.unrealised_PL      = 0
-        self.utils              = utils
-        self.verbosity          = broker_config['verbosity']
+        self.utils = utils
+    
+        self.leverage = 1
+        self.spread = 0
+        self.margin_available = 0
+        self.portfolio_balance = 0
+        self.pending_orders = {}
+        self.open_positions = {}
+        self.closed_positions = {}
+        self.cancelled_orders = {}
+        
+        self.last_order_id = 0
+        self.total_trades = 0
+        
+        
+        self.profitable_trades = 0
+        self.peak_value = 0
+        self.low_value = 0
+        self.max_drawdown = 0
+        self.home_currency = 'AUD'
+        self.NAV = 0
+        self.unrealised_PL = 0
+        self.verbosity = broker_config['verbosity']
         
         # Commissions
-        self.commission_scheme  = 'percentage'
-        self.commission         = 0
+        self.commission_scheme = 'percentage'
+        self.commission = 0
         
     
     def __repr__(self):
@@ -51,69 +58,64 @@ class Broker:
         return self.portfolio_balance
     
     
-    def place_order(self, order_details: dict) -> None:
+    def place_order(self, order: Order) -> None:
         """Place order with broker.
         """
-        instrument  = order_details["instrument"]
-        size        = order_details["size"]
-        stop_loss  = order_details["stop_loss"]
-        stop_distance = order_details["stop_distance"]
-        take_profit = order_details["take_profit"]
-        
-        if order_details['order_type'] == 'market':
-            order_price = order_details["order_price"]
-        elif order_details['order_type'] == 'limit' or order_details['order_type'] == 'stop-limit':
-            order_price = order_details["order_limit_price"]
+        if order.order_type == 'limit' or order.order_type == 'stop-limit':
+            working_price = order.order_limit_price
         else:
-            order_price = order_details["order_price"]
+            working_price = order.order_price
         
-        if stop_loss is None and stop_distance is not None:
-            pip_value   = self.utils.get_pip_ratio(instrument)
-            stop_loss  = order_price - np.sign(size)*stop_distance*pip_value
+        # Convert stop distance to price
+        if not order.stop_loss and order.stop_distance:
+            pip_value = self.utils.get_pip_ratio(order.instrument)
+            order.stop_loss = working_price - np.sign(order.size)*order.stop_distance*pip_value
         
-        order_no = self.total_trades + 1
-        new_position = order_details.copy()
-        new_position['order_ID'] = order_no
-        
-        # Verify SL and TP prices
+        # Verify SL price
         invalid_order = False
-        if stop_loss is not None and np.sign(size)*(order_price - stop_loss) < 0:
-            direction = 'long' if np.sign(size) > 0 else 'short'
-            SL_placement = 'below' if np.sign(size) > 0 else 'above'
+        if order.stop_loss and np.sign(order.size)*(working_price - order.stop_loss) < 0:
+            direction = 'long' if np.sign(order.size) > 0 else 'short'
+            SL_placement = 'below' if np.sign(order.size) > 0 else 'above'
             if self.verbosity > 0:
                 print("Invalid stop loss request: stop loss must be "+ \
-                                f"{SL_placement} the order price for a {direction}" + \
-                                " trade order.\n"+ \
-                                f"Order Price: {order_price}\nStop Loss: {stop_loss}")
+                      f"{SL_placement} the order price for a {direction}" + \
+                      " trade order.\n"+ \
+                      f"Order Price: {working_price}\nStop Loss: {order.stop_loss}")
             invalid_order = True
         
-        if take_profit is not None and np.sign(size)*(order_price - take_profit) > 0:
-            direction = 'long' if np.sign(size) > 0 else 'short'
-            TP_placement = 'above' if np.sign(size) > 0 else 'below'
+        # Verify TP price
+        if order.take_profit is not None and np.sign(order.size)*(working_price - order.take_profit) > 0:
+            direction = 'long' if np.sign(order.size) > 0 else 'short'
+            TP_placement = 'above' if np.sign(order.size) > 0 else 'below'
             if self.verbosity > 0:
+                # TODO - make the printout below the cancel reason str
                 print("Invalid take profit request: take profit must be "+ \
-                                f"{TP_placement} the order price for a {direction}" + \
-                                " trade order.\n"+ \
-                                f"Order Price: {order_price}\nTake Profit: {take_profit}")
+                      f"{TP_placement} the order price for a {direction}" + \
+                      " trade order.\n"+ \
+                      f"Order Price: {working_price}\nTake Profit: {order.take_profit}")
             invalid_order = True
+        
+        # Submit order
+        order.order_id = self.last_order_id + 1
         
         if invalid_order:
             if self.verbosity > 0:
-                print(f"  Order {order_no} rejected.\n")
+                print(f"  Order {order.order_id} rejected.\n")
             # Add position to self.pending_orders
-            self.cancelled_orders[order_no] = new_position
-            self.cancelled_orders[order_no]['reason'] = "Invalid order request"
+            order.reason = "Invalid order request"
+            self.cancelled_orders[order.order_id] = order
             
         else:
             # Add position to self.pending_orders
-            self.pending_orders[order_no] = new_position
-            
-        # Update trade tally
-        self.total_trades += 1
+            self.pending_orders[order.order_id] = order
+        
+        # Update last order ID
+        self.last_order_id = order.order_id
     
     
     def get_pending_orders(self, instrument: str = None) -> dict:
-        ''' Returns pending orders. '''
+        """Returns pending orders.
+        """
         
         pending_orders = {}
         

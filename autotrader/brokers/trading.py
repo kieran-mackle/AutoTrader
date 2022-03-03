@@ -10,6 +10,9 @@ class Order:
     def __init__(self, instrument: str, direction: int,
                  order_type: str = 'market', **kwargs) -> Order:
         
+        # TODO - remove order prefix from attributes, so its not order.order_type, rather order.type
+        # This will have implications to order_signal_dict keys
+        
         # Required attributes
         self.instrument = instrument
         self.order_type = order_type
@@ -100,6 +103,9 @@ class Order:
     
     def _calculate_exit_prices(self, broker, working_price: float = None) -> None:
         
+        # TODO - avoid requiring broker - some might locally allow passing eg. 
+        # pip distance SL, in which case, it does not need to be converted here, 
+        # it can just be converted in the broker class.
         working_price = working_price if working_price is not None \
             else self._working_price
             
