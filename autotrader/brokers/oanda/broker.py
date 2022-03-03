@@ -1,11 +1,10 @@
 import v20
-from autotrader.brokers.oanda import utils
-import datetime
-import pandas as pd
-import numpy as np
-import traceback
 import sys
 import time
+import datetime
+import traceback
+import numpy as np
+import pandas as pd
 
 
 class Broker:
@@ -24,8 +23,18 @@ class Broker:
                                       token = self.ACCESS_TOKEN, 
                                       port = self.port)
         
-        self.open_positions     = {}
+        self.open_positions = {}
         
+        self.utils = utils
+        
+    
+    def __repr__(self):
+        return 'AutoTrader-Oanda Broker Interface'
+    
+    
+    def __str__(self):
+        return 'AutoTrader-Oanda Broker Interface'
+    
     
     def check_connection(self):
         '''
@@ -366,7 +375,7 @@ class Broker:
                                              dailyAlignment = 0
                                              )
         
-        data        = utils.response_to_df(response)
+        data        = self.utils.response_to_df(response)
         
         return data
     
@@ -604,7 +613,7 @@ class Broker:
                                                       toTime = to_time
                                                       )
         
-        data = utils.response_to_df(response)
+        data = self.utils.response_to_df(response)
         
         return data
     
