@@ -10,19 +10,24 @@ class Broker:
     
     def __init__(self, broker_config: dict, utils: BrokerUtils) -> None:
         self.utils = utils
-    
-        self.leverage = 1
-        self.spread = 0
-        self.margin_available = 0
-        self.portfolio_balance = 0
+        
+        # Orders
+        self.last_order_id = 0
         self.pending_orders = {}
-        self.open_positions = {}
-        self.closed_positions = {}
         self.cancelled_orders = {}
         
-        self.last_order_id = 0
+        # Trades
+        self.trades = {}
+        # TODO - should trades have unique ID's (independent from order ID?)
         self.total_trades = 0
+        self.open_positions = {}
+        self.closed_positions = {}
         
+        # Account 
+        self.leverage = 1
+        self.spread = 0 # TODO - pips or price units?
+        self.margin_available = 0
+        self.portfolio_balance = 0
         
         self.profitable_trades = 0
         self.peak_value = 0
@@ -76,35 +81,31 @@ class Broker:
         if order.stop_loss and np.sign(order.size)*(working_price - order.stop_loss) < 0:
             direction = 'long' if np.sign(order.size) > 0 else 'short'
             SL_placement = 'below' if np.sign(order.size) > 0 else 'above'
-            if self.verbosity > 0:
-                print("Invalid stop loss request: stop loss must be "+ \
-                      f"{SL_placement} the order price for a {direction}" + \
-                      " trade order.\n"+ \
-                      f"Order Price: {working_price}\nStop Loss: {order.stop_loss}")
+            reason = "Invalid stop loss request: stop loss must be "+ \
+                    f"{SL_placement} the order price for a {direction}" + \
+                    " trade order.\n"+ \
+                    f"Order Price: {working_price}\nStop Loss: {order.stop_loss}"
             invalid_order = True
         
         # Verify TP price
         if order.take_profit is not None and np.sign(order.size)*(working_price - order.take_profit) > 0:
             direction = 'long' if np.sign(order.size) > 0 else 'short'
             TP_placement = 'above' if np.sign(order.size) > 0 else 'below'
-            if self.verbosity > 0:
-                # TODO - make the printout below the cancel reason str
-                print("Invalid take profit request: take profit must be "+ \
-                      f"{TP_placement} the order price for a {direction}" + \
-                      " trade order.\n"+ \
-                      f"Order Price: {working_price}\nTake Profit: {order.take_profit}")
+            reason = "Invalid take profit request: take profit must be "+ \
+                  f"{TP_placement} the order price for a {direction}" + \
+                  " trade order.\n"+ \
+                  f"Order Price: {working_price}\nTake Profit: {order.take_profit}"
             invalid_order = True
         
         # Submit order
         order.order_id = self.last_order_id + 1
-        
         if invalid_order:
             if self.verbosity > 0:
                 print(f"  Order {order.order_id} rejected.\n")
-            # Add position to self.pending_orders
-            order.reason = "Invalid order request"
+                print(reason)
+            order.reason = reason
+            # TODO - use cancel orders method
             self.cancelled_orders[order.order_id] = order
-            
         else:
             # Add position to self.pending_orders
             self.pending_orders[order.order_id] = order
@@ -116,16 +117,13 @@ class Broker:
     def get_pending_orders(self, instrument: str = None) -> dict:
         """Returns pending orders.
         """
-        
         pending_orders = {}
-        
         if instrument is not None:
             for order_no in self.pending_orders:
-                if self.pending_orders[order_no]['instrument'] == instrument:
+                if self.pending_orders[order_no].instrument == instrument:
                     pending_orders[order_no] = self.pending_orders[order_no]
         else:
             pending_orders = self.pending_orders.copy()
-        
         return pending_orders
     
     
@@ -133,7 +131,9 @@ class Broker:
         """Moves an order from pending_orders into cancelled_orders.
         """
         self.cancelled_orders[order_id] = self.pending_orders[order_id]
-        self.cancelled_orders[order_id]['reason'] = reason
+        self.cancelled_orders[order_id].reason = reason
+        self.cancelled_orders[order_id].status = 'cancelled'
+        # TODO - does the order get removed from pending orders?
     
     
     def get_open_trades(self, instruments: str = None) -> dict:
@@ -151,7 +151,7 @@ class Broker:
         if instruments is not None:
             # Specific instruments requested
             for order_no in self.open_positions:
-                if self.open_positions[order_no]['instrument'] in instruments:
+                if self.open_positions[order_no].instrument in instruments:
                     open_trades[order_no] = self.open_positions[order_no]
         else:
             # Return all currently open positions
@@ -167,13 +167,13 @@ class Broker:
     
     
     def get_open_positions(self, instruments: str = None) -> dict:
-        ''' Returns the open positions in the account. '''
-        
+        """Returns the open positions in the account.
+        """
         if instruments is None:
             # No specific instrument requested, get all open
             instruments = []
             for order_no in self.open_positions: 
-                instruments.append(self.open_positions[order_no]['instrument'])
+                instruments.append(self.open_positions[order_no].instrument)
         else:
             # Non-None input provided, check type
             if type(instruments) is str:
@@ -233,7 +233,7 @@ class Broker:
         
         if instrument is not None:
             for order_no in self.cancelled_orders:
-                if self.cancelled_orders[order_no]['instrument'] == instrument:
+                if self.cancelled_orders[order_no].instrument == instrument:
                     cancelled_orders[order_no] = self.cancelled_orders[order_no]
         else:
             cancelled_orders = self.cancelled_orders.copy()
@@ -284,15 +284,18 @@ class Broker:
     
     def _open_position(self, order_no: int, candle: pd.core.series.Series, 
                        limit_price: float = None) -> None:
-        """Fills or cancels a pending order.
+        """Fills a pending order.
         """
+        # TODO - rename to fill order or similar
+        
+        order = self.pending_orders[order_no]
         
         # Calculate margin requirements
-        current_price   = candle.Open
-        pip_value       = self.utils.get_pip_ratio(self.pending_orders[order_no]['instrument'])
-        size            = self.pending_orders[order_no]['size']
-        HCF             = self.pending_orders[order_no]['HCF']
-        position_value  = abs(size) * current_price * HCF
+        current_price = candle.Open
+        pip_value = self.utils.get_pip_ratio(order.instrument)
+        size = self.pending_orders[order_no].size
+        HCF = self.pending_orders[order_no].HCF
+        position_value = abs(size) * current_price * HCF
         margin_required = self._calculate_margin(position_value)
         
         spread_cost = abs(size) * self.spread * pip_value
@@ -300,20 +303,20 @@ class Broker:
         
         if margin_required < self.margin_available:
             # Fill order
-            new_position = self.pending_orders[order_no]
-            new_position['time_filled'] = candle.name
+            trade = Trade(order)
+            trade.time_filled = candle.name
             if limit_price is None:
-                new_position['entry_price'] = candle.Open + spread_shift
+                trade.entry_price = candle.Open + spread_shift
             else:
-                new_position['entry_price'] = limit_price + spread_shift
-            self.open_positions[order_no] = new_position
+                trade.entry_price = limit_price + spread_shift
+            self.trades[order_no] = trade
             
-            # Subtract spread cost
+            # Subtract spread cost from account NAV
             self.NAV -= spread_cost
             
         else:
             # Cancel order
-            cancel_reason = "Insufficient margin"
+            cancel_reason = "Insufficient margin to fill order."
             self.cancel_pending_order(order_no, cancel_reason)
     
     
@@ -328,23 +331,23 @@ class Broker:
         
         # Update pending positions
         for order_no in self.pending_orders:
-            # Filter orders by instrument type since candle is instrument specific            
-            if self.pending_orders[order_no]['instrument'] == instrument:
-                if candle.name > self.pending_orders[order_no]['order_time']:
-                    if self.pending_orders[order_no]['order_type'] == 'market':
+            # Filter orders by instrument type since candle is instrument specific
+            if self.pending_orders[order_no].instrument == instrument:
+                if candle.name > self.pending_orders[order_no].order_time:
+                    if self.pending_orders[order_no].order_type == 'market':
                         # Market order type
                         self._open_position(order_no, candle)
                         opened_positions += 1
                     
-                    elif self.pending_orders[order_no]['order_type'] == 'stop-limit':
+                    elif self.pending_orders[order_no].order_type == 'stop-limit':
                         # Stop-limit order type
                         # Check if order_stop_price has been reached yet
                         
-                        if candle.Low < self.pending_orders[order_no]['order_stop_price'] < candle.High:
+                        if candle.Low < self.pending_orders[order_no].order_stop_price < candle.High:
                             # order_stop_price has been reached, change order type to 'limit'
-                            self.pending_orders[order_no]['order_type'] = 'limit'
+                            self.pending_orders[order_no].order_type = 'limit'
                     
-                    elif self.pending_orders[order_no]['order_type'] == 'modify':
+                    elif self.pending_orders[order_no].order_type == 'modify':
                         # Modification order
                         self._modify_order(self.pending_orders[order_no])
                         
@@ -353,30 +356,30 @@ class Broker:
                         
                     # This is in a separate if statement, as stop-limit order may
                     # eventually be changed to limit orders
-                    if self.pending_orders[order_no]['order_type'] == 'limit':
+                    if self.pending_orders[order_no].order_type == 'limit':
                         # Limit order type
                         if self.pending_orders[order_no]['size'] > 0:
-                            if candle.Low < self.pending_orders[order_no]['order_limit_price']:
+                            if candle.Low < self.pending_orders[order_no].order_limit_price:
                                 self._open_position(order_no, candle, 
-                                                   self.pending_orders[order_no]['order_limit_price'])
+                                                   self.pending_orders[order_no].order_limit_price)
                                 opened_positions += 1
                         else:
-                            if candle.High > self.pending_orders[order_no]['order_limit_price']:
+                            if candle.High > self.pending_orders[order_no].order_limit_price:
                                 self._open_position(order_no, candle, 
                                                    self.pending_orders[order_no]['order_limit_price'])
                                 opened_positions += 1
                                 
                                 
-                if self.pending_orders[order_no]['order_type'] == 'close':
+                if self.pending_orders[order_no].order_type == 'close':
                     related_order = self.pending_orders[order_no]['related_orders']
-                    self._close_position(self.pending_orders[order_no]['instrument'],
+                    self._close_position(self.pending_orders[order_no].instrument,
                                         candle, 
                                         candle.Close,
                                         order_no = related_order
                                         )
                     opened_positions += 1 # To remove from pending orders
                     modification_orders.append(order_no)
-                elif self.pending_orders[order_no]['order_type'] == 'reduce':
+                elif self.pending_orders[order_no].order_type == 'reduce':
                     self._reduce_position(self.pending_orders[order_no])
         
                 
@@ -399,13 +402,13 @@ class Broker:
         # For other methods, move the stop update to an external function
         # Can this be moved into the loop below?
         for order_no in self.open_positions:
-            if self.open_positions[order_no]['instrument'] == instrument:
+            if self.open_positions[order_no].instrument == instrument:
                 if self.open_positions[order_no]['stop_type'] == 'trailing':
                     # Trailing stop loss is enabled, check if price has moved SL
                     
                     if self.open_positions[order_no]['stop_distance'] is not None:
                         # Stop distance provided (pips)
-                        pip_value = self.utils.get_pip_ratio(self.open_positions[order_no]['instrument'])
+                        pip_value = self.utils.get_pip_ratio(self.open_positions[order_no].instrument)
                         pip_distance = self.open_positions[order_no]['stop_distance']
                         distance = pip_distance*pip_value # price units
                         
@@ -415,7 +418,7 @@ class Broker:
                                        self.open_positions[order_no]['stop_loss'])
                         
                         # Append stop distance (pips) to dict
-                        pip_value = self.utils.get_pip_ratio(self.open_positions[order_no]['instrument'])
+                        pip_value = self.utils.get_pip_ratio(self.open_positions[order_no].instrument)
                         self.open_positions[order_no]['stop_distance'] = distance / pip_value
                         
                         
@@ -435,20 +438,20 @@ class Broker:
         open_position_orders = list(self.open_positions.keys())
         unrealised_PL  = 0        # Un-leveraged value
         for order_no in open_position_orders:
-            if self.open_positions[order_no]['instrument'] == instrument:
+            if self.open_positions[order_no].instrument == instrument:
                 if self.open_positions[order_no]['size'] > 0:
                     # Long trade
                     if self.open_positions[order_no]['stop_loss'] is not None and \
                         candle.Low < self.open_positions[order_no]['stop_loss']:
                         # Stop loss hit
-                        self._close_position(self.open_positions[order_no]['instrument'], 
+                        self._close_position(self.open_positions[order_no].instrument, 
                                             candle, 
                                             self.open_positions[order_no]['stop_loss'],
                                             order_no)
                     elif self.open_positions[order_no]['take_profit'] is not None and \
                         candle.High > self.open_positions[order_no]['take_profit']:
                         # Take Profit hit
-                        self._close_position(self.open_positions[order_no]['instrument'], 
+                        self._close_position(self.open_positions[order_no].instrument, 
                                             candle, 
                                             self.open_positions[order_no]['take_profit'],
                                             order_no)
@@ -471,14 +474,14 @@ class Broker:
                     if self.open_positions[order_no]['stop_loss'] is not None and \
                         candle.High > self.open_positions[order_no]['stop_loss']:
                         # Stop loss hit
-                        self._close_position(self.open_positions[order_no]['instrument'], 
+                        self._close_position(self.open_positions[order_no].instrument, 
                                             candle, 
                                             self.open_positions[order_no]['stop_loss'],
                                             order_no)
                     elif self.open_positions[order_no]['take_profit'] is not None and \
                         candle.Low < self.open_positions[order_no]['take_profit']:
                         # Take Profit hit
-                        self._close_position(self.open_positions[order_no]['instrument'], 
+                        self._close_position(self.open_positions[order_no].instrument, 
                                             candle, 
                                             self.open_positions[order_no]['take_profit'],
                                             order_no)
@@ -518,7 +521,7 @@ class Broker:
         else:
             # Close all positions for instrument
             for order_no in self.open_positions.copy():
-                if self.open_positions[order_no]['instrument'] == instrument:
+                if self.open_positions[order_no].instrument == instrument:
                     self._close_trade(order_no=order_no, 
                                      candle=candle, 
                                      exit_price=exit_price)
@@ -575,7 +578,7 @@ class Broker:
         '''
         
         # Consired long vs. short units to be reduced
-        instrument = order_details['instrument']
+        instrument = order_details.instrument
         reduction_size = order_details['size']
         reduction_direction = order_details['direction']
         
