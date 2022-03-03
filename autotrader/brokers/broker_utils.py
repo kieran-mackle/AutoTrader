@@ -1,21 +1,22 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-'''
-Module: brokers.broker_utils
-Purpose: Broker utilities superclass
-Author: Kieran Mackle
-'''
-
-import pandas as pd
-import numpy as np
-from datetime import datetime
 import os
+import numpy as np
+import pandas as pd
+from datetime import datetime
 
 
 class BrokerUtils:
     
     def __init__(self):
-        return
+        pass
+    
+    
+    def __repr__(self):
+        return 'AutoTrader Broker Utilities'
+    
+    
+    def __str__(self):
+        return 'AutoTrader Broker Utilities'
+    
     
     def response_to_df(self, response):
         ''' Function to convert api response into a pandas dataframe. '''
@@ -114,6 +115,7 @@ class BrokerUtils:
         
         return my_int
     
+    
     def write_to_order_summary(self, order_details, filepath):
         ''' Writes order details to summary file. '''
         
@@ -159,6 +161,7 @@ class BrokerUtils:
         
         return new_df_1, new_df_2
     
+    
     def fix_dataframe(self, df1, df2):
         ''' 
         Makes sure that the quote data and data dataframes are the same
@@ -188,6 +191,7 @@ class BrokerUtils:
         new_df = new_df.interpolate()
         
         return new_df
+    
     
     def trade_summary(self, pair, closed_positions_dict):
         ''' Creates backtest trade summary dataframe. '''
@@ -252,6 +256,7 @@ class BrokerUtils:
         
         return dataframe
     
+    
     def cancelled_order_summary(self, pair, positions_dict):
         ''' Creates cancelled order summary dataframe. '''
         order_ID    = []
@@ -280,6 +285,7 @@ class BrokerUtils:
         
         return dataframe
         
+    
     def open_order_summary(self, pair, positions_dict):
         ''' Creates open order summary dataframe. '''
         order_ID    = []
@@ -315,6 +321,7 @@ class BrokerUtils:
         dataframe = dataframe.sort_index()
         
         return dataframe
+    
     
     def get_streaks(self, trade_summary):
         ''' Calculates longest winning and losing streaks from trade summary. '''

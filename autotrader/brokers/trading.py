@@ -7,14 +7,14 @@ from datetime import datetime
 class Order:
     """AutoTrader Order
     """
-    def __init__(self, instrument: str, direction: int, units: int, 
+    def __init__(self, instrument: str, direction: int,
                  order_type: str = 'market', **kwargs) -> Order:
         
         # Required attributes
         self.instrument = instrument
         self.order_type = order_type
         self.direction = direction
-        self.size = units
+        self.size = None
         self.order_price = None
         self.order_time = None
         self.order_limit_price = None
@@ -50,8 +50,25 @@ class Order:
         self.status = None
     
     
+    def __repr__(self):
+        aux_str = ''
+        if self.submitted:
+            aux_str = '(submitted)'
+        if self.filled:
+            aux_str = '(filled)'
+        
+        if self.size is not None:
+            return f'{self.size} unit {self.order_type} order {aux_str}'
+        else:
+            return self.__str__()
+        
+    
+    def __str__(self):
+        return 'AutoTrader Order'
+    
+    
     def _infer_attributes(self, order_price: float, order_time: datetime, 
-                          HCF: float = 1, risk_pc: float = 0,
+                          broker, HCF: float = 1, risk_pc: float = 0,
                           sizing: str | float = 'risk') -> None:
         """Infers unassigned attributes.
         """
@@ -68,7 +85,7 @@ class Order:
             working_price = order_price
         
         # Calculate stop loss price
-        pip_value = self._broker_utils.get_pip_ratio(instrument)
+        pip_value = broker.utils.get_pip_ratio(self.instrument)
         if not self.stop_loss and self.stop_distance:
             # Stop loss provided as pip distance, convert to price
             self.stop_loss = working_price - np.sign(self.direction)*\
@@ -89,53 +106,29 @@ class Order:
             self.take_profit = self.take_profit
         
         # Calculate size
-        amount_risked = self._broker.get_balance() * risk_pc / 100
+        amount_risked = broker.get_balance() * risk_pc / 100
         if self.size:
             # Size provided
             size = self.size
         else:
             # Size not provided, need to calculate it
             if self._strategy_params['sizing'] == 'risk':
-                size = self._broker_utils.get_size(instrument,
-                            amount_risked, working_price, 
-                            stop_price, HCF, self.stop_distance)
-            # ~ OTHER SIZING METHODS ~
+                size = broker.utils.get_size(self.instrument, amount_risked, 
+                                             working_price, self.stop_loss, 
+                                             HCF, self.stop_distance)
+            # ~ OTHER SIZING METHODS GO HERE ~
                 
         # Vectorise and save size
         self.size = self.direction * size
 
 
-    def __repr__(self):
-        aux_str = ''
-        if self.submitted:
-            aux_str = '(submitted)'
-        if self.filled:
-            aux_str = '(filled)'
-        
-        if self.direction is not None:
-            return f'{self.size} unit {self.order_type} order {aux_str}'
-        else:
-            return self.__str__()
-        
-    
-    def __str__(self):
-        return 'AutoTrader Order'
-    
-    
     @classmethod
     def from_dict(cls, order_dict: dict) -> Order:
-        order = Order()
-        for key in order_dict:
-            setattr(order, key, order_dict[key])
-            # TODO - maybe pass all keys in as kwargs? If possible...
-            # Could just add order_dict arg in __init__ which gets unpacked
-            # similar to kwargs anyway
-            
-        return order
+        return Order(**order_dict)
 
 
 class Trade(Order):
-    """AutoTrader Trade
+    """AutoTrader Trade.
     """
     def __init__(self):
         
@@ -160,5 +153,6 @@ class Trade(Order):
 
 
 if __name__ == '__main__':
-    order_dict = {'direction': -1, 'size': 1242, 'stop_loss': 1.1224}
-    o = Order.from_dict(order_dict)
+    order_signal_dict = {'instrument': 'EUR_USD','order_type': 'market', 
+                         'direction': 1, 'stop_loss': 1.22342}
+    o = Order.from_dict(order_signal_dict)

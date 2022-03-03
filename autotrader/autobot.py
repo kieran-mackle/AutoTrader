@@ -662,7 +662,9 @@ class AutoTraderBot:
         for order in signal_dict:
             order_signal_dict = signal_dict[order].copy()
             
-            if (len(order_signal_dict) > 0) and ((order_signal_dict["order_type"] == 'modify') or (order_signal_dict["direction"] != 0)):
+            if (len(order_signal_dict) > 0) and \
+                ((order_signal_dict["order_type"] == 'modify') or \
+                 (order_signal_dict["direction"] != 0)):
                 self._process_signal(order_signal_dict, i, self.data, 
                                     self.quote_data, self.instrument)
         
