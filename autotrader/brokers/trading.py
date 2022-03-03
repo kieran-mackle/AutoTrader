@@ -50,7 +50,7 @@ class Order:
                 
         # Meta-data
         self.order_id = None
-        self.status = None      # options: pending -> open -> cancelled | filled
+        self.status = None      # options: pending -> open -> cancelled | filled # What is pending vs open?
     
     
     def __repr__(self):
@@ -200,6 +200,7 @@ class Trade(Order):
         self.fees = None
         
         # Meta data
+        self.trade_id = None # TODO - order.id, trade.order_id + trade.id
         self.status = None # options: open -> closed | (partially closed?)
         
     
@@ -214,6 +215,12 @@ class Trade(Order):
     def _inheret_order(self, order: Order) -> None:
         for attribute, value in order.__dict__.items():
             setattr(self, attribute, value)
+            
+    @classmethod
+    def _split(cls, trade):
+        """Splits parent trade into new trade object for partial trade 
+        closures."""
+        pass
 
 
 class Position:
