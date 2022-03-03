@@ -87,6 +87,7 @@ class Broker:
     def place_order(self, order_details: dict, **kwargs) -> None:
         """Disassemble order_details dictionary to place order.
         """
+        # TODO - call order with order price and time?
         pass
         
     

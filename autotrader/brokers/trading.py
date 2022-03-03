@@ -38,15 +38,15 @@ class Order:
         for item in kwargs:
             setattr(self, item, kwargs[item])
         
-        # Inferable attributes
-        if self.order_price is not None:
-            self._infer_attributes(self.order_price)
-            
+        # Enforce stop type
+        if self.stop_loss is not None:
+            self.stop_type = self.stop_type if self.stop_type is \
+                not None else 'limit'
+                
         # Meta-data
         self.order_id = None
         self.submitted = False
         self.filled = False
-        self.active = False
         self.status = None
     
     
@@ -67,63 +67,84 @@ class Order:
         return 'AutoTrader Order'
     
     
-    def _infer_attributes(self, order_price: float, order_time: datetime, 
-                          broker, HCF: float = 1, risk_pc: float = 0,
-                          sizing: str | float = 'risk') -> None:
-        """Infers unassigned attributes.
-        """
-        
-        # Assign attributes
-        self.HCF = HCF
+    def __call__(self, broker, order_price, 
+                 order_time: datetime = datetime.now()) -> None:
         self.order_price = order_price
         self.order_time = order_time
         
-        # Define 'working_price' to calculate size and TP
-        if self.order_type == 'limit' or self.order_type == 'stop-limit':
-            working_price = self.order_limit_price
-        else:
-            working_price = order_price
+        self._set_working_price()
+        self._calculate_exit_prices(broker)
+        self._calculate_position_size(broker)
         
-        # Calculate stop loss price
+        
+    def _set_working_price(self, order_price: float = None) -> None:
+        """Sets the Orders' working price, for calculating exit targets.
+
+        Parameters
+        ----------
+        order_price : float, optional
+            The order price.
+
+        Returns
+        -------
+        None
+            The working price will be saved as a class attribute.
+        """
+        order_price = order_price if order_price is not None \
+            else self.order_price
+        if self.order_type == 'limit' or self.order_type == 'stop-limit':
+            self._working_price = self.order_limit_price
+        else:
+            self._working_price = order_price
+        
+    
+    def _calculate_exit_prices(self, broker, working_price: float = None) -> None:
+        
+        working_price = working_price if working_price is not None \
+            else self._working_price
+            
         pip_value = broker.utils.get_pip_ratio(self.instrument)
+
+        # Calculate stop loss price
         if not self.stop_loss and self.stop_distance:
             # Stop loss provided as pip distance, convert to price
             self.stop_loss = working_price - np.sign(self.direction)*\
                 self.stop_distance*pip_value
         
-        # Set stop type
-        if self.stop_loss is not None:
-            self.stop_type = self.stop_type if self.stop_type is \
-                not None else 'limit'
-
         # Calculate take profit price
         if not self.take_profit and self.take_distance:
             # Take profit pip distance specified, convert to price
             self.take_profit = working_price + np.sign(self.direction)*\
                 self.take_distance*pip_value
-        else:
-            # Take profit price specified, or no take profit specified at all
-            self.take_profit = self.take_profit
         
-        # Calculate size
-        amount_risked = broker.get_balance() * risk_pc / 100
-        if self.size:
-            # Size provided
-            size = self.size
-        else:
+
+    def _calculate_position_size(self, broker, working_price: float = None, 
+                                 HCF: float = 1, risk_pc: float = 0,
+                                 sizing: str | float = 'risk') -> None:
+        
+        working_price = working_price if working_price is not None \
+            else self._working_price
+        
+        if not self.size:
+            amount_risked = broker.get_NAV() * risk_pc / 100
             # Size not provided, need to calculate it
-            if self._strategy_params['sizing'] == 'risk':
+            if sizing == 'risk':
                 size = broker.utils.get_size(self.instrument, amount_risked, 
                                              working_price, self.stop_loss, 
                                              HCF, self.stop_distance)
-            # ~ OTHER SIZING METHODS GO HERE ~
-                
-        # Vectorise and save size
-        self.size = self.direction * size
-
+            else:
+                self.size = sizing
+            
+            # Vectorise and save size
+            self.size = self.direction * size
+    
+    
+    def _check_precision(self,):
+        pass
+    
 
     @classmethod
-    def from_dict(cls, order_dict: dict) -> Order:
+    def _from_dict(cls, order_dict: dict) -> Order:
         return Order(**order_dict)
 
 
@@ -155,4 +176,4 @@ class Trade(Order):
 if __name__ == '__main__':
     order_signal_dict = {'instrument': 'EUR_USD','order_type': 'market', 
                          'direction': 1, 'stop_loss': 1.22342}
-    o = Order.from_dict(order_signal_dict)
+    o = Order._from_dict(order_signal_dict)
