@@ -184,11 +184,6 @@ class Trade(Order):
     """
     def __init__(self, order: Order = None) -> Trade:
         
-        # Inherit order attributes
-        if order:
-            self._inheret_order(order)
-            order.status = 'filled'
-        
         # Trade data
         self.unrealised_PL = None
         self.margin_required = None
@@ -205,9 +200,16 @@ class Trade(Order):
         self.fees = None
         
         # Meta data
-        self.parent_id = None
-        self.trade_id = None # TODO - order.id, trade.order_id + trade.id
-        self.status = None # options: open -> closed | (partially closed?)
+        self.parent_id = None # ID of order which spawned trade
+        self.id = None # TODO - order.id, trade.order_id + trade.id
+        self.status = None # options: open -> closed
+        self.split = False
+        
+        # Inherit order attributes
+        if order:
+            self._inheret_order(order)
+            order.status = 'filled'
+            self.parent_id = order.order_id
         
     
     def __repr__(self):
@@ -240,6 +242,9 @@ class Trade(Order):
         # Transfer units
         split_trade.size = split_units
         trade.size -= split_units
+        
+        # Mark original trade as split
+        trade.split = True
         
         return split_trade
 
