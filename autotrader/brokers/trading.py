@@ -177,13 +177,17 @@ class Order:
 
 class Trade(Order):
     """AutoTrader Trade.
+    
+    Notes
+    -----
+    When a trade is created from an Order, the Order will be marked as filled.
     """
     def __init__(self, order: Order = None) -> Trade:
         
         # Inherit order attributes
         if order:
             self._inheret_order(order)
-            order.filled = True
+            order.status = 'filled'
         
         # Trade data
         self.unrealised_PL = None
