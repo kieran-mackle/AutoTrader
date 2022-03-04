@@ -283,12 +283,10 @@ class Broker:
         return self.margin_available
     
     
-    def _open_position(self, order_id: int, candle: pd.core.series.Series, 
+    def _fill_order(self, order_id: int, candle: pd.core.series.Series, 
                        limit_price: float = None) -> None:
-        """Fills a pending order.
+        """Fills an open order.
         """
-        # TODO - rename to fill order or similar
-        
         order = self.orders[order_id]
         
         # Calculate margin requirements
@@ -343,7 +341,7 @@ class Broker:
                 # if candle.name > order.order_time:
                 if order.order_type == 'market':
                     # Market order type - proceed to fill
-                    self._open_position(order_id, candle)
+                    self._fill_order(order_id, candle)
                 
                 elif order.order_type == 'stop-limit':
                     # Check if order_stop_price has been reached yet
@@ -369,12 +367,12 @@ class Broker:
                     # Limit order type
                     if order.size > 0:
                         if candle.Low < order.order_limit_price:
-                            self._open_position(order_id, candle, 
-                                                order.order_limit_price)
+                            self._fill_order(order_id, candle, 
+                                             order.order_limit_price)
                     else:
                         if candle.High > order.order_limit_price:
-                            self._open_position(order_id, candle, 
-                                                order.order_limit_price)
+                            self._fill_order(order_id, candle, 
+                                             order.order_limit_price)
                 
         # Update open trades
         unrealised_PL = 0 # Un-leveraged value
