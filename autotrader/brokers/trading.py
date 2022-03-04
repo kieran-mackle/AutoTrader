@@ -49,7 +49,7 @@ class Order:
                 not None else 'limit'
                 
         # Meta-data
-        self.order_id = None
+        self.id = None
         self.status = None      # options: pending -> open -> cancelled | filled # What is pending vs open?
     
     
