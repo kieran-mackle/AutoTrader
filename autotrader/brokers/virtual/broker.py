@@ -112,6 +112,7 @@ class Broker:
         self.orders[order.order_id] = order
         
         # Update last order ID
+        # TODO - create method like trade ID
         self.last_order_id = order.order_id
     
     
@@ -153,14 +154,14 @@ class Broker:
                 # Single instrument provided, put into list
                 instruments = [instruments]
                 
-            for order_no, trade in self.trades.items():
+            for trade_id, trade in self.trades.items():
                 if trade.instrument in instruments and trade.status == 'open':
-                    open_trades[order_no] = trade
+                    open_trades[trade_id] = trade
         else:
             # Return all currently open positions
-            for order_no, trade in self.trades.items():
+            for trade_id, trade in self.trades.items():
                 if trade.status == 'open':
-                    open_trades[order_no] = trade
+                    open_trades[trade_id] = trade
         
         return open_trades
     
@@ -383,7 +384,7 @@ class Broker:
                 
         # Update open trades
         unrealised_PL = 0 # Un-leveraged value
-        for order_no, trade in self.trades.items():
+        for trade_id, trade in self.trades.items():
             if trade.instrument == instrument and trade.status == 'open':
                 # Update stop losses
                 if trade.stop_type == 'trailing':
@@ -402,14 +403,14 @@ class Broker:
                         # long position, stop loss only moves up
                         new_stop = candle.High - distance
                         if new_stop > trade.stop_loss:
-                            self._update_stop_loss(order_no, new_stop, 
+                            self._update_stop_loss(trade_id, new_stop, 
                                                    new_stop_type='trailing')
                         
                     else:
                         # short position, stop loss only moves down
                         new_stop = candle.Low + distance
                         if new_stop < trade.stop_loss:
-                            self._update_stop_loss(order_no, new_stop, 
+                            self._update_stop_loss(trade_id, new_stop, 
                                                    new_stop_type='trailing')
                 
                 # Update trades
@@ -421,14 +422,14 @@ class Broker:
                         self._close_position(trade.instrument, 
                                             candle, 
                                             trade.stop_loss,
-                                            order_no)
+                                            trade_id)
                     elif trade.take_profit and \
                         candle.High > trade.take_profit:
                         # Take Profit hit
                         self._close_position(trade.instrument, 
                                             candle, 
                                             trade.take_profit,
-                                            order_no)
+                                            trade_id)
                     else:
                         # Position is still open, update value of holding
                         size        = trade.size
@@ -449,12 +450,12 @@ class Broker:
                         candle.High > trade.stop_loss:
                         # Stop loss hit
                         self._close_position(trade.instrument, candle, 
-                                            trade.stop_loss, order_no)
+                                            trade.stop_loss, trade_id)
                     elif trade.take_profit is not None and \
                         candle.Low < trade.take_profit:
                         # Take Profit hit
                         self._close_position(trade.instrument, candle, 
-                                             trade.take_profit, order_no)
+                                             trade.take_profit, trade_id)
                     else:
                         # Position is still open, update value of holding
                         size        = trade.size
@@ -495,13 +496,13 @@ class Broker:
                                       candle=candle)
     
     
-    def _close_trade(self, order_no: int = None, exit_price: float = None,
+    def _close_trade(self, trade_id: int = None, exit_price: float = None,
                      candle: pd.core.series.Series = None) -> None:
         """Closes trade by order number.
 
         Parameters
         ----------
-        order_no : int, optional
+        trade_id : int, optional
             The trade id. The default is None.
         exit_price : float, optional
             The trade exit price. The default is None.
@@ -513,7 +514,7 @@ class Broker:
         None
             The trade will be marked as closed.
         """
-        trade = self.trades[order_no]
+        trade = self.trades[trade_id]
         entry_price = trade.entry_price
         size = trade.size
         HCF = trade.HCF
@@ -523,7 +524,7 @@ class Broker:
         
         # Update portfolio with profit/loss
         gross_PL = size*(exit_price - entry_price)*HCF
-        commission = self._calculate_commissions(order_no, exit_price, size)
+        commission = self._calculate_commissions(trade_id, exit_price, size)
         net_profit = gross_PL - commission
         
         if net_profit > 0:
@@ -567,33 +568,33 @@ class Broker:
         # Modify existing trades until there are no more units to reduce
         units_to_reduce = reduction_size
         while units_to_reduce > 0:
-            for order_no, trade in open_trades:
+            for trade_id, trade in open_trades:
                 if trade.direction != reduction_direction:
                     # Only reduce long trades when reduction direction is -1
                     # Only reduce short trades when reduction direction is 1
                     if units_to_reduce > trade.size:
                         # Entire trade must be closed
                         last_price = trade.last_price
-                        self._close_trade(order_no=order_no, exit_price=last_price)
+                        self._close_trade(order_no=trade_id, exit_price=last_price)
                         
                         # Update units_to_reduce
                         units_to_reduce -= abs(trade.size)
                         
                     else:
                         # Partially close trade
-                        self._partial_trade_close(order_no, units_to_reduce)
+                        self._partial_trade_close(trade_id, units_to_reduce)
                         
                         # Update units_to_reduce
                         units_to_reduce = 0
                     
     
-    def _partial_trade_close(self, trade_ID: int, units: float) -> None:
+    def _partial_trade_close(self, trade_id: int, units: float) -> None:
         """Partially closes a trade.
         
         The original trade ID remains, but the trade size may be reduced. The
         portion that gets closed is assigned a new ID.
         """
-        trade = self.trades[trade_ID]
+        trade = self.trades[trade_id]
         
         # Create new trade for reduced amount
         partial_trade = Trade._split(trade, units)
@@ -605,21 +606,21 @@ class Broker:
         self._close_trade(partial_trade_id)
         
     
-    def _calculate_commissions(self, order_no: int, exit_price: float, 
+    def _calculate_commissions(self, trade_id: int, exit_price: float, 
                                units: float = None) -> float:
         """Calculates trade commissions.
         """
         if self.commission_scheme == 'percentage':
-            entry_price = self.trades[order_no].entry_price
-            size = self.trades[order_no].size if units is None else units
-            HCF = self.trades[order_no].HCF
+            entry_price = self.trades[trade_id].entry_price
+            size = self.trades[trade_id].size if units is None else units
+            HCF = self.trades[trade_id].HCF
             
             open_trade_value = abs(size)*entry_price*HCF
             close_trade_value = abs(size)*exit_price*HCF
             commission  = (self.commission/100) * (open_trade_value + close_trade_value)
         
         elif self.commission_scheme == 'fixed':
-            size = self.trades[order_no].size if units is None else units
+            size = self.trades[trade_id].size if units is None else units
             commission = self.commission * size
             
         return commission
@@ -655,7 +656,7 @@ class Broker:
         """Updates margin available in account.
         """        
         margin_used = 0
-        for order_no, trade in self.trades.items():
+        for trade_id, trade in self.trades.items():
             if trade.status == 'open':
                 size = trade.size
                 HCF = trade.HCF
