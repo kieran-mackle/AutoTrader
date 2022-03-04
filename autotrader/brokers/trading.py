@@ -63,14 +63,32 @@ class Order:
         return 'AutoTrader Order'
     
     
-    def __call__(self, broker, order_price, order_time: datetime = datetime.now(), 
+    def __call__(self, broker = None, order_price: float = None, 
+                 order_time: datetime = datetime.now(), 
                  HCF: float = 1) -> None:
-        # TODO - when is this being called?
+        """Order object, called to initialise prior to submission to broker.
+
+        Parameters
+        ----------
+        broker : TYPE, optional
+            DESCRIPTION. The default is None.
+        order_price : float, optional
+            DESCRIPTION. The default is None.
+        order_time : datetime, optional
+            DESCRIPTION. The default is datetime.now().
+        HCF : float, optional
+            DESCRIPTION. The default is 1.
+
+        Returns
+        -------
+        None
+            DESCRIPTION.
+        """
         # TODO - will other brokers be able to function with the methods called below?
         # Update broker template with requirements
-        self.order_price = order_price
-        self.order_time = order_time
-        self.HCF = HCF
+        self.order_price = order_price if order_price else self.order_price
+        self.order_time = order_time if order_time else self.order_time
+        self.HCF = HCF if HCF else self.HCF
         
         self._set_working_price()
         self._calculate_exit_prices(broker)
@@ -101,7 +119,8 @@ class Order:
             self._working_price = order_price
         
     
-    def _calculate_exit_prices(self, broker, working_price: float = None) -> None:
+    def _calculate_exit_prices(self, broker = None, 
+                               working_price: float = None) -> None:
         
         # TODO - avoid requiring broker - some might locally allow passing eg. 
         # pip distance SL, in which case, it does not need to be converted here, 
@@ -126,8 +145,9 @@ class Order:
 
     def _calculate_position_size(self, broker, working_price: float = None, 
                                  HCF: float = 1, risk_pc: float = 0,
-                                 sizing: str | float = 'risk') -> None:
-        
+                                 sizing: str | float = 'risk', 
+                                 amount_risked: float = None) -> None:
+        # TODO - handle broker = None. Also how would amount_risked get passed in? 
         working_price = working_price if working_price is not None \
             else self._working_price
         HCF = self.HCF if self.HCF is not None \
@@ -138,7 +158,8 @@ class Order:
             else risk_pc
         
         if not self.size:
-            amount_risked = broker.get_NAV() * risk_pc / 100
+            amount_risked = amount_risked if amount_risked else \
+                broker.get_NAV() * risk_pc / 100
             # Size not provided, need to calculate it
             if sizing == 'risk':
                 size = broker.utils.get_size(self.instrument, amount_risked, 

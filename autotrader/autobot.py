@@ -747,6 +747,8 @@ class AutoTraderBot:
         types. If an order with no order type is provided, it will be ignored.
         """
         
+        # TODO - option to provide order_price here, from data feed rather
+        # than broker
         def check_type(orders):
             checked_orders = []
             if isinstance(orders, dict):
