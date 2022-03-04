@@ -22,8 +22,11 @@
   `get_open_positions` to `get_positions`.
 - Broker public method deleted: `get_cancelled_orders` - functionality 
   available using `get_orders` method with `order_status = 'cancelled'`.
+- To facilitate strategies built with prior autotrader versions, the previous 
+  format of signal dictionaries from strategy modules is still supported. 
+  Support for this format will be phased out in favour of the new `Order` and
+  `Trade` objects (found in `autotrader.brokers.trading` module). 
 
-  
   
 
 ## Version 0.5.0
