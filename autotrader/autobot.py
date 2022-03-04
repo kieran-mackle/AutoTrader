@@ -648,9 +648,9 @@ class AutoTraderBot:
         self._latest_orders = []
         
         if self._scan_mode:
-            open_positions      = None
+            open_positions = None
         else:
-            open_positions      = self._broker.get_open_positions(self.instrument)
+            open_positions = self._broker.get_positions(self.instrument)
         
         # Run strategy to get signals
         signal_dict = self._strategy.generate_signal(i, open_positions)

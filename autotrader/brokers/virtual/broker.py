@@ -97,7 +97,7 @@ class Broker:
         if invalid_order:
             if self.verbosity > 0:
                 print(f"  Order {order.id} rejected.\n")
-            self.cancel_pending_order(order.id, reason)
+            self.cancel_order(order.id, reason)
         else:
             immediate_orders = ['close', 'reduce']
             status = 'open' if order.order_type in immediate_orders else 'pending'
@@ -107,27 +107,25 @@ class Broker:
         self.orders[order.id] = order
         
     
-    def get_pending_orders(self, instrument: str = None, 
-                           order_status: str = 'open') -> dict:
-        """Returns pending (actually open) orders.
+    def get_orders(self, instrument: str = None, 
+                   order_status: str = 'open') -> dict:
+        """Returns orders.
         """
-        # TODO - name change (to get_orders)? Document...
-        pending_orders = {}
+        orders = {}
         if instrument:
             for order_id, order in self.orders.items():
                 if order.instrument == instrument and order.status == order_status:
-                    pending_orders[order_id] = order
+                    orders[order_id] = order
         else:
             for order_id, order in self.orders:
                 if order.status == order_status:
-                    pending_orders[order_id] = order
-        return pending_orders
+                    orders[order_id] = order
+        return orders
     
     
-    def cancel_pending_order(self, order_id: int, reason: str = None) -> None:
+    def cancel_order(self, order_id: int, reason: str = None) -> None:
         """Changes the status of an order to cancelled.
         """
-        # TODO - name change (to cancel_order)? Document...
         self.orders[order_id].reason = reason
         self.orders[order_id].status = 'cancelled'
         
@@ -135,7 +133,8 @@ class Broker:
             print(reason)
     
     
-    def get_open_trades(self, instruments: str | list = None) -> dict:
+    def get_trades(self, instruments: str | list = None,
+                   trade_status: str = 'open') -> dict:
         """Returns open trades for the specified instrument.
         """
         open_trades = {}
@@ -146,12 +145,12 @@ class Broker:
                 instruments = [instruments]
                 
             for trade_id, trade in self.trades.items():
-                if trade.instrument in instruments and trade.status == 'open':
+                if trade.instrument in instruments and trade.status == trade_status:
                     open_trades[trade_id] = trade
         else:
             # Return all currently open positions
             for trade_id, trade in self.trades.items():
-                if trade.status == 'open':
+                if trade.status == trade_status:
                     open_trades[trade_id] = trade
         
         return open_trades
@@ -163,7 +162,7 @@ class Broker:
         return self.trades[trade_ID]
     
     
-    def get_open_positions(self, instruments: str = None) -> dict:
+    def get_positions(self, instruments: str = None) -> dict:
         """Returns the open positions (including all open trades) in the account.
         """
         if instruments:
@@ -180,7 +179,7 @@ class Broker:
         open_positions = {}
         for instrument in instruments:
             # First get open trades
-            open_trades = self.get_open_trades(instrument)
+            open_trades = self.get_trades(instrument)
             
             if len(open_trades) > 0:
                 # Trades exist for current instrument, collate
@@ -222,22 +221,6 @@ class Broker:
                 open_positions[instrument] = instrument_position
                         
         return open_positions
-    
-    
-    def get_cancelled_orders(self, instrument = None) -> dict:
-        """Returns cancelled orders.
-        """
-        cancelled_orders = {}
-        if instrument:
-            for order_id, order in self.orders.items():
-                if order.instrument == instrument and order.status == 'cancelled':
-                    cancelled_orders[order_id] = order
-        else:
-            for order_id, order in self.orders.items():
-                if order.status == 'cancelled':
-                    cancelled_orders[order_id] = order
-        
-        return cancelled_orders
     
     
     def get_price(self, instrument: str, data: pd.core.series.Series = None, 
@@ -318,7 +301,7 @@ class Broker:
         else:
             # Cancel order
             cancel_reason = "Insufficient margin to fill order."
-            self.cancel_pending_order(order_id, cancel_reason)
+            self.cancel_order(order_id, cancel_reason)
     
     
     def _update_positions(self, candle: pd.core.series.Series, 
@@ -326,7 +309,7 @@ class Broker:
         """Updates orders and open positions based on current candle.
         """
         # Open pending orders
-        pending_orders = self.get_pending_orders(instrument, 'pending')
+        pending_orders = self.get_orders(instrument, 'pending')
         for order_id, order in pending_orders.items():
             if candle.name > order.order_time:
                 order.status = 'open'
@@ -550,7 +533,7 @@ class Broker:
         reduction_direction = order.direction
         
         # Get open trades for instrument
-        open_trades = self.get_open_trades(instrument)
+        open_trades = self.get_trades(instrument)
         # open_trade_IDs = list(open_trades.keys())
         
         # Modify existing trades until there are no more units to reduce

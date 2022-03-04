@@ -821,8 +821,8 @@ class AutoTrader:
             backtest_results['all_trades']['total_fees']    = total_fees
             
         # Cancelled and open orders
-        cancelled_orders = self._broker.get_cancelled_orders(instrument)
-        open_trades      = self._broker.get_open_positions(instrument)
+        cancelled_orders = self._broker.get_orders(instrument, 'cancelled')
+        open_trades = self._broker.get_positions(instrument)
         backtest_results['no_open'] = len(open_trades)
         backtest_results['no_cancelled'] = len(cancelled_orders)
         

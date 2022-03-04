@@ -17,7 +17,14 @@
   docstrings).
 - AutoTrader method `add_strategy` now accepts strategy classes as input 
   argument, to directly provide strategy class objects.
+- Broker public method name changes: `cancel_pending_order` to `cancel_order`,
+  `get_pending_orders` to `get_orders`, `get_open_trades` to `get_trades`,
+  `get_open_positions` to `get_positions`.
+- Broker public method deleted: `get_cancelled_orders` - functionality 
+  available using `get_orders` method with `order_status = 'cancelled'`.
 
+  
+  
 
 ## Version 0.5.0
 Breaking change:
