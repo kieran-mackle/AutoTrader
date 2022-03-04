@@ -335,7 +335,6 @@ class Broker:
         for order_id, order in self.orders.items():
             # Filter orders by instrument type since candle is instrument specific
             if order.instrument == instrument and order.status == 'open':
-                # if candle.name > order.order_time:
                 if order.order_type == 'market':
                     # Market order type - proceed to fill
                     self._fill_order(order_id, candle)
@@ -354,8 +353,10 @@ class Broker:
                     related_order = order.related_orders
                     self._close_position(order.instrument, candle, 
                                          candle.Close, trade_id = related_order)
+                    order.status = 'closed'
                 elif order.order_type == 'reduce':
                     self._reduce_position(order)
+                    order.status = 'closed'
                     
                 # Check for limit orders
                 if order.order_type == 'limit':
