@@ -710,7 +710,7 @@ class AutoTraderBot:
             scan_details    = {'index'      : self._scan_index,
                                'strategy'   : self._strategy.name,
                                'timeframe'  : self._strategy_params['granularity']
-                                }
+                               }
             
             # Report AutoScan results
             # Scan reporting with no emailing requested.
@@ -820,29 +820,28 @@ class AutoTraderBot:
             size = order_signal_dict['size']
         else:
             if self._strategy_params['sizing'] == 'risk':
-                size            = self._broker_utils.get_size(instrument,
-                                                 amount_risked, 
-                                                 working_price, 
-                                                 stop_price, 
-                                                 HCF,
-                                                 stop_distance)
+                size = self._broker_utils.get_size(instrument, amount_risked, 
+                                                   working_price, stop_price, 
+                                                   HCF, stop_distance)
             else:
                 size = self._strategy_params['sizing']
         
         # Construct order dict by building on signal_dict
-        order_details                   = order_signal_dict
-        order_details["order_time"]     = datetime_stamp # TODO - need to think how this can be added to order ...
-        order_details["strategy"]       = self._strategy.name
-        order_details["instrument"]     = order_signal_dict['instrument'] if 'instrument' in order_signal_dict else instrument
-        order_details["size"]           = signal*size
-        order_details["order_price"]    = order_price
-        order_details["HCF"]            = HCF
-        order_details["granularity"]    = self._strategy_params['granularity']
-        order_details["stop_distance"]  = stop_distance
-        order_details["stop_loss"]      = stop_price
-        order_details["take_profit"]    = take_profit
-        order_details["stop_type"]      = stop_type
-        order_details["related_orders"] = order_signal_dict['related_orders'] if 'related_orders' in order_signal_dict else None
+        order_details = order_signal_dict
+        order_details["order_time"] = datetime_stamp # TODO - need to think how this can be added to order ...
+        order_details["strategy"] = self._strategy.name
+        order_details["instrument"] = order_signal_dict['instrument'] \
+            if 'instrument' in order_signal_dict else instrument
+        order_details["size"] = signal*size
+        order_details["order_price"] = order_price
+        order_details["HCF"] = HCF
+        order_details["granularity"] = self._strategy_params['granularity']
+        order_details["stop_distance"] = stop_distance
+        order_details["stop_loss"] = stop_price
+        order_details["take_profit"] = take_profit
+        order_details["stop_type"] = stop_type
+        order_details["related_orders"] = order_signal_dict['related_orders'] \
+            if 'related_orders' in order_signal_dict else None
         
         # Convert to Order object
         # TODO - make default 
