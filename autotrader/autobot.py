@@ -56,9 +56,9 @@ class AutoTraderBot:
         interval = strategy_config["INTERVAL"]
         period = strategy_config["PERIOD"]
         risk_pc = strategy_config["RISK_PC"] if 'RISK_PC' in strategy_config \
-            else 0
+            else None
         sizing = strategy_config["SIZING"] if 'SIZING' in strategy_config \
-            else 0
+            else None
         params = strategy_config["PARAMETERS"]
         strategy_params = params
         strategy_params['granularity'] = strategy_params['granularity'] \
@@ -653,6 +653,9 @@ class AutoTraderBot:
             open_positions = self._broker.get_positions(self.instrument)
         
         # Run strategy to get signals
+        # orders = self._strategy.generate_signal(i, open_positions) # TODO - parameterise signal method name
+        # order_dict = self._check_orders(orders)
+        
         signal_dict = self._strategy.generate_signal(i, open_positions)
         
         if 0 not in signal_dict:
@@ -746,6 +749,26 @@ class AutoTraderBot:
                                                self._email_params['host_email'])
                     
     
+    def _check_orders(self, orders) -> dict:
+        """Checks that orders returned from strategy are in the correct
+        format.
+        """
+        if isinstance(orders, dict):
+            # Orders provided in dictionary
+            # Might be multiple orders, might be a single dict order
+            # Convert to Order objects
+            
+            pass
+        elif isinstance(orders, Order):
+            # Order object directly returned
+            # Perform any required checks before submitting to broker
+            pass
+        elif isinstance(orders, list):
+            # Perhaps a list of orders?
+            # Check length of list, if > 0, check that all items are Order objects
+            pass
+        
+    
     def _update_backtest(self, i: int) -> None:
         """Updates virtual broker with latest price data for backtesting.
         """
@@ -760,107 +783,113 @@ class AutoTraderBot:
         """
         signal = order_signal_dict["direction"]
         
-        # Entry signal detected, get price data
-        price_data = self._broker.get_price(instrument=instrument, 
-                                            data=data, 
-                                            conversion_data=quote_data, 
-                                            i=i)
-        datetime_stamp = data.index[i]
+        # # Entry signal detected, get price data
+        # price_data = self._broker.get_price(instrument=instrument, 
+        #                                     data=data, 
+        #                                     conversion_data=quote_data, 
+        #                                     i=i)
+        # datetime_stamp = data.index[i]
         
-        if signal < 0:
-            order_price = price_data['bid']
-            HCF = price_data['negativeHCF']
-        else:
-            order_price = price_data['ask']
-            HCF = price_data['positiveHCF']
+        # if signal < 0:
+        #     order_price = price_data['bid']
+        #     HCF = price_data['negativeHCF']
+        # else:
+        #     order_price = price_data['ask']
+        #     HCF = price_data['positiveHCF']
         
         
-        # Define 'working_price' to calculate size and TP
-        if order_signal_dict["order_type"] == 'limit' or order_signal_dict["order_type"] == 'stop-limit':
-            working_price = order_signal_dict["order_limit_price"]
-        else:
-            working_price = order_price
+        # # Define 'working_price' to calculate size and TP
+        # if order_signal_dict["order_type"] == 'limit' or order_signal_dict["order_type"] == 'stop-limit':
+        #     working_price = order_signal_dict["order_limit_price"]
+        # else:
+        #     working_price = order_price
         
         # Calculate exit levels
         pip_value = self._broker_utils.get_pip_ratio(instrument)
         stop_distance = order_signal_dict['stop_distance'] if 'stop_distance' in order_signal_dict else None
         
-        # Calculate stop loss price
-        if 'stop_loss' not in order_signal_dict and \
-            'stop_distance' in order_signal_dict and \
-            order_signal_dict['stop_distance'] is not None:
-            # Stop loss provided as pip distance, convert to price
-            stop_price = working_price - np.sign(signal)*stop_distance*pip_value
-        else:
-            # Stop loss provided as price
-            stop_price = order_signal_dict['stop_loss'] if 'stop_loss' in order_signal_dict else None
+        # # Calculate stop loss price
+        # if 'stop_loss' not in order_signal_dict and \
+        #     'stop_distance' in order_signal_dict and \
+        #     order_signal_dict['stop_distance'] is not None:
+        #     # Stop loss provided as pip distance, convert to price
+        #     stop_price = working_price - np.sign(signal)*stop_distance*pip_value
+        # else:
+        #     # Stop loss provided as price
+        #     stop_price = order_signal_dict['stop_loss'] if 'stop_loss' in order_signal_dict else None
         
-        # Set stop type
-        if stop_price is not None:
-            stop_type = order_signal_dict['stop_type'] if 'stop_type' in order_signal_dict else 'limit'
-        else:
-            # No stop loss specified 
-            stop_type = None
+        # # Set stop type
+        # if stop_price is not None:
+        #     stop_type = order_signal_dict['stop_type'] if 'stop_type' in order_signal_dict else 'limit'
+        # else:
+        #     # No stop loss specified 
+        #     stop_type = None
             
-        # Calculate take profit price
-        if 'take_profit' not in order_signal_dict and \
-            'take_distance' in order_signal_dict and \
-            order_signal_dict['take_distance'] is not None:
-            # Take profit distance specified
-            take_profit = working_price + np.sign(signal)*order_signal_dict['take_distance']*pip_value
-        else:
-            # Take profit price specified, or no take profit specified at all
-            take_profit = order_signal_dict["take_profit"] if 'take_profit' in order_signal_dict else None
+        # # Calculate take profit price
+        # if 'take_profit' not in order_signal_dict and \
+        #     'take_distance' in order_signal_dict and \
+        #     order_signal_dict['take_distance'] is not None:
+        #     # Take profit distance specified
+        #     take_profit = working_price + np.sign(signal)*order_signal_dict['take_distance']*pip_value
+        # else:
+        #     # Take profit price specified, or no take profit specified at all
+        #     take_profit = order_signal_dict["take_profit"] if 'take_profit' in order_signal_dict else None
         
         # Calculate risked amount
-        amount_risked = self._broker.get_balance() * self._strategy_params['risk_pc'] / 100
+        # amount_risked = self._broker.get_balance() * self._strategy_params['risk_pc'] / 100
         
         # Calculate size
-        if 'size' in order_signal_dict:
-            size = order_signal_dict['size']
-        else:
-            if self._strategy_params['sizing'] == 'risk':
-                size = self._broker_utils.get_size(instrument, amount_risked, 
-                                                   working_price, stop_price, 
-                                                   HCF, stop_distance)
-            else:
-                size = self._strategy_params['sizing']
+        # if 'size' in order_signal_dict:
+        #     size = order_signal_dict['size']
+        # else:
+        #     if self._strategy_params['sizing'] == 'risk':
+        #         size = self._broker_utils.get_size(instrument, amount_risked, 
+        #                                            working_price, stop_price, 
+        #                                            HCF, stop_distance)
+        #     else:
+        #         size = self._strategy_params['sizing']
         
         # Construct order dict by building on signal_dict
         order_details = order_signal_dict
-        order_details["order_time"] = datetime_stamp # TODO - need to think how this can be added to order ...
+        # order_details["order_time"] = datetime_stamp # TODO - need to think how this can be added to order ...
         order_details["strategy"] = self._strategy.name
         order_details["instrument"] = order_signal_dict['instrument'] \
             if 'instrument' in order_signal_dict else instrument
-        order_details["size"] = signal*size
-        order_details["order_price"] = order_price
-        order_details["HCF"] = HCF
+        # order_details["size"] = signal*size
+        # order_details["order_price"] = order_price
+        # order_details["HCF"] = HCF
         order_details["granularity"] = self._strategy_params['granularity']
         order_details["stop_distance"] = stop_distance
-        order_details["stop_loss"] = stop_price
-        order_details["take_profit"] = take_profit
-        order_details["stop_type"] = stop_type
+        # order_details["stop_loss"] = stop_price
+        # order_details["take_profit"] = take_profit
+        # order_details["stop_type"] = stop_type
         order_details["related_orders"] = order_signal_dict['related_orders'] \
             if 'related_orders' in order_signal_dict else None
         
         # Convert to Order object
         # TODO - make default 
         order = Order._from_dict(order_details)
+        order._sizing = self._strategy_params['sizing']
+        order._risk_pc = self._strategy_params['risk_pc']
         
         # Place order
+        # TODO - This should all be moved into _update
         if self._scan_mode:
             # Bot is scanning
-            scan_hit = {"size"  : size,
-                        "entry" : order_price,
-                        "stop"  : stop_price,
-                        "take"  : take_profit,
-                        "signal": signal
-                        }
-            self._scan_results[instrument] = scan_hit
+            # TODO - fix
+            # scan_hit = {"size"  : size,
+            #             "entry" : order_price,
+            #             "stop"  : stop_price,
+            #             "take"  : take_profit,
+            #             "signal": signal
+            #             }
+            # self._scan_results[instrument] = scan_hit
+            pass
             
         else:
             # Bot is trading
-            self._broker.place_order(order)
+            self._broker.place_order(order, data=self.data, 
+                                     quote_data=self.quote_data, i=i) # TODO - broker.place_oorder must have **kwargs
             self._latest_orders.append(order)
     
     

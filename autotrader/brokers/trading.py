@@ -35,6 +35,8 @@ class Order:
         
         self.strategy = None
         self.granularity = None
+        self._sizing = None
+        self._risk_pc = None
         
         # Unpack kwargs
         for item in kwargs:
@@ -61,11 +63,14 @@ class Order:
         return 'AutoTrader Order'
     
     
-    def __call__(self, broker, order_price, 
-                 order_time: datetime = datetime.now()) -> None:
+    def __call__(self, broker, order_price, order_time: datetime = datetime.now(), 
+                 HCF: float = 1) -> None:
         # TODO - when is this being called?
+        # TODO - will other brokers be able to function with the methods called below?
+        # Update broker template with requirements
         self.order_price = order_price
         self.order_time = order_time
+        self.HCF = HCF
         
         self._set_working_price()
         self._calculate_exit_prices(broker)
@@ -125,6 +130,12 @@ class Order:
         
         working_price = working_price if working_price is not None \
             else self._working_price
+        HCF = self.HCF if self.HCF is not None \
+            else HCF
+        sizing = self._sizing if self._sizing is not None \
+            else sizing 
+        risk_pc = self._risk_pc if self._risk_pc is not None \
+            else risk_pc
         
         if not self.size:
             amount_risked = broker.get_NAV() * risk_pc / 100
@@ -192,7 +203,7 @@ class Trade(Order):
         
         # Meta data
         self.parent_id = None # ID of order which spawned trade
-        self.id = None # TODO - order.id, trade.order_id + trade.id
+        self.id = None 
         self.status = None # options: open -> closed
         self.split = False
         

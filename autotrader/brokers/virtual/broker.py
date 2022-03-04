@@ -1,6 +1,7 @@
 from __future__ import annotations
 import numpy as np
 import pandas as pd
+from datetime import datetime
 from autotrader.brokers.broker_utils import BrokerUtils
 from autotrader.brokers.trading import Order, Trade
 
@@ -58,9 +59,26 @@ class Broker:
         return self.portfolio_balance
     
     
-    def place_order(self, order: Order) -> None:
+    def place_order(self, order: Order, **kwargs) -> None:
         """Place order with broker.
         """
+        # TODO - assign order_time, order_price, HCF
+        price_data = self.get_price(instrument=order.instrument, 
+                                            data=kwargs['data'], 
+                                            conversion_data=kwargs['quote_data'], 
+                                            i=kwargs['i'])
+        datetime_stamp = kwargs['data'].index[kwargs['i']]
+        
+        if order.direction < 0:
+            order_price = price_data['bid']
+            HCF = price_data['negativeHCF']
+        else:
+            order_price = price_data['ask']
+            HCF = price_data['positiveHCF']
+        
+        # TODO assign order_time, order_price, HCF
+        order(self, order_price, datetime_stamp, HCF)
+        
         if order.order_type == 'limit' or order.order_type == 'stop-limit':
             working_price = order.order_limit_price
         else:
@@ -228,6 +246,7 @@ class Broker:
                   i: int = None) -> dict:
         """Returns the price data dict.
         """
+        # TODO - make this method private
         # TODO - where is this method called from? Can it be split to the feed
         # for autodata?
         # TODO - include bid/ask spread here
