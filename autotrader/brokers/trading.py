@@ -49,7 +49,7 @@ class Order:
                 
         # Meta-data
         self.id = None
-        self.status = None      # options: pending -> open -> cancelled | filled # What is pending vs open?
+        self.status = None # options: pending -> open -> cancelled | filled
     
     
     def __repr__(self):

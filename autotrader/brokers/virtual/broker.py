@@ -62,11 +62,11 @@ class Broker:
     def place_order(self, order: Order, **kwargs) -> None:
         """Place order with broker.
         """
-        # TODO - assign order_time, order_price, HCF
-        price_data = self.get_price(instrument=order.instrument, 
-                                            data=kwargs['data'], 
-                                            conversion_data=kwargs['quote_data'], 
-                                            i=kwargs['i'])
+        # Assign order_time, order_price, HCF
+        price_data = self._get_price(instrument=order.instrument, 
+                                     data=kwargs['data'], 
+                                     conversion_data=kwargs['quote_data'], 
+                                     i=kwargs['i'])
         datetime_stamp = kwargs['data'].index[kwargs['i']]
         
         if order.direction < 0:
@@ -76,7 +76,7 @@ class Broker:
             order_price = price_data['ask']
             HCF = price_data['positiveHCF']
         
-        # TODO assign order_time, order_price, HCF
+        # Call order with price and time
         order(self, order_price, datetime_stamp, HCF)
         
         if order.order_type == 'limit' or order.order_type == 'stop-limit':
@@ -241,9 +241,9 @@ class Broker:
         return open_positions
     
     
-    def get_price(self, instrument: str, data: pd.core.series.Series = None, 
-                  conversion_data: pd.core.series.Series = None, 
-                  i: int = None) -> dict:
+    def _get_price(self, instrument: str, data: pd.core.series.Series = None, 
+                   conversion_data: pd.core.series.Series = None, 
+                   i: int = None) -> dict:
         """Returns the price data dict.
         """
         # TODO - make this method private
