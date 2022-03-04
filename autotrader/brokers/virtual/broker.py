@@ -179,17 +179,17 @@ class Broker:
     def get_open_positions(self, instruments: str = None) -> dict:
         """Returns the open positions (including all open trades) in the account.
         """
-        if instruments is None:
-            # No specific instrument requested, get all open
-            instruments = []
-            for order_no in self.trades: 
-                instruments.append(self.trades[order_no].instrument)
-        else:
-            # Non-None input provided, check type
+        if instruments:
+            # instruments provided, check type
             if type(instruments) is str:
                 # Single instrument provided, put into list
                 instruments = [instruments]
-        
+        else:
+            # No specific instrument requested, get all open
+            instruments = []
+            for trade_id, trade in self.trades.items(): 
+                instruments.append(trade.instrument)
+            
         open_positions = {}
         for instrument in instruments:
             # First get open trades
@@ -699,16 +699,17 @@ class Broker:
         """Updates margin available in account.
         """        
         margin_used = 0
-        for order_no in self.trades: # TODO - open trades only
-            size            = self.trades[order_no].size
-            HCF             = self.trades[order_no].HCF
-            last_price      = self.trades[order_no].last_price
-            position_value  = abs(size) * last_price * HCF
-            margin_required = self._calculate_margin(position_value)
-            margin_used += margin_required
-            
-            # Update margin required in trade dict
-            self.trades[order_no].margin_required = margin_required
+        for order_no, trade in self.trades.items():
+            if trade.status == 'open':
+                size = trade.size
+                HCF = trade.HCF
+                last_price = trade.last_price
+                position_value = abs(size) * last_price * HCF
+                margin_required = self._calculate_margin(position_value)
+                margin_used += margin_required
+                
+                # Update margin required in trade dict
+                trade.margin_required = margin_required
         
         self.margin_available = self.portfolio_balance - margin_used
 
