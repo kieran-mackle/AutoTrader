@@ -10,9 +10,6 @@ class Order:
     def __init__(self, instrument: str, direction: int,
                  order_type: str = 'market', **kwargs) -> Order:
         
-        # TODO - remove order prefix from attributes, so its not order.order_type, rather order.type
-        # This will have implications to order_signal_dict keys
-        
         # Required attributes
         self.instrument = instrument
         self.order_type = order_type
@@ -54,14 +51,8 @@ class Order:
     
     
     def __repr__(self):
-        aux_str = ''
-        # if self.submitted:
-        #     aux_str = ' (submitted)'
-        # if self.filled:
-        #     aux_str = ' (filled)'
-        
         if self.size is not None:
-            return f'{round(self.size,3)} unit {self.instrument} {self.order_type} order{aux_str}'
+            return f'{round(self.size,3)} unit {self.instrument} {self.order_type} order'
         else:
             return self.__str__()
         
