@@ -17,7 +17,6 @@ class Broker:
         # TODO - margin calls
         
         # Orders
-        self.last_order_id = 0
         self.orders = {}
         
         # Trades
@@ -98,7 +97,7 @@ class Broker:
             invalid_order = True
         
         # Submit order
-        order.order_id = self.last_order_id + 1
+        order.order_id = self._get_new_order_id()
         if invalid_order:
             if self.verbosity > 0:
                 print(f"  Order {order.order_id} rejected.\n")
@@ -111,10 +110,6 @@ class Broker:
         # Append order to orders 
         self.orders[order.order_id] = order
         
-        # Update last order ID
-        # TODO - create method like trade ID
-        self.last_order_id = order.order_id
-    
     
     def get_pending_orders(self, instrument: str = None, 
                            order_status: str = 'open') -> dict:
@@ -720,6 +715,11 @@ class Broker:
         """
         self.trades[trade_id].take_profit = new_take_profit
         
+    
         
+    def _get_new_order_id(self):
+        return len(self.orders) + 1
+    
+    
     def _get_new_trade_id(self):
         return len(self.trades) + 1
