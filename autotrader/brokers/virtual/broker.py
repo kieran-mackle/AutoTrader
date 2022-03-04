@@ -21,7 +21,6 @@ class Broker:
         self.orders = {}
         
         # Trades
-        self.total_trades = 0 # TODO - rename ? last_trade_id
         self.trades = {}
         
         # Account 
@@ -311,12 +310,17 @@ class Broker:
         if margin_required < self.margin_available:
             # Fill order
             trade = Trade(order)
+            
+            # Trade id
+            trade_id = self._get_new_trade_id()
+            trade.id = trade_id
             trade.time_filled = candle.name
+            
             if limit_price is None:
                 trade.entry_price = candle.Open + spread_shift
             else:
                 trade.entry_price = limit_price + spread_shift
-            self.trades[order_no] = trade
+            self.trades[trade_id] = trade
             
             # Subtract spread cost from account NAV
             self.NAV -= spread_cost
@@ -593,13 +597,12 @@ class Broker:
         
         # Create new trade for reduced amount
         partial_trade = Trade._split(trade, units)
-        partial_trade_close_ID = self.total_trades + 1
-        partial_trade.order_id = partial_trade_close_ID
-        self.trades[partial_trade_close_ID] = partial_trade
-        self.total_trades += 1
+        partial_trade_id = self._get_new_trade_id()
+        partial_trade.id = partial_trade_id
+        self.trades[partial_trade_id] = partial_trade
         
         # Close partial trade
-        self._close_trade(partial_trade_close_ID)
+        self._close_trade(partial_trade_id)
         
     
     def _calculate_commissions(self, order_no: int, exit_price: float, 
@@ -717,3 +720,5 @@ class Broker:
         self.trades[trade_id].take_profit = new_take_profit
         
         
+    def _get_new_trade_id(self):
+        return len(self.trades) + 1
