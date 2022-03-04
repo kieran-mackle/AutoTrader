@@ -1,3 +1,4 @@
+from autotrader.brokers.trading import Order
 from autotrader.brokers.broker_utils import BrokerUtils
 
 """
@@ -50,25 +51,25 @@ class Broker:
         pass
     
     
-    def get_pending_orders(self, symbol: str = None, **kwargs) -> dict:
+    def get_orders(self, symbol: str = None, **kwargs) -> dict:
         """Returns all pending orders (have not been filled) in the account.
         """
         pass
     
     
-    def cancel_pending_order(self, order_id: int, **kwargs) -> None:
-        """Cancels pending order by order ID.
+    def cancel_order(self, order_id: int, **kwargs) -> None:
+        """Cancels order by order ID.
         """
         pass
     
     
-    def get_open_trades(self, symbol: str = None, **kwargs) -> dict:
+    def get_trades(self, symbol: str = None, **kwargs) -> dict:
         """Returns the open trades held by the account. 
         """
         pass
     
     
-    def get_open_positions(self, symbol: str = None, **kwargs) -> dict:
+    def get_positions(self, symbol: str = None, **kwargs) -> dict:
         """Gets the current positions open on the account.
         
         Parameters
@@ -84,11 +85,14 @@ class Broker:
         pass
     
     
-    def place_order(self, order_details: dict, **kwargs) -> None:
+    def place_order(self, order: Order, **kwargs) -> None:
         """Disassemble order_details dictionary to place order.
         """
-        # TODO - call order with order price and time?
-        pass
+        # Call order with price and time to complete missing attributes
+        order_price = 0 # Need to retrieve current price 
+        order(self, order_price)
+        
+        # Submit order to broker
         
     
     # Define here any private methods to support the public methods above

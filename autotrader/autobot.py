@@ -23,30 +23,9 @@ class AutoTraderBot:
                  broker, data_dict: dict, quote_data_dict: dict, 
                  auxdata: dict, autotrader_instance) -> None:
         # Inherit user options from autotrader
-        # TODO - iterate over this
-        self._home_dir = autotrader_instance._home_dir
-        self._scan_mode = autotrader_instance._scan_mode
-        self._scan_index = autotrader_instance._scan_index
+        for attribute, value in autotrader_instance.__dict__.items():
+            setattr(self, attribute, value)
         self._scan_results = {}
-        self._broker_utils = autotrader_instance._broker_utils
-        self._email_params = autotrader_instance._email_params
-        self._notify = autotrader_instance._notify
-        self._verbosity = autotrader_instance._verbosity
-        self._order_summary_fp = autotrader_instance._order_summary_fp
-        self._backtest_mode = autotrader_instance._backtest_mode
-        self._data_start = autotrader_instance._data_start
-        self._data_end = autotrader_instance._data_end
-        self._base_currency = autotrader_instance._backtest_base_currency
-        self._environment = autotrader_instance._environment
-        self._feed = autotrader_instance._feed
-        self._data_file = autotrader_instance._data_file
-        self._MTF_data_files = autotrader_instance._MTF_data_files
-        self._optimise_mode = autotrader_instance._optimise_mode
-        self._check_data_alignment = autotrader_instance._check_data_alignment
-        self._allow_dancing_bears = autotrader_instance._allow_dancing_bears
-        self._use_stream = autotrader_instance._use_stream
-        self._stream_config = autotrader_instance._stream_config
-        self._MTF_initialisation = autotrader_instance._MTF_initialisation
         
         # Assign local attributes
         self.instrument = instrument
@@ -654,7 +633,8 @@ class AutoTraderBot:
             open_positions = self._broker.get_positions(self.instrument)
         
         # Run strategy to get signals
-        strategy_orders = self._strategy.generate_signal(i, open_positions) # TODO - parameterise signal method name
+        # TODO - parameterise signal method name
+        strategy_orders = self._strategy.generate_signal(i, open_positions)
         orders = self._check_orders(strategy_orders)
         
         # Iterate over orders to submit
@@ -672,7 +652,7 @@ class AutoTraderBot:
             else:
                 # Bot is trading
                 self._broker.place_order(order, data=self.data, 
-                                         quote_data=self.quote_data, i=i) # TODO - broker.place_oorder must have **kwargs
+                                         quote_data=self.quote_data, i=i)
                 self._latest_orders.append(order)
         
         if int(self._verbosity) > 1:

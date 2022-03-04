@@ -105,7 +105,7 @@ class AutoTrader:
         self._backtest_spread = None
         self._backtest_commission = None
         self._backtest_leverage = None
-        self._backtest_base_currency = None
+        self._base_currency = None
         
         # Optimisation Parameters
         self._optimise_mode = False
@@ -305,7 +305,7 @@ class AutoTrader:
         self._backtest_spread = spread
         self._backtest_commission = commission
         self._backtest_leverage = leverage
-        self._backtest_base_currency = base_currency
+        self._base_currency = base_currency
         
         # Enforce virtual broker
         self._broker_name = 'virtual'
@@ -1261,7 +1261,7 @@ class AutoTrader:
             broker.leverage = self._backtest_leverage
             broker.commission = self._backtest_commission
             broker.spread = self._backtest_spread
-            broker.base_currency = self._backtest_base_currency
+            broker.base_currency = self._base_currency
         
         self._broker = broker
         self._broker_utils = utils

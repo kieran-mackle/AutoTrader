@@ -1,9 +1,8 @@
 from __future__ import annotations
 import numpy as np
 import pandas as pd
-from datetime import datetime
-from autotrader.brokers.broker_utils import BrokerUtils
 from autotrader.brokers.trading import Order, Trade
+from autotrader.brokers.broker_utils import BrokerUtils
 
 
 class Broker:

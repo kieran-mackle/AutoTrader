@@ -197,7 +197,7 @@ class BrokerUtils:
                       instrument: str = None) -> pd.DataFrame:
         """Creates backtest trade summary dataframe.
         """
-        
+        # TODO - handle empty dicts passed in
         if trades:
             iter_dict = trades
         else:
