@@ -193,146 +193,101 @@ class BrokerUtils:
         return new_df
     
     
-    def trade_summary(self, pair, closed_positions_dict):
+    def trade_summary(self, trades: dict = None, orders: dict = None, 
+                      instrument: str = None) -> pd.DataFrame:
         """Creates backtest trade summary dataframe.
         """
+        
+        if trades:
+            iter_dict = trades
+        else:
+            iter_dict = orders
+        
         product = []
-        order_ID = []
-        times_list  = []
+        status = []
+        ids = []
+        times_list = []
         order_price = []
-        entry_time  = []
-        entry_price = []
-        size        = []
-        stop_price  = []
-        take_price  = []
-        profit      = []
-        portfolio_balance = []
-        exit_times  = []
-        exit_prices = []
-        trade_duration = []
-        fees = []
+        size = []
+        stop_price = []
+        take_price = []
         
-        # TODO - dont filter pair by conditional, rather by indexing after df
-        # TODO - alos Dont need to have cancelled orders separate to other orderds,
-        # and other trades separate... just look at trade.status to include in 
-        # full df, then filter from there
+        if trades:
+            entry_time = []
+            entry_price = []
+            profit = []
+            portfolio_balance = []
+            exit_times = []
+            exit_prices = []
+            trade_duration = []
+            fees = []
         
-        for order in closed_positions_dict:
-            if closed_positions_dict[order]['instrument'] == pair or \
-                pair is None:
-                product.append(closed_positions_dict[order]['instrument'])
-                order_ID.append(closed_positions_dict[order]['order_ID'])
-                entry_time.append(closed_positions_dict[order]['time_filled'])
-                times_list.append(closed_positions_dict[order]['order_time'])
-                order_price.append(closed_positions_dict[order]['order_price'])
-                entry_price.append(closed_positions_dict[order]['entry_price'])
-                size.append(closed_positions_dict[order]['size'])
-                stop_price.append(closed_positions_dict[order]['stop_loss'])
-                take_price.append(closed_positions_dict[order]['take_profit'])
-                profit.append(closed_positions_dict[order]['profit'])
-                portfolio_balance.append(closed_positions_dict[order]['balance'])
-                exit_times.append(closed_positions_dict[order]['exit_time'])
-                exit_prices.append(closed_positions_dict[order]['exit_price'])
-                fees.append(closed_positions_dict[order]['fees'])
-                if type(closed_positions_dict[order]['exit_time']) == str:
-                    exit_dt     = datetime.strptime(closed_positions_dict[order]['exit_time'],
-                                                    "%Y-%m-%d %H:%M:%S%z")
-                    entry_dt    = datetime.strptime(closed_positions_dict[order]['time_filled'],
-                                                    "%Y-%m-%d %H:%M:%S%z")
+        for ID, item in iter_dict.items():
+            product.append(item.instrument)
+            status.append(item.status)
+            ids.append(item.id)
+            size.append(item.size)
+            times_list.append(item.order_time)
+            order_price.append(item.order_price)
+            stop_price.append(item.stop_loss)
+            take_price.append(item.take_profit)
+        
+        if trades:
+            for trade_id, trade in iter_dict.items():
+                entry_time.append(trade.time_filled)
+                entry_price.append(trade.entry_price)
+                profit.append(trade.profit)
+                portfolio_balance.append(trade.balance)
+                exit_times.append(trade.exit_time)
+                exit_prices.append(trade.exit_price)
+                fees.append(trade.fees)
+                if type(trade.exit_time) == str:
+                    exit_dt = datetime.strptime(trade.exit_time, "%Y-%m-%d %H:%M:%S%z")
+                    entry_dt = datetime.strptime(trade.time_filled, "%Y-%m-%d %H:%M:%S%z")
                     trade_duration.append(exit_dt.timestamp() - entry_dt.timestamp())
                 else:
-                    trade_duration.append(closed_positions_dict[order]['exit_time'].timestamp() - 
-                                          closed_positions_dict[order]['time_filled'].timestamp())
+                    trade_duration.append(trade.exit_time.timestamp() - 
+                                          trade.time_filled.timestamp())
                 
-        dataframe = pd.DataFrame({"Instrument": product,
-                                  "Order_ID": order_ID, 
-                                  "Order_price": order_price,
-                                  "Order_time": times_list,
-                                  "Entry_time": entry_time,
-                                  "Entry": entry_price, "Size": size,
-                                  "Stop_loss": stop_price, "Take_profit": take_price,
-                                  "Profit": profit, "Balance": portfolio_balance,
-                                  "Exit_time": exit_times, "Exit_price": exit_prices,
-                                  "Trade_duration": trade_duration,
-                                  "Fees": fees})
-        dataframe.index = pd.to_datetime(entry_time)
+            dataframe = pd.DataFrame({"instrument": product,
+                                      "status": status,
+                                      "ID": ids, 
+                                      "order_price": order_price,
+                                      "order_time": times_list,
+                                      "fill_time": entry_time,
+                                      "fill_price": entry_price, "size": size,
+                                      "stop_loss": stop_price, "take_profit": take_price,
+                                      "profit": profit, "balance": portfolio_balance,
+                                      "exit_time": exit_times, "exit_price": exit_prices,
+                                      "trade_duration": trade_duration,
+                                      "fees": fees},
+                                     index = pd.to_datetime(entry_time))
+        else:
+            dataframe = pd.DataFrame({"instrument": product,
+                                      "status": status,
+                                      "ID": ids, 
+                                      "order_price": order_price,
+                                      "order_time": times_list,
+                                      "size": size,
+                                      "stop_loss": stop_price, 
+                                      "Take_profit": take_price},
+                                     index = pd.to_datetime(times_list))
+            
         dataframe = dataframe.sort_index()
         
-        return dataframe
-    
-    
-    def cancelled_order_summary(self, pair, positions_dict):
-        ''' Creates cancelled order summary dataframe. '''
-        order_ID    = []
-        times_list  = []
-        order_price = []
-        size        = []
-        stop_price  = []
-        take_price  = []
-        
-        for order in positions_dict:
-            if positions_dict[order]['instrument'] == pair:
-                order_ID.append(positions_dict[order]['order_ID'])
-                times_list.append(positions_dict[order]['order_time'])
-                order_price.append(positions_dict[order]['order_price'])
-                size.append(positions_dict[order]['size'])
-                stop_price.append(positions_dict[order]['stop_loss'])
-                take_price.append(positions_dict[order]['take_profit'])
-                
-        dataframe = pd.DataFrame({"Order_ID": order_ID, 
-                                  "Order_price": order_price,
-                                  "Size": size,
-                                  "Stop_loss": stop_price, 
-                                  "Take_profit": take_price})
-        dataframe.index = pd.to_datetime(times_list)
-        dataframe = dataframe.sort_index()
-        
-        return dataframe
-        
-    
-    def open_order_summary(self, pair, positions_dict):
-        ''' Creates open order summary dataframe. '''
-        order_ID    = []
-        times_list  = []
-        order_price = []
-        size        = []
-        stop_price  = []
-        take_price  = []
-        entry_time  = []
-        entry_price = []
-        
-        for order in positions_dict:
-            if positions_dict[order]['instrument'] == pair:
-                order_ID.append(positions_dict[order]['order_ID'])
-                times_list.append(positions_dict[order]['order_time'])
-                order_price.append(positions_dict[order]['order_price'])
-                size.append(positions_dict[order]['size'])
-                stop_price.append(positions_dict[order]['stop_loss'])
-                take_price.append(positions_dict[order]['take_profit'])
-                entry_time.append(positions_dict[order]['time_filled'])
-                entry_price.append(positions_dict[order]['entry_price'])
-                
-                
-        dataframe = pd.DataFrame({"Order_ID": order_ID, 
-                                  "Order_price": order_price,
-                                  "Order_time": times_list,
-                                  "Size": size,
-                                  "Stop_loss": stop_price, 
-                                  "Take_profit": take_price,
-                                  "Entry_time": entry_time,
-                                  "Entry": entry_price})
-        dataframe.index = pd.to_datetime(entry_time)
-        dataframe = dataframe.sort_index()
+        # Filter by instrument
+        if instrument is not None:
+            dataframe = dataframe[dataframe['instrument'] == instrument]
         
         return dataframe
     
     
     def get_streaks(self, trade_summary):
         ''' Calculates longest winning and losing streaks from trade summary. '''
-        profit_list             = trade_summary.Profit.values
-        longest_winning_streak  = 1
-        longest_losing_streak   = 1
-        streak                  = 1
+        profit_list = trade_summary.profit.values
+        longest_winning_streak = 1
+        longest_losing_streak = 1
+        streak = 1
         
         for i in range(1, len(profit_list)):
             if np.sign(profit_list[i]) == np.sign(profit_list[i-1]):

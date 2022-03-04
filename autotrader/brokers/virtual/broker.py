@@ -12,9 +12,6 @@ class Broker:
     def __init__(self, broker_config: dict, utils: BrokerUtils) -> None:
         self.utils = utils
         
-        # TODO - use lists instead of dicts? Dont key by id, just list
-        # TODO - margin calls
-        
         # Orders
         self.orders = {}
         
@@ -23,7 +20,7 @@ class Broker:
         
         # Account 
         self.leverage = 1
-        self.spread = 0 # TODO - pips or price units?
+        self.spread = 0 # TODO - pips or price units? Add docs
         self.margin_available = 0
         self.portfolio_balance = 0
         
@@ -329,7 +326,7 @@ class Broker:
         """Updates orders and open positions based on current candle.
         """
         # Open pending orders
-        pending_orders = self._get_pending_orders(instrument, 'pending')
+        pending_orders = self.get_pending_orders(instrument, 'pending')
         for order_id, order in pending_orders.items():
             if candle.name > order.order_time:
                 order.status = 'open'
@@ -355,10 +352,8 @@ class Broker:
                 
                 elif order.order_type == 'close':
                     related_order = order.related_orders
-                    self._close_position(order.instrument,
-                                        candle, 
-                                        candle.Close,
-                                        order_id = related_order)
+                    self._close_position(order.instrument, candle, 
+                                         candle.Close, trade_id = related_order)
                 elif order.order_type == 'reduce':
                     self._reduce_position(order)
                     
@@ -720,3 +715,8 @@ class Broker:
     
     def _get_new_trade_id(self):
         return len(self.trades) + 1
+    
+    
+    def _margin_call(self):
+        # TODO - implement margin calls
+        pass

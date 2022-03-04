@@ -209,7 +209,7 @@ class Trade(Order):
         if order:
             self._inheret_order(order)
             order.status = 'filled'
-            self.parent_id = order.order_id
+            self.parent_id = order.id
         
     
     def __repr__(self):

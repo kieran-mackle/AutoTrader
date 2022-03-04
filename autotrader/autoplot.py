@@ -22,6 +22,7 @@ except ImportError:
     import importlib_resources as pkg_resources
 from . import data as pkgdata
 
+# TODO - check all merge operations after changing column names of trade summary
 
 class AutoPlot:
     """AutoPlot trading chart generator.
@@ -1128,49 +1129,49 @@ class AutoPlot:
                                      left_on='date', right_index=True)
         
         # Backtesting signals
-        long_trades             = trade_summary[trade_summary.Size > 0]
-        shorts_trades           = trade_summary[trade_summary.Size < 0]
+        long_trades = trade_summary[trade_summary['size'] > 0]
+        shorts_trades = trade_summary[trade_summary['size'] < 0]
         
         if cancelled_summary is False and open_summary is False:
             
             if self._backtest_data is not None:
                 # Charting on different timeframe data
                 exit_summary = pd.merge(self._backtest_data, exit_summary, 
-                                        left_index=True, right_on='Exit_time')
+                                        left_index=True, right_on='exit_time')
             else:
                 exit_summary = pd.merge(self._data, exit_summary, 
-                                        left_on='date', right_on='Exit_time')
+                                        left_on='date', right_on='exit_time')
             
-            profitable_longs        = long_trades[(long_trades['Profit'] > 0)]
-            unprofitable_longs      = long_trades[(long_trades['Profit'] < 0)]
-            profitable_shorts       = shorts_trades[(shorts_trades['Profit'] > 0)]
-            unprofitable_shorts     = shorts_trades[(shorts_trades['Profit'] < 0)]
+            profitable_longs = long_trades[(long_trades['profit'] > 0)]
+            unprofitable_longs = long_trades[(long_trades['profit'] < 0)]
+            profitable_shorts = shorts_trades[(shorts_trades['profit'] > 0)]
+            unprofitable_shorts = shorts_trades[(shorts_trades['profit'] < 0)]
             
             # Profitable long trades
             if len(profitable_longs) > 0:
                 self._plot_trade(list(profitable_longs.data_index.values),
-                                 list(profitable_longs.Entry.values), 
+                                 list(profitable_longs.fill_price.values), 
                                  'triangle', 'lightgreen', 
                                  'Profitable long trades', linked_fig)
     
             # Profitable short trades
             if len(profitable_shorts) > 0:
                 self._plot_trade(list(profitable_shorts.data_index.values),
-                                 list(profitable_shorts.Entry.values),
+                                 list(profitable_shorts.fill_price.values),
                                  'inverted_triangle', 'lightgreen',
                                  'Profitable short trades', linked_fig)
             
             # Unprofitable long trades
             if len(unprofitable_longs) > 0:
                 self._plot_trade(list(unprofitable_longs.data_index.values),
-                                 list(unprofitable_longs.Entry.values),
+                                 list(unprofitable_longs.fill_price.values),
                                  'triangle', 'orangered',
                                  'Unprofitable long trades', linked_fig)
             
             # Unprofitable short trades
             if len(unprofitable_shorts) > 0:
                 self._plot_trade(list(unprofitable_shorts.data_index.values),
-                                 list(unprofitable_shorts.Entry.values),
+                                 list(unprofitable_shorts.fill_price.values),
                                  'inverted_triangle', 'orangered',
                                  'Unprofitable short trades', linked_fig)
         else:
@@ -1178,12 +1179,12 @@ class AutoPlot:
                 long_legend_label = 'Cancelled long trades'
                 short_legend_label = 'Cancelled short trades'
                 fill_color = 'black'
-                price = 'Order_price'
+                price = 'order_price'
             else:
                 long_legend_label = 'Open long trades'
                 short_legend_label = 'Open short trades'
                 fill_color = 'white'
-                price = 'Entry'
+                price = 'fill_price'
         
             # Partial long trades
             if len(long_trades) > 0:
@@ -1205,21 +1206,21 @@ class AutoPlot:
         
         
         # Stop loss  levels
-        if None not in trade_summary.Stop_loss.values:
+        if None not in trade_summary.stop_loss.values:
             self._plot_trade(list(trade_summary.data_index.values),
-                             list(trade_summary.Stop_loss.fillna('').values),
+                             list(trade_summary.stop_loss.fillna('').values),
                              'dash', 'black', 'Stop loss', linked_fig)
         
         # Take profit levels
-        if None not in trade_summary.Take_profit.values:
+        if None not in trade_summary.take_profit.values:
             self._plot_trade(list(trade_summary.data_index.values),
-                             list(trade_summary.Take_profit.fillna('').values),
+                             list(trade_summary.take_profit.fillna('').values),
                              'dash', 'black', 'Take profit', linked_fig)
         
         # Position exits
         if cancelled_summary is False and open_summary is False:
             self._plot_trade(list(exit_summary.data_index),
-                             list(exit_summary.Exit_price.values),
+                             list(exit_summary.exit_price.values),
                              'circle', 'black', 'Position exit', linked_fig,
                              scatter_size=7)
     

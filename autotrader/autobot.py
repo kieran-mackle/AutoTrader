@@ -880,22 +880,25 @@ class AutoTraderBot:
                                 margin: pd.Series) -> dict:
         """Constructs backtest summary dictionary for further processing.
         """
-        trade_summary = self._broker_utils.trade_summary(self.instrument, self._broker.closed_positions)
-        open_trade_summary = self._broker_utils.open_order_summary(self.instrument, self._broker.open_positions)
-        cancelled_summary = self._broker_utils.cancelled_order_summary(self.instrument, self._broker.cancelled_orders)
-            
+        trade_summary = self._broker_utils.trade_summary(trades=self._broker.trades, instrument=self.instrument)
+        order_summary = self._broker_utils.trade_summary(orders=self._broker.orders, instrument=self.instrument)
+        
+        closed_trades = trade_summary[trade_summary.status == 'closed']
+        open_trade_summary = trade_summary[trade_summary.status == 'open']
+        cancelled_summary = order_summary[order_summary.status == 'cancelled']
+        
         backtest_dict = {}
-        backtest_dict['data']           = self.data
+        backtest_dict['data'] = self.data
         backtest_dict['account_history'] = pd.DataFrame(data={'balance': balance, 
                                                               'NAV': NAV, 
                                                               'margin': margin,
                                                               'drawdown': np.array(NAV)/np.maximum.accumulate(NAV) - 1}, 
                                                         index=self.data.index)
-        backtest_dict['trade_summary']  = trade_summary
-        backtest_dict['indicators']     = self._strategy.indicators if hasattr(self._strategy, 'indicators') else None
-        backtest_dict['instrument']     = self.instrument
-        backtest_dict['interval']       = self._strategy_params['granularity']
-        backtest_dict['open_trades']    = open_trade_summary
+        backtest_dict['trade_summary'] = trade_summary
+        backtest_dict['indicators'] = self._strategy.indicators if hasattr(self._strategy, 'indicators') else None
+        backtest_dict['instrument'] = self.instrument
+        backtest_dict['interval'] = self._strategy_params['granularity']
+        backtest_dict['open_trades'] = open_trade_summary
         backtest_dict['cancelled_trades'] = cancelled_summary
         
         self.backtest_summary = backtest_dict
