@@ -305,8 +305,26 @@ class Trade(Order):
 
 class Position:
     def __init__(self, **kwargs):
+        self.instrument = None
+        self.long_units = None
+        self.long_PL = None
+        self.long_margin = None
+        self.short_units = None
+        self.short_PL = None
+        self.short_margin = None
+        self.total_margin = None
+        self.trade_IDs = None
+        
         for item in kwargs:
             setattr(self, item, kwargs[item])
+    
+    def __repr__(self):
+        return f'AutoTrader Position in {self.instrument}'
+        
+    
+    def __str__(self):
+        return 'AutoTrader Position'
+    
     
     def as_dict(self) -> dict:
         """Converts Order object to dictionary.

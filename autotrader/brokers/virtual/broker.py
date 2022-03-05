@@ -232,10 +232,11 @@ class Broker:
                                        'short_PL': short_PL,
                                        'short_margin': short_margin,
                                        'total_margin': total_margin,
-                                       'trade_IDs': trade_IDs}
+                                       'trade_IDs': trade_IDs,
+                                       'instrument': instrument,}
                 
                 if not as_dict:
-                    instrument_position = Position(instrument_position)
+                    instrument_position = Position(**instrument_position)
                 
                 # Append position dict to open_positions dict
                 open_positions[instrument] = instrument_position

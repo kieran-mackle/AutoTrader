@@ -568,9 +568,9 @@ class AutoTraderBot:
         interval = self._strategy_params['granularity'].split(',')[0]
         
         # Check data time alignment
-        current_time        = datetime.now(tz=pytz.utc)
-        last_candle_closed  = self._broker_utils.last_period(current_time, interval)
-        data_ts             = data.index[-1].to_pydatetime().timestamp()
+        current_time = datetime.now(tz=pytz.utc)
+        last_candle_closed = self._broker_utils.last_period(current_time, interval)
+        data_ts = data.index[-1].to_pydatetime().timestamp()
         
         if data_ts != last_candle_closed.timestamp():
             # Time misalignment detected - attempt to correct
@@ -580,11 +580,11 @@ class AutoTraderBot:
                       "({}/{}).".format(data.index[-1].minute, last_candle_closed.minute),
                       "Trying again...")
                 time.sleep(3) # wait 3 seconds...
-                data    = getattr(self._get_data, feed.lower())(instrument,
-                                    granularity = interval,
-                                    count=period)
+                data = getattr(self._get_data, feed.lower())(instrument,
+                                granularity = interval,
+                                count=period)
                 data_ts = data.index[-1].to_pydatetime().timestamp()
-                count   += 1
+                count += 1
                 if count == 3:
                     break
             
@@ -593,23 +593,23 @@ class AutoTraderBot:
                 # Check price data directory to see if the stream has caught 
                 # the latest candle
                 price_data_filename = "{0}{1}.txt".format(interval, instrument)
-                abs_price_path      = os.path.join(price_data_path, price_data_filename)
+                abs_price_path = os.path.join(price_data_path, price_data_filename)
                 
                 if os.path.exists(abs_price_path):
                     # Price data file matching instrument and granularity 
                     # exists, check latest candle in file
-                    f                   = open(abs_price_path, "r")
-                    price_lines         = f.readlines()
+                    f = open(abs_price_path, "r")
+                    price_lines = f.readlines()
                     
                     if len(price_lines) > 1:
-                        latest_candle       = price_lines[-1].split(',')
-                        latest_candle_time  = datetime.strptime(latest_candle[0],
+                        latest_candle = price_lines[-1].split(',')
+                        latest_candle_time = datetime.strptime(latest_candle[0],
                                                                 '%Y-%m-%d %H:%M:%S')
                         UTC_last_candle_in_file = latest_candle_time.replace(tzinfo=pytz.UTC)
-                        price_data_ts       = UTC_last_candle_in_file.timestamp()
+                        price_data_ts = UTC_last_candle_in_file.timestamp()
                         
                         if price_data_ts == last_candle_closed.timestamp():
-                            data    = self._broker_utils.update_data_with_candle(data, latest_candle)
+                            data = self._broker_utils.update_data_with_candle(data, latest_candle)
                             data_ts = data.index[-1].to_pydatetime().timestamp()
                             print("  Data updated using price stream.")
             

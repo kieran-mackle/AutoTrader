@@ -26,7 +26,8 @@
   format of signal dictionaries from strategy modules is still supported. 
   Support for this format will be phased out in favour of the new `Order` and
   `Trade` objects (found in `autotrader.brokers.trading` module). 
-
+- For new Order, Trade and Position objects, support for legacy code is 
+  included via `as_dict` methods, to convert class objects to dictionaries.
   
 
 ## Version 0.5.0
