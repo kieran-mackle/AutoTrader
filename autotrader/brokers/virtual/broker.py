@@ -249,7 +249,6 @@ class Broker:
                    i: int = None) -> dict:
         """Returns the price data dict.
         """
-        # TODO - make this method private
         # TODO - where is this method called from? Can it be split to the feed
         # for autodata?
         # TODO - include bid/ask spread here
