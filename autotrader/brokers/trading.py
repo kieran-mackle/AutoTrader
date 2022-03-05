@@ -214,7 +214,7 @@ class Order:
         Returns
         -------
         dict
-            DESCRIPTION.
+            The order instance returned as a dict object.
 
         Notes
         -----
@@ -304,8 +304,24 @@ class Trade(Order):
 
 
 class Position:
-    def __init__(self):
-        pass
+    def __init__(self, **kwargs):
+        for item in kwargs:
+            setattr(self, item, kwargs[item])
+    
+    def as_dict(self) -> dict:
+        """Converts Order object to dictionary.
+
+        Returns
+        -------
+        dict
+            The Position instance returned as a dict object.
+
+        Notes
+        -----
+        This method enables legacy code operation, returning order/trade
+        objects as a dictionary.
+        """
+        return self.__dict__
 
 
 if __name__ == '__main__':

@@ -1,7 +1,7 @@
 from __future__ import annotations
 import numpy as np
 import pandas as pd
-from autotrader.brokers.trading import Order, Trade
+from autotrader.brokers.trading import Order, Trade, Position
 from autotrader.brokers.broker_utils import BrokerUtils
 
 
@@ -179,7 +179,8 @@ class Broker:
         return self.trades[trade_ID]
     
     
-    def get_positions(self, instruments: str = None) -> dict:
+    def get_positions(self, instruments: str = None, 
+                      as_dict: bool = False) -> dict:
         """Returns the open positions (including all open trades) in the account.
         """
         if instruments:
@@ -224,7 +225,6 @@ class Broker:
                         short_margin += open_trades[trade_id].margin_required
             
                 # Construct instrument position dict
-                # TODO - make Position object
                 instrument_position = {'long_units': long_units,
                                        'long_PL': long_PL,
                                        'long_margin': long_margin,
@@ -233,6 +233,9 @@ class Broker:
                                        'short_margin': short_margin,
                                        'total_margin': total_margin,
                                        'trade_IDs': trade_IDs}
+                
+                if not as_dict:
+                    instrument_position = Position(instrument_position)
                 
                 # Append position dict to open_positions dict
                 open_positions[instrument] = instrument_position
