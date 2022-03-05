@@ -84,8 +84,6 @@ class Order:
         None
             DESCRIPTION.
         """
-        # TODO - will other brokers be able to function with the methods called below?
-        # Update broker template with requirements
         self.order_price = order_price if order_price else self.order_price
         self.order_time = order_time if order_time else self.order_time
         self.HCF = HCF if HCF else self.HCF
@@ -121,10 +119,22 @@ class Order:
     
     def _calculate_exit_prices(self, broker = None, 
                                working_price: float = None) -> None:
-        
-        # TODO - avoid requiring broker - some might locally allow passing eg. 
-        # pip distance SL, in which case, it does not need to be converted here, 
-        # it can just be converted in the broker class.
+        """Calculates the prices of the exit targets from the pip distance
+        values.
+
+        Parameters
+        ----------
+        broker : TYPE, optional
+            The autotrade-broker instance. The default is None.
+        working_price : float, optional
+            The working price used to calculate amount risked. The default is 
+            None.
+
+        Returns
+        -------
+        None
+            The exit prices will be assigned to the order instance.
+        """
         working_price = working_price if working_price is not None \
             else self._working_price
             
@@ -143,11 +153,32 @@ class Order:
                 self.take_distance*pip_value
         
 
-    def _calculate_position_size(self, broker, working_price: float = None, 
+    def _calculate_position_size(self, broker = None, working_price: float = None, 
                                  HCF: float = 1, risk_pc: float = 0,
                                  sizing: str | float = 'risk', 
                                  amount_risked: float = None) -> None:
-        # TODO - handle broker = None. Also how would amount_risked get passed in? 
+        """Calculates trade size for order.
+
+        Parameters
+        ----------
+        broker : TYPE, optional
+            The autotrade-broker instance. The default is None.
+        working_price : float, optional
+            The working price used to calculate amount risked. The default is None.
+        HCF : float, optional
+            The home conversion factor. The default is 1.
+        risk_pc : float, optional
+            The percentage of the account NAV to risk on the trade. The default is 0.
+        sizing : str | float, optional
+            The sizing option. The default is 'risk'.
+        amount_risked : float, optional
+            The dollar amount risked on the trade. The default is None.
+
+        Returns
+        -------
+        None
+            The trade size will be assigned to the order instance.
+        """ 
         working_price = working_price if working_price is not None \
             else self._working_price
         HCF = self.HCF if self.HCF is not None \
