@@ -848,9 +848,9 @@ class AutoTraderBot:
                                 margin: pd.Series) -> dict:
         """Constructs backtest summary dictionary for further processing.
         """
-        trade_summary = self._broker_utils.trade_summary(trades=self._broker.trades, 
+        trade_summary = self._broker_utils.trade_summary(trades=self._broker.trades,
                                                          instrument=self.instrument)
-        order_summary = self._broker_utils.trade_summary(orders=self._broker.orders, 
+        order_summary = self._broker_utils.trade_summary(orders=self._broker.orders,
                                                          instrument=self.instrument)
         
         # closed_trades = trade_summary[trade_summary.status == 'closed']

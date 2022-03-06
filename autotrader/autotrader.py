@@ -774,7 +774,7 @@ class AutoTrader:
         backtest_results = {}
         
         # All trades
-        no_trades = len(trade_summary)
+        no_trades = len(trade_summary[trade_summary['status'] == 'closed'])
         backtest_results['no_trades'] = no_trades
         backtest_results['start'] = account_history.index[0]
         backtest_results['end'] = account_history.index[-1]

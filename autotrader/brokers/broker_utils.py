@@ -295,7 +295,7 @@ class BrokerUtils:
     def get_streaks(self, trade_summary):
         """Calculates longest winning and losing streaks from trade summary. 
         """
-        profit_list = trade_summary.profit.values
+        profit_list = trade_summary[trade_summary['status']=='closed'].profit.values
         longest_winning_streak = 1
         longest_losing_streak = 1
         streak = 1
