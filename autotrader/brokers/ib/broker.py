@@ -51,16 +51,6 @@ class Broker:
         return 'AutoTrader-InteractiveBrokers interface'
     
     
-    def get_summary(self) -> dict:
-        """Returns account summary.
-        """
-        self._check_connection()
-        raw_summary = self.ib.accountSummary(self.account)
-        summary = self.utils.accsum_to_dict(self.account, raw_summary)
-        
-        return summary
-    
-    
     def get_NAV(self) -> float:
         """Returns the net asset/liquidation value of the account.
         """
@@ -77,55 +67,36 @@ class Broker:
         return float(summary['TotalCashValue']['value'])
         
     
-    def get_trade_details(self, trade_ID: str) -> dict:
-        """Returns the details of the trade specified by trade_ID.
+    def place_order(self, order_details: dict, **kwargs) -> None:
+        """Disassembles order_details dictionary to place order.
 
         Parameters
         ----------
-        trade_ID : str
-            The ID of the trade.
+        order_details : dict
+            A dictionary containing order details.
 
         Returns
         -------
-        dict
-            The details of the trade.
+        None
+            Orders will be placed.
         """
         self._check_connection()
-        # TODO - implement (?)
-        return {}
-    
-    
-    def get_price(self, symbol: str, snapshot: bool = True, **kwargs) -> dict:
-        """Returns current price (bid+ask) and home conversion factors.
         
-        Parameters
-        ----------
-        symbol : str
-            The product symbol.
-        snapshot : bool, optional
-            Request a snapshot of the price. The default is True.
-
-        Returns
-        -------
-        dict
-            A dictionary containing the bid and ask prices.
-        """
-        self._check_connection()
-        # TODO - verify functionality
-        contract = self._build_contract(symbol)
-        self.ib.qualifyContracts(contract)
-        data = self.ib.reqMktData(contract, snapshot=snapshot)
+        if order_details["order_type"] == 'market':
+            self._place_market_order(order_details)
+        elif order_details["order_type"] == 'stop-limit':
+            self._place_stop_limit_order(order_details)
+        elif order_details["order_type"] == 'limit':
+            self._place_limit_order(order_details)
+        elif order_details["order_type"] == 'close':
+            self.close_position(order_details)
+        else:
+            print("Order type not recognised.")
         
-        price = {"ask": data.ask,
-                 "bid": data.bid,
-                 "negativeHCF": 1,
-                 "positiveHCF": 1,
-                 }
+        self._refresh()
         
-        return price
     
-    
-    def get_pending_orders(self, symbol: str = None) -> dict:
+    def get_orders(self, symbol: str = None, **kwargs) -> dict:
         """Returns all pending orders (have not been filled) in the account.
 
         Parameters
@@ -181,7 +152,7 @@ class Broker:
         return pending_orders
     
     
-    def cancel_pending_order(self, order_id: int) -> list:
+    def cancel_order(self, order_id: int, **kwargs) -> list:
         """Cancels pending order by order ID.
         
         Parameters
@@ -208,7 +179,7 @@ class Broker:
         return cancelled_trades
     
     
-    def get_open_trades(self, symbol: str = None) -> dict:
+    def get_trades(self, symbol: str = None, **kwargs) -> dict:
         """Returns the open trades held by the account. 
 
         Parameters
@@ -264,8 +235,26 @@ class Broker:
         return open_trades
     
     
-    def get_open_positions(self, symbol: str = None, 
-                           local_symbol: str = None) -> dict:
+    def get_trade_details(self, trade_ID: str, **kwargs) -> dict:
+        """Returns the details of the trade specified by trade_ID.
+
+        Parameters
+        ----------
+        trade_ID : str
+            The ID of the trade.
+
+        Returns
+        -------
+        dict
+            The details of the trade.
+        """
+        self._check_connection()
+        # TODO - implement (?)
+        return {}
+    
+    
+    def get_positions(self, symbol: str = None, 
+                      local_symbol: str = None, **kwargs) -> dict:
         """Gets the current positions open on the account.
         
         Parameters
@@ -315,34 +304,45 @@ class Broker:
         return open_positions
     
     
-    def place_order(self, order_details: dict) -> None:
-        """Disassembles order_details dictionary to place order.
-
+    def get_summary(self) -> dict:
+        """Returns account summary.
+        """
+        self._check_connection()
+        raw_summary = self.ib.accountSummary(self.account)
+        summary = self.utils.accsum_to_dict(self.account, raw_summary)
+        
+        return summary
+    
+    
+    def get_price(self, symbol: str, snapshot: bool = True, **kwargs) -> dict:
+        """Returns current price (bid+ask) and home conversion factors.
+        
         Parameters
         ----------
-        order_details : dict
-            A dictionary containing order details.
+        symbol : str
+            The product symbol.
+        snapshot : bool, optional
+            Request a snapshot of the price. The default is True.
 
         Returns
         -------
-        None
-            Orders will be placed.
+        dict
+            A dictionary containing the bid and ask prices.
         """
         self._check_connection()
+        # TODO - verify functionality
+        contract = self._build_contract(symbol)
+        self.ib.qualifyContracts(contract)
+        data = self.ib.reqMktData(contract, snapshot=snapshot)
         
-        if order_details["order_type"] == 'market':
-            self._place_market_order(order_details)
-        elif order_details["order_type"] == 'stop-limit':
-            self._place_stop_limit_order(order_details)
-        elif order_details["order_type"] == 'limit':
-            self._place_limit_order(order_details)
-        elif order_details["order_type"] == 'close':
-            self.close_position(order_details)
-        else:
-            print("Order type not recognised.")
+        price = {"ask": data.ask,
+                 "bid": data.bid,
+                 "negativeHCF": 1,
+                 "positiveHCF": 1,
+                 }
         
-        self._refresh()
-        
+        return price
+    
     
     def get_historical_data(self, symbol: str, interval: str, 
                             from_time: str, to_time: str):

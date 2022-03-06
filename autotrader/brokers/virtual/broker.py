@@ -173,16 +173,17 @@ class Broker:
         return open_trades
     
     
-    def get_trade_details(self, trade_ID: int) -> dict:
-        """Returns the details of the trade specified by trade_ID.
+    def get_trade_details(self, trade_ID: int) -> Trade:
+        """Returns the trade specified by trade_ID.
         """
         return self.trades[trade_ID]
     
     
     def get_positions(self, instruments: str = None, 
-                      as_dict: bool = False) -> dict:
+                      as_dict: bool = False) -> Position:
         """Returns the open positions (including all open trades) in the account.
         """
+        # TODO - as_dict - make method of Positions not arg here
         if instruments:
             # instruments provided, check type
             if type(instruments) is str:
@@ -244,6 +245,12 @@ class Broker:
         return open_positions
     
     
+    def get_margin_available(self) -> float:
+        """Returns the margin available on the account.
+        """
+        return self.margin_available
+    
+    
     def _get_price(self, instrument: str, data: pd.core.series.Series = None, 
                    conversion_data: pd.core.series.Series = None, 
                    i: int = None) -> dict:
@@ -276,12 +283,6 @@ class Broker:
                  "positiveHCF": positiveHCF}
         
         return price
-    
-    
-    def get_margin_available(self) -> float:
-        """Returns the margin available on the account.
-        """
-        return self.margin_available
     
     
     def _fill_order(self, order_id: int, candle: pd.core.series.Series, 

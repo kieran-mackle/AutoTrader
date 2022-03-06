@@ -39,17 +39,15 @@ class Broker:
         pass
         
     
-    def get_trade_details(self, trade_ID: str) -> dict:
-        """Returns the details of the trade specified by trade_ID.
+    def place_order(self, order: Order, **kwargs) -> None:
+        """Disassemble order_details dictionary to place order.
         """
-        pass
-    
-    
-    def get_price(self, symbol: str, **kwargs) -> dict:
-        """Returns current price (bid+ask) and home conversion factors.
-        """
-        pass
-    
+        # Call order with price and time to complete missing attributes
+        order_price = 0 # Need to retrieve current price 
+        order(self, order_price)
+        
+        # Submit order to broker
+        
     
     def get_orders(self, symbol: str = None, **kwargs) -> dict:
         """Returns all pending orders (have not been filled) in the account.
@@ -65,6 +63,12 @@ class Broker:
     
     def get_trades(self, symbol: str = None, **kwargs) -> dict:
         """Returns the open trades held by the account. 
+        """
+        pass
+    
+    
+    def get_trade_details(self, trade_ID: str) -> dict:
+        """Returns the details of the trade specified by trade_ID.
         """
         pass
     
@@ -85,14 +89,12 @@ class Broker:
         pass
     
     
-    def place_order(self, order: Order, **kwargs) -> None:
-        """Disassemble order_details dictionary to place order.
-        """
-        # Call order with price and time to complete missing attributes
-        order_price = 0 # Need to retrieve current price 
-        order(self, order_price)
-        
-        # Submit order to broker
-        
-    
     # Define here any private methods to support the public methods above
+    def _get_price(self, symbol: str, **kwargs) -> dict:
+        """Returns current price (bid+ask) and home conversion factors.
+        """
+        # This method is useful when placing an order
+        pass
+    
+    
+    

@@ -22,12 +22,10 @@ class Broker:
                                port = self.port)
         
         self.STREAM_API = "stream-fxpractice.oanda.com"
-        self.stream     = v20.Context(hostname = self.STREAM_API, 
-                                      token = self.ACCESS_TOKEN, 
-                                      port = self.port)
-        
+        self.stream = v20.Context(hostname = self.STREAM_API, 
+                                  token = self.ACCESS_TOKEN, 
+                                  port = self.port)
         self.open_positions = {}
-        
         self.utils = utils
         
     
@@ -39,13 +37,198 @@ class Broker:
         return 'AutoTrader-Oanda Broker Interface'
     
     
-    def check_connection(self) -> None:
+    def get_NAV(self) -> float:
+        """Returns Net Asset Value of account.
+        """
+        self._check_connection()
+        response = self.api.account.get(accountID=self.ACCOUNT_ID)
+        return response.body["account"].NAV
+    
+    
+    def get_balance(self) -> float:
+        """Returns account balance.
+        """
+        self._check_connection()
+        response = self.api.account.get(accountID=self.ACCOUNT_ID)
+        return response.body["account"].balance
+    
+    
+    def place_order(self, order: Order, **kwargs):
+        """Submits order to broker.
+        """
+        self._check_connection()
+        
+        # TODO - call Order to fill prices
+        
+        if order.order_type == 'market':
+            response = self._place_market_order(order)
+        elif order.order_type == 'stop-limit':
+            response = self._place_stop_limit_order(order)
+        elif order.order_type == 'limit':
+            response = self._place_limit_order(order)
+        elif order.order_type == 'close':
+            response = self._close_position(order.instrument)
+        else:
+            print("Order type not recognised.")
+        
+        # Check response
+        # output = self._check_response(response)
+        
+        return response
+        
+    
+    def get_orders(self, instrument=None, **kwargs) -> dict:
+        """Get all pending orders in the account. 
+        """
+        # TODO - convert to order objects
+        self._check_connection()
+        response = self.api.order.list_pending(accountID = self.ACCOUNT_ID, 
+                                          instrument=instrument)
+        oanda_pending_orders = response.body['orders']
+        pending_orders = {}
+        
+        for order in oanda_pending_orders:
+            if order.type != 'TAKE_PROFIT' and order.type != 'STOP_LOSS':
+                new_order = {}
+                new_order['order_ID']           = order.id
+                new_order['order_type']         = order.type
+                new_order['order_stop_price']   = order.price
+                new_order['order_limit_price']  = order.price
+                new_order['direction']          = np.sign(order.units)
+                new_order['order_time']         = order.createTime
+                new_order['strategy']           = None
+                new_order['instrument']         = order.instrument
+                new_order['size']               = order.units
+                new_order['order_price']        = order.price
+                new_order['granularity']        = None
+                new_order['take_profit']        = order.takeProfitOnFill.price if order.takeProfitOnFill is not None else None
+                new_order['take_distance']      = None
+                new_order['stop_type']          = None
+                new_order['stop_distance']      = None
+                new_order['stop_loss']          = None
+                new_order['related_orders']     = None
+                
+                if instrument is not None and order.instrument == instrument:
+                    pending_orders[order.id] = new_order
+                elif instrument is None:
+                    pending_orders[order.id] = new_order
+            
+        return pending_orders
+    
+    
+    def cancel_order(self, order_id: int, **kwargs) -> None:
+        """Cancels pending order by ID.
+        """
+        self._check_connection()
+        self.api.order.cancel(accountID = self.ACCOUNT_ID, 
+                              orderSpecifier=str(order_id))
+    
+    
+    def get_trades(self, instruments=None, **kwargs) -> dict:
+        """Returns the open trades held by the account. 
+        
+        (incomplete implementation)
+        """
+        self._check_connection()
+        
+        response = self.api.trade.list_open(accountID=self.ACCOUNT_ID)
+        
+        oanda_open_trades = response.body['trades']
+        open_trades = {}
+        
+        for order in oanda_open_trades:
+            new_order = {}
+            new_order['order_ID']           = order.id
+            new_order['order_stop_price']   = order.price
+            new_order['order_limit_price']  = order.price
+            new_order['direction']          = np.sign(order.currentUnits)
+            new_order['order_time']         = order.openTime
+            new_order['instrument']         = order.instrument
+            new_order['size']               = order.currentUnits
+            new_order['order_price']        = order.price
+            new_order['entry_price']        = order.price
+            new_order['order_type']         = None
+            new_order['strategy']           = None
+            new_order['granularity']        = None
+            new_order['take_profit']        = None
+            new_order['take_distance']      = None
+            new_order['stop_type']          = None
+            new_order['stop_distance']      = None
+            new_order['stop_loss']          = None
+            new_order['related_orders']     = None
+            
+            if instruments is not None and order.instrument in instruments:
+                open_trades[order.id] = new_order
+            elif instruments is None:
+                open_trades[order.id] = new_order
+        
+        return open_trades
+    
+    
+    def get_trade_details(self, trade_id: int) -> Trade:
+        # TODO - implement
+        pass
+    
+    
+    def get_positions(self, instrument: str = None, **kwargs) -> dict:
+        """Gets the current positions open on the account. 
+        """
+        # TODO - convert positions
+        self._check_connection()
+        response = self.api.position.list_open(accountID=self.ACCOUNT_ID)
+        oanda_open_positions = response.body['positions']
+        open_positions = {}
+        for position in oanda_open_positions:
+            pos = {'long_units': position.long.units,
+                   'long_PL': position.long.unrealizedPL,
+                   'long_margin': None,
+                   'short_units': position.short.units,
+                   'short_PL': position.short.unrealizedPL,
+                   'short_margin': None,
+                   'total_margin': position.marginUsed}
+            
+            # fetch trade ID'strade_IDs
+            trade_IDs = []
+            if abs(pos['long_units']) > 0: 
+                for ID in position.long.tradeIDs: trade_IDs.append(ID)
+            if abs(pos['short_units']) > 0: 
+                for ID in position.short.tradeIDs: trade_IDs.append(ID)
+            
+            pos['trade_IDs'] = trade_IDs
+            
+            if instrument is not None and position.instrument == instrument:
+                open_positions[position.instrument] = pos
+            elif instrument is None:
+                open_positions[position.instrument] = pos
+        
+        return open_positions
+    
+    
+    def get_position(self, instrument: str) -> Position:
+        """Gets position from Oanda.
+        """
+        #TODO - make private, link to get positions?
+        self._check_connection()
+        response = self.api.position.get(instrument = instrument, 
+                                         accountID = self.ACCOUNT_ID)
+        # TODO - convert to position
+        return response.body['position']
+    
+    
+    def get_summary(self):
+        """Returns account summary.
+        """
+        self._check_connection()
+        # response = self.api.account.get(accountID=self.ACCOUNT_ID)
+        response = self.api.account.summary(accountID=self.ACCOUNT_ID)
+        return response
+    
+    
+    def _check_connection(self) -> None:
         """Connects to Oanda v20 REST API. An initial call is performed to check
         for a timeout error.
         """
-        
         # TODO - improve this - currently doubles the poll rate
-        
         for atempt in range(10):
             try:
                 # Attempt basic task to check connection
@@ -86,18 +269,10 @@ class Broker:
             print("FATAL: All attempts to connect to Oanda API have failed.")
         
         
-    def get_NAV(self) -> float:
-        """Returns Net Asset Value of account.
-        """
-        self.check_connection()
-        response = self.api.account.get(accountID=self.ACCOUNT_ID)
-        return response.body["account"].NAV
-    
-    
-    def get_price(self, instrument, **dummy_inputs) -> dict:
+    def _get_price(self, instrument: str, **dummy_inputs) -> dict:
         """Returns current price (bid+ask) and home conversion factors.
         """
-        self.check_connection()
+        self._check_connection()
         response = self.api.pricing.get(accountID = self.ACCOUNT_ID, 
                                    instruments = instrument)
         ask = response.body["prices"][0].closeoutAsk
@@ -114,156 +289,12 @@ class Broker:
         return price
     
     
-    def get_orders(self, instrument=None) -> dict:
-        """Get all pending orders in the account. 
-        """
-        # TODO - convert to order objects
-        self.check_connection()
-        response = self.api.order.list_pending(accountID = self.ACCOUNT_ID, 
-                                          instrument=instrument)
-        oanda_pending_orders = response.body['orders']
-        pending_orders = {}
-        
-        for order in oanda_pending_orders:
-            if order.type != 'TAKE_PROFIT' and order.type != 'STOP_LOSS':
-                new_order = {}
-                new_order['order_ID']           = order.id
-                new_order['order_type']         = order.type
-                new_order['order_stop_price']   = order.price
-                new_order['order_limit_price']  = order.price
-                new_order['direction']          = np.sign(order.units)
-                new_order['order_time']         = order.createTime
-                new_order['strategy']           = None
-                new_order['instrument']         = order.instrument
-                new_order['size']               = order.units
-                new_order['order_price']        = order.price
-                new_order['granularity']        = None
-                new_order['take_profit']        = order.takeProfitOnFill.price if order.takeProfitOnFill is not None else None
-                new_order['take_distance']      = None
-                new_order['stop_type']          = None
-                new_order['stop_distance']      = None
-                new_order['stop_loss']          = None
-                new_order['related_orders']     = None
-                
-                if instrument is not None and order.instrument == instrument:
-                    pending_orders[order.id] = new_order
-                elif instrument is None:
-                    pending_orders[order.id] = new_order
-            
-        return pending_orders
-    
-    
-    def cancel_order(self, order_id: int) -> None:
-        """Cancels pending order by ID.
-        """
-        self.check_connection()
-        self.api.order.cancel(accountID = self.ACCOUNT_ID, 
-                              orderSpecifier=str(order_id))
-    
-    
-    def get_trades(self, instruments=None) -> dict:
-        """Returns the open trades held by the account. 
-        
-        (incomplete implementation)
-        """
-        self.check_connection()
-        
-        response = self.api.trade.list_open(accountID=self.ACCOUNT_ID)
-        
-        oanda_open_trades = response.body['trades']
-        open_trades = {}
-        
-        for order in oanda_open_trades:
-            new_order = {}
-            new_order['order_ID']           = order.id
-            new_order['order_stop_price']   = order.price
-            new_order['order_limit_price']  = order.price
-            new_order['direction']          = np.sign(order.currentUnits)
-            new_order['order_time']         = order.openTime
-            new_order['instrument']         = order.instrument
-            new_order['size']               = order.currentUnits
-            new_order['order_price']        = order.price
-            new_order['entry_price']        = order.price
-            new_order['order_type']         = None
-            new_order['strategy']           = None
-            new_order['granularity']        = None
-            new_order['take_profit']        = None
-            new_order['take_distance']      = None
-            new_order['stop_type']          = None
-            new_order['stop_distance']      = None
-            new_order['stop_loss']          = None
-            new_order['related_orders']     = None
-            
-            if instruments is not None and order.instrument in instruments:
-                open_trades[order.id] = new_order
-            elif instruments is None:
-                open_trades[order.id] = new_order
-        
-        return open_trades
-    
-    
-    def get_positions(self, instrument: str = None) -> dict:
-        """Gets the current positions open on the account. 
-        """
-        self.check_connection()
-        response = self.api.position.list_open(accountID=self.ACCOUNT_ID)
-        
-        oanda_open_positions = response.body['positions']
-        open_positions = {}
-        
-        for position in oanda_open_positions:
-            pos = {'long_units': position.long.units,
-                   'long_PL': position.long.unrealizedPL,
-                   'long_margin': None,
-                   'short_units': position.short.units,
-                   'short_PL': position.short.unrealizedPL,
-                   'short_margin': None,
-                   'total_margin': position.marginUsed}
-            
-            # fetch trade ID'strade_IDs
-            trade_IDs = []
-            if abs(pos['long_units']) > 0: 
-                for ID in position.long.tradeIDs: trade_IDs.append(ID)
-            if abs(pos['short_units']) > 0: 
-                for ID in position.short.tradeIDs: trade_IDs.append(ID)
-            
-            pos['trade_IDs'] = trade_IDs
-            
-            if instrument is not None and position.instrument == instrument:
-                open_positions[position.instrument] = pos
-            elif instrument is None:
-                open_positions[position.instrument] = pos
-        
-        return open_positions
-    
-    
-    def place_order(self, order: Order, **kwargs):
-        """Submits order to broker.
-        """
-        self.check_connection()
-        if order.order_type == 'market':
-            response = self.place_market_order(order)
-        elif order.order_type == 'stop-limit':
-            response = self.place_stop_limit_order(order)
-        elif order.order_type == 'limit':
-            response = self.place_limit_order(order)
-        elif order.order_type == 'close':
-            response = self.close_position(order.instrument)
-        else:
-            print("Order type not recognised.")
-        
-        # Check response
-        output = self.check_response(response)
-        
-        return response
-        
-    
-    def place_market_order(self, order: Order):
+    def _place_market_order(self, order: Order):
         """Places market order.
         """
-        self.check_connection()
-        stop_loss_details = self.get_stop_loss_details(order)
-        take_profit_details = self.get_take_profit_details(order)
+        self._check_connection()
+        stop_loss_details = self._get_stop_loss_details(order)
+        take_profit_details = self._get_take_profit_details(order)
         
         # Check position size
         size = self.check_trade_size(order.instrument, 
@@ -277,17 +308,17 @@ class Broker:
         return response
     
     
-    def place_stop_limit_order(self, order):
+    def _place_stop_limit_order(self, order):
         """Places MarketIfTouchedOrder with Oanda.
         https://developer.oanda.com/rest-live-v20/order-df/
         """
-        self.check_connection()
+        self._check_connection()
         
-        stop_loss_details = self.get_stop_loss_details(order)
-        take_profit_details = self.get_take_profit_details(order)
+        stop_loss_details = self._get_stop_loss_details(order)
+        take_profit_details = self._get_take_profit_details(order)
         
         # Check and correct order stop price
-        price = self.check_precision(order.instrument, 
+        price = self._check_precision(order.instrument, 
                                      order.order_stop_price)
         
         trigger_condition = order.trigger_price if "trigger_price" in order else "DEFAULT"
@@ -303,20 +334,19 @@ class Broker:
         return response
     
     
-    def place_limit_order(self, order: Order):
+    def _place_limit_order(self, order: Order):
         """(NOT YET IMPLEMENTED) PLaces limit order. 
         """
         raise Exception("Limit orders are not yet implemented for Oanda. "+\
                         "Please raise an issue on GitHub.")
         
 
-    def get_stop_loss_details(self, order: Order):
+    def _get_stop_loss_details(self, order: Order) -> dict:
         """Constructs stop loss details dictionary.
         """
-        self.check_connection()
+        self._check_connection()
         if order.stop_type is not None:
-            price = self.check_precision(order.instrument, 
-                                         order.stop_loss)
+            price = self._check_precision(order.instrument, order.stop_loss)
             
             if order.stop_type == 'trailing':
                 # Trailing stop loss order
@@ -330,13 +360,12 @@ class Broker:
         return stop_loss_details
     
     
-    def get_take_profit_details(self, order: Order) -> dict:
+    def _get_take_profit_details(self, order: Order) -> dict:
         """Constructs take profit details dictionary.
         """
-        self.check_connection()
+        self._check_connection()
         if order.take_profit is not None:
-            price = self.check_precision(order.instrument, 
-                                         order.take_profit)
+            price = self._check_precision(order.instrument, order.take_profit)
             take_profit_details = {"price": str(price)}
         else:
             take_profit_details = None
@@ -345,54 +374,20 @@ class Broker:
 
 
     def get_data(self, pair: str, period: int, interval: str) -> pd.DataFrame:
-        self.check_connection()
+        self._check_connection()
         response = self.api.instrument.candles(pair, granularity=interval,
                                                count=period, dailyAlignment = 0)
         data = self.utils.response_to_df(response)
-        
         return data
     
     
-    def get_balance(self) -> float:
-        """Returns account balance.
-        """
-        self.check_connection()
-        response = self.api.account.get(accountID=self.ACCOUNT_ID)
-        return response.body["account"].balance
-    
-    
-    def get_summary(self):
-        """Returns account summary.
-        """
-        self.check_connection()
-        
-        # response = self.api.account.get(accountID=self.ACCOUNT_ID)
-        response = self.api.account.summary(accountID=self.ACCOUNT_ID)
-        
-        return response
-    
-    
-    def get_position(self, instrument: str) -> Position:
-        """Gets position from Oanda.
-        """
-        self.check_connection()
-        
-        response = self.api.position.get(instrument = instrument, 
-                                         accountID = self.ACCOUNT_ID)
-        # TODO - convert to position
-        return response.body['position']
-    
-    
-    def close_position(self, instrument, long_units=None, short_units=None,
+    def _close_position(self, instrument, long_units=None, short_units=None,
                        **kwargs):
         """Closes all open positions on an instrument.
         """
-        self.check_connection()
-        
+        self._check_connection()
         # Check if the position is long or short
-        
         # Temp code to close all positions
-        
         # Close all long units
         response = self.api.position.close(accountID=self.ACCOUNT_ID, 
                                            instrument=instrument,
@@ -402,7 +397,6 @@ class Broker:
         response = self.api.position.close(accountID=self.ACCOUNT_ID, 
                                            instrument=instrument,
                                            shortUnits="ALL")
-        
         
         # TODO - the code below makes no sense currently; specifically, 
         # position.long.Units ????
@@ -436,25 +430,21 @@ class Broker:
         return response
     
     
-    def get_precision(self, pair: str):
+    def _get_precision(self, pair: str):
         """Returns the allowable precision for a given pair.
         """
-        self.check_connection()
-        
+        self._check_connection()
         response = self.api.account.instruments(accountID = self.ACCOUNT_ID, 
                                                 instruments = pair)
-        
         precision = response.body['instruments'][0].displayPrecision
-        
         return precision
 
     
-    def check_precision(self, pair, price):
+    def _check_precision(self, pair, price):
         """Modify a price based on required ordering precision for pair.
         """
-        N = self.get_precision(pair)
+        N = self._get_precision(pair)
         corrected_price = round(price, N)
-        
         return corrected_price
     
     
@@ -466,14 +456,12 @@ class Broker:
                                                 instruments = pair)
         # minimum_units = response.body['instruments'][0].minimumTradeSize
         trade_unit_precision = response.body['instruments'][0].tradeUnitsPrecision
-        
         return round(units, trade_unit_precision)
     
     
     def get_trade_details(self, trade_ID: int):
         """Returns the details of the trade specified by trade_ID.
         """
-        
         response = self.api.trade.list(accountID=self.ACCOUNT_ID, ids=int(trade_ID))
         trade = response.body['trades'][0]
         
@@ -507,8 +495,9 @@ class Broker:
         return details
     
     
-    def check_response(self, response):
-        ''' Checks API response (currently only for placing orders) '''
+    def _check_response(self, response):
+        """Checks API response (currently only for placing orders).
+        """
         if response.status != 201:
             message = response.body['errorMessage']
         else:
@@ -525,61 +514,55 @@ class Broker:
         """Attempts to construct the latest candle when there is a delay in the 
         api feed.
         """
-        
-        self.check_connection()
-        
+        self._check_connection()
         granularity_details = self.deconstruct_granularity(granularity)
         secs = granularity_details['seconds']
         mins = granularity_details['minutes']
         hrs  = granularity_details['hours']
         days = granularity_details['days']
         
-        # TODO: make this a function of original granularity
-        # Done, but now I think, maybe this should always be something like S5?
-        small_granularity = self.get_reduced_granularity(granularity_details, 
-                                                         25)
+        small_granularity = self.get_reduced_granularity(granularity_details, 25)
         
         # Get data equivalent of last candle's granularity
-        time_now        = datetime.datetime.now()
-        start_time      = time_now - datetime.timedelta(seconds = secs,
-                                                        minutes = mins,
-                                                        hours = hrs,
-                                                        days = days)
-        latest_data     = self.get_historical_data(pair, 
-                                                   small_granularity, 
-                                                   start_time.timestamp(), 
-                                                   time_now.timestamp())
+        time_now = datetime.datetime.now()
+        start_time = time_now - datetime.timedelta(seconds = secs,
+                                                   minutes = mins,
+                                                   hours = hrs,
+                                                   days = days)
+        latest_data = self.get_historical_data(pair, 
+                                               small_granularity, 
+                                               start_time.timestamp(), 
+                                               time_now.timestamp())
         
         # Get latest price data
-        latest_close    = latest_data.Close.values[0]
+        latest_close = latest_data.Close.values[0]
         
-        open_price      = data.Close.values[-1]
-        close_price     = latest_close
-        high_price      = max(latest_data.High.values)
-        low_price       = min(latest_data.Low.values)
-        last_time       = data.index[-1]
-        stripped_time   = datetime.datetime.strptime(last_time.strftime("%Y-%m-%d %H:%M:%S%z"),
+        open_price = data.Close.values[-1]
+        close_price = latest_close
+        high_price = max(latest_data.High.values)
+        low_price = min(latest_data.Low.values)
+        last_time = data.index[-1]
+        stripped_time = datetime.datetime.strptime(last_time.strftime("%Y-%m-%d %H:%M:%S%z"),
                                                       "%Y-%m-%d %H:%M:%S%z")
-        new_time        = stripped_time + datetime.timedelta(seconds = secs,
-                                                              minutes = mins,
-                                                              hours = hrs,
-                                                              days = days)
+        new_time = stripped_time + datetime.timedelta(seconds = secs,
+                                                      minutes = mins,
+                                                      hours = hrs,
+                                                      days = days)
         
-        new_candle      = pd.DataFrame({'Open'  : open_price, 
-                                        'High'  : high_price,
-                                        'Low'   : low_price,
-                                        'Close' : close_price},
-                                        index=[new_time])
+        new_candle = pd.DataFrame({'Open'  : open_price, 
+                                   'High'  : high_price,
+                                   'Low'   : low_price,
+                                   'Close' : close_price},
+                                  index=[new_time])
         
-        
-        new_data        = pd.concat([data, new_candle])
+        new_data = pd.concat([data, new_candle])
         
         return new_data
     
     
     def get_historical_data(self, pair, interval, from_time, to_time):
         
-        self.check_connection()
+        self._check_connection()
         
         response        = self.api.instrument.candles(pair,
                                                       granularity = interval,
@@ -690,19 +673,17 @@ class Broker:
         return reduced_granularity
     
     
-    def get_order_book(self, instrument: str):
+    def _get_order_book(self, instrument: str):
         """Returns the order book of the instrument specified. 
         """
         response = self.api.instrument.order_book(instrument)
-        
         return response.body['orderBook']
         
     
-    def get_position_book(self, instrument: str):
+    def _get_position_book(self, instrument: str):
         """Returns the position book of the instrument specified. 
         """
         response = self.api.instrument.position_book(instrument)
-        
         return response.body['positionBook']
     
     
