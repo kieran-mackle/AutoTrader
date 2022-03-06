@@ -49,7 +49,7 @@ class Broker:
         # Submit order to broker
         
     
-    def get_orders(self, symbol: str = None, **kwargs) -> dict:
+    def get_orders(self, instrument: str = None, **kwargs) -> dict:
         """Returns all pending orders (have not been filled) in the account.
         """
         pass
@@ -61,7 +61,7 @@ class Broker:
         pass
     
     
-    def get_trades(self, symbol: str = None, **kwargs) -> dict:
+    def get_trades(self, instrument: str = None, **kwargs) -> dict:
         """Returns the open trades held by the account. 
         """
         pass
@@ -73,13 +73,13 @@ class Broker:
         pass
     
     
-    def get_positions(self, symbol: str = None, **kwargs) -> dict:
+    def get_positions(self, instrument: str = None, **kwargs) -> dict:
         """Gets the current positions open on the account.
         
         Parameters
         ----------
-        symbol : str, optional
-            The product symbol. The default is None.
+        instrument : str, optional
+            The trading instrument name (symbol). The default is None.
             
         Returns
         -------
@@ -90,7 +90,7 @@ class Broker:
     
     
     # Define here any private methods to support the public methods above
-    def _get_price(self, symbol: str, **kwargs) -> dict:
+    def _get_price(self, instrument: str, **kwargs) -> dict:
         """Returns current price (bid+ask) and home conversion factors.
         """
         # This method is useful when placing an order
