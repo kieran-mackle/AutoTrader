@@ -5,7 +5,6 @@ from datetime import datetime
 
 
 class BrokerUtils:
-    
     def __init__(self):
         pass
     
@@ -18,9 +17,9 @@ class BrokerUtils:
         return 'AutoTrader Broker Utilities'
     
     
-    def response_to_df(self, response):
-        ''' Function to convert api response into a pandas dataframe. '''
-        
+    def response_to_df(self, response: pd.DataFrame):
+        """Function to convert api response into a pandas dataframe.
+        """
         candles = response.body["candles"]
         times = []
         close_price, high_price, low_price, open_price = [], [], [], []
@@ -38,8 +37,9 @@ class BrokerUtils:
         return dataframe
     
     
-    def truncate(self, f, n):
-        ''' Truncates a float f to n decimal places without rounding. '''
+    def truncate(self, f: float, n: int):
+        """Truncates a float f to n decimal places without rounding. 
+        """
         s = '{}'.format(f)
         
         if 'e' in s or 'E' in s:
@@ -50,8 +50,9 @@ class BrokerUtils:
     
     
     def get_pip_ratio(self, pair):
-        ''' Function to return pip value ($/pip) of a given pair. '''
-        if pair[-3:] == 'JPY':
+        """Function to return pip value ($/pip) of a given forex pair.
+        """
+        if 'JPY' in pair:
             pip_value = 1e-2
         else:
             pip_value = 1e-4
@@ -59,8 +60,11 @@ class BrokerUtils:
         return pip_value
     
     
-    def get_size(self, pair, amount_risked, price, stop_price, HCF, stop_distance = None):
-        ''' Calculate position size based on account balance and risk profile. '''
+    def get_size(self, pair: str, amount_risked: float, price: float, 
+                 stop_price: float, HCF: float, 
+                 stop_distance: float = None) -> float:
+        """Calculate position size based on account balance and risk profile.
+        """
         if stop_price is None and stop_distance is None:
             # No stop loss being used, instead risk portion of account
             units               = amount_risked/(HCF*price)
@@ -84,7 +88,8 @@ class BrokerUtils:
     
     
     def check_precision(self, pair, original_stop, original_take):
-        ''' Modify stop/take based on pair for required ordering precision. ''' 
+        """Modify stop/take based on pair for required ordering precision. 
+        """
         if pair[-3:] == 'JPY':
             N = 3
         else:
@@ -97,7 +102,8 @@ class BrokerUtils:
     
     
     def interval_to_seconds(self, interval):
-        '''Converts the interval to time in seconds'''
+        """Converts the interval to time in seconds.
+        """
         letter = interval[0]
         
         if len(interval) > 1:
@@ -116,9 +122,9 @@ class BrokerUtils:
         return my_int
     
     
-    def write_to_order_summary(self, order_details, filepath):
-        ''' Writes order details to summary file. '''
-        
+    def write_to_order_summary(self, order_details: dict, filepath: str):
+        """Writes order details to summary file.
+        """
         # Check if file exists already, if not, create
         if not os.path.exists(filepath):
             f = open(filepath, "w")
@@ -145,9 +151,9 @@ class BrokerUtils:
         f.close()
         
     
-    def check_dataframes(self, df_1, df_2):
-        '''Checks dataframe lengths and corrects if necessary'''
-        
+    def check_dataframes(self, df_1: pd.DataFrame, df_2: pd.DataFrame):
+        """Checks dataframe lengths and corrects if necessary.
+        """
         if len(df_1) < len(df_2):
             new_df_1 = self.fix_dataframe(df_2, df_1)
             new_df_2 = df_2
@@ -162,11 +168,10 @@ class BrokerUtils:
         return new_df_1, new_df_2
     
     
-    def fix_dataframe(self, df1, df2):
-        ''' 
-        Makes sure that the quote data and data dataframes are the same
+    def fix_dataframe(self, df1: pd.DataFrame, df2: pd.DataFrame) -> pd.DataFrame:
+        """Ensures that the quote data and data dataframes are the same
         lenght.
-        '''
+        """
         # Would be good to check which one is shorter, which is longer, then 
         # return both with corrections
         
@@ -283,7 +288,8 @@ class BrokerUtils:
     
     
     def get_streaks(self, trade_summary):
-        ''' Calculates longest winning and losing streaks from trade summary. '''
+        """Calculates longest winning and losing streaks from trade summary. 
+        """
         profit_list = trade_summary.profit.values
         longest_winning_streak = 1
         longest_losing_streak = 1
@@ -305,34 +311,3 @@ class BrokerUtils:
         
         return longest_winning_streak, longest_losing_streak
 
-
-    def reconstruct_portfolio(self, initial_balance, trade_summary, time_index):
-        ''' REDUNDANT '''
-        a = trade_summary.Exit_time.values
-        
-        profit_list = trade_summary.Profit.values.tolist()
-        new_df = pd.DataFrame({"Profit": profit_list})
-        new_df.index = pd.to_datetime(a, utc=True)
-        
-        balance   = initial_balance
-        portfolio = []
-        
-        for timestamp in time_index:
-            if timestamp in new_df.index:
-                # Check if timestamp appears in multiple closed positions
-                profit_vals = new_df.Profit[new_df.index == timestamp].values
-                profit = 0
-                for trade_profit in profit_vals:
-                    profit += trade_profit
-                
-            else:
-                profit = 0
-            
-            balance += profit
-            portfolio.append(balance)
-        
-        dataframe = pd.DataFrame({"Balance": portfolio})
-        dataframe.index = pd.to_datetime(time_index)
-        dataframe = dataframe.sort_index()
-        
-        return dataframe
