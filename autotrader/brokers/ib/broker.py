@@ -1,6 +1,7 @@
-from autotrader.brokers.interactive_brokers.utils import Utils
 import numpy as np
 import ib_insync
+from autotrader.brokers.trading import Order, Trade, Position
+from autotrader.brokers.interactive_brokers.utils import Utils
 
 '''
 IMPORTANT DOCUMENTATION:
@@ -67,47 +68,54 @@ class Broker:
         return float(summary['TotalCashValue']['value'])
         
     
-    def place_order(self, order_details: dict, **kwargs) -> None:
+    def place_order(self, order: Order, **kwargs) -> None:
         """Disassembles order_details dictionary to place order.
 
         Parameters
         ----------
-        order_details : dict
-            A dictionary containing order details.
+        order_details : Order
+            An AutoTrader Order.
 
         Returns
         -------
         None
-            Orders will be placed.
+            Orders will be submitted to IB.
         """
         self._check_connection()
         
-        if order_details["order_type"] == 'market':
-            self._place_market_order(order_details)
-        elif order_details["order_type"] == 'stop-limit':
-            self._place_stop_limit_order(order_details)
-        elif order_details["order_type"] == 'limit':
-            self._place_limit_order(order_details)
-        elif order_details["order_type"] == 'close':
-            self.close_position(order_details)
+        # Assign order_time, order_price, HCF
+        price_data = self._get_price(instrument=order.instrument)
+        order_price = price_data['ask'] if order.direction > 0 else price_data['bid']
+        
+        # Call order with price and time
+        order(broker=self, order_price=order_price)
+        
+        if order.order_type == 'market':
+            self._place_market_order(order)
+        elif order.order_type == 'stop-limit':
+            self._place_stop_limit_order(order)
+        elif order.order_type == 'limit':
+            self._place_limit_order(order)
+        elif order.order_type == 'close':
+            self._close_position(order)
         else:
             print("Order type not recognised.")
         
         self._refresh()
         
     
-    def get_orders(self, symbol: str = None, **kwargs) -> dict:
+    def get_orders(self, instrument: str = None, **kwargs) -> dict:
         """Returns all pending orders (have not been filled) in the account.
 
         Parameters
         ----------
-        symbol : str, optional
-            The product symbol. The default is None.
+        instrument : str, optional
+            The trading instrument's symbol. The default is None.
 
         Returns
         -------
         dict
-            Pending orders for the requested symbol. If no symbol is provided,
+            Pending orders for the requested instrument. If no instrument is provided,
             all pending orders will be returned.
         """
         self._check_connection()
@@ -144,10 +152,10 @@ class Broker:
                 new_order['granularity']        = None
                 new_order['strategy']           = None
                 
-                if symbol is not None and contract.symbol == symbol:
-                    pending_orders[new_order['order_ID']] = new_order
-                elif symbol is None:
-                    pending_orders[new_order['order_ID']] = new_order
+                if instrument is not None and contract.symbol == instrument:
+                    pending_orders[new_order['order_ID']] = Order._from_dict(new_order)
+                elif instrument is None:
+                    pending_orders[new_order['order_ID']] = Order._from_dict(new_order)
             
         return pending_orders
     
@@ -179,13 +187,13 @@ class Broker:
         return cancelled_trades
     
     
-    def get_trades(self, symbol: str = None, **kwargs) -> dict:
+    def get_trades(self, instrument: str = None, **kwargs) -> dict:
         """Returns the open trades held by the account. 
 
         Parameters
         ----------
-        symbol : str, optional
-            The product symbol. The default is None.
+        instrument : str, optional
+            The trading instrument's symbol. The default is None.
 
         Returns
         -------
@@ -227,10 +235,10 @@ class Broker:
                 new_trade['granularity']        = None
                 new_trade['strategy']           = None
                 
-                if symbol is not None and contract.symbol == symbol:
-                    open_trades[new_trade['order_ID']] = new_trade
-                elif symbol is None:
-                    open_trades[new_trade['order_ID']] = new_trade
+                if instrument is not None and contract.symbol == instrument:
+                    open_trades[new_trade['order_ID']] = Trade(new_trade)
+                elif instrument is None:
+                    open_trades[new_trade['order_ID']] = Trade(new_trade)
         
         return open_trades
     
@@ -253,14 +261,14 @@ class Broker:
         return {}
     
     
-    def get_positions(self, symbol: str = None, 
+    def get_positions(self, instrument: str = None, 
                       local_symbol: str = None, **kwargs) -> dict:
         """Gets the current positions open on the account.
         
         Parameters
         ----------
-        symbol : str, optional
-            The product symbol. The default is None.
+        instrument : str, optional
+            The trading instrument's symbol. The default is None.
         local_symbol : str, optional
             The exchange-local product symbol. The default is None.
             
@@ -272,7 +280,7 @@ class Broker:
         self._check_connection()
         
         symbol_attr = 'symbol' if local_symbol is None else 'localSymbol'
-        matching_symbol = symbol if local_symbol is None else local_symbol
+        matching_symbol = instrument if local_symbol is None else local_symbol
         
         all_positions = self.ib.portfolio()
         open_positions = {}
@@ -295,11 +303,10 @@ class Broker:
         
             if pos_symbol == matching_symbol:
                 # Only add positions in requested symbol
-                open_positions[pos_symbol] = pos_dict
-                
+                open_positions[pos_symbol] = Position(**pos_dict)
             else:
                 # Append all positions
-                open_positions[pos_symbol] = pos_dict
+                open_positions[pos_symbol] = Position(**pos_dict)
         
         return open_positions
     
@@ -314,13 +321,13 @@ class Broker:
         return summary
     
     
-    def get_price(self, symbol: str, snapshot: bool = True, **kwargs) -> dict:
+    def _get_price(self, instrument: str, snapshot: bool = True, **kwargs) -> dict:
         """Returns current price (bid+ask) and home conversion factors.
         
         Parameters
         ----------
-        symbol : str
-            The product symbol.
+        instrument : str
+            The trading instrument's symbol.
         snapshot : bool, optional
             Request a snapshot of the price. The default is True.
 
@@ -331,20 +338,19 @@ class Broker:
         """
         self._check_connection()
         # TODO - verify functionality
-        contract = self._build_contract(symbol)
+        contract = self._build_contract(instrument)
         self.ib.qualifyContracts(contract)
         data = self.ib.reqMktData(contract, snapshot=snapshot)
         
         price = {"ask": data.ask,
                  "bid": data.bid,
                  "negativeHCF": 1,
-                 "positiveHCF": 1,
-                 }
+                 "positiveHCF": 1,}
         
         return price
     
     
-    def get_historical_data(self, symbol: str, interval: str, 
+    def _get_historical_data(self, instrument: str, interval: str, 
                             from_time: str, to_time: str):
         """Returns historical price data.
         """
@@ -390,105 +396,105 @@ class Broker:
         return accounts[0]
     
     
-    def _close_position(self, order_details: dict, **kwargs):
+    def _close_position(self, order: Order, **kwargs):
         """Closes open position of symbol by placing opposing market order.
         """
         self._check_connection()
         
-        symbol = order_details['instrument']
-        position = self.get_open_positions(symbol)[symbol]
+        instrument = order.instrument
+        position = self.get_open_positions(instrument)[instrument]
         position_units = position['position']
         
         # Place opposing market order
         action = 'BUY' if position_units < 0 else 'SELL'
         units = abs(position_units)
-        order = ib_insync.MarketOrder(action, units)
+        IBorder = ib_insync.MarketOrder(action, units)
         contract = position['contract']
         self.ib.qualifyContracts(contract)
-        self.ib.placeOrder(contract, order)
+        self.ib.placeOrder(contract, IBorder)
         
     
-    def _place_market_order(self, order_details: dict):
+    def _place_market_order(self, order: Order):
         """Places a market order.
         """
         self._check_connection()
         
         # Build contract
-        contract = self._build_contract(order_details)
+        contract = self._build_contract(order)
         
         # Create market order
-        action = 'BUY' if order_details["size"] > 0 else 'SELL'
-        units = abs(order_details["size"])
+        action = 'BUY' if order.size > 0 else 'SELL'
+        units = abs(order.size)
         market_order = ib_insync.MarketOrder(action, units, 
                                              orderId=self.ib.client.getReqId(),
                                              transmit=False)
         
         # Attach SL and TP orders
-        orders = self._attach_auxiliary_orders(order_details, market_order)
+        orders = self._attach_auxiliary_orders(order, market_order)
         
         # Submit orders
         self._process_orders(contract, orders)
         
     
-    def _place_stop_limit_order(self, order_details):
+    def _place_stop_limit_order(self, order):
         """Places stop-limit order.
         """
         self._check_connection()
         
         # Build contract
-        contract = self._build_contract(order_details)
+        contract = self._build_contract(order)
         
         # Create stop limit order
-        action = 'BUY' if order_details["size"] > 0 else 'SELL'
-        units = abs(order_details["size"])
-        lmtPrice = order_details["order_limit_price"]
-        stopPrice = order_details["order_stop_price"]
-        order = ib_insync.StopLimitOrder(action, units, lmtPrice, stopPrice, 
+        action = 'BUY' if order.size > 0 else 'SELL'
+        units = abs(order.size)
+        lmtPrice = order.order_limit_price
+        stopPrice = order.order_stop_price
+        IBorder = ib_insync.StopLimitOrder(action, units, lmtPrice, stopPrice, 
                                          orderId=self.ib.client.getReqId(),
                                          transmit=False)
         
         # Attach SL and TP orders
-        orders = self._attach_auxiliary_orders(order_details, order)
+        orders = self._attach_auxiliary_orders(order, IBorder)
         
         # Submit orders
         self._process_orders(contract, orders)
     
     
-    def _place_limit_order(self, order_details):
+    def _place_limit_order(self, order):
         """Places limit order.
         """
         self._check_connection()
         
         # Build contract
-        contract = self._build_contract(order_details)
+        contract = self._build_contract(order)
         
-        action = 'BUY' if order_details["size"] > 0 else 'SELL'
-        units = abs(order_details["size"])
-        lmtPrice = order_details["order_limit_price"]
-        order = ib_insync.LimitOrder(action, units, lmtPrice, 
+        action = 'BUY' if order.size > 0 else 'SELL'
+        units = abs(order.size)
+        lmtPrice = order.order_limit_price
+        IBorder = ib_insync.LimitOrder(action, units, lmtPrice, 
                                      orderId=self.ib.client.getReqId(),
                                      transmit=False)
         
         # Attach SL and TP orders
-        orders = self._attach_auxiliary_orders(order_details, order)
+        orders = self._attach_auxiliary_orders(order, IBorder)
         
         # Submit orders
         self._process_orders(contract, orders)
     
     
-    def _attach_auxiliary_orders(self, order_details: dict, 
+    def _attach_auxiliary_orders(self, order: Order, 
                                  parent_order: ib_insync.order) -> list:
         orders = [parent_order]
         
         # TP order
-        if order_details["take_profit"] is not None:
-            takeProfit_order = self._create_take_profit_order(order_details, 
+        if order.take_profit is not None:
+            takeProfit_order = self._create_take_profit_order(order, 
                                                               parent_order.orderId)
             orders.append(takeProfit_order)
         
         # SL order
-        if order_details["stop_loss"] is not None:
-            stopLoss_order = self._create_stop_loss_order(order_details,
+        if order.stop_loss is not None:
+            stopLoss_order = self._create_stop_loss_order(order,
                                                           parent_order.orderId)
             orders.append(stopLoss_order)
         
@@ -533,12 +539,12 @@ class Broker:
         return oca_orders
     
     
-    def _create_take_profit_order(self, order_details: dict, parentId: int):
+    def _create_take_profit_order(self, order: Order, parentId: int):
         """Constructs a take profit order.
         """
-        quantity = order_details["size"]
-        takeProfitPrice = order_details["take_profit"]
-        action = 'BUY' if order_details["size"] < 0 else 'SELL'
+        quantity = order.size
+        takeProfitPrice = order.take_profit
+        action = 'BUY' if order.size < 0 else 'SELL'
         takeProfit_order = ib_insync.LimitOrder(action, 
                                                 quantity, 
                                                 takeProfitPrice,
@@ -548,13 +554,13 @@ class Broker:
         return takeProfit_order
     
     
-    def _create_stop_loss_order(self, order_details: dict, parentId: int):
+    def _create_stop_loss_order(self, order: Order, parentId: int):
         """Constructs a stop loss order.
         """
         # TODO - add support for trailing SL
-        quantity = order_details["size"]
-        stopLossPrice = order_details["stop_loss"]
-        action = 'BUY' if order_details["size"] < 0 else 'SELL'
+        quantity = order.size
+        stopLossPrice = order.stop_loss
+        action = 'BUY' if order.size < 0 else 'SELL'
         stopLoss_order = ib_insync.StopOrder(action, 
                                              quantity, 
                                              stopLossPrice,
@@ -565,31 +571,31 @@ class Broker:
     
     
     @staticmethod
-    def _build_contract(order_details: dict) -> ib_insync.contract.Contract:
+    def _build_contract(order: Order) -> ib_insync.contract.Contract:
         """Builds IB contract from the order details.
         """
-        symbol = order_details['instrument']
-        security_type = order_details['secType']
+        instrument = order.instrument
+        security_type = order.secType
         
         # Get contract object
         contract_object = getattr(ib_insync, security_type)
         
         if security_type == 'Stock':
             # symbol='', exchange='', currency=''
-            exchange = order_details['exchange'] if 'exchange' in order_details else 'SMART'
-            currency = order_details['currency'] if 'currency' in order_details else 'USD'
-            contract = contract_object(symbol=symbol, exchange=exchange, currency=currency)
+            exchange = order.exchange if order.exchange else 'SMART'
+            currency = order.currency if order.currency else 'USD'
+            contract = contract_object(symbol=instrument, exchange=exchange, currency=currency)
             
         elif security_type == 'Options':
             raise NotImplementedError(f"Contract building for {security_type.lower()} trading is not supported yet.")
             
         elif security_type == 'Future':
             # Requires order_details{'instrument', 'exchange', 'contract_month'}
-            exchange = order_details['exchange'] if 'exchange' in order_details else 'GLOBEX'
-            currency = order_details['currency'] if 'currency' in order_details else 'USD'
-            contract_month = order_details['contract_month']
-            local_symbol = order_details['local_symbol'] if 'local_symbol' in order_details else '' 
-            contract = contract_object(symbol=symbol, 
+            exchange = order.exchange if order.exchange else 'GLOBEX'
+            currency = order.currency if order.currency else 'USD'
+            contract_month = order.contract_month
+            local_symbol = order.local_symbol if order.local_symbol else '' 
+            contract = contract_object(symbol=instrument, 
                                        exchange=exchange, 
                                        currency=currency,
                                        lastTradeDateOrContractMonth=contract_month,
@@ -600,17 +606,17 @@ class Broker:
             
         elif security_type == 'Forex':
             # pair='', exchange='IDEALPRO', symbol='', currency='', **kwargs)
-            exchange = order_details['exchange'] if 'exchange' in order_details else 'IDEALPRO'
-            contract = contract_object(pair=symbol, exchange=exchange)
+            exchange = order.exchange if order.exchange else 'IDEALPRO'
+            contract = contract_object(pair=instrument, exchange=exchange)
             
         elif security_type == 'Index':
             raise NotImplementedError(f"Contract building for {security_type.lower()} trading is not supported yet.")
             
         elif security_type == 'CFD':
             # symbol='', exchange='', currency='',
-            exchange = order_details['exchange'] if 'exchange' in order_details else 'SMART'
-            currency = order_details['currency'] if 'currency' in order_details else 'USD'
-            contract = contract_object(symbol=symbol, exchange=exchange, currency=currency)
+            exchange = order.exchange if order.exchange else 'SMART'
+            currency = order.currency if order.currency else 'USD'
+            contract = contract_object(symbol=instrument, exchange=exchange, currency=currency)
             
         elif security_type == 'Commodity':
             raise NotImplementedError(f"Contract building for {security_type.lower()} trading is not supported yet.")
