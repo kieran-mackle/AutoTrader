@@ -18,7 +18,8 @@ import autotrader.indicators as indicators
 class SimpleMACD:
 
     def __init__(self, params, data, pair):
-        ''' Define all indicators used in the strategy '''
+        """Define all indicators used in the strategy.
+        """
         self.name   = "Simple MACD Trend Strategy"
         self.data   = data
         self.params = params
@@ -33,6 +34,10 @@ class SimpleMACD:
         self.MACD_CO_vals   = indicators.cross_values(self.MACD.MACD, 
                                                       self.MACD.SIGNAL,
                                                       self.MACD_CO)
+        
+        # Price swings
+        self.swings = indicators.find_swings(data)
+
         # Construct indicators dict for plotting
         self.indicators = {'MACD (12/26/9)': {'type': 'MACD',
                                               'macd': self.MACD.MACD,
@@ -40,8 +45,6 @@ class SimpleMACD:
                            'EMA (200)': {'type': 'MA',
                                          'data': self.ema}}
         
-        # Price swings
-        self.swings     = indicators.find_swings(data)
         
     def generate_signal(self, i, current_position):
         """Define strategy to determine entry signals.
@@ -75,6 +78,7 @@ class SimpleMACD:
         
         return signal_dict
     
+    
     def generate_exit_levels(self, signal, i):
         """Function to determine stop loss and take profit levels.
         """
@@ -98,6 +102,7 @@ class SimpleMACD:
                        'take_profit'  : take}
         
         return exit_dict
+    
     
 if __name__ == "__main__":
     from autotrader.autotrader import AutoTrader

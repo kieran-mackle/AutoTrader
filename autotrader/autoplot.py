@@ -329,7 +329,7 @@ class AutoPlot:
             save(fig)
     
     
-    def _reindex_data(self, data):
+    def _reindex_data(self, data: pd.DataFrame) -> pd.DataFrame:
         """Resets index of data to obtain integer indexing.
         """
         
@@ -341,13 +341,13 @@ class AutoPlot:
         return modified_data
     
     
-    def _resample_data(self, data):
+    def _resample_data(self, data: pd.DataFrame) -> pd.DataFrame:
         """Resamples data to match the time index of the base data.
         """
         return data.reindex(self._data.date, method='ffill')
     
     
-    def _check_data(self, data):
+    def _check_data(self, data: pd.DataFrame) -> pd.DataFrame:
         """Checks the length of the inputted data against the base data, 
         and resamples it if necessary.
         """
@@ -356,7 +356,7 @@ class AutoPlot:
         return data
         
     
-    def _merge_data(self, data, name=None):
+    def _merge_data(self, data: pd.DataFrame, name=None) -> pd.DataFrame:
         """Merges the provided data with the base data, using the data of the 
         base data and the index of the data to be merged.
         
@@ -374,7 +374,7 @@ class AutoPlot:
         return merged_data
     
     
-    def _add_backtest_price_data(self, backtest_price_data):
+    def _add_backtest_price_data(self, backtest_price_data: pd.DataFrame) -> None:
         """Processes backtest price data to included integer index of base 
         data.
         """
@@ -385,10 +385,10 @@ class AutoPlot:
     
     
     ''' ------------------- FIGURE MANAGEMENT METHODS --------------------- '''
-    def _plot_multibot_backtest(self, multibot_backtest_results, NAV, cpl_dict,
-                                margin_available):
-        ''' 
-        Creates multi-bot backtest figure. 
+    def _plot_multibot_backtest(self, multibot_backtest_results: dict, 
+                                NAV: pd.Series, cpl_dict: pd.Series,
+                                margin_available: pd.Series):
+        """Creates multi-bot backtest figure. 
         
             Parameters:
                 multibot_backtest_results (df): dataframe of bot backtest results.
@@ -396,7 +396,7 @@ class AutoPlot:
                 NAV (list): Net asset value.
                 
                 cpl_dict (dict): cumulative PL of each bot.
-        '''
+        """
         
         # TODO - merge this into self.plot method?
         # First, clean up individual plots (pie, etc) into new methods
@@ -619,7 +619,7 @@ class AutoPlot:
         show(final_fig)
     
         
-    def _plot_indicators(self, indicators, linked_fig):
+    def _plot_indicators(self, indicators: dict, linked_fig):
         """Plots indicators based on indicator type. If inidcator type is 
         "over", it will be plotted on top of linked_fig. If indicator type is 
         "below", it will be plotted on a new figure below the OHLC chart.
@@ -1116,7 +1116,8 @@ class AutoPlot:
     
     def _plot_trade_history(self, trade_summary, linked_fig, 
                             cancelled_summary=False, open_summary=False):
-        ''' Plots trades taken over ohlc chart. '''
+        """Plots trades taken over ohlc chart.
+        """
         
         exit_summary = trade_summary.copy()
         

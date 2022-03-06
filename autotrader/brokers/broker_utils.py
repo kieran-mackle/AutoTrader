@@ -275,7 +275,7 @@ class BrokerUtils:
                                       "order_time": times_list,
                                       "size": size,
                                       "stop_loss": stop_price, 
-                                      "Take_profit": take_price},
+                                      "take_profit": take_price},
                                      index = pd.to_datetime(times_list))
             
         dataframe = dataframe.sort_index()
