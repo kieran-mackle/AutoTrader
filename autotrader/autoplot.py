@@ -819,9 +819,8 @@ class AutoPlot:
     def _plot_line(self, plot_data, linked_fig, new_fig=False, fig_height=150,
                    fig_title=None, legend_label=None, hover_name=None,
                    line_colour='black'):
-        '''
-        Generic method to plot data as a line.
-        '''
+        """Generic method to plot data as a line.
+        """
         
         # Initiate figure
         if new_fig:
@@ -916,7 +915,8 @@ class AutoPlot:
     
     
     def _plot_supertrend(self, st_data, linked_fig):
-        ''' Plots supertrend indicator. '''
+        """Plots supertrend indicator.
+        """
         # Extract supertrend data
         # uptrend     = st_data['uptrend']
         # dntrend     = st_data['downtrend']
@@ -973,7 +973,8 @@ class AutoPlot:
     
     
     def _plot_signals(self, linked_fig, signals_df):
-        ' Plots long and short entry signals over OHLC chart. '
+        """Plots long and short entry signals over OHLC chart.
+        """
         
         signals_df = signals_df.reset_index(drop = True)
         long_arrows = signals_df[signals_df['buy'] != 0]
@@ -998,8 +999,8 @@ class AutoPlot:
     
     
     def _plot_pivot_points(self, pivot_dict, linked_fig, levels=1):
-        ''' Adds pivot points to OHLC chart '''
-        
+        """Adds pivot points to OHLC chart.
+        """
         pivot_df = pivot_dict['data']
         levels = pivot_dict['levels'] if 'levels' in pivot_dict else levels
         
@@ -1066,7 +1067,8 @@ class AutoPlot:
         
         
     def _plot_trading_session(self, session_plot_data, linked_fig):
-        'Shades trading session times'
+        """Shades trading session times.
+        """
         
         session = session_plot_data['data'].lower()
         fill_color = session_plot_data['fill_color'] if 'fill_color' in session_plot_data else 'blue'
@@ -1103,9 +1105,8 @@ class AutoPlot:
     ''' ----------------------- TOP FIG PLOTTING -------------------------- '''
     def _plot_trade(self, x_data, y_data, marker_type, marker_colour, 
                     label, linked_fig, scatter_size=15):
-        '''
-        Plots individual trade.
-        '''
+        """Plots individual trade.
+        """
         
         linked_fig.scatter(x_data, y_data,
                            marker       = marker_type,
@@ -1228,7 +1229,8 @@ class AutoPlot:
     
     ''' --------------------- BOTTOM FIG PLOTTING ------------------------- '''
     def _plot_macd(self, x_range, macd_data, linked_fig):
-        ''' Plots MACD indicator. '''
+        """Plots MACD indicator.
+        """
         # Initialise figure
         fig = figure(plot_width     = linked_fig.plot_width,
                      plot_height    = self._bottom_fig_height,
@@ -1312,8 +1314,7 @@ class AutoPlot:
     def _plot_bands(self, plot_data, linked_fig=None, new_fig = True,
                     fill_color = 'blue', fill_alpha = 0.3, line_color='black',
                     legend_label = None):
-        '''
-        Plots a shaded region bound by upper and lower vaues.
+        """Plots a shaded region bound by upper and lower vaues.
         
         lower, upper and mid data must have same length as self._data.
         
@@ -1331,7 +1332,7 @@ class AutoPlot:
             linked_fig (Bokeh figure): linked figure
             
             new_fig (bool): flag to return a new figure or overlay on linked_fig
-        '''
+        """
         
         fill_color = plot_data['fill_color'] if 'fill_color' in plot_data else fill_color
         fill_alpha = plot_data['fill_alpha'] if 'fill_alpha' in plot_data else fill_alpha
