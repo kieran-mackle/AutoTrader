@@ -246,13 +246,18 @@ class BrokerUtils:
                 exit_times.append(trade.exit_time)
                 exit_prices.append(trade.exit_price)
                 fees.append(trade.fees)
-                if type(trade.exit_time) == str:
-                    exit_dt = datetime.strptime(trade.exit_time, "%Y-%m-%d %H:%M:%S%z")
-                    entry_dt = datetime.strptime(trade.time_filled, "%Y-%m-%d %H:%M:%S%z")
-                    trade_duration.append(exit_dt.timestamp() - entry_dt.timestamp())
+                if trade.status == 'closed':
+                    if type(trade.exit_time) == str:
+                        exit_dt = datetime.strptime(trade.exit_time, "%Y-%m-%d %H:%M:%S%z")
+                        entry_dt = datetime.strptime(trade.time_filled, "%Y-%m-%d %H:%M:%S%z")
+                        trade_duration.append(exit_dt.timestamp() - entry_dt.timestamp())
+                    elif isinstance(trade.exit_time, pd.Timestamp):
+                        trade_duration.append((trade.exit_time - trade.time_filled).total_seconds())
+                    else:
+                        trade_duration.append(trade.exit_time.timestamp() - 
+                                              trade.time_filled.timestamp())
                 else:
-                    trade_duration.append(trade.exit_time.timestamp() - 
-                                          trade.time_filled.timestamp())
+                    trade_duration.append(None)
                 
             dataframe = pd.DataFrame({"instrument": product,
                                       "status": status,
