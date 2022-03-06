@@ -230,7 +230,8 @@ class AutoTraderBot:
         self._strategy.initialise_strategy(strat_data)
         
     
-    def _retrieve_data(self, instrument, feed, base_data = None) -> pd.DataFrame:
+    def _retrieve_data(self, instrument: str, feed: str, 
+                       base_data: pd.DataFrame = None) -> pd.DataFrame:
         """Retrieves price data from AutoData.
         """
         interval = self._strategy_params['granularity']
