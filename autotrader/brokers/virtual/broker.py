@@ -179,11 +179,9 @@ class Broker:
         return self.trades[trade_ID]
     
     
-    def get_positions(self, instruments: str = None, 
-                      as_dict: bool = False) -> Position:
+    def get_positions(self, instruments: str = None) -> dict:
         """Returns the open positions (including all open trades) in the account.
         """
-        # TODO - as_dict - make method of Positions not arg here
         if instruments:
             # instruments provided, check type
             if type(instruments) is str:
@@ -236,12 +234,11 @@ class Broker:
                                        'trade_IDs': trade_IDs,
                                        'instrument': instrument,}
                 
-                if not as_dict:
-                    instrument_position = Position(**instrument_position)
+                instrument_position = Position(**instrument_position)
                 
                 # Append position dict to open_positions dict
                 open_positions[instrument] = instrument_position
-                        
+                
         return open_positions
     
     
@@ -713,7 +710,6 @@ class Broker:
         """
         self.trades[trade_id].take_profit = new_take_profit
         
-    
         
     def _get_new_order_id(self):
         return len(self.orders) + 1

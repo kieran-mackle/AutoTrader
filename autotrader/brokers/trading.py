@@ -38,6 +38,10 @@ class Order:
         self._sizing = None
         self._risk_pc = None
         
+        # Meta-data
+        self.id = None
+        self.status = None # options: pending -> open -> cancelled | filled
+        
         # Unpack kwargs
         for item in kwargs:
             setattr(self, item, kwargs[item])
@@ -46,10 +50,6 @@ class Order:
         if self.stop_loss is not None:
             self.stop_type = self.stop_type if self.stop_type is \
                 not None else 'limit'
-                
-        # Meta-data
-        self.id = None
-        self.status = None # options: pending -> open -> cancelled | filled
     
     
     def __repr__(self):
@@ -327,7 +327,7 @@ class Position:
     
     
     def as_dict(self) -> dict:
-        """Converts Order object to dictionary.
+        """Converts Position object to dictionary.
 
         Returns
         -------
