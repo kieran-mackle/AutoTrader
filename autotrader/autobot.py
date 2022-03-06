@@ -8,8 +8,9 @@ import numpy as np
 import pandas as pd
 from shutil import copy2
 from datetime import datetime
-from autotrader.autodata import GetData
 from autotrader.comms import emailing
+from autotrader.autodata import GetData
+from autotrader.brokers.trading import Order
 from autotrader.autostream import AutoStream
 from autotrader.utilities import read_yaml, get_config
 
@@ -22,29 +23,9 @@ class AutoTraderBot:
                  broker, data_dict: dict, quote_data_dict: dict, 
                  auxdata: dict, autotrader_instance) -> None:
         # Inherit user options from autotrader
-        self._home_dir = autotrader_instance._home_dir
-        self._scan_mode = autotrader_instance._scan_mode
-        self._scan_index = autotrader_instance._scan_index
+        for attribute, value in autotrader_instance.__dict__.items():
+            setattr(self, attribute, value)
         self._scan_results = {}
-        self._broker_utils = autotrader_instance._broker_utils
-        self._email_params = autotrader_instance._email_params
-        self._notify = autotrader_instance._notify
-        self._verbosity = autotrader_instance._verbosity
-        self._order_summary_fp = autotrader_instance._order_summary_fp
-        self._backtest_mode = autotrader_instance._backtest_mode
-        self._data_start = autotrader_instance._data_start
-        self._data_end = autotrader_instance._data_end
-        self._base_currency = autotrader_instance._backtest_base_currency
-        self._environment = autotrader_instance._environment
-        self._feed = autotrader_instance._feed
-        self._data_file = autotrader_instance._data_file
-        self._MTF_data_files = autotrader_instance._MTF_data_files
-        self._optimise_mode = autotrader_instance._optimise_mode
-        self._check_data_alignment = autotrader_instance._check_data_alignment
-        self._allow_dancing_bears = autotrader_instance._allow_dancing_bears
-        self._use_stream = autotrader_instance._use_stream
-        self._stream_config = autotrader_instance._stream_config
-        self._MTF_initialisation = autotrader_instance._MTF_initialisation
         
         # Assign local attributes
         self.instrument = instrument
@@ -55,9 +36,9 @@ class AutoTraderBot:
         interval = strategy_config["INTERVAL"]
         period = strategy_config["PERIOD"]
         risk_pc = strategy_config["RISK_PC"] if 'RISK_PC' in strategy_config \
-            else 0
+            else None
         sizing = strategy_config["SIZING"] if 'SIZING' in strategy_config \
-            else 0
+            else None
         params = strategy_config["PARAMETERS"]
         strategy_params = params
         strategy_params['granularity'] = strategy_params['granularity'] \
@@ -249,7 +230,8 @@ class AutoTraderBot:
         self._strategy.initialise_strategy(strat_data)
         
     
-    def _retrieve_data(self, instrument, feed, base_data = None) -> pd.DataFrame:
+    def _retrieve_data(self, instrument: str, feed: str, 
+                       base_data: pd.DataFrame = None) -> pd.DataFrame:
         """Retrieves price data from AutoData.
         """
         interval = self._strategy_params['granularity']
@@ -587,9 +569,9 @@ class AutoTraderBot:
         interval = self._strategy_params['granularity'].split(',')[0]
         
         # Check data time alignment
-        current_time        = datetime.now(tz=pytz.utc)
-        last_candle_closed  = self._broker_utils.last_period(current_time, interval)
-        data_ts             = data.index[-1].to_pydatetime().timestamp()
+        current_time = datetime.now(tz=pytz.utc)
+        last_candle_closed = self._broker_utils.last_period(current_time, interval)
+        data_ts = data.index[-1].to_pydatetime().timestamp()
         
         if data_ts != last_candle_closed.timestamp():
             # Time misalignment detected - attempt to correct
@@ -599,11 +581,11 @@ class AutoTraderBot:
                       "({}/{}).".format(data.index[-1].minute, last_candle_closed.minute),
                       "Trying again...")
                 time.sleep(3) # wait 3 seconds...
-                data    = getattr(self._get_data, feed.lower())(instrument,
-                                    granularity = interval,
-                                    count=period)
+                data = getattr(self._get_data, feed.lower())(instrument,
+                                granularity = interval,
+                                count=period)
                 data_ts = data.index[-1].to_pydatetime().timestamp()
-                count   += 1
+                count += 1
                 if count == 3:
                     break
             
@@ -612,23 +594,23 @@ class AutoTraderBot:
                 # Check price data directory to see if the stream has caught 
                 # the latest candle
                 price_data_filename = "{0}{1}.txt".format(interval, instrument)
-                abs_price_path      = os.path.join(price_data_path, price_data_filename)
+                abs_price_path = os.path.join(price_data_path, price_data_filename)
                 
                 if os.path.exists(abs_price_path):
                     # Price data file matching instrument and granularity 
                     # exists, check latest candle in file
-                    f                   = open(abs_price_path, "r")
-                    price_lines         = f.readlines()
+                    f = open(abs_price_path, "r")
+                    price_lines = f.readlines()
                     
                     if len(price_lines) > 1:
-                        latest_candle       = price_lines[-1].split(',')
-                        latest_candle_time  = datetime.strptime(latest_candle[0],
+                        latest_candle = price_lines[-1].split(',')
+                        latest_candle_time = datetime.strptime(latest_candle[0],
                                                                 '%Y-%m-%d %H:%M:%S')
                         UTC_last_candle_in_file = latest_candle_time.replace(tzinfo=pytz.UTC)
-                        price_data_ts       = UTC_last_candle_in_file.timestamp()
+                        price_data_ts = UTC_last_candle_in_file.timestamp()
                         
                         if price_data_ts == last_candle_closed.timestamp():
-                            data    = self._broker_utils.update_data_with_candle(data, latest_candle)
+                            data = self._broker_utils.update_data_with_candle(data, latest_candle)
                             data_ts = data.index[-1].to_pydatetime().timestamp()
                             print("  Data updated using price stream.")
             
@@ -643,28 +625,36 @@ class AutoTraderBot:
     def _update(self, i: int) -> None:
         """Update strategy with latest data and generate latest signal.
         """
-        # First clear self._latest_orders
+        # Reset self._latest_orders
         self._latest_orders = []
         
         if self._scan_mode:
-            open_positions      = None
+            open_positions = None
         else:
-            open_positions      = self._broker.get_open_positions(self.instrument)
+            open_positions = self._broker.get_positions(self.instrument)
         
         # Run strategy to get signals
-        signal_dict = self._strategy.generate_signal(i, open_positions)
+        # TODO - parameterise signal method name
+        strategy_orders = self._strategy.generate_signal(i, open_positions)
+        orders = self._check_orders(strategy_orders)
         
-        if 0 not in signal_dict:
-            # Single order signal, nest in dictionary to allow iteration
-            signal_dict = {1: signal_dict}
-            
-        # Begin iteration over signal_dict to extract each order
-        for order in signal_dict:
-            order_signal_dict = signal_dict[order].copy()
-            
-            if (len(order_signal_dict) > 0) and ((order_signal_dict["order_type"] == 'modify') or (order_signal_dict["direction"] != 0)):
-                self._process_signal(order_signal_dict, i, self.data, 
-                                    self.quote_data, self.instrument)
+        # Iterate over orders to submit
+        for order in orders:
+            if self._scan_mode:
+                # Bot is scanning
+                scan_hit = {"size"  : order.size,
+                            "entry" : self.data.Close[i],
+                            "stop"  : order.stop_loss,
+                            "take"  : order.take_profit,
+                            "signal": order.direction}
+                self._scan_results[self.instrument] = scan_hit
+                pass
+                
+            else:
+                # Bot is trading
+                self._broker.place_order(order, data=self.data, 
+                                         quote_data=self.quote_data, i=i)
+                self._latest_orders.append(order)
         
         if int(self._verbosity) > 1:
             if len(self._latest_orders) > 0:
@@ -707,7 +697,7 @@ class AutoTraderBot:
             scan_details    = {'index'      : self._scan_index,
                                'strategy'   : self._strategy.name,
                                'timeframe'  : self._strategy_params['granularity']
-                                }
+                               }
             
             # Report AutoScan results
             # Scan reporting with no emailing requested.
@@ -743,119 +733,104 @@ class AutoTraderBot:
                                                self._email_params['host_email'])
                     
     
+    def _check_orders(self, orders) -> list:
+        """Checks that orders returned from strategy are in the correct
+        format.
+        
+        Returns
+        -------
+        List of Orders
+        
+        Notes
+        -----
+        An order must have (at the very least) an order type specified. Usually,
+        the direction will also be required, except in the case of close order 
+        types. If an order with no order type is provided, it will be ignored.
+        """
+        
+        # TODO - option to provide order_price here, from data feed rather
+        # than broker
+        def check_type(orders):
+            checked_orders = []
+            if isinstance(orders, dict):
+                # Order(s) provided in dictionary
+                if 'order_type' in orders:
+                    # Single order dict provided
+                    if 'instrument' not in orders:
+                        orders['instrument'] = self.instrument
+                    checked_orders.append(Order._from_dict(orders))
+                    
+                elif len(orders) > 0:
+                    # Multiple orders provided
+                    for key, item in orders.items():
+                        if isinstance(item, dict) and 'order_type' in item:
+                            # Convert order dict to Order object
+                            if 'instrument' not in item:
+                                item['instrument'] = self.instrument
+                            checked_orders.append(Order._from_dict(item))
+                        elif isinstance(item, Order):
+                            # Native Order object, append as is
+                            checked_orders.append(item)
+                        else:
+                            raise Exception(f"Invalid order submitted: {item}")
+                
+                elif len(orders) == 0:
+                    # Empty order dict
+                    pass
+                
+            elif isinstance(orders, Order):
+                # Order object directly returned
+                checked_orders.append(orders)
+                
+            elif isinstance(orders, list):
+                # Order(s) provided in list
+                for item in orders:
+                    if isinstance(item, dict) and 'order_type' in item:
+                        # Convert order dict to Order object
+                        if 'instrument' not in item:
+                            item['instrument'] = self.instrument
+                        checked_orders.append(Order._from_dict(item))
+                    elif isinstance(item, Order):
+                        # Native Order object, append as is
+                        checked_orders.append(item)
+                    else:
+                        raise Exception(f"Invalid order submitted: {item}")
+            else:
+                raise Exception(f"Invalid order submitted: {item}")
+            
+            return checked_orders
+        
+        def add_strategy_data(orders):
+            # Append strategy parameters to each order
+            for order in orders:
+                order.instrument = self.instrument if not order.instrument else order.instrument
+                order.strategy = self._strategy.name
+                order.granularity = self._strategy_params['granularity']
+                order._sizing = self._strategy_params['sizing']
+                order._risk_pc = self._strategy_params['risk_pc']
+                
+        def check_order_details(orders: list) -> None:
+            for ix, order in enumerate(orders):
+                if order.order_type in ['market', 'limit', 'stop-limit', 'reduce']:
+                    if not order.direction:
+                        del orders[ix]
+                        if self._verbosity > 1:
+                            print("No trade direction provided for " + \
+                                  f"{order.order_type} order. Order will be ignored.")
+        
+        # Perform checks
+        checked_orders = check_type(orders)
+        add_strategy_data(checked_orders)
+        check_order_details(checked_orders)
+        
+        return checked_orders
+        
+    
     def _update_backtest(self, i: int) -> None:
         """Updates virtual broker with latest price data for backtesting.
         """
         candle = self.data.iloc[i]
         self._broker._update_positions(candle, self.instrument)
-    
-    
-    def _process_signal(self, order_signal_dict: dict, i: int, 
-                        data: pd.DataFrame, quote_data: pd.DataFrame, 
-                       instrument: str) -> None:
-        """Process order_signal_dict and send orders to broker.
-        """
-        signal = order_signal_dict["direction"]
-        
-        # Entry signal detected, get price data
-        price_data = self._broker.get_price(instrument=instrument, 
-                                            data=data, 
-                                            conversion_data=quote_data, 
-                                            i=i)
-        datetime_stamp = data.index[i]
-        
-        if signal < 0:
-            order_price = price_data['bid']
-            HCF = price_data['negativeHCF']
-        else:
-            order_price = price_data['ask']
-            HCF = price_data['positiveHCF']
-        
-        
-        # Define 'working_price' to calculate size and TP
-        if order_signal_dict["order_type"] == 'limit' or order_signal_dict["order_type"] == 'stop-limit':
-            working_price = order_signal_dict["order_limit_price"]
-        else:
-            working_price = order_price
-        
-        # Calculate exit levels
-        pip_value = self._broker_utils.get_pip_ratio(instrument)
-        stop_distance = order_signal_dict['stop_distance'] if 'stop_distance' in order_signal_dict else None
-        
-        # Calculate stop loss price
-        if 'stop_loss' not in order_signal_dict and \
-            'stop_distance' in order_signal_dict and \
-            order_signal_dict['stop_distance'] is not None:
-            # Stop loss provided as pip distance, convert to price
-            stop_price = working_price - np.sign(signal)*stop_distance*pip_value
-        else:
-            # Stop loss provided as price
-            stop_price = order_signal_dict['stop_loss'] if 'stop_loss' in order_signal_dict else None
-        
-        # Set stop type
-        if stop_price is not None:
-            stop_type = order_signal_dict['stop_type'] if 'stop_type' in order_signal_dict else 'limit'
-        else:
-            # No stop loss specified 
-            stop_type = None
-            
-        # Calculate take profit price
-        if 'take_profit' not in order_signal_dict and \
-            'take_distance' in order_signal_dict and \
-            order_signal_dict['take_distance'] is not None:
-            # Take profit distance specified
-            take_profit = working_price + np.sign(signal)*order_signal_dict['take_distance']*pip_value
-        else:
-            # Take profit price specified, or no take profit specified at all
-            take_profit = order_signal_dict["take_profit"] if 'take_profit' in order_signal_dict else None
-        
-        # Calculate risked amount
-        amount_risked = self._broker.get_balance() * self._strategy_params['risk_pc'] / 100
-        
-        # Calculate size
-        if 'size' in order_signal_dict:
-            size = order_signal_dict['size']
-        else:
-            if self._strategy_params['sizing'] == 'risk':
-                size            = self._broker_utils.get_size(instrument,
-                                                 amount_risked, 
-                                                 working_price, 
-                                                 stop_price, 
-                                                 HCF,
-                                                 stop_distance)
-            else:
-                size = self._strategy_params['sizing']
-        
-        # Construct order dict by building on signal_dict
-        order_details                   = order_signal_dict
-        order_details["order_time"]     = datetime_stamp
-        order_details["strategy"]       = self._strategy.name
-        order_details["instrument"]     = order_signal_dict['instrument'] if 'instrument' in order_signal_dict else instrument
-        order_details["size"]           = signal*size
-        order_details["order_price"]    = order_price
-        order_details["HCF"]            = HCF
-        order_details["granularity"]    = self._strategy_params['granularity']
-        order_details["stop_distance"]  = stop_distance
-        order_details["stop_loss"]      = stop_price
-        order_details["take_profit"]    = take_profit
-        order_details["stop_type"]      = stop_type
-        order_details["related_orders"] = order_signal_dict['related_orders'] if 'related_orders' in order_signal_dict else None
-
-        # Place order
-        if self._scan_mode:
-            # Bot is scanning
-            scan_hit = {"size"  : size,
-                        "entry" : order_price,
-                        "stop"  : stop_price,
-                        "take"  : take_profit,
-                        "signal": signal
-                        }
-            self._scan_results[instrument] = scan_hit
-            
-        else:
-            # Bot is trading
-            self._broker.place_order(order_details)
-            self._latest_orders.append(order_details)
     
     
     def _next_candle_open(self, granularity: str) -> datetime:
@@ -873,22 +848,27 @@ class AutoTraderBot:
                                 margin: pd.Series) -> dict:
         """Constructs backtest summary dictionary for further processing.
         """
-        trade_summary = self._broker_utils.trade_summary(self.instrument, self._broker.closed_positions)
-        open_trade_summary = self._broker_utils.open_order_summary(self.instrument, self._broker.open_positions)
-        cancelled_summary = self._broker_utils.cancelled_order_summary(self.instrument, self._broker.cancelled_orders)
-            
+        trade_summary = self._broker_utils.trade_summary(trades=self._broker.trades,
+                                                         instrument=self.instrument)
+        order_summary = self._broker_utils.trade_summary(orders=self._broker.orders,
+                                                         instrument=self.instrument)
+        
+        # closed_trades = trade_summary[trade_summary.status == 'closed']
+        open_trade_summary = trade_summary[trade_summary.status == 'open']
+        cancelled_summary = order_summary[order_summary.status == 'cancelled']
+        
         backtest_dict = {}
-        backtest_dict['data']           = self.data
+        backtest_dict['data'] = self.data
         backtest_dict['account_history'] = pd.DataFrame(data={'balance': balance, 
                                                               'NAV': NAV, 
                                                               'margin': margin,
                                                               'drawdown': np.array(NAV)/np.maximum.accumulate(NAV) - 1}, 
                                                         index=self.data.index)
-        backtest_dict['trade_summary']  = trade_summary
-        backtest_dict['indicators']     = self._strategy.indicators if hasattr(self._strategy, 'indicators') else None
-        backtest_dict['instrument']     = self.instrument
-        backtest_dict['interval']       = self._strategy_params['granularity']
-        backtest_dict['open_trades']    = open_trade_summary
+        backtest_dict['trade_summary'] = trade_summary
+        backtest_dict['indicators'] = self._strategy.indicators if hasattr(self._strategy, 'indicators') else None
+        backtest_dict['instrument'] = self.instrument
+        backtest_dict['interval'] = self._strategy_params['granularity']
+        backtest_dict['open_trades'] = open_trade_summary
         backtest_dict['cancelled_trades'] = cancelled_summary
         
         self.backtest_summary = backtest_dict

@@ -22,6 +22,7 @@ except ImportError:
     import importlib_resources as pkg_resources
 from . import data as pkgdata
 
+# TODO - check all merge operations after changing column names of trade summary
 
 class AutoPlot:
     """AutoPlot trading chart generator.
@@ -328,7 +329,7 @@ class AutoPlot:
             save(fig)
     
     
-    def _reindex_data(self, data):
+    def _reindex_data(self, data: pd.DataFrame) -> pd.DataFrame:
         """Resets index of data to obtain integer indexing.
         """
         
@@ -340,13 +341,13 @@ class AutoPlot:
         return modified_data
     
     
-    def _resample_data(self, data):
+    def _resample_data(self, data: pd.DataFrame) -> pd.DataFrame:
         """Resamples data to match the time index of the base data.
         """
         return data.reindex(self._data.date, method='ffill')
     
     
-    def _check_data(self, data):
+    def _check_data(self, data: pd.DataFrame) -> pd.DataFrame:
         """Checks the length of the inputted data against the base data, 
         and resamples it if necessary.
         """
@@ -355,7 +356,7 @@ class AutoPlot:
         return data
         
     
-    def _merge_data(self, data, name=None):
+    def _merge_data(self, data: pd.DataFrame, name=None) -> pd.DataFrame:
         """Merges the provided data with the base data, using the data of the 
         base data and the index of the data to be merged.
         
@@ -373,7 +374,7 @@ class AutoPlot:
         return merged_data
     
     
-    def _add_backtest_price_data(self, backtest_price_data):
+    def _add_backtest_price_data(self, backtest_price_data: pd.DataFrame) -> None:
         """Processes backtest price data to included integer index of base 
         data.
         """
@@ -384,10 +385,10 @@ class AutoPlot:
     
     
     ''' ------------------- FIGURE MANAGEMENT METHODS --------------------- '''
-    def _plot_multibot_backtest(self, multibot_backtest_results, NAV, cpl_dict,
-                                margin_available):
-        ''' 
-        Creates multi-bot backtest figure. 
+    def _plot_multibot_backtest(self, multibot_backtest_results: dict, 
+                                NAV: pd.Series, cpl_dict: pd.Series,
+                                margin_available: pd.Series):
+        """Creates multi-bot backtest figure. 
         
             Parameters:
                 multibot_backtest_results (df): dataframe of bot backtest results.
@@ -395,7 +396,7 @@ class AutoPlot:
                 NAV (list): Net asset value.
                 
                 cpl_dict (dict): cumulative PL of each bot.
-        '''
+        """
         
         # TODO - merge this into self.plot method?
         # First, clean up individual plots (pie, etc) into new methods
@@ -618,7 +619,7 @@ class AutoPlot:
         show(final_fig)
     
         
-    def _plot_indicators(self, indicators, linked_fig):
+    def _plot_indicators(self, indicators: dict, linked_fig):
         """Plots indicators based on indicator type. If inidcator type is 
         "over", it will be plotted on top of linked_fig. If indicator type is 
         "below", it will be plotted on a new figure below the OHLC chart.
@@ -818,9 +819,8 @@ class AutoPlot:
     def _plot_line(self, plot_data, linked_fig, new_fig=False, fig_height=150,
                    fig_title=None, legend_label=None, hover_name=None,
                    line_colour='black'):
-        '''
-        Generic method to plot data as a line.
-        '''
+        """Generic method to plot data as a line.
+        """
         
         # Initiate figure
         if new_fig:
@@ -915,7 +915,8 @@ class AutoPlot:
     
     
     def _plot_supertrend(self, st_data, linked_fig):
-        ''' Plots supertrend indicator. '''
+        """Plots supertrend indicator.
+        """
         # Extract supertrend data
         # uptrend     = st_data['uptrend']
         # dntrend     = st_data['downtrend']
@@ -972,7 +973,8 @@ class AutoPlot:
     
     
     def _plot_signals(self, linked_fig, signals_df):
-        ' Plots long and short entry signals over OHLC chart. '
+        """Plots long and short entry signals over OHLC chart.
+        """
         
         signals_df = signals_df.reset_index(drop = True)
         long_arrows = signals_df[signals_df['buy'] != 0]
@@ -997,8 +999,8 @@ class AutoPlot:
     
     
     def _plot_pivot_points(self, pivot_dict, linked_fig, levels=1):
-        ''' Adds pivot points to OHLC chart '''
-        
+        """Adds pivot points to OHLC chart.
+        """
         pivot_df = pivot_dict['data']
         levels = pivot_dict['levels'] if 'levels' in pivot_dict else levels
         
@@ -1065,7 +1067,8 @@ class AutoPlot:
         
         
     def _plot_trading_session(self, session_plot_data, linked_fig):
-        'Shades trading session times'
+        """Shades trading session times.
+        """
         
         session = session_plot_data['data'].lower()
         fill_color = session_plot_data['fill_color'] if 'fill_color' in session_plot_data else 'blue'
@@ -1102,9 +1105,8 @@ class AutoPlot:
     ''' ----------------------- TOP FIG PLOTTING -------------------------- '''
     def _plot_trade(self, x_data, y_data, marker_type, marker_colour, 
                     label, linked_fig, scatter_size=15):
-        '''
-        Plots individual trade.
-        '''
+        """Plots individual trade.
+        """
         
         linked_fig.scatter(x_data, y_data,
                            marker       = marker_type,
@@ -1115,7 +1117,8 @@ class AutoPlot:
     
     def _plot_trade_history(self, trade_summary, linked_fig, 
                             cancelled_summary=False, open_summary=False):
-        ''' Plots trades taken over ohlc chart. '''
+        """Plots trades taken over ohlc chart.
+        """
         
         exit_summary = trade_summary.copy()
         
@@ -1128,49 +1131,49 @@ class AutoPlot:
                                      left_on='date', right_index=True)
         
         # Backtesting signals
-        long_trades             = trade_summary[trade_summary.Size > 0]
-        shorts_trades           = trade_summary[trade_summary.Size < 0]
+        long_trades = trade_summary[trade_summary['size'] > 0]
+        shorts_trades = trade_summary[trade_summary['size'] < 0]
         
         if cancelled_summary is False and open_summary is False:
             
             if self._backtest_data is not None:
                 # Charting on different timeframe data
                 exit_summary = pd.merge(self._backtest_data, exit_summary, 
-                                        left_index=True, right_on='Exit_time')
+                                        left_index=True, right_on='exit_time')
             else:
                 exit_summary = pd.merge(self._data, exit_summary, 
-                                        left_on='date', right_on='Exit_time')
+                                        left_on='date', right_on='exit_time')
             
-            profitable_longs        = long_trades[(long_trades['Profit'] > 0)]
-            unprofitable_longs      = long_trades[(long_trades['Profit'] < 0)]
-            profitable_shorts       = shorts_trades[(shorts_trades['Profit'] > 0)]
-            unprofitable_shorts     = shorts_trades[(shorts_trades['Profit'] < 0)]
+            profitable_longs = long_trades[(long_trades['profit'] > 0)]
+            unprofitable_longs = long_trades[(long_trades['profit'] < 0)]
+            profitable_shorts = shorts_trades[(shorts_trades['profit'] > 0)]
+            unprofitable_shorts = shorts_trades[(shorts_trades['profit'] < 0)]
             
             # Profitable long trades
             if len(profitable_longs) > 0:
                 self._plot_trade(list(profitable_longs.data_index.values),
-                                 list(profitable_longs.Entry.values), 
+                                 list(profitable_longs.fill_price.values), 
                                  'triangle', 'lightgreen', 
                                  'Profitable long trades', linked_fig)
     
             # Profitable short trades
             if len(profitable_shorts) > 0:
                 self._plot_trade(list(profitable_shorts.data_index.values),
-                                 list(profitable_shorts.Entry.values),
+                                 list(profitable_shorts.fill_price.values),
                                  'inverted_triangle', 'lightgreen',
                                  'Profitable short trades', linked_fig)
             
             # Unprofitable long trades
             if len(unprofitable_longs) > 0:
                 self._plot_trade(list(unprofitable_longs.data_index.values),
-                                 list(unprofitable_longs.Entry.values),
+                                 list(unprofitable_longs.fill_price.values),
                                  'triangle', 'orangered',
                                  'Unprofitable long trades', linked_fig)
             
             # Unprofitable short trades
             if len(unprofitable_shorts) > 0:
                 self._plot_trade(list(unprofitable_shorts.data_index.values),
-                                 list(unprofitable_shorts.Entry.values),
+                                 list(unprofitable_shorts.fill_price.values),
                                  'inverted_triangle', 'orangered',
                                  'Unprofitable short trades', linked_fig)
         else:
@@ -1178,12 +1181,12 @@ class AutoPlot:
                 long_legend_label = 'Cancelled long trades'
                 short_legend_label = 'Cancelled short trades'
                 fill_color = 'black'
-                price = 'Order_price'
+                price = 'order_price'
             else:
                 long_legend_label = 'Open long trades'
                 short_legend_label = 'Open short trades'
                 fill_color = 'white'
-                price = 'Entry'
+                price = 'fill_price'
         
             # Partial long trades
             if len(long_trades) > 0:
@@ -1205,28 +1208,29 @@ class AutoPlot:
         
         
         # Stop loss  levels
-        if None not in trade_summary.Stop_loss.values:
+        if None not in trade_summary.stop_loss.values:
             self._plot_trade(list(trade_summary.data_index.values),
-                             list(trade_summary.Stop_loss.fillna('').values),
+                             list(trade_summary.stop_loss.fillna('').values),
                              'dash', 'black', 'Stop loss', linked_fig)
         
         # Take profit levels
-        if None not in trade_summary.Take_profit.values:
+        if None not in trade_summary.take_profit.values:
             self._plot_trade(list(trade_summary.data_index.values),
-                             list(trade_summary.Take_profit.fillna('').values),
+                             list(trade_summary.take_profit.fillna('').values),
                              'dash', 'black', 'Take profit', linked_fig)
         
         # Position exits
         if cancelled_summary is False and open_summary is False:
             self._plot_trade(list(exit_summary.data_index),
-                             list(exit_summary.Exit_price.values),
+                             list(exit_summary.exit_price.values),
                              'circle', 'black', 'Position exit', linked_fig,
                              scatter_size=7)
     
     
     ''' --------------------- BOTTOM FIG PLOTTING ------------------------- '''
     def _plot_macd(self, x_range, macd_data, linked_fig):
-        ''' Plots MACD indicator. '''
+        """Plots MACD indicator.
+        """
         # Initialise figure
         fig = figure(plot_width     = linked_fig.plot_width,
                      plot_height    = self._bottom_fig_height,
@@ -1310,8 +1314,7 @@ class AutoPlot:
     def _plot_bands(self, plot_data, linked_fig=None, new_fig = True,
                     fill_color = 'blue', fill_alpha = 0.3, line_color='black',
                     legend_label = None):
-        '''
-        Plots a shaded region bound by upper and lower vaues.
+        """Plots a shaded region bound by upper and lower vaues.
         
         lower, upper and mid data must have same length as self._data.
         
@@ -1329,7 +1332,7 @@ class AutoPlot:
             linked_fig (Bokeh figure): linked figure
             
             new_fig (bool): flag to return a new figure or overlay on linked_fig
-        '''
+        """
         
         fill_color = plot_data['fill_color'] if 'fill_color' in plot_data else fill_color
         fill_alpha = plot_data['fill_alpha'] if 'fill_alpha' in plot_data else fill_alpha

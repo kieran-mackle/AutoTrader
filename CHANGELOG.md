@@ -1,12 +1,12 @@
 # AutoTrader Changelog
 
 ## Version 0.6.0
-- Interactive Brokers is now supported
-- Improvements to public broker methods for clarity
-- Docstrings and type hints
+- Interactive Brokers is now supported.
+- Improvements to public broker methods for clarity.
+- Docstrings and type hints.
 - Distinction of broker and feed, allowing specification of broker and feed 
-  separately
-- New broker template directory 
+  separately.
+- New broker template directory added.
 - All AutoTrader attributes have been made private to avoid confusion - the 
   configuration methods should be used exclusively to set the attributes.
   This also clarifies and promotes visibility of public methods.
@@ -15,7 +15,20 @@
   other modules previously in the `lib/` directory.
 - Deprecated `help` and `usage` methods of AutoTrader (replaced by in-code
   docstrings).
-
+- AutoTrader method `add_strategy` now accepts strategy classes as input 
+  argument, to directly provide strategy class objects.
+- Broker public method name changes: `cancel_pending_order` to `cancel_order`,
+  `get_pending_orders` to `get_orders`, `get_open_trades` to `get_trades`,
+  `get_open_positions` to `get_positions`.
+- Broker public method deleted: `get_cancelled_orders` - functionality 
+  available using `get_orders` method with `order_status = 'cancelled'`.
+- To facilitate strategies built with prior autotrader versions, the previous 
+  format of signal dictionaries from strategy modules is still supported. 
+  Support for this format will be phased out in favour of the new `Order` and
+  `Trade` objects (found in `autotrader.brokers.trading` module). 
+- For new Order, Trade and Position objects, support for legacy code is 
+  included via `as_dict` methods, to convert class objects to dictionaries.
+  
 
 ## Version 0.5.0
 Breaking change:

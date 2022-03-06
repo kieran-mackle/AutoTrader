@@ -105,7 +105,7 @@ class AutoTrader:
         self._backtest_spread = None
         self._backtest_commission = None
         self._backtest_leverage = None
-        self._backtest_base_currency = None
+        self._base_currency = None
         
         # Optimisation Parameters
         self._optimise_mode = False
@@ -305,7 +305,7 @@ class AutoTrader:
         self._backtest_spread = spread
         self._backtest_commission = commission
         self._backtest_leverage = leverage
-        self._backtest_base_currency = base_currency
+        self._base_currency = base_currency
         
         # Enforce virtual broker
         self._broker_name = 'virtual'
@@ -666,8 +666,8 @@ class AutoTrader:
             
         ap = self._instantiate_autoplot(bot.data)
         profit_df = pd.merge(bot.data, 
-                             bot.backtest_summary['trade_summary']['Profit'], 
-                             left_index=True, right_index=True).Profit.cumsum()
+                             bot.backtest_summary['trade_summary']['profit'], 
+                             left_index=True, right_index=True).profit.cumsum()
         
         ap.plot(backtest_dict=bot.backtest_summary, cumulative_PL=profit_df)
     
@@ -678,8 +678,8 @@ class AutoTrader:
         cpl_dict = {}
         for bot in self._bots_deployed:
             profit_df = pd.merge(bot.data, 
-                     bot.backtest_summary['trade_summary']['Profit'], 
-                     left_index=True, right_index=True).Profit.cumsum()
+                     bot.backtest_summary['trade_summary']['profit'], 
+                     left_index=True, right_index=True).profit.cumsum()
             cpl_dict[bot.instrument] = profit_df
         
         ap = self._instantiate_autoplot(bot.data)
@@ -769,31 +769,31 @@ class AutoTrader:
         instrument      = backtest_summary['instrument']
         account_history = backtest_summary['account_history']
         
-        cpl = trade_summary.Profit.cumsum()
+        cpl = trade_summary.profit.cumsum()
         
         backtest_results = {}
         
         # All trades
-        no_trades = len(trade_summary)
+        no_trades = len(trade_summary[trade_summary['status'] == 'closed'])
         backtest_results['no_trades'] = no_trades
         backtest_results['start'] = account_history.index[0]
         backtest_results['end'] = account_history.index[-1]
         
         if no_trades > 0:
             backtest_results['all_trades'] = {}
-            wins        = trade_summary[trade_summary.Profit > 0]
-            avg_win     = np.mean(wins.Profit)
-            max_win     = np.max(wins.Profit)
-            loss        = trade_summary[trade_summary.Profit < 0]
-            avg_loss    = abs(np.mean(loss.Profit))
-            max_loss    = abs(np.min(loss.Profit))
+            wins        = trade_summary[trade_summary.profit > 0]
+            avg_win     = np.mean(wins.profit)
+            max_win     = np.max(wins.profit)
+            loss        = trade_summary[trade_summary.profit < 0]
+            avg_loss    = abs(np.mean(loss.profit))
+            max_loss    = abs(np.min(loss.profit))
             win_rate    = 100*len(wins)/no_trades
             longest_win_streak, longest_lose_streak  = self._broker_utils.get_streaks(trade_summary)
-            avg_trade_duration = np.mean(trade_summary.Trade_duration.values)
-            min_trade_duration = min(trade_summary.Trade_duration.values)
-            max_trade_duration = max(trade_summary.Trade_duration.values)
+            avg_trade_duration = np.nanmean(trade_summary.trade_duration.values)
+            min_trade_duration = min(trade_summary.trade_duration.values)
+            max_trade_duration = max(trade_summary.trade_duration.values)
             max_drawdown = min(account_history.drawdown)
-            total_fees = trade_summary.Fees.sum()
+            total_fees = trade_summary.fees.sum()
             
             starting_balance = account_history.balance[0]
             ending_balance = account_history.balance[-1]
@@ -821,24 +821,24 @@ class AutoTrader:
             backtest_results['all_trades']['total_fees']    = total_fees
             
         # Cancelled and open orders
-        cancelled_orders = self._broker.get_cancelled_orders(instrument)
-        open_trades      = self._broker.get_open_positions(instrument)
+        cancelled_orders = self._broker.get_orders(instrument, 'cancelled')
+        open_trades = self._broker.get_positions(instrument)
         backtest_results['no_open'] = len(open_trades)
         backtest_results['no_cancelled'] = len(cancelled_orders)
         
         # Long trades
-        long_trades     = trade_summary[trade_summary.Size > 0]
-        no_long         = len(long_trades)
+        long_trades = trade_summary[trade_summary['size'] > 0]
+        no_long = len(long_trades)
         backtest_results['long_trades'] = {}
         backtest_results['long_trades']['no_trades'] = no_long
         if no_long > 0:
-            long_wins       = long_trades[long_trades.Profit > 0]
-            avg_long_win    = np.mean(long_wins.Profit)
-            max_long_win    = np.max(long_wins.Profit)
-            long_loss       = long_trades[long_trades.Profit < 0]
-            avg_long_loss   = abs(np.mean(long_loss.Profit))
-            max_long_loss   = abs(np.min(long_loss.Profit))
-            long_wr         = 100*len(long_trades[long_trades.Profit > 0])/no_long
+            long_wins       = long_trades[long_trades.profit > 0]
+            avg_long_win    = np.mean(long_wins.profit)
+            max_long_win    = np.max(long_wins.profit)
+            long_loss       = long_trades[long_trades.profit < 0]
+            avg_long_loss   = abs(np.mean(long_loss.profit))
+            max_long_loss   = abs(np.min(long_loss.profit))
+            long_wr         = 100*len(long_trades[long_trades.profit > 0])/no_long
             
             backtest_results['long_trades']['avg_long_win']     = avg_long_win
             backtest_results['long_trades']['max_long_win']     = max_long_win 
@@ -847,18 +847,18 @@ class AutoTrader:
             backtest_results['long_trades']['long_wr']          = long_wr
             
         # Short trades
-        short_trades    = trade_summary[trade_summary.Size < 0]
+        short_trades    = trade_summary[trade_summary['size'] < 0]
         no_short        = len(short_trades)
         backtest_results['short_trades'] = {}
         backtest_results['short_trades']['no_trades'] = no_short
         if no_short > 0:
-            short_wins      = short_trades[short_trades.Profit > 0]
-            avg_short_win   = np.mean(short_wins.Profit)
-            max_short_win   = np.max(short_wins.Profit)
-            short_loss      = short_trades[short_trades.Profit < 0]
-            avg_short_loss  = abs(np.mean(short_loss.Profit))
-            max_short_loss  = abs(np.min(short_loss.Profit))
-            short_wr        = 100*len(short_trades[short_trades.Profit > 0])/no_short
+            short_wins      = short_trades[short_trades.profit > 0]
+            avg_short_win   = np.mean(short_wins.profit)
+            max_short_win   = np.max(short_wins.profit)
+            short_loss      = short_trades[short_trades.profit < 0]
+            avg_short_loss  = abs(np.mean(short_loss.profit))
+            max_short_loss  = abs(np.min(short_loss.profit))
+            short_wr        = 100*len(short_trades[short_trades.profit > 0])/no_short
             
             backtest_results['short_trades']['avg_short_win']   = avg_short_win
             backtest_results['short_trades']['max_short_win']   = max_short_win
@@ -1046,6 +1046,11 @@ class AutoTrader:
             global_config = read_yaml(global_config_fp)
         else:
             global_config = None
+            if not global_config and self._feed.lower() != 'yahoo':
+                raise Exception(f'Data feed "{self._feed}" requires a global '+\
+                                'configuration file. If one exists, make sure '+\
+                                'to specify the home_dir.')
+            
         broker_config = get_config(self._environment, global_config, self._feed)
         
         # Construct stream_config dict
@@ -1256,7 +1261,7 @@ class AutoTrader:
             broker.leverage = self._backtest_leverage
             broker.commission = self._backtest_commission
             broker.spread = self._backtest_spread
-            broker.base_currency = self._backtest_base_currency
+            broker.base_currency = self._base_currency
         
         self._broker = broker
         self._broker_utils = utils
