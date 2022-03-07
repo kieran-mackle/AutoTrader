@@ -3,7 +3,7 @@
 ## Version 0.6.0
 - Interactive Brokers is now supported.
 - Improvements to public broker methods for clarity.
-- Docstrings and type hints.
+- Comprehensive docstrings and type hints added.
 - Distinction of broker and feed, allowing specification of broker and feed 
   separately.
 - New broker template directory added.
@@ -28,7 +28,8 @@
   `Trade` objects (found in `autotrader.brokers.trading` module). 
 - For new Order, Trade and Position objects, support for legacy code is 
   included via `as_dict` methods, to convert class objects to dictionaries.
-  
+- AutoTrader demo repository has been updated to reflect the changes above.
+
 
 ## Version 0.5.0
 Breaking change:
