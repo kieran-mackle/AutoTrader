@@ -707,16 +707,16 @@ class AutoTraderBot:
         if int(self._verbosity) > 1:
             if len(self._latest_orders) > 0:
                 for order in self._latest_orders:
-                    order_string = "{}: {} {}".format(order['order_time'].strftime("%b %d %Y %H:%M:%S"), 
-                                                      order['instrument'], 
-                                                      order['order_type']) + \
-                        " order of {} units placed at {}.".format(order['size'],
-                                                                  order['order_price'])
+                    order_string = "{}: {} {}".format(order.order_time.strftime("%b %d %Y %H:%M:%S"), 
+                                                      order.instrument, 
+                                                      order.order_type) + \
+                        " order of {} units placed at {}.".format(order.size,
+                                                                  order.order_price)
                     print(order_string)
             else:
                 if int(self._verbosity) > 2:
                     print("{}: No signal detected ({}).".format(self.data.index[i].strftime("%b %d %Y %H:%M:%S"),
-                                                            self.instrument))
+                                                                self.instrument))
         
         # Check for orders placed and/or scan hits
         if int(self._notify) > 0 and self._backtest_mode is False:
