@@ -15,47 +15,50 @@ from autotrader.utilities import read_yaml, get_config, get_watchlist, ManageBot
 
 
 class AutoTrader:
-    """
-    AutoTrader: A Python-Based Development Platform For Automated Trading Systems.
-    ------------------------------------------------------------------------------
-    Homepage: https://kieran-mackle.github.io/AutoTrader/
+    """A Python-Based Development Platform For Automated Trading Systems.
     
-    GitHub: https://github.com/kieran-mackle/AutoTrader
+    Methods
+    -------
+    configure(...)
+        Configures run settings for AutoTrader.
+    add_strategy(...)
+        Adds a strategy to the active AutoTrader instance. 
+    backtest(...)
+        Configures backtest settings.
+    optimise(...)
+        Configures optimisation settings.
+    scan(...)
+        Configures scan settings.
+    run()
+        Runs AutoTrader with configured settings.
+    add_data(...)
+        Specify local data files to use for backtests.
+    plot_settings(...)
+        Configures the plot settings for AutoPlot.
+    get_bots_deployed(instrument=None)
+        Returns the AutoTrader trading bots deployed in the active instance.
+    plot_backtest(bot=None)
+        Plots backtest results of a trading Bot.
+    plot_multibot_backtest(backtest_results=None)
+        Plots backtest results for multiple trading bots.
+    analyse_backtest(bot=None)
+        Analyse backtest results of a single trading bot.
+    multibot_backtest_analysis(bots=None)
+        Analyses backtest results of multiple trading bots.
+    print_backtest_results(backtest_results)
+        Prints backtest results.
+    print_multibot_backtest_results(backtest_results=None)
+        Prints a multi-bot backtest results.
     
+    References
+    ----------
     Author: Kieran Mackle
     
     Version: 0.6
-
-    Methods
-    -------
-    configure(): 
-        Configures run settings for AutoTrader.
-    add_strategy():
-        Adds a strategy to the active AutoTrader instance. 
-    backtest():
-        Configures backtest settings.
-    scan():
-        Configures scan settings.
-    optimise():
-        Configures optimisation settings.
-    plot_settings():
-        Configures the plot settings for AutoPlot.
-    add_data():
-        Specify local data files to use for backtests.
-    run():
-        Runs AutoTrader with configured settings.
-    analyse_backtest():
-        Analyse backtest results of a single trading bot.
-    multibot_backtest_analysis():
-        Analyses backtest results of multiple trading bots.
-    plot_backtest():
-        Plots backtest results of a trading Bot.
-    plot_multibot_backtest():
-        Plots backtest results for multiple trading bots.
-    print_backtest_results():
-        Prints backtest results.
-    print_multibot_backtest_results():
-        Prints a multi-bot backtest results.
+    
+    Homepage: https://kieran-mackle.github.io/AutoTrader/
+    
+    GitHub: https://github.com/kieran-mackle/AutoTrader
     """
     
     def __init__(self) -> None:
@@ -139,57 +142,6 @@ class AutoTrader:
         return 'AutoTrader instance'
     
     
-    def add_strategy(self, config_filename: str = None, 
-                     config_dict: dict = None, strategy = None) -> None:
-        """Adds a strategy to AutoTrader.
-
-        Parameters
-        ----------
-        config_filename : str, optional
-            The prefix of the yaml strategy configuration file, located in 
-            home_dir/config. The default is None.
-        config_dict : dict, optional
-            Alternative to config_filename, a strategy configuration 
-            dictionary can be passed directly. The default is None.
-        strategy : AutoTrader Strategy, optional
-            The strategy class object. The default is None.
-
-        Returns
-        -------
-        None
-            The strategy will be added to the active AutoTrader instance.
-        """
-        
-        if self._home_dir is None:
-            # Home directory has not yet been set, postpone strategy addition
-            if config_filename is None:
-                self._uninitiated_strat_dicts.append(config_dict)
-            else:
-                self._uninitiated_strat_files.append(config_filename)
-            
-        else:
-            # Home directory has been set
-            if config_dict is None:
-                config_file_path = os.path.join(self._home_dir, 'config', config_filename)
-                new_strategy = read_yaml(config_file_path + '.yaml')
-            else:
-                new_strategy = config_dict
-            
-            name = new_strategy['NAME']
-            
-            if name in self._strategy_configs:
-                print("Warning: duplicate strategy name deteced. Please check " + \
-                      "the NAME field of your strategy configuration file and " + \
-                      "make sure it is not the same as other strategies being " + \
-                      "run from this instance.")
-                print("Conflicting name:", name)
-            
-            self._strategy_configs[name] = new_strategy
-            
-        if strategy is not None:
-            self._strategy_classes[strategy.__name__] = strategy
-            
-    
     def configure(self, verbosity: int = 1, broker: str = 'virtual', 
                   feed: str = 'yahoo', notify: int = 0, 
                   home_dir: str = None, use_stream: bool = False, 
@@ -257,6 +209,57 @@ class AutoTrader:
         self._jupyter_notebook = jupyter_notebook
         
         
+    def add_strategy(self, config_filename: str = None, 
+                     config_dict: dict = None, strategy = None) -> None:
+        """Adds a strategy to AutoTrader.
+
+        Parameters
+        ----------
+        config_filename : str, optional
+            The prefix of the yaml strategy configuration file, located in 
+            home_dir/config. The default is None.
+        config_dict : dict, optional
+            Alternative to config_filename, a strategy configuration 
+            dictionary can be passed directly. The default is None.
+        strategy : AutoTrader Strategy, optional
+            The strategy class object. The default is None.
+
+        Returns
+        -------
+        None
+            The strategy will be added to the active AutoTrader instance.
+        """
+        
+        if self._home_dir is None:
+            # Home directory has not yet been set, postpone strategy addition
+            if config_filename is None:
+                self._uninitiated_strat_dicts.append(config_dict)
+            else:
+                self._uninitiated_strat_files.append(config_filename)
+            
+        else:
+            # Home directory has been set
+            if config_dict is None:
+                config_file_path = os.path.join(self._home_dir, 'config', config_filename)
+                new_strategy = read_yaml(config_file_path + '.yaml')
+            else:
+                new_strategy = config_dict
+            
+            name = new_strategy['NAME']
+            
+            if name in self._strategy_configs:
+                print("Warning: duplicate strategy name deteced. Please check " + \
+                      "the NAME field of your strategy configuration file and " + \
+                      "make sure it is not the same as other strategies being " + \
+                      "run from this instance.")
+                print("Conflicting name:", name)
+            
+            self._strategy_configs[name] = new_strategy
+            
+        if strategy is not None:
+            self._strategy_classes[strategy.__name__] = strategy
+            
+    
     def backtest(self, start: str = None, end: str = None, 
                  initial_balance: float = 1000, spread: float = 0, 
                  commission: float = 0, leverage: int = 1,
@@ -502,7 +505,7 @@ class AutoTrader:
     
     
     def run(self) -> None:
-        """Performs essential checks and run AutoTrader.
+        """Performs essential checks and runs AutoTrader.
         """
         
         # Define home_dir if undefined
@@ -672,8 +675,13 @@ class AutoTrader:
         ap.plot(backtest_dict=bot.backtest_summary, cumulative_PL=profit_df)
     
     
-    def plot_multibot_backtest(self,) -> None:
+    def plot_multibot_backtest(self) -> None:
         """Plots the backtest results for multiple trading bots.
+        
+        Returns
+        -------
+        None
+            A chart will be generated and shown.
         """
         cpl_dict = {}
         for bot in self._bots_deployed:
@@ -689,71 +697,27 @@ class AutoTrader:
                                    bot.backtest_summary['account_history']['margin'])
         
     
-    def multibot_backtest_analysis(self, bots=None) -> dict:
-        """Analyses backtest results of multiple bots to create an overall 
-        performance summary.
-        
-        Parameters
-        -----------
-        bots : list(bots)
-            A list of AutoTrader bots to analyse.
-        """
-        
-        instruments = []
-        win_rate    = []
-        no_trades   = []
-        avg_win     = []
-        max_win     = []
-        avg_loss    = []
-        max_loss    = []
-        no_long     = []
-        no_short    = []
-        
-        if bots is None:
-            bots = self._bots_deployed
-        
-        for bot in bots:
-            backtest_results = self.analyse_backtest(bot)
-            
-            instruments.append(bot.instrument)
-            no_trades.append(backtest_results['no_trades'])
-            if backtest_results['no_trades'] > 0:
-                win_rate.append(backtest_results['all_trades']['win_rate'])
-                avg_win.append(backtest_results['all_trades']['avg_win'])
-                max_win.append(backtest_results['all_trades']['max_win'])
-                avg_loss.append(backtest_results['all_trades']['avg_loss'])
-                max_loss.append(backtest_results['all_trades']['max_loss'])
-                no_long.append(backtest_results['long_trades']['no_trades'])
-                no_short.append(backtest_results['short_trades']['no_trades'])
-            else:
-                win_rate.append(np.nan)
-                avg_win.append(np.nan)
-                max_win.append(np.nan)
-                avg_loss.append(np.nan)
-                max_loss.append(np.nan)
-                no_long.append(np.nan)
-                no_short.append(np.nan)
-        
-        multibot_backtest_results = pd.DataFrame(data={'win_rate': win_rate,
-                                                       'no_trades': no_trades,
-                                                       'avg_win': avg_win,
-                                                       'max_win': max_win,
-                                                       'avg_loss': avg_loss,
-                                                       'max_loss': max_loss,
-                                                       'no_long': no_long,
-                                                       'no_short': no_short},
-                                                 index=instruments)
-        
-        return multibot_backtest_results
-        
-    
-    def analyse_backtest(self, bot=None) -> dict:
+    def analyse_backtest(self, bot = None) -> dict:
         """Analyses bot backtest results to extract key statistics.
         
         Parameters
         ----------
-        bot : AutoTraderBot
-            An AutoTraderBot class instance.
+        bot : AutoTraderBot, optional
+            An AutoTraderBot class instance. The default is None.
+            
+        Returns
+        -------
+        backtest_results : dict
+            A dictionary of backtest results.
+        
+        Notes
+        -----
+        If no bot is supplied, the backtest will be analysed for all bots 
+        assiged during the backtest.
+        
+        See Also
+        --------
+        get_bots_deployed
         """
         
         if bot is None:
@@ -869,6 +833,78 @@ class AutoTrader:
         return backtest_results
     
     
+    def multibot_backtest_analysis(self, bots: list = None) -> dict:
+        """Analyses backtest results of multiple bots to create an overall 
+        performance summary.
+        
+        Parameters
+        -----------
+        bots : list[AutoTraderBot]
+            A list of AutoTrader bots to analyse.
+        
+        Returns
+        -------
+        backtest_results : dict
+            A dictionary of backtest results.
+        
+        Notes
+        -----
+        If no bots are supplied, the backtest will be analysed for all bots 
+        assiged during the backtest.
+        
+        See Also
+        --------
+        get_bots_deployed
+        """
+        
+        instruments = []
+        win_rate    = []
+        no_trades   = []
+        avg_win     = []
+        max_win     = []
+        avg_loss    = []
+        max_loss    = []
+        no_long     = []
+        no_short    = []
+        
+        if bots is None:
+            bots = self._bots_deployed
+        
+        for bot in bots:
+            backtest_results = self.analyse_backtest(bot)
+            
+            instruments.append(bot.instrument)
+            no_trades.append(backtest_results['no_trades'])
+            if backtest_results['no_trades'] > 0:
+                win_rate.append(backtest_results['all_trades']['win_rate'])
+                avg_win.append(backtest_results['all_trades']['avg_win'])
+                max_win.append(backtest_results['all_trades']['max_win'])
+                avg_loss.append(backtest_results['all_trades']['avg_loss'])
+                max_loss.append(backtest_results['all_trades']['max_loss'])
+                no_long.append(backtest_results['long_trades']['no_trades'])
+                no_short.append(backtest_results['short_trades']['no_trades'])
+            else:
+                win_rate.append(np.nan)
+                avg_win.append(np.nan)
+                max_win.append(np.nan)
+                avg_loss.append(np.nan)
+                max_loss.append(np.nan)
+                no_long.append(np.nan)
+                no_short.append(np.nan)
+        
+        multibot_backtest_results = pd.DataFrame(data={'win_rate': win_rate,
+                                                       'no_trades': no_trades,
+                                                       'avg_win': avg_win,
+                                                       'max_win': max_win,
+                                                       'avg_loss': avg_loss,
+                                                       'max_loss': max_loss,
+                                                       'no_long': no_long,
+                                                       'no_short': no_short},
+                                                 index=instruments)
+        
+        return multibot_backtest_results
+        
+    
     def print_multibot_backtest_results(self, backtest_results: dict = None) -> None:
         """Prints to console the backtest results of a multi-bot backtest.
         
@@ -937,7 +973,7 @@ class AutoTrader:
 
         See Also
         ----------
-        Analyse backtest.
+        analyse_backtest
         """
         start_date = backtest_results['start'].strftime("%b %d %Y %H:%M:%S")
         end_date = backtest_results['end'].strftime("%b %d %Y %H:%M:%S")
