@@ -17,11 +17,58 @@ from autotrader.utilities import read_yaml, get_config
 
 class AutoTraderBot:
     """AutoTrader Trading Bot.
+    
+    Attributes
+    ----------
+    instrument : str
+        The trading instrument assigned to the bot.
+    data : pd.DataFrame
+        The OHLC price data used by the bot.
+    quote_data : pd.DataFrame
+        The OHLC quote data used by the bot.
+    MTF_data : dict
+        The multiple timeframe data used by the bot.
+    backtest_summary : dict
+        A dictionary containing results from the bot in backtest. This 
+        dictionary is available only after a backtest and has keys: 'data', 
+        'account_history', 'trade_summary', 'indicators', 'instrument', 
+        'interval', 'open_trades', 'cancelled_trades'.
+    
     """
     
     def __init__(self, instrument: str, strategy_dict: dict, 
                  broker, data_dict: dict, quote_data_dict: dict, 
                  auxdata: dict, autotrader_instance) -> None:
+        """Instantiates an AutoTrader Bot.
+
+        Parameters
+        ----------
+        instrument : str
+            The trading instrument assigned to the bot instance.
+        strategy_dict : dict
+            The strategy configuration dictionary.
+        broker : AutoTrader Broker instance
+            The AutoTrader Broker module.
+        data_dict : dict
+            The strategy data.
+        quote_data_dict : dict
+            The quote data for the trading instrument (backtesting only).
+        auxdata : dict
+            Auxiliary strategy data.
+        autotrader_instance : AutoTrader
+            The parent AutoTrader instance.
+
+        Raises
+        ------
+        Exception
+            When there is an error retrieving the instrument data.
+
+        Returns
+        -------
+        None
+            The trading bot will be instantiated and ready for trading.
+
+        """
         # Inherit user options from autotrader
         for attribute, value in autotrader_instance.__dict__.items():
             setattr(self, attribute, value)
@@ -155,6 +202,7 @@ class AutoTraderBot:
         # Assign strategy attributes for tick-based strategy development
         if self._backtest_mode:
             self._strategy._backtesting = True
+            self.backtest_summary = None
         if interval.split(',')[0] == 'tick':
             self._strategy._tick_data = True
         
