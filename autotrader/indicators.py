@@ -3,31 +3,57 @@ import pandas as pd
 from finta import TA
 from typing import Union
 
-''' -------------------------- PRICE INDICATORS --------------------------- '''
-def supertrend(data, period = 10, ATR_multiplier = 3.0, source=None):
-    ''' Based on the SuperTrend indicator by KivancOzbilgic on TradingView '''
+
+def supertrend(data: pd.DataFrame, period: int = 10, ATR_multiplier: float = 3.0, 
+               source: pd.Series = None) -> pd.DataFrame:
+    """SuperTrend indicator, ported from the SuperTrend indicator by 
+    KivancOzbilgic on TradingView.
+
+    Parameters
+    ----------
+    data : pd.DataFrame
+        The OHLC data.
+    period : int, optional
+        The lookback period. The default is 10.
+    ATR_multiplier : int, optional
+        The ATR multiplier. The default is 3.0.
+    source : pd.Series, optional
+        The source series to use in calculations. If None, hl/2 will be 
+        used. The default is None.
+
+    Returns
+    -------
+    supertrend_df : pd.DataFrame
+        A Pandas DataFrame of containing the SuperTrend indicator, with 
+        columns of 'uptrend' and 'downtrend' containing uptrend/downtrend
+        support/resistance levels, and 'trend', containing -1/1 to indicate
+        the current implied trend. 
+
+    References
+    ----------
+    https://www.tradingview.com/script/r6dAP7yi/
+    """
     
     if source is None:
         source = (data.High.values + data.Low.values) / 2
     
     # Calculate ATR
-    atr             = TA.ATR(data, period)
+    atr = TA.ATR(data, period)
     
-    up              = source - (ATR_multiplier*atr)
-    up_list         = [up[0]]
-    up_times        = [data.index[0]]
-    N_up            = 0
+    up = source - (ATR_multiplier*atr)
+    up_list = [up[0]]
+    up_times = [data.index[0]]
+    N_up = 0
     
-    dn              = source + (ATR_multiplier*atr)
-    dn_list         = [dn[0]]
-    dn_times        = [data.index[0]]
-    N_dn            = 0
+    dn = source + (ATR_multiplier*atr)
+    dn_list = [dn[0]]
+    dn_times = [data.index[0]]
+    N_dn = 0
     
-    trend           = 1
-    trend_list      = [trend]
+    trend = 1
+    trend_list = [trend]
     
     for i in range(1, len(data)):
-        
         if trend == 1:
             if data.Close.values[i] > max(up[N_up:i]):
                 up_list.append(max(up[N_up:i]))
@@ -35,7 +61,6 @@ def supertrend(data, period = 10, ATR_multiplier = 3.0, source=None):
                 
                 dn_list.append(np.nan)
                 dn_times.append(data.index[i])
-                
             else: 
                 trend = -1
                 N_dn = i
@@ -52,7 +77,6 @@ def supertrend(data, period = 10, ATR_multiplier = 3.0, source=None):
                 
                 up_list.append(np.nan)
                 up_times.append(data.index[i])
-                
             else:
                 trend = 1
                 N_up = i
@@ -64,271 +88,36 @@ def supertrend(data, period = 10, ATR_multiplier = 3.0, source=None):
         
         trend_list.append(trend)
     
-    # up_trend = pd.DataFrame({'uptrend': up_list}, index = up_times)
-    # dn_trend = pd.DataFrame({'downtrend': dn_list}, index = dn_times)
-    
     supertrend_df = pd.DataFrame({'uptrend': up_list,
                                   'downtrend': dn_list,
                                   'trend': trend_list}, 
                                  index = up_times)
-    
     return supertrend_df
 
 
-def stoch_rsi(data, K_period=3, D_period=3, RSI_length=14, Stochastic_length=14):
+def half_trend(data: pd.DataFrame, amplitude: int = 2, 
+               channel_deviation: float = 2) -> pd.DataFrame:
+    """HalfTrend indicator, ported from the HalfTrend indicator by 
+    Alex Orekhov (everget) on TradingView.
 
-    rsi1 = TA.RSI(data, period=RSI_length)
-    stoch = stochastic(rsi1, rsi1, rsi1, Stochastic_length)
-    
-    K = sma(stoch, K_period)
-    D = sma(K, D_period)
-    
-    return K, D
+    Parameters
+    ----------
+    data : pd.DataFrame
+        OHLC price data.
+    amplitude : int, optional
+        The lookback window. The default is 2.
+    channel_deviation : float, optional
+        The ATR channel deviation factor. The default is 2.
 
+    Returns
+    -------
+    htdf : TYPE
+        DESCRIPTION.
 
-def stochastic(high, low, close, period=14):
-    
-    K = np.zeros(len(high))
-    
-    for i in range(period, len(high)):
-        low_val     = min(low[i-period+1:i+1])
-        high_val    = max(high[i-period+1:i+1])
-        
-        K[i]        = 100 * (close[i] - low_val)/(high_val - low_val)
-        
-    return K
-    
-
-def sma(data, period=14):
-    
-    sma_list = []
-    
-    for i in range(len(data)):
-        average = sum(data[i-period+1:i+1])/period
-        sma_list.append(average)
-    
-    return sma_list
-
-
-def ema(data, period=14, smoothing=2):
-    
-    ema = [sum(data[:period]) / period]
-    
-    for price in data[period:]:
-        ema.append((price * (smoothing / (1 + period))) + ema[-1] * (1 - (smoothing / (1 + period))))
-    
-    for i in range(period-1):
-        ema.insert(0, np.nan)
-    
-    return ema
-
-
-def true_range(data, period=14):
-    high_low = data['High'] - data['Low']
-    high_close = np.abs(data['High'] - data['Close'].shift())
-    low_close = np.abs(data['Low'] - data['Close'].shift())
-    
-    ranges = pd.concat([high_low, high_close, low_close], axis=1)
-    true_range = np.max(ranges, axis=1)
-    
-    return true_range
-
-
-def atr(data, period=14):
-    
-    tr = true_range(data, period)
-    
-    atr = tr.rolling(period).sum()/period
-    
-    return atr
-
-
-def bullish_engulfing(data, detection = None):
-    ''' Bullish engulfing pattern detection. '''
-    
-    if detection == "SMA50":
-        sma50       = sma(data.Close.values, 50)
-        
-        down_trend  = np.where(data.Close.values < sma50, True, False)
-        up_trend    = np.where(data.Close.values > sma50, True, False)
-        
-    elif detection == "SMA50/200":
-        sma50       = sma(data.Close.values, 50)
-        sma200      = sma(data.Close.values, 200)
-        
-        down_trend  = np.where((data.Close.values < sma50) & 
-                               (data.Close.values < sma200), 
-                               True, False)
-        up_trend    = np.where((data.Close.values > sma50) & 
-                               (data.Close.values > sma200), 
-                               True, False)
-    else:
-        down_trend  = np.full(len(data), True)
-        up_trend    = np.full(len(data), True)
-    
-    body_len        = 14    # ema depth for bodyAvg
-    shadow_pc       = 100.0   # size of shadows 
-    doji_pc         = 5.0
-    shadow_factor   = 2.0 # number of times shadow dominates candle body
-    
-    body_high       = np.maximum(data.Close.values, data.Open.values)
-    body_low        = np.minimum(data.Close.values, data.Open.values)
-    body            = body_high - body_low
-    
-    body_avg        = ema(body, body_len)
-    short_body      = body < body_avg
-    long_body       = body > body_avg
-    up_shadow       = data.High.values - body_high
-    down_shadow     = body_low - data.Low.values
-    
-    has_up_shadow   = up_shadow > (shadow_pc / 100 * body)
-    has_dn_shadow   = down_shadow > (shadow_pc / 100 * body)
-    white_body      = data.Open.values < data.Close.values
-    black_body      = data.Open.values > data.Close.values
-    candle_range    = data.High.values - data.Low.values
-    
-    inside_bar = [False]
-    for i in range(1, len(data)):
-        val  = (body_high[i-1] > body_high[i]) and (body_low[i-1] < body_low[i])
-        inside_bar.append(val)
-        
-    body_mid        = body/2 + body_low
-    shadow_equals   = (up_shadow == down_shadow) | \
-                          (
-                              ((abs(up_shadow - down_shadow) / down_shadow * 100) < shadow_pc) & \
-                              ((abs(down_shadow - up_shadow) / up_shadow * 100) < shadow_pc)
-                          )
-    doji_body       = (candle_range > 0) & (body <= candle_range * doji_pc / 100)
-    doji            = doji_body & shadow_equals
-    
-    
-    engulfing_bullish = [False]
-    for i in range(1, len(data)):
-        condition = down_trend[i] & \
-                    white_body[i] & \
-                    long_body[i] & \
-                    black_body[i-1] & \
-                    short_body[i-1] & \
-                    (data.Close.values[i] >= data.Open.values[i-1]) & \
-                    (data.Open.values[i] <= data.Close.values[i-1]) & \
-                    ((data.Close.values[i] > data.Open.values[i-1]) | (data.Open.values[i] < data.Close.values[i-1]))
-        
-        engulfing_bullish.append(condition)
-        
-    return engulfing_bullish
-
-
-def bearish_engulfing(data, detection = None):
-    ''' Bearish engulfing pattern detection. '''
-    
-    if detection == "SMA50":
-        sma50       = sma(data.Close.values, 50)
-        
-        down_trend  = np.where(data.Close.values < sma50, True, False)
-        up_trend    = np.where(data.Close.values > sma50, True, False)
-        
-    elif detection == "SMA50/200":
-        sma50       = sma(data.Close.values, 50)
-        sma200      = sma(data.Close.values, 200)
-        
-        down_trend  = np.where((data.Close.values < sma50) & 
-                               (data.Close.values < sma200), 
-                               True, False)
-        up_trend    = np.where((data.Close.values > sma50) & 
-                               (data.Close.values > sma200), 
-                               True, False)
-    else:
-        down_trend  = np.full(len(data), True)
-        up_trend    = np.full(len(data), True)
-    
-    body_len        = 14    # ema depth for bodyAvg
-    shadow_pc       = 100.0   # size of shadows 
-    doji_pc         = 5.0
-    shadow_factor   = 2.0 # number of times shadow dominates candle body
-    
-    body_high       = np.maximum(data.Close.values, data.Open.values)
-    body_low        = np.minimum(data.Close.values, data.Open.values)
-    body            = body_high - body_low
-    
-    body_avg        = ema(body, body_len)
-    short_body      = body < body_avg
-    long_body       = body > body_avg
-    up_shadow       = data.High.values - body_high
-    down_shadow     = body_low - data.Low.values
-    
-    has_up_shadow   = up_shadow > (shadow_pc / 100 * body)
-    has_dn_shadow   = down_shadow > (shadow_pc / 100 * body)
-    white_body      = data.Open.values < data.Close.values
-    black_body      = data.Open.values > data.Close.values
-    candle_range    = data.High.values - data.Low.values
-    
-    inside_bar = [False]
-    for i in range(1, len(data)):
-        val  = (body_high[i-1] > body_high[i]) and (body_low[i-1] < body_low[i])
-        inside_bar.append(val)
-        
-    body_mid        = body/2 + body_low
-    shadow_equals   = (up_shadow == down_shadow) | \
-                          (
-                              ((abs(up_shadow - down_shadow) / down_shadow * 100) < shadow_pc) & \
-                              ((abs(down_shadow - up_shadow) / up_shadow * 100) < shadow_pc)
-                          )
-    doji_body       = (candle_range > 0) & (body <= candle_range * doji_pc / 100)
-    doji            = doji_body & shadow_equals
-    
-    
-    engulfing_bearish = [False]
-    for i in range(1, len(data)):
-        condition = up_trend[i] & \
-                    black_body[i] & \
-                    long_body[i] & \
-                    white_body[i-1] & \
-                    short_body[i-1] & \
-                    (data.Close.values[i] <= data.Open.values[i-1]) & \
-                    (data.Open.values[i] >= data.Close.values[i-1]) & \
-                    ((data.Close.values[i] < data.Open.values[i-1]) | (data.Open.values[i] > data.Close.values[i-1]))
-        
-        engulfing_bearish.append(condition)
-        
-    return engulfing_bearish
-
-
-def heikin_ashi(data):
-    ''' 
-        Calculates the Heikin-Ashi candlesticks from Japanese candlestick 
-        data. 
-    '''
-    
-    # Create copy of data to prevent overwriting
-    working_data = data.copy()
-    
-    # Calculate Heikin Ashi candlesticks
-    ha_close = 0.25*(working_data.Open + working_data.Low + working_data.High + working_data.Close)
-    ha_open = 0.5*(working_data.Open + working_data.Close)
-    ha_high = np.maximum(working_data.High.values, working_data.Close.values, working_data.Open.values)
-    ha_low = np.minimum(working_data.Low.values, working_data.Close.values, working_data.Open.values)
-    
-    ha_data = pd.DataFrame(data={'Open': ha_open, 
-                                 'High': ha_high, 
-                                 'Low': ha_low, 
-                                 'Close': ha_close}, 
-                           index=working_data.index)
-    
-    return ha_data
- 
-def half_trend(data, amplitude=2, channel_deviation=2):
-    '''
-    HalfTrend indicator, originally by Alex Orekhov (everget) on TradingView.
-    
-    Parameters:
-        data (dataframe): OHLC price data
-        
-        amplitude (int): lookback window
-            
-        channel_deviation (int): ATR channel deviation factor
-    
-    (translated to Python 15/11/21)
-    '''
+    References
+    ----------
+    https://www.tradingview.com/script/U1SJ8ubc-HalfTrend/
+    """
     
     # Initialisation
     atr2 = TA.ATR(data, 100)/2
@@ -419,25 +208,250 @@ def half_trend(data, amplitude=2, channel_deviation=2):
     
     return htdf
 
-def N_period_high(data, N):
-    ''' Returns the N-period high. '''
+
+def stoch_rsi(data: pd.DataFrame, K_period: int = 3, D_period: int = 3, 
+              RSI_length: int = 14, Stochastic_length: int = 14):
+    """Stochastic RSI indicator.
+    """
+    rsi1 = TA.RSI(data, period=RSI_length)
+    stoch = stochastic(rsi1, rsi1, rsi1, Stochastic_length)
+    
+    K = sma(stoch, K_period)
+    D = sma(K, D_period)
+    
+    return K, D
+
+
+def stochastic(high: pd.Series, low: pd.Series, close: pd.Series, 
+               period: int = 14) -> pd.Series:
+    """Stochastics indicator.
+    """
+    K = np.zeros(len(high))
+    
+    for i in range(period, len(high)):
+        low_val     = min(low[i-period+1:i+1])
+        high_val    = max(high[i-period+1:i+1])
+        
+        K[i]        = 100 * (close[i] - low_val)/(high_val - low_val)
+        
+    return K
+    
+
+def sma(data: pd.DataFrame, period: int = 14) -> list:
+    """Smoothed Moving Average.
+    """
+    sma_list = []
+    for i in range(len(data)):
+        average = sum(data[i-period+1:i+1])/period
+        sma_list.append(average)
+    return sma_list
+
+
+def ema(data: pd.DataFrame, period: int = 14, smoothing: int = 2) -> list:
+    """Exponential Moving Average.
+    """
+    ema = [sum(data[:period]) / period]
+    for price in data[period:]:
+        ema.append((price * (smoothing / (1 + period))) + ema[-1] * (1 - (smoothing / (1 + period))))
+    for i in range(period-1):
+        ema.insert(0, np.nan)
+    return ema
+
+
+def true_range(data: pd.DataFrame, period: int = 14):
+    """True range.
+    """
+    high_low = data['High'] - data['Low']
+    high_close = np.abs(data['High'] - data['Close'].shift())
+    low_close = np.abs(data['Low'] - data['Close'].shift())
+    ranges = pd.concat([high_low, high_close, low_close], axis=1)
+    true_range = np.max(ranges, axis=1)
+    return true_range
+
+
+def atr(data: pd.DataFrame, period: int = 14):
+    """Average True Range.
+    """
+    tr = true_range(data, period)
+    atr = tr.rolling(period).sum()/period
+    return atr
+
+
+def bullish_engulfing(data: pd.DataFrame, detection: str = None):
+    """Bullish engulfing pattern detection. 
+    """
+    if detection == "SMA50":
+        sma50       = sma(data.Close.values, 50)
+        down_trend  = np.where(data.Close.values < sma50, True, False)
+        
+    elif detection == "SMA50/200":
+        sma50       = sma(data.Close.values, 50)
+        sma200      = sma(data.Close.values, 200)
+        
+        down_trend  = np.where((data.Close.values < sma50) & 
+                               (data.Close.values < sma200), 
+                               True, False)
+    else:
+        down_trend  = np.full(len(data), True)
+    
+    body_len        = 14    # ema depth for bodyAvg
+    
+    body_high       = np.maximum(data.Close.values, data.Open.values)
+    body_low        = np.minimum(data.Close.values, data.Open.values)
+    body            = body_high - body_low
+    
+    body_avg        = ema(body, body_len)
+    short_body      = body < body_avg
+    long_body       = body > body_avg
+    
+    white_body      = data.Open.values < data.Close.values
+    black_body      = data.Open.values > data.Close.values
+    
+    inside_bar = [False]
+    for i in range(1, len(data)):
+        val  = (body_high[i-1] > body_high[i]) and (body_low[i-1] < body_low[i])
+        inside_bar.append(val)
+        
+    engulfing_bullish = [False]
+    for i in range(1, len(data)):
+        condition = down_trend[i] & \
+                    white_body[i] & \
+                    long_body[i] & \
+                    black_body[i-1] & \
+                    short_body[i-1] & \
+                    (data.Close.values[i] >= data.Open.values[i-1]) & \
+                    (data.Open.values[i] <= data.Close.values[i-1]) & \
+                    ((data.Close.values[i] > data.Open.values[i-1]) | (data.Open.values[i] < data.Close.values[i-1]))
+        
+        engulfing_bullish.append(condition)
+        
+    return engulfing_bullish
+
+
+def bearish_engulfing(data: pd.DataFrame, detection: str = None):
+    """Bearish engulfing pattern detection. 
+    """    
+    if detection == "SMA50":
+        sma50       = sma(data.Close.values, 50)
+        up_trend    = np.where(data.Close.values > sma50, True, False)
+    elif detection == "SMA50/200":
+        sma50       = sma(data.Close.values, 50)
+        sma200      = sma(data.Close.values, 200)
+        
+        up_trend    = np.where((data.Close.values > sma50) & 
+                               (data.Close.values > sma200), 
+                               True, False)
+    else:
+        up_trend    = np.full(len(data), True)
+    
+    body_len        = 14    # ema depth for bodyAvg
+    body_high       = np.maximum(data.Close.values, data.Open.values)
+    body_low        = np.minimum(data.Close.values, data.Open.values)
+    body            = body_high - body_low
+    
+    body_avg        = ema(body, body_len)
+    short_body      = body < body_avg
+    long_body       = body > body_avg
+    
+    white_body      = data.Open.values < data.Close.values
+    black_body      = data.Open.values > data.Close.values
+    
+    inside_bar = [False]
+    for i in range(1, len(data)):
+        val  = (body_high[i-1] > body_high[i]) and (body_low[i-1] < body_low[i])
+        inside_bar.append(val)
+        
+    engulfing_bearish = [False]
+    for i in range(1, len(data)):
+        condition = up_trend[i] & \
+                    black_body[i] & \
+                    long_body[i] & \
+                    white_body[i-1] & \
+                    short_body[i-1] & \
+                    (data.Close.values[i] <= data.Open.values[i-1]) & \
+                    (data.Open.values[i] >= data.Close.values[i-1]) & \
+                    ((data.Close.values[i] < data.Open.values[i-1]) | (data.Open.values[i] > data.Close.values[i-1]))
+        
+        engulfing_bearish.append(condition)
+        
+    return engulfing_bearish
+
+
+def heikin_ashi(data: pd.DataFrame):
+    """Calculates the Heikin-Ashi candlesticks from Japanese candlestick 
+    data. 
+    """
+    # Create copy of data to prevent overwriting
+    working_data = data.copy()
+    
+    # Calculate Heikin Ashi candlesticks
+    ha_close = 0.25*(working_data.Open + working_data.Low + working_data.High + working_data.Close)
+    ha_open = 0.5*(working_data.Open + working_data.Close)
+    ha_high = np.maximum(working_data.High.values, working_data.Close.values, working_data.Open.values)
+    ha_low = np.minimum(working_data.Low.values, working_data.Close.values, working_data.Open.values)
+    
+    ha_data = pd.DataFrame(data={'Open': ha_open, 
+                                 'High': ha_high, 
+                                 'Low': ha_low, 
+                                 'Close': ha_close}, 
+                           index=working_data.index)
+    
+    return ha_data
+ 
+    
+def N_period_high(data: pd.DataFrame, N: int):
+    """Returns the N-period high. 
+    """
     highs = data.High.rolling(N).max()
     return highs
 
-def N_period_low(data, N):
-    ''' Returns the N-period low. '''
+
+def N_period_low(data: pd.DataFrame, N: int):
+    """Returns the N-period low.
+    """
     lows = data.Low.rolling(N).min()
     return lows
 
-def range_filter(data, range_qty=2.618, range_period=14,
-                           smooth_range=True, smooth_period=27, av_vals=False, 
-                           av_samples=2, mov_source='body', filter_type=1):
-    '''
-    Price range filter. Credit to DonovanWall on TradingView.
-    
-    Ported to Python: 01/19/2022
-    '''
-    
+
+def range_filter(data: pd.DataFrame, range_qty: float = 2.618, 
+                 range_period: int = 14, smooth_range: bool = True, 
+                 smooth_period: int = 27, av_vals: bool = False, 
+                 av_samples: int = 2, mov_source: str = 'body', 
+                 filter_type: int = 1) -> pd.DataFrame:
+    """Price range filter, ported from the Range Filter [DW] indicator by
+    DonovanWall on TradingView. The indicator was designed to filter out 
+    minor price action for a clearer view of trends.
+
+    Parameters
+    ----------
+    data : pd.DataFrame
+        The OHLC price data.
+    range_qty : float, optional
+        The range size. The default is 2.618.
+    range_period : int, optional
+        The range period. The default is 14.
+    smooth_range : bool, optional
+        Smooth the price range. The default is True.
+    smooth_period : int, optional
+        The smooting period. The default is 27.
+    av_vals : bool, optional
+        Average values. The default is False.
+    av_samples : int, optional
+        The number of average samples to use. The default is 2.
+    mov_source : str, optional
+        The price movement source ('body' or 'wicks'). The default is 'body'.
+    filter_type : int, optional
+        The filter type to use in calculations (1 or 2). The default is 1.
+
+    Returns
+    -------
+    rfi : pd.DataFrame
+        A dataframe containing the range filter indicator bounds.
+        
+    References
+    ----------
+    https://www.tradingview.com/script/lut7sBgG-Range-Filter-DW/
+    """
     # Get high and low values
     if mov_source == 'body':
         high_val = data.Close
@@ -447,15 +461,13 @@ def range_filter(data, range_qty=2.618, range_period=14,
         low_val = data.Low
     
     # Get filter values
-    rng_ = range_size((high_val + low_val)/2, 'AverageChange', 
+    rng = _range_size((high_val + low_val)/2, 'AverageChange', 
                       range_qty, range_period)
-    rfi = calculate_range_filter(high_val, low_val, rng_, range_period, filter_type, 
+    rfi = _calculate_range_filter(high_val, low_val, rng, range_period, filter_type, 
                        smooth_range, smooth_period, av_vals, av_samples)
     
     return rfi
 
-
-''' ------------------------ UTILITY INDICATORS --------------------------- '''
 
 def crossover(ts1: pd.Series, ts2: pd.Series) -> pd.Series:
     """Locates where two timeseries crossover each other, returning 1 when
@@ -569,18 +581,26 @@ def candles_between_crosses(crosses: Union[list, pd.Series]) -> Union[list, pd.S
     return counts
 
 
-def find_swings(data, data_type='ohlc', n = 2):
-    '''
-    Locates swings in the inputted data and returns a dataframe.
-    
-    Parameters:
-        data: an OHLC dataframe of price, or an array/list of data from an 
-        indicator.
-        
-        data_type: specify 'ohlc' when data is OHLC, or 'other' when inputting
-        an indicator.
-    '''
-    
+def find_swings(data: pd.DataFrame, data_type: str = 'ohlc', 
+                n: int = 2) -> pd.DataFrame:
+    """Locates swings in the inputted data using a moving average gradient
+    method.
+
+    Parameters
+    ----------
+    data : pd.DataFrame
+        An OHLC dataframe of price, or an array/list/Series of data from an 
+        indicator (eg. RSI).
+    data_type : str, optional
+        The nature of the data ('ohlc' or 'other'). The default is 'ohlc'.
+    n : int, optional
+        The moving average period. The default is 2.
+
+    Returns
+    -------
+    swing_df : pd.DataFrame
+        A dataframe containing the swing levels detected.
+    """
     # Prepare data 
     if data_type == 'ohlc':
         # Find swings in OHLC price data
@@ -639,17 +659,24 @@ def find_swings(data, data_type='ohlc', n = 2):
     
     return swing_df
     
-def classify_swings(swing_df, tol=0):
-    ''' 
-    Classify a dataframe of swings (from find_swings) into higher-high, 
-    lower-high, higher-low and lower-low.
+
+def classify_swings(swing_df: pd.DataFrame, tol: int = 0) -> pd.DataFrame:
+    """Classifies a dataframe of swings (from find_swings) into higher-highs, 
+    lower-highs, higher-lows and lower-lows.
     
-    Parameters:
-        swing_df: the dataframe outputted from find_swings.
-        
-        tol: parameter to control strength of levels detected.
-    '''
-    
+
+    Parameters
+    ----------
+    swing_df : pd.DataFrame
+        The dataframe returned by find_swings.
+    tol : int, optional
+        The classification tolerance. The default is 0.
+
+    Returns
+    -------
+    swing_df : pd.DataFrame
+        A dataframe containing the classified swings.
+    """
     # Create copy of swing dataframe
     swing_df = swing_df.copy()
     
@@ -683,25 +710,42 @@ def classify_swings(swing_df, tol=0):
     
     return swing_df
 
-def detect_divergence(classified_price_swings, classified_indicator_swings, tol=2,
-                      method=0):
-    '''
-    Detects divergence between price swings and swings in an indicator.
-    
-    Parameters:
-        classified_price_swings: output from classify_swings using OHLC data.
+
+def detect_divergence(classified_price_swings: pd.DataFrame, 
+                      classified_indicator_swings: pd.DataFrame, tol: int = 2,
+                      method: int = 0) -> pd.DataFrame:
+    """Detects divergence between price swings and swings in an indicator.
+
+    Parameters
+    ----------
+    classified_price_swings : pd.DataFrame
+        The output from classify_swings using OHLC data.
+    classified_indicator_swings : pd.DataFrame
+        The output from classify_swings using indicator data.
+    tol : int, optional
+        The number of candles which conditions must be met within. The 
+        default is 2.
+    method : int, optional
+        The method to use when detecting divergence (0 or 1). The default is 0.
+
+    Raises
+    ------
+    Exception
+        When an unrecognised method of divergence detection is requested.
+
+    Returns
+    -------
+    divergence : pd.DataFrame
+        A dataframe containing divergence signals.
         
-        classified_indicator_swings: output from classify_swings using indicator data.
+    Notes
+    -----
+    Options for the method include:
+        0: use both price and indicator swings to detect divergence (default)
         
-        tol: number of candles which conditions must be met within. 
-        
-        method: the method to use when detecting divergence. Options include:
-            0: use both price and indicator swings to detect divergence (default)
-            1: use only indicator swings to detect divergence
-    '''
-    
+        1: use only indicator swings to detect divergence (more responsive)
+    """
     if method == 0:
-        
         regular_bullish = []
         regular_bearish = []
         hidden_bullish = []
@@ -766,6 +810,7 @@ def detect_divergence(classified_price_swings, classified_indicator_swings, tol=
         
     return divergence
 
+
 def autodetect_divergence(ohlc: pd.DataFrame, indicator_data: pd.DataFrame, 
                           tolerance: int = 1, method: int = 0) -> pd.DataFrame:
     """A wrapper method to automatically detect divergence from inputted OHLC price 
@@ -801,6 +846,11 @@ def autodetect_divergence(ohlc: pd.DataFrame, indicator_data: pd.DataFrame,
         0: use both price and indicator swings to detect divergence (default)
         
         1: use only indicator swings to detect divergence
+    
+    See Also
+    --------
+    This indicator was featured on the AutoTrader Blog:
+    https://kieran-mackle.github.io/AutoTrader/2021/11/08/detecting-divergence.html
     """
     
     # Price swings
@@ -817,15 +867,13 @@ def autodetect_divergence(ohlc: pd.DataFrame, indicator_data: pd.DataFrame,
     
     return divergence
 
+
 def rolling_signal_list(signals):
-    ''' 
-        Returns a list which maintains the previous signal, until a new 
-        signal is given.
+    """Returns a list which maintains the previous signal, until a new 
+    signal is given.
         
         [0,1,0,0,0,-1,0,0,1,0,0] ->  [0,1,1,1,1,-1,-1,-1,1,1,1]
-        
-    '''
-    
+    """    
     rolling_signals = [0]
     last_signal     = rolling_signals[0]
     
@@ -837,8 +885,10 @@ def rolling_signal_list(signals):
     
     return rolling_signals
 
+
 def unroll_signal_list(signals):
-    ''' Unrolls a signal list. '''
+    """Unrolls a signal list.
+    """
     new_list = np.zeros(len(signals))
     
     for i in range(len(signals)):
@@ -849,9 +899,8 @@ def unroll_signal_list(signals):
 
 
 def merge_signals(signal_1, signal_2):
-     ''' 
-         Returns a single signal list which has merged two signal lists. 
-     '''
+     """Returns a single signal list which has merged two signal lists. 
+     """
      
      merged_signal_list = signal_1.copy()
      
@@ -863,11 +912,9 @@ def merge_signals(signal_1, signal_2):
 
 
 def ha_candle_run(ha_data):
-    '''
-        Returns a list for the number of consecutive green and red 
-        Heikin-Ashi candles.
-        
-    '''
+    """Returns a list for the number of consecutive green and red 
+    Heikin-Ashi candles.
+    """    
     green_candle    = np.where(ha_data.Close - ha_data.Open > 0, 1, 0)
     red_candle      = np.where(ha_data.Close - ha_data.Open < 0, 1, 0)
     
@@ -908,6 +955,7 @@ def build_grid_price_levels(grid_origin, grid_space, grid_levels,
     
     return grid_price_levels
 
+
 def build_grid(grid_origin, grid_space, grid_levels, order_direction, 
                order_type='stop-limit', grid_price_space=None, pip_value=0.0001, 
                take_distance=None, stop_distance=None, stop_type=None):
@@ -918,8 +966,6 @@ def build_grid(grid_origin, grid_space, grid_levels, order_direction,
     order_direction: the direction of each grid level order (1 for long, -1 for short)
     order_type: the order type of each grid level order
     '''
-    # TODO - could add a limit price buffer, then use it to move the limit price
-    # slightly away from the stop price
     
     # Check if stop_distance was provided without a stop_type
     if stop_distance is not None and stop_type is None:
@@ -954,12 +1000,12 @@ def build_grid(grid_origin, grid_space, grid_levels, order_direction,
     
     return grid
 
+
 def merge_grid_orders(grid_1, grid_2):
     '''
     Merges grid dictionaries into one and re-labels order numbers so each
     order number is unique.
     '''
-    # TODO - use **args/**kwargs to generalise how many grids are inputted
     order_offset = len(grid_1)
     grid = grid_1.copy()
     
@@ -968,6 +1014,7 @@ def merge_grid_orders(grid_1, grid_2):
     
     return grid
     
+
 def last_level_crossed(data, base):
     ''' 
     Returns a list containing the last grid level touched.
@@ -1037,9 +1084,8 @@ def build_multiplier_grid(origin, direction, multiplier, no_levels, precision, s
 
 
 def last_level_touched(data, grid):
-    '''
-    Calculates the grid levels touched by price data.
-    '''
+    """Calculates the grid levels touched by price data.
+    """
     
     # initialise with nan
     last_level_crossed = np.nan 
@@ -1070,9 +1116,9 @@ def last_level_touched(data, grid):
     
     return levels_touched
 
-def conditional_ema(x, condition=1, n=14, s=2):
+
+def _conditional_ema(x, condition=1, n=14, s=2):
     'Conditional sampling EMA functtion'
-    
     if type(condition) == int: condition = condition*np.ones(len(x))
     
     ema = np.zeros(len(x))
@@ -1084,7 +1130,8 @@ def conditional_ema(x, condition=1, n=14, s=2):
     
     return pd.Series(ema, x.index, name=f'{n} period conditional EMA')
     
-def conditional_sma(x, condition=1, n=14):
+
+def _conditional_sma(x, condition=1, n=14):
     'Conditional sampling SMA functtion'
     
     if type(condition) == int: condition = condition*np.ones(len(x))
@@ -1097,32 +1144,36 @@ def conditional_sma(x, condition=1, n=14):
     
     return sma
     
-def stdev(x, n):
+
+def _stdev(x, n):
     'Standard deviation function'
-    sd = np.sqrt(conditional_sma(x**2, 1, n) - conditional_sma(x, 1, n)**2)
+    sd = np.sqrt(_conditional_sma(x**2, 1, n) - _conditional_sma(x, 1, n)**2)
     return sd
     
-def range_size(x, scale='AverageChange', qty=2.618, n=14):
+
+def _range_size(x, scale='AverageChange', qty=2.618, n=14):
     'Range size function'
     
     if scale == 'AverageChange':
-        AC = conditional_ema(abs(x - x.shift(1)), 1, n)
+        AC = _conditional_ema(abs(x - x.shift(1)), 1, n)
         rng_size = qty*AC
     elif scale == 'ATR':
         tr = TA.TR(x)
-        atr = conditional_ema(tr, 1, n)
+        atr = _conditional_ema(tr, 1, n)
         rng_size = qty*atr
     elif scale == 'StandardDeviation':
-        sd = stdev(x, n)
+        sd = _stdev(x, n)
         rng_size = qty*sd
         
     return rng_size
 
-def calculate_range_filter(h, l, rng_, n, rng_type, smooth, sn, av_rf, av_n):
-    'Two type range filter function'
+
+def _calculate_range_filter(h, l, rng, n, rng_type, smooth, sn, av_rf, av_n):
+    """Two type range filter function.
+    """
     
-    smoothed_range = conditional_ema(rng_, 1, sn)
-    r = smoothed_range if smooth else rng_
+    smoothed_range = _conditional_ema(rng, 1, sn)
+    r = smoothed_range if smooth else rng
     r_filt = (h+l)/2
     
     if rng_type == 1:
@@ -1149,9 +1200,9 @@ def calculate_range_filter(h, l, rng_, n, rng_type, smooth, sn, av_rf, av_n):
     lo_band1 = r_filt1 - r
     
     # Calculate indicator for averaged filter changes
-    r_filt2 = conditional_ema(r_filt1, r_filt1 != r_filt1.shift(1), av_n)
-    hi_band2 = conditional_ema(hi_band1, r_filt1 != r_filt1.shift(1), av_n)
-    lo_band2 = conditional_ema(lo_band1, r_filt1 != r_filt1.shift(1), av_n)
+    r_filt2 = _conditional_ema(r_filt1, r_filt1 != r_filt1.shift(1), av_n)
+    hi_band2 = _conditional_ema(hi_band1, r_filt1 != r_filt1.shift(1), av_n)
+    lo_band2 = _conditional_ema(lo_band1, r_filt1 != r_filt1.shift(1), av_n)
     
     # Assign indicator
     rng_filt = r_filt2 if av_rf else r_filt1
