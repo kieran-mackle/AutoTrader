@@ -374,7 +374,7 @@ class AutoTraderBot:
                         data = getattr(self._get_data, feed.lower())(instrument,
                                        granularity = interval, start_time = from_date,
                                        end_time = to_date)
-                        quote_data = getattr(self._get_data, feed.lower() + '_quote_data')(data,
+                        quote_data = getattr(self._get_data,f'_{feed.lower()}_quote_data')(data,
                                              instrument, interval, from_date, to_date)
                         data, quote_data = self._broker_utils.check_dataframes(data, quote_data)
                         
@@ -400,7 +400,7 @@ class AutoTraderBot:
                         
                         # Only get quote data for first granularity
                         if granularity == interval.split(',')[0]:
-                            quote_data = getattr(self._get_data, feed.lower() + '_quote_data')(data,
+                            quote_data = getattr(self._get_data, f'_{feed.lower()}_quote_data')(data,
                                                  instrument, granularity, from_date, to_date)
                         
                             data, quote_data = self._broker_utils.check_dataframes(data.drop_duplicates(), 

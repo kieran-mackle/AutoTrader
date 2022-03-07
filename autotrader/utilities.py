@@ -182,10 +182,7 @@ def get_watchlist(index, feed):
 
 
 class ManageBot:
-    """
-    AutoTrader Bot Manager
-    ----------------------
-    Detaches from AutoTrader run script to allow for a single deployment.
+    """Detaches from AutoTrader run script to allow for a single deployment.
     
     Attributes
     ----------
@@ -194,24 +191,22 @@ class ManageBot:
     
     Methods 
     --------
-    update_bot_data():
+    update_bot_data()
         Passes the latest price data to the bot.
-    
-    kill_bot():
+    kill_bot()
         Terminates the bot from trading.
-    
-    write_bot_to_log():
+    write_bot_to_log()
         Adds the bot being managed to the bots_deployed logfile.
-    
-    remove_bot_from_log():
+    remove_bot_from_log()
         Removes the bot being managed from the bots_deployed logfile.
     
-    
+    Notes
+    -----
     Strategies being deployed to bot manager must have the following methods:
         - initialise_strategy()
         - exit_strategy(i)
     
-    As well as a "terminate" attribute.
+    As well as a "terminate" boolean attribute.
     
     Currently, there is only one way to intervene and kill a bot. This is to
     create an empty file named 'killbots' in the home_dir. Note that this

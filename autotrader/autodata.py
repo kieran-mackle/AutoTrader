@@ -18,16 +18,33 @@ class GetData:
 
     Methods
     -------
-    oanda():
+    oanda()
         Retrieves historical price data of a instrument from Oanda v20 API.
-        
-    yahoo():
-        Retrieves historical price data from yahoo finance. 
+    yahoo()
+        Retrieves historical price data from yahoo finance.
+    local()
+        Read local price data.
     """
     
     def __init__(self, broker_config: dict = None, 
                  allow_dancing_bears: bool = False) -> None:
-        
+        """Instantiates GetData.
+
+        Parameters
+        ----------
+        broker_config : dict, optional
+            The configuration dictionary for the broker to be used. The 
+            default is None.
+        allow_dancing_bears : bool, optional
+            A flag to allow incomplete bars to be returned in the data. The 
+            default is False.
+
+        Returns
+        -------
+        None
+            GetData will be instantiated and ready to fetch price data.
+
+        """
         if broker_config is not None:
             if broker_config['data_source'] == 'OANDA':
                 API = broker_config["API"]
@@ -129,7 +146,7 @@ class GetData:
                 
                 # If the request is rejected, max candles likely exceeded
                 if response.status != 200:
-                    data        = self.get_extended_oanda_data(instrument,
+                    data        = self._get_extended_oanda_data(instrument,
                                                          granularity,
                                                          from_time,
                                                          to_time)
@@ -151,7 +168,7 @@ class GetData:
             
             # If the request is rejected, max candles likely exceeded
             if response.status != 200:
-                data        = self.get_extended_oanda_data(instrument,
+                data        = self._get_extended_oanda_data(instrument,
                                                      granularity,
                                                      from_time,
                                                      to_time)
@@ -161,11 +178,11 @@ class GetData:
         return data
     
     
-    def get_extended_oanda_data(self, instrument, granularity, from_time, to_time):
+    def _get_extended_oanda_data(self, instrument, granularity, from_time, to_time):
         """Returns historical data between a date range."""
         max_candles = 5000
         
-        my_int = self.granularity_to_seconds(granularity, 'oanda')
+        my_int = self._granularity_to_seconds(granularity, 'oanda')
         end_time = to_time - my_int
         partial_from = from_time
         response = self.api.instrument.candles(instrument,
@@ -189,7 +206,8 @@ class GetData:
         return data
     
     
-    def oanda_quote_data(self, data, pair, granularity, start_time, end_time):
+    def _oanda_quote_data(self, data: pd.DataFrame, pair: str, granularity: str, 
+                         start_time: datetime, end_time: datetime):
         """Function to retrieve price conversion data.
         """
         quote_currency  = pair[-3:]
@@ -237,7 +255,7 @@ class GetData:
     
     
     @staticmethod
-    def granularity_to_seconds(granularity: str, feed: str):
+    def _granularity_to_seconds(granularity: str, feed: str):
         """Converts the granularity to time in seconds.
         """
         if feed.lower() == 'oanda':
@@ -318,7 +336,7 @@ class GetData:
         if count is not None:
             # Convert count to start and end dates (currently assumes end=now)
             end_time = datetime.now()
-            start_time = end_time - timedelta(seconds=self.granularity_to_seconds(granularity, 'yahoo')*count)
+            start_time = end_time - timedelta(seconds=self._granularity_to_seconds(granularity, 'yahoo')*count)
         
         data = yf.download(tickers  = instrument, 
                            start    = start_time, 
@@ -328,9 +346,10 @@ class GetData:
         return data
     
     
-    def yahoo_quote_data(self, data, pair, interval, from_date, to_date):
+    def _yahoo_quote_data(self, data: pd.DataFrame, pair: str, interval: str,
+                         from_date: datetime, to_date: datetime):
         """Returns nominal price data - quote conversion not supported for 
-            Yahoo finance API.
+        Yahoo finance API.
         """
         return data
     

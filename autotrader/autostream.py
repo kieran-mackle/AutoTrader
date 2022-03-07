@@ -1,12 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-'''
-Module: AutoStream
-Purpose: Data stream function for Oanda v20 API.
-Author: Kieran Mackle
-'''
-
-
 import v20
 import json
 from datetime import datetime
@@ -20,18 +11,17 @@ import pandas as pd
 
 
 class stream_record(object):
-    ''' 
-    Creates a stream record.
+    """Creates a stream record.
     
     Attributes
     ----------
-        data : dict
-            A dictionary containing information of the tick; instrument, time,
-            bid, ask and mid.
-        
-        record_type : str
-            The type of stream record: either PRICE or HEARTBEAT
-    '''
+    data : dict
+        A dictionary containing information of the tick; instrument, time,
+        bid, ask and mid.
+    
+    record_type : str
+        The type of stream record: either PRICE or HEARTBEAT
+    """
     
     def __init__(self, msg):
         self.data           = {}
@@ -53,18 +43,20 @@ class stream_record(object):
 
 
 class candle_builder(object):
-    ''' Builds candles from stream records '''
+    """Builds candles from stream records.
+    """
     
-    def __init__(self, instrument, granularity):
-        ''' Initialises class based on instrument and candlestick 
+    def __init__(self, instrument: str, granularity: str):
+        """Initialises class based on instrument and candlestick 
             granularity. 
-        '''
+        """
         self.instrument     = instrument
         self.duration       = self.granularity_to_seconds(granularity)
         self.granularity    = granularity
         self.data           = None
         self.start          = None
         self.end            = None
+        
         
     def initialise_data(self, tick):
         ''' Cosntructs data dictionary for new candle. '''
@@ -83,11 +75,12 @@ class candle_builder(object):
                                             }
                        }
 
+
     def seconds_in_time(self, e):
         ''' Converts a timestamp to datetime object. '''
         w   = time.gmtime(e)
-        
         return datetime(*list(w)[0:6])
+
 
     def make_candle(self, completed=False):
         ''' Closes candle '''
@@ -95,6 +88,7 @@ class candle_builder(object):
         self.data['completed'] = completed
         
         return self.data.copy()
+    
     
     def granularity_to_seconds(self, granularity):
         ''' Converts a granularity to time in seconds '''
@@ -109,6 +103,7 @@ class candle_builder(object):
         seconds = mfact[f] * int(n)
         
         return seconds
+    
     
     def process_tick(self, tick):
         ''' Processes tick into candle '''
@@ -168,49 +163,49 @@ class candle_builder(object):
         return candle
 
 
-class AutoStream():
-    '''
-    AutoStream Class.
-    ------------------
+class AutoStream:
+    """AutoTrader price stream.
     
-    Methods:
-        main(): Subscribes to stream and builds candlestick price files. 
+    Attributes
+    ----------
+    home_dir : str
+        The path of the home directory. If writing stream to file, it will
+        be written to home_dir/price_data.
     
+    stream_config : dict
+        Dictionary containing stream configuration information.
     
-    Attributes:
-        home_dir : str
-            The path of the home directory. If writing stream to file, it will
-            be written to home_dir/price_data.
+    instruments : list
+        The instruments to be streamed.
+    
+    granularity : str
+        The granularity of candlesticks to build from the stream.
+    
+    no_candles : int
+        The maximum number of candles to write to file.
+    
+    record_ticks : bool
+        Flag to capture tick data.
+    
+    record_candles : bool
+        Flag to capture candlestick data.
+    
+    write_to_file : bool
+        Flag to write streamed data to csv files.
         
-        stream_config : dict
-            Dictionary containing stream configuration information.
-        
-        instruments : list
-            The instruments to be streamed.
-        
-        granularity : str
-            The granularity of candlesticks to build from the stream.
-        
-        no_candles : int
-            The maximum number of candles to write to file.
-        
-        record_ticks : bool
-            Flag to capture tick data.
-        
-        record_candles : bool
-            Flag to capture candlestick data.
-        
-        write_to_file : bool
-            Flag to write streamed data to csv files.
-    '''
+    Methods
+    -------
+    main()
+        Subscribes to stream and builds candlestick price files. 
+    
+    """
     
     def __init__(self, home_dir, stream_config, 
                  instrument, granularity=None, no_candles=10,
                  record_ticks=False, record_candles=False,
                  bot=None, update_bot=False, write_to_file=False):
-        '''
-        Assign attributes required to stream.
-        '''
+        """Assign attributes required to stream.
+        """
         
         self.home_dir       = home_dir
         self.instruments    = instrument
@@ -246,18 +241,16 @@ class AutoStream():
             
     
     def start(self):
-        '''
-        Starts stream if all checks have passed.
-        '''
+        """Starts stream if all checks have passed.
+        """
 
         if self.checks_passed:
             # Proceed to run stream
             self.main()
         
     def main(self):
-        '''
-        Subscribes to stream and builds candlestick price files. 
-        '''
+        """Subscribes to stream and builds candlestick price files. 
+        """
         
         data_dir_path   = os.path.join(self.home_dir, 'price_data')
         
@@ -329,7 +322,8 @@ class AutoStream():
     
     
     def connect_to_stream(self, config):
-        ''' Connects to Oanda streaming API '''
+        """Connects to Oanda streaming API.
+        """
         ACCESS_TOKEN    = config["ACCESS_TOKEN"]
         port            = config["PORT"]
         ACCOUNT_ID      = config["ACCOUNT_ID"]
@@ -371,9 +365,8 @@ class AutoStream():
             pass
         
     def process_stream(self, candle_builders, candle_filenames, tick_filenames):
-        '''
-        Processes stream based on run settings.
-        '''
+        """Processes stream based on run settings.
+        """
         
         print("\nProcessing stream. To stop streaming, create file named " +\
               "stopstream in the home directory. Alternatively, create " +\
@@ -460,9 +453,8 @@ class AutoStream():
             
 
     def update_bot_data(self, data):
-        '''
-        Sends updated data to bot.
-        '''
+        """Sends updated data to bot.
+        """
         
         # Only pass data if len(data) > 0
         if len(data) > 0:

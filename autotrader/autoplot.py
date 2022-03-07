@@ -22,31 +22,36 @@ except ImportError:
     import importlib_resources as pkg_resources
 from . import data as pkgdata
 
-# TODO - check all merge operations after changing column names of trade summary
 
 class AutoPlot:
-    """AutoPlot trading chart generator.
-    
-    Parameters
-    ----------
-    data : pd.DataFrame
-        The OHLC price data to be charted. 
+    """Automated trading chart generator.
     
     Methods
     -------
-    configure():
+    configure()
         Configure the plot settings.
-    
-    add_tool(tool_name):
+    add_tool(tool_name)
         Add bokeh tool to plot. This adds the tool_name string to the fig_tools
         attribute.
-    
-    plot():
+    plot()
         Creates a trading chart of OHLC price data and indicators.
     
     """
     
     def __init__(self, data: pd.DataFrame):
+        """Instantiates AutoPlot.
+
+        Parameters
+        ----------
+        data : pd.DataFrame
+            The OHLC price data to be charted. 
+
+        Returns
+        -------
+        None
+            AutoPlot will be instantiated and ready for plotting.
+
+        """
         self._max_indis_over = 3
         self._max_indis_below = 2
         self._modified_data = None
