@@ -209,72 +209,60 @@ def half_trend(data: pd.DataFrame, amplitude: int = 2,
     return htdf
 
 
-def stoch_rsi(data: pd.DataFrame, K_period: int = 3, D_period: int = 3, 
-              RSI_length: int = 14, Stochastic_length: int = 14):
-    """Stochastic RSI indicator.
-    """
-    rsi1 = TA.RSI(data, period=RSI_length)
-    stoch = stochastic(rsi1, rsi1, rsi1, Stochastic_length)
-    
-    K = sma(stoch, K_period)
-    D = sma(K, D_period)
-    
-    return K, D
+def range_filter(data: pd.DataFrame, range_qty: float = 2.618, 
+                 range_period: int = 14, smooth_range: bool = True, 
+                 smooth_period: int = 27, av_vals: bool = False, 
+                 av_samples: int = 2, mov_source: str = 'body', 
+                 filter_type: int = 1) -> pd.DataFrame:
+    """Price range filter, ported from the Range Filter [DW] indicator by
+    DonovanWall on TradingView. The indicator was designed to filter out 
+    minor price action for a clearer view of trends.
 
+    Parameters
+    ----------
+    data : pd.DataFrame
+        The OHLC price data.
+    range_qty : float, optional
+        The range size. The default is 2.618.
+    range_period : int, optional
+        The range period. The default is 14.
+    smooth_range : bool, optional
+        Smooth the price range. The default is True.
+    smooth_period : int, optional
+        The smooting period. The default is 27.
+    av_vals : bool, optional
+        Average values. The default is False.
+    av_samples : int, optional
+        The number of average samples to use. The default is 2.
+    mov_source : str, optional
+        The price movement source ('body' or 'wicks'). The default is 'body'.
+    filter_type : int, optional
+        The filter type to use in calculations (1 or 2). The default is 1.
 
-def stochastic(high: pd.Series, low: pd.Series, close: pd.Series, 
-               period: int = 14) -> pd.Series:
-    """Stochastics indicator.
-    """
-    K = np.zeros(len(high))
-    
-    for i in range(period, len(high)):
-        low_val     = min(low[i-period+1:i+1])
-        high_val    = max(high[i-period+1:i+1])
+    Returns
+    -------
+    rfi : pd.DataFrame
+        A dataframe containing the range filter indicator bounds.
         
-        K[i]        = 100 * (close[i] - low_val)/(high_val - low_val)
-        
-    return K
+    References
+    ----------
+    https://www.tradingview.com/script/lut7sBgG-Range-Filter-DW/
+    """
+    # Get high and low values
+    if mov_source == 'body':
+        high_val = data.Close
+        low_val = data.Close
+    elif mov_source == 'wicks':
+        high_val = data.High
+        low_val = data.Low
     
-
-def sma(data: pd.DataFrame, period: int = 14) -> list:
-    """Smoothed Moving Average.
-    """
-    sma_list = []
-    for i in range(len(data)):
-        average = sum(data[i-period+1:i+1])/period
-        sma_list.append(average)
-    return sma_list
-
-
-def ema(data: pd.DataFrame, period: int = 14, smoothing: int = 2) -> list:
-    """Exponential Moving Average.
-    """
-    ema = [sum(data[:period]) / period]
-    for price in data[period:]:
-        ema.append((price * (smoothing / (1 + period))) + ema[-1] * (1 - (smoothing / (1 + period))))
-    for i in range(period-1):
-        ema.insert(0, np.nan)
-    return ema
-
-
-def true_range(data: pd.DataFrame, period: int = 14):
-    """True range.
-    """
-    high_low = data['High'] - data['Low']
-    high_close = np.abs(data['High'] - data['Close'].shift())
-    low_close = np.abs(data['Low'] - data['Close'].shift())
-    ranges = pd.concat([high_low, high_close, low_close], axis=1)
-    true_range = np.max(ranges, axis=1)
-    return true_range
-
-
-def atr(data: pd.DataFrame, period: int = 14):
-    """Average True Range.
-    """
-    tr = true_range(data, period)
-    atr = tr.rolling(period).sum()/period
-    return atr
+    # Get filter values
+    rng = _range_size((high_val + low_val)/2, 'AverageChange', 
+                      range_qty, range_period)
+    rfi = _calculate_range_filter(high_val, low_val, rng, range_period, filter_type, 
+                       smooth_range, smooth_period, av_vals, av_samples)
+    
+    return rfi
 
 
 def bullish_engulfing(data: pd.DataFrame, detection: str = None):
@@ -375,210 +363,6 @@ def bearish_engulfing(data: pd.DataFrame, detection: str = None):
         engulfing_bearish.append(condition)
         
     return engulfing_bearish
-
-
-def heikin_ashi(data: pd.DataFrame):
-    """Calculates the Heikin-Ashi candlesticks from Japanese candlestick 
-    data. 
-    """
-    # Create copy of data to prevent overwriting
-    working_data = data.copy()
-    
-    # Calculate Heikin Ashi candlesticks
-    ha_close = 0.25*(working_data.Open + working_data.Low + working_data.High + working_data.Close)
-    ha_open = 0.5*(working_data.Open + working_data.Close)
-    ha_high = np.maximum(working_data.High.values, working_data.Close.values, working_data.Open.values)
-    ha_low = np.minimum(working_data.Low.values, working_data.Close.values, working_data.Open.values)
-    
-    ha_data = pd.DataFrame(data={'Open': ha_open, 
-                                 'High': ha_high, 
-                                 'Low': ha_low, 
-                                 'Close': ha_close}, 
-                           index=working_data.index)
-    
-    return ha_data
- 
-    
-def N_period_high(data: pd.DataFrame, N: int):
-    """Returns the N-period high. 
-    """
-    highs = data.High.rolling(N).max()
-    return highs
-
-
-def N_period_low(data: pd.DataFrame, N: int):
-    """Returns the N-period low.
-    """
-    lows = data.Low.rolling(N).min()
-    return lows
-
-
-def range_filter(data: pd.DataFrame, range_qty: float = 2.618, 
-                 range_period: int = 14, smooth_range: bool = True, 
-                 smooth_period: int = 27, av_vals: bool = False, 
-                 av_samples: int = 2, mov_source: str = 'body', 
-                 filter_type: int = 1) -> pd.DataFrame:
-    """Price range filter, ported from the Range Filter [DW] indicator by
-    DonovanWall on TradingView. The indicator was designed to filter out 
-    minor price action for a clearer view of trends.
-
-    Parameters
-    ----------
-    data : pd.DataFrame
-        The OHLC price data.
-    range_qty : float, optional
-        The range size. The default is 2.618.
-    range_period : int, optional
-        The range period. The default is 14.
-    smooth_range : bool, optional
-        Smooth the price range. The default is True.
-    smooth_period : int, optional
-        The smooting period. The default is 27.
-    av_vals : bool, optional
-        Average values. The default is False.
-    av_samples : int, optional
-        The number of average samples to use. The default is 2.
-    mov_source : str, optional
-        The price movement source ('body' or 'wicks'). The default is 'body'.
-    filter_type : int, optional
-        The filter type to use in calculations (1 or 2). The default is 1.
-
-    Returns
-    -------
-    rfi : pd.DataFrame
-        A dataframe containing the range filter indicator bounds.
-        
-    References
-    ----------
-    https://www.tradingview.com/script/lut7sBgG-Range-Filter-DW/
-    """
-    # Get high and low values
-    if mov_source == 'body':
-        high_val = data.Close
-        low_val = data.Close
-    elif mov_source == 'wicks':
-        high_val = data.High
-        low_val = data.Low
-    
-    # Get filter values
-    rng = _range_size((high_val + low_val)/2, 'AverageChange', 
-                      range_qty, range_period)
-    rfi = _calculate_range_filter(high_val, low_val, rng, range_period, filter_type, 
-                       smooth_range, smooth_period, av_vals, av_samples)
-    
-    return rfi
-
-
-def crossover(ts1: pd.Series, ts2: pd.Series) -> pd.Series:
-    """Locates where two timeseries crossover each other, returning 1 when
-    list_1 crosses above list_2, and -1 for when list_1 crosses below list_2.
-
-    Parameters
-    ----------
-    ts1 : pd.Series
-        The first timeseries.
-    ts2 : pd.Series
-        The second timeseries.
-
-    Returns
-    -------
-    crossovers : pd.Series
-        The crossover series.
-    """
-    
-    signs = np.sign(ts1 - ts2)
-    crossovers = pd.Series(data=signs*(signs != signs.shift(1)), name='crossovers')
-    
-    return crossovers
-
-
-def cross_values(ts1: Union[list, pd.Series], ts2: Union[list, pd.Series], 
-                 ts_crossover: Union[list, pd.Series] = None) -> Union[list, pd.Series]:
-    """Returns the approximate value of the point where the two series cross.
-
-    Parameters
-    ----------
-    ts1 : list | pd.Series
-        The first timeseries..
-    ts2 : list | pd.Series
-        The second timeseries..
-    ts_crossover : list | pd.Series, optional
-        The crossovers between timeseries 1 and timeseries 2.
-
-    Returns
-    -------
-    cross_points : list | pd.Series
-        The values at which crossovers occur.
-    """
-    
-    if ts_crossover is None:
-        ts_crossover = crossover(ts1, ts2)
-    
-    last_cross_point = ts1[0]
-    cross_points = [last_cross_point]
-    for i in range(1, len(ts_crossover)):
-        if ts_crossover[i] != 0:
-            i0 = 0
-            m_a = ts1[i] - ts1[i-1]
-            m_b = ts2[i] - ts2[i-1]
-            ix = (ts2[i-1] - ts1[i-1])/(m_a-m_b) + i0
-            
-            cross_point = m_a*(ix - i0) + ts1[i-1]
-            
-            last_cross_point = cross_point
-            
-        else:
-            cross_point = last_cross_point
-        
-        cross_points.append(cross_point)
-    
-    # Replace nans with 0
-    cross_points = [0 if x!=x  else x for x in cross_points]
-    
-    if isinstance(ts1, pd.Series):
-        # Convert to Series
-        cross_points = pd.Series(data=cross_points, 
-                                 index=ts1.index, 
-                                 name='crossval')
-    
-    return cross_points
-
-
-def candles_between_crosses(crosses: Union[list, pd.Series]) -> Union[list, pd.Series]:
-    """Returns a rolling sum of candles since the last cross/signal occurred.
-
-    Parameters
-    ----------
-    crosses : list | pd.Series
-        The list or Series containing crossover signals.
-
-    Returns
-    -------
-    counts : TYPE
-        The rolling count of bars since the last crossover signal.
-        
-    See Also
-    ---------
-    indicators.crossover
-    """
-    
-    count = 0
-    counts = []
-    
-    for i in range(len(crosses)):
-        if crosses[i] == 0:
-            # Change in signal - reset count
-            count += 1
-        else:
-            count = 0
-        
-        counts.append(count)
-    
-    if isinstance(crosses, pd.Series):
-        # Convert to Series
-        counts = pd.Series(data=counts, index=crosses.index, name='counts')
-    
-    return counts
 
 
 def find_swings(data: pd.DataFrame, data_type: str = 'ohlc', 
@@ -868,6 +652,193 @@ def autodetect_divergence(ohlc: pd.DataFrame, indicator_data: pd.DataFrame,
     return divergence
 
 
+def heikin_ashi(data: pd.DataFrame):
+    """Calculates the Heikin-Ashi candlesticks from Japanese candlestick 
+    data. 
+    """
+    # Create copy of data to prevent overwriting
+    working_data = data.copy()
+    
+    # Calculate Heikin Ashi candlesticks
+    ha_close = 0.25*(working_data.Open + working_data.Low + working_data.High + working_data.Close)
+    ha_open = 0.5*(working_data.Open + working_data.Close)
+    ha_high = np.maximum(working_data.High.values, working_data.Close.values, working_data.Open.values)
+    ha_low = np.minimum(working_data.Low.values, working_data.Close.values, working_data.Open.values)
+    
+    ha_data = pd.DataFrame(data={'Open': ha_open, 
+                                 'High': ha_high, 
+                                 'Low': ha_low, 
+                                 'Close': ha_close}, 
+                           index=working_data.index)
+    
+    return ha_data
+ 
+    
+def ha_candle_run(ha_data: pd.DataFrame):
+    """Returns a list for the number of consecutive green and red 
+    Heikin-Ashi candles.
+    
+    Parameters
+    ----------
+    ha_data: pd.DataFrame
+        The Heikin Ashi OHLC data.
+    
+    See Also
+    --------
+    heikin_ashi
+    """    
+    green_candle = np.where(ha_data.Close - ha_data.Open > 0, 1, 0)
+    red_candle = np.where(ha_data.Close - ha_data.Open < 0, 1, 0)
+    
+    green_run = []
+    red_run = []
+    
+    green_sum = 0
+    red_sum = 0
+    
+    for i in range(len(ha_data)):
+        if green_candle[i] == 1:
+            green_sum += 1
+        else:
+            green_sum = 0
+        
+        if red_candle[i] == 1:
+            red_sum += 1
+        else:
+            red_sum = 0
+        
+        green_run.append(green_sum)
+        red_run.append(red_sum)
+        
+    return green_run, red_run
+
+
+def N_period_high(data: pd.DataFrame, N: int):
+    """Returns the N-period high. 
+    """
+    highs = data.High.rolling(N).max()
+    return highs
+
+
+def N_period_low(data: pd.DataFrame, N: int):
+    """Returns the N-period low.
+    """
+    lows = data.Low.rolling(N).min()
+    return lows
+
+
+def crossover(ts1: pd.Series, ts2: pd.Series) -> pd.Series:
+    """Locates where two timeseries crossover each other, returning 1 when
+    list_1 crosses above list_2, and -1 for when list_1 crosses below list_2.
+
+    Parameters
+    ----------
+    ts1 : pd.Series
+        The first timeseries.
+    ts2 : pd.Series
+        The second timeseries.
+
+    Returns
+    -------
+    crossovers : pd.Series
+        The crossover series.
+    """
+    
+    signs = np.sign(ts1 - ts2)
+    crossovers = pd.Series(data=signs*(signs != signs.shift(1)), name='crossovers')
+    
+    return crossovers
+
+
+def cross_values(ts1: Union[list, pd.Series], ts2: Union[list, pd.Series], 
+                 ts_crossover: Union[list, pd.Series] = None) -> Union[list, pd.Series]:
+    """Returns the approximate value of the point where the two series cross.
+
+    Parameters
+    ----------
+    ts1 : list | pd.Series
+        The first timeseries..
+    ts2 : list | pd.Series
+        The second timeseries..
+    ts_crossover : list | pd.Series, optional
+        The crossovers between timeseries 1 and timeseries 2.
+
+    Returns
+    -------
+    cross_points : list | pd.Series
+        The values at which crossovers occur.
+    """
+    
+    if ts_crossover is None:
+        ts_crossover = crossover(ts1, ts2)
+    
+    last_cross_point = ts1[0]
+    cross_points = [last_cross_point]
+    for i in range(1, len(ts_crossover)):
+        if ts_crossover[i] != 0:
+            i0 = 0
+            m_a = ts1[i] - ts1[i-1]
+            m_b = ts2[i] - ts2[i-1]
+            ix = (ts2[i-1] - ts1[i-1])/(m_a-m_b) + i0
+            
+            cross_point = m_a*(ix - i0) + ts1[i-1]
+            
+            last_cross_point = cross_point
+            
+        else:
+            cross_point = last_cross_point
+        
+        cross_points.append(cross_point)
+    
+    # Replace nans with 0
+    cross_points = [0 if x!=x  else x for x in cross_points]
+    
+    if isinstance(ts1, pd.Series):
+        # Convert to Series
+        cross_points = pd.Series(data=cross_points, 
+                                 index=ts1.index, 
+                                 name='crossval')
+    
+    return cross_points
+
+
+def candles_between_crosses(crosses: Union[list, pd.Series]) -> Union[list, pd.Series]:
+    """Returns a rolling sum of candles since the last cross/signal occurred.
+
+    Parameters
+    ----------
+    crosses : list | pd.Series
+        The list or Series containing crossover signals.
+
+    Returns
+    -------
+    counts : TYPE
+        The rolling count of bars since the last crossover signal.
+        
+    See Also
+    ---------
+    indicators.crossover
+    """
+    
+    count = 0
+    counts = []
+    
+    for i in range(len(crosses)):
+        if crosses[i] == 0:
+            # Change in signal - reset count
+            count += 1
+        else:
+            count = 0
+        
+        counts.append(count)
+    
+    if isinstance(crosses, pd.Series):
+        # Convert to Series
+        counts = pd.Series(data=counts, index=crosses.index, name='counts')
+    
+    return counts
+
+
 def rolling_signal_list(signals: Union[list, pd.Series]) -> list:
     """Returns a list which repeats the previous signal, until a new 
     signal is given.
@@ -960,45 +931,6 @@ def merge_signals(signal_1: list, signal_2: list) -> list:
             merged_signal_list[i] = signal_2[i]
     
     return merged_signal_list
-
-
-def ha_candle_run(ha_data: pd.DataFrame):
-    """Returns a list for the number of consecutive green and red 
-    Heikin-Ashi candles.
-    
-    Parameters
-    ----------
-    ha_data: pd.DataFrame
-        The Heikin Ashi OHLC data.
-    
-    See Also
-    --------
-    heikin_ashi
-    """    
-    green_candle = np.where(ha_data.Close - ha_data.Open > 0, 1, 0)
-    red_candle = np.where(ha_data.Close - ha_data.Open < 0, 1, 0)
-    
-    green_run = []
-    red_run = []
-    
-    green_sum = 0
-    red_sum = 0
-    
-    for i in range(len(ha_data)):
-        if green_candle[i] == 1:
-            green_sum += 1
-        else:
-            green_sum = 0
-        
-        if red_candle[i] == 1:
-            red_sum += 1
-        else:
-            red_sum = 0
-        
-        green_run.append(green_sum)
-        red_run.append(red_sum)
-        
-    return green_run, red_run
 
 
 def build_grid_price_levels(grid_origin: float, grid_space: float, 
@@ -1203,6 +1135,74 @@ def last_level_touched(data: pd.DataFrame, grid: np.array) -> np.array:
         levels_touched.append(last_level_crossed)
     
     return levels_touched
+
+
+def stoch_rsi(data: pd.DataFrame, K_period: int = 3, D_period: int = 3, 
+              RSI_length: int = 14, Stochastic_length: int = 14):
+    """Stochastic RSI indicator.
+    """
+    rsi1 = TA.RSI(data, period=RSI_length)
+    stoch = stochastic(rsi1, rsi1, rsi1, Stochastic_length)
+    
+    K = sma(stoch, K_period)
+    D = sma(K, D_period)
+    
+    return K, D
+
+
+def stochastic(high: pd.Series, low: pd.Series, close: pd.Series, 
+               period: int = 14) -> pd.Series:
+    """Stochastics indicator.
+    """
+    K = np.zeros(len(high))
+    
+    for i in range(period, len(high)):
+        low_val     = min(low[i-period+1:i+1])
+        high_val    = max(high[i-period+1:i+1])
+        
+        K[i]        = 100 * (close[i] - low_val)/(high_val - low_val)
+        
+    return K
+    
+
+def sma(data: pd.DataFrame, period: int = 14) -> list:
+    """Smoothed Moving Average.
+    """
+    sma_list = []
+    for i in range(len(data)):
+        average = sum(data[i-period+1:i+1])/period
+        sma_list.append(average)
+    return sma_list
+
+
+def ema(data: pd.DataFrame, period: int = 14, smoothing: int = 2) -> list:
+    """Exponential Moving Average.
+    """
+    ema = [sum(data[:period]) / period]
+    for price in data[period:]:
+        ema.append((price * (smoothing / (1 + period))) + ema[-1] * (1 - (smoothing / (1 + period))))
+    for i in range(period-1):
+        ema.insert(0, np.nan)
+    return ema
+
+
+def true_range(data: pd.DataFrame, period: int = 14):
+    """True range.
+    """
+    high_low = data['High'] - data['Low']
+    high_close = np.abs(data['High'] - data['Close'].shift())
+    low_close = np.abs(data['Low'] - data['Close'].shift())
+    ranges = pd.concat([high_low, high_close, low_close], axis=1)
+    true_range = np.max(ranges, axis=1)
+    return true_range
+
+
+def atr(data: pd.DataFrame, period: int = 14):
+    """Average True Range.
+    """
+    tr = true_range(data, period)
+    atr = tr.rolling(period).sum()/period
+    return atr
 
 
 def _conditional_ema(x, condition=1, n=14, s=2):
