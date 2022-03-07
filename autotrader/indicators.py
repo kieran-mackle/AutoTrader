@@ -868,14 +868,28 @@ def autodetect_divergence(ohlc: pd.DataFrame, indicator_data: pd.DataFrame,
     return divergence
 
 
-def rolling_signal_list(signals):
-    """Returns a list which maintains the previous signal, until a new 
+def rolling_signal_list(signals: Union[list, pd.Series]) -> list:
+    """Returns a list which repeats the previous signal, until a new 
     signal is given.
-        
-        [0,1,0,0,0,-1,0,0,1,0,0] ->  [0,1,1,1,1,-1,-1,-1,1,1,1]
-    """    
+
+    Parameters
+    ----------
+    signals : list | pd.Series
+        A series of signals. Zero values are treated as 'no signal'.
+
+    Returns
+    -------
+    list
+        A list of rolled signals.
+    
+    Examples
+    --------
+    >>> rolling_signal_list([0,1,0,0,0,-1,0,0,1,0,0])
+        [0, 1, 1, 1, 1, -1, -1, -1, 1, 1, 1]
+    
+    """
     rolling_signals = [0]
-    last_signal     = rolling_signals[0]
+    last_signal = rolling_signals[0]
     
     for i in range(1, len(signals)):
         if signals[i] != 0:
@@ -886,11 +900,30 @@ def rolling_signal_list(signals):
     return rolling_signals
 
 
-def unroll_signal_list(signals):
-    """Unrolls a signal list.
+def unroll_signal_list(signals: Union[list, pd.Series]) -> np.array:
+    """Unrolls a rolled signal list.
+
+    Parameters
+    ----------
+    signals : Union[list, pd.Series]
+        DESCRIPTION.
+
+    Returns
+    -------
+    unrolled_signals : np.array
+        The unrolled signal series.
+    
+    See Also
+    --------
+    This function is the inverse of rolling_signal_list.
+    
+    Examples
+    --------
+    >>> unroll_signal_list([0, 1, 1, 1, 1, -1, -1, -1, 1, 1, 1])
+        array([ 0.,  1.,  0.,  0.,  0., -1.,  0.,  0.,  1.,  0.,  0.])
+        
     """
     new_list = np.zeros(len(signals))
-    
     for i in range(len(signals)):
         if signals[i] != signals[i-1]:
             new_list[i] = signals[i]
@@ -898,31 +931,58 @@ def unroll_signal_list(signals):
     return new_list
 
 
-def merge_signals(signal_1, signal_2):
-     """Returns a single signal list which has merged two signal lists. 
-     """
-     
-     merged_signal_list = signal_1.copy()
-     
-     for i in range(len(signal_1)):
-         if signal_2[i] != 0:
-             merged_signal_list[i] = signal_2[i]
-     
-     return merged_signal_list
+def merge_signals(signal_1: list, signal_2: list) -> list:
+    """Returns a single signal list which has merged two signal lists. 
+
+    Parameters
+    ----------
+    signal_1 : list
+        The first signal list.
+    signal_2 : list
+        The second signal list.
+
+    Returns
+    -------
+    merged_signal_list : list
+        The merged result of the two inputted signal series.
+    
+    Examples
+    --------
+    >>> s1 = [1,0,0,0,1,0]
+    >>> s2 = [0,0,-1,0,0,-1]
+    >>> merge_signals(s1, s2)
+        [1, 0, -1, 0, 1, -1]
+        
+    """
+    merged_signal_list = signal_1.copy()
+    for i in range(len(signal_1)):
+        if signal_2[i] != 0:
+            merged_signal_list[i] = signal_2[i]
+    
+    return merged_signal_list
 
 
-def ha_candle_run(ha_data):
+def ha_candle_run(ha_data: pd.DataFrame):
     """Returns a list for the number of consecutive green and red 
     Heikin-Ashi candles.
+    
+    Parameters
+    ----------
+    ha_data: pd.DataFrame
+        The Heikin Ashi OHLC data.
+    
+    See Also
+    --------
+    heikin_ashi
     """    
-    green_candle    = np.where(ha_data.Close - ha_data.Open > 0, 1, 0)
-    red_candle      = np.where(ha_data.Close - ha_data.Open < 0, 1, 0)
+    green_candle = np.where(ha_data.Close - ha_data.Open > 0, 1, 0)
+    red_candle = np.where(ha_data.Close - ha_data.Open < 0, 1, 0)
     
-    green_run   = []
-    red_run     = []
+    green_run = []
+    red_run = []
     
-    green_sum   = 0
-    red_sum     = 0
+    green_sum = 0
+    red_sum = 0
     
     for i in range(len(ha_data)):
         if green_candle[i] == 1:
@@ -941,9 +1001,11 @@ def ha_candle_run(ha_data):
     return green_run, red_run
 
 
-def build_grid_price_levels(grid_origin, grid_space, grid_levels, 
-                            grid_price_space=None, pip_value=0.0001):
-    
+def build_grid_price_levels(grid_origin: float, grid_space: float, 
+                            grid_levels: int, grid_price_space: float = None, 
+                            pip_value: float = 0.0001) -> np.array:
+    """Generates grid price levels.
+    """
     # Calculate grid spacing in price units
     if grid_price_space is None:
         grid_price_space = grid_space*pip_value
@@ -956,16 +1018,43 @@ def build_grid_price_levels(grid_origin, grid_space, grid_levels,
     return grid_price_levels
 
 
-def build_grid(grid_origin, grid_space, grid_levels, order_direction, 
-               order_type='stop-limit', grid_price_space=None, pip_value=0.0001, 
-               take_distance=None, stop_distance=None, stop_type=None):
-    '''
-    grid_origin: origin of grid, specified as a price
-    grid_space: spacing between grid levels, specified as pip distance
-    grid_levels: number of grid levels either side of origin
-    order_direction: the direction of each grid level order (1 for long, -1 for short)
-    order_type: the order type of each grid level order
-    '''
+def build_grid(grid_origin: float, grid_space: float, grid_levels: int, 
+               order_direction: int, order_type: str = 'stop-limit', 
+               grid_price_space: float = None, pip_value: float = 0.0001, 
+               take_distance: float = None, stop_distance: float = None, 
+               stop_type: str = None) -> dict:
+    """Generates a grid of orders.
+
+    Parameters
+    ----------
+    grid_origin : float
+        The origin of grid, specified as a price.
+    grid_space : float
+        The spacing between grid levels, specified as pip distance.
+    grid_levels : int
+        The number of grid levels either side of origin.
+    order_direction : int
+        The direction of each grid level order (1 for long, -1 for short).
+    order_type : str, optional
+        The order type of each grid level order. The default is 'stop-limit'.
+    grid_price_space : float, optional
+        The spacing between grid levels, specified as price units distance. 
+        The default is None.
+    pip_value : float, optional
+        The instrument-specific pip value. The default is 0.0001.
+    take_distance : float, optional
+        The distance (in pips) of each order's take profit. The default is None.
+    stop_distance : float, optional
+        The distance (in pips) of each order's stop loss. The default is None.
+    stop_type : str, optional
+        The stop loss type. The default is None.
+
+    Returns
+    -------
+    grid : dict
+        A dictionary containing all orders on the grid.
+
+    """
     
     # Check if stop_distance was provided without a stop_type
     if stop_distance is not None and stop_type is None:
@@ -997,15 +1086,13 @@ def build_grid(grid_origin, grid_space, grid_levels, order_direction,
         grid[order]["order_stop_price"]  = order_limit_prices[order]
         grid[order]["order_limit_price"] = order_limit_prices[order]
         
-    
     return grid
 
 
-def merge_grid_orders(grid_1, grid_2):
-    '''
-    Merges grid dictionaries into one and re-labels order numbers so each
+def merge_grid_orders(grid_1: np.array, grid_2: np.array) -> np.array:
+    """Merges grid dictionaries into one and re-labels order numbers so each
     order number is unique.
-    '''
+    """
     order_offset = len(grid_1)
     grid = grid_1.copy()
     
@@ -1015,14 +1102,11 @@ def merge_grid_orders(grid_1, grid_2):
     return grid
     
 
-def last_level_crossed(data, base):
-    ''' 
-    Returns a list containing the last grid level touched.
+def last_level_crossed(data: pd.DataFrame, base: float) -> list:
+    """Returns a list containing the last grid level touched.
     The grid levels are determined by the base input variable, 
     which corresponds to the pip_space x pip_value.
-    '''
-    # base = 20*0.0001
-    
+    """
     last_level_crossed = np.nan
     levels_crossed = []
     for i in range(len(data)):
@@ -1045,26 +1129,31 @@ def last_level_crossed(data, base):
     return levels_crossed
 
 
-def build_multiplier_grid(origin, direction, multiplier, no_levels, precision, spacing):
-    '''
-    Constructs grid levels with a multiplying grid space.
+def build_multiplier_grid(origin: float, direction: int, multiplier: float, 
+                          no_levels: int, precision: int, spacing: float) -> list:
+    """Constructs grid levels with a multiplying grid space.
     
-        Parameters:
-            origin (float): origin of grid as price amount.
-            
-            direction (int): direction of grid (1 for long, -1 for short).
-            
-            multiplier (float): grid space multiplier when price moves away 
-            from the origin opposite to direction.
-            
-            no_levels (int): number of levels to calculate either side of the 
-            origin.
-            
-            precision (int): instrument precision (eg. 4 for most currencies, 2 
-            for JPY).
-            
-            spacing (float): spacing of grid in price units.
-    '''
+    Parameters
+    ----------
+    origin : float 
+        The origin of grid as price amount.
+    
+    direction : int
+        The direction of grid (1 for long, -1 for short).
+    
+    multiplier : float
+        The grid space multiplier when price moves away from the origin 
+        opposite to direction.
+    
+    no_levels : int 
+        The number of levels to calculate either side of the origin.
+    
+    precision : int 
+        The instrument precision (eg. 4 for most currencies, 2 for JPY).
+    
+    spacing : float
+        The spacing of the grid in price units.
+    """
     
     levels = [i for i in range(1, no_levels + 1)]
 
@@ -1083,10 +1172,9 @@ def build_multiplier_grid(origin, direction, multiplier, no_levels, precision, s
     return grid
 
 
-def last_level_touched(data, grid):
+def last_level_touched(data: pd.DataFrame, grid: np.array) -> np.array:
     """Calculates the grid levels touched by price data.
     """
-    
     # initialise with nan
     last_level_crossed = np.nan 
     
