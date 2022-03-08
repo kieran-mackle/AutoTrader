@@ -31,6 +31,13 @@ class Order:
         
         self.related_orders = None
         
+        # IB properties
+        self.currency = None
+        self.secType = None
+        self.exchange = None
+        self.contract_month = None
+        self.local_symbol = None
+        
         self.reason = None
         
         self.strategy = None
