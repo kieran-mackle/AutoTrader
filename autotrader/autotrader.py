@@ -54,7 +54,7 @@ class AutoTrader:
     ----------
     Author: Kieran Mackle
     
-    Version: 0.6
+    Version: 0.6.0
     
     Homepage: https://kieran-mackle.github.io/AutoTrader/
     
