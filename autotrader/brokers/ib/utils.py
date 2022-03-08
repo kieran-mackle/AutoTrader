@@ -1,6 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from autotrader.brokers.broker_utils import BrokerUtils

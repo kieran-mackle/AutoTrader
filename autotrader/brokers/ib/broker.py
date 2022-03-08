@@ -1,34 +1,34 @@
 import numpy as np
 import ib_insync
 from autotrader.brokers.trading import Order, Trade, Position
-from autotrader.brokers.interactive_brokers.utils import Utils
+from autotrader.brokers.ib.utils import Utils
 
-'''
-IMPORTANT DOCUMENTATION:
-    - when closing a position using close_position(), if there are attached SL
-      and/or TP orders, they must be closed manually using cancel_pending_order().
-      Usually only one of the pair needs to be cancelled, and the other will too.
-    - get_open_trades is ambiguous - use get_open_positions
-    - There are some methods missing between virtual broker and this one...
-      ideally all public methods should be shared across brokers, and private
-      methods can be broker-specific. Can then just use wrappers where necessary.
-    - required signal_dict keys for different security types (eg. futures 
-      require symbol, exchange and contract_month)
-'''
+# IMPORTANT DOCUMENTATION:
+#     - when closing a position using close_position(), if there are attached SL
+#       and/or TP orders, they must be closed manually using cancel_pending_order().
+#       Usually only one of the pair needs to be cancelled, and the other will too.
+#     - get_open_trades is ambiguous - use get_open_positions
+#     - There are some methods missing between virtual broker and this one...
+#       ideally all public methods should be shared across brokers, and private
+#       methods can be broker-specific. Can then just use wrappers where necessary.
+#     - required signal_dict keys for different security types (eg. futures 
+#       require symbol, exchange and contract_month)
 
 class Broker:
     """AutoTrader-InteractiveBrokers API interface.
-
-    Parameters
-    ----------
-    config : dict
-        The IB configuration dictionary. This can contain the host, port, 
-        clientID and read_only boolean flag.
-    utils : Utils, optional
-        Broker utilities class instance. The default is None.
     """
     
     def __init__(self, config: dict, utils: Utils = None) -> None:
+        """Initialise AutoTrader-Interactive Brokers API interface.
+        
+        Parameters
+        ----------
+        config : dict
+            The IB configuration dictionary. This can contain the host, port, 
+            clientID and read_only boolean flag.
+        utils : Utils, optional
+            Broker utilities class instance. The default is None.
+        """
         self.utils = utils if utils is not None else Utils()
         
         host = config['host'] if 'host' in config else '127.0.0.1'
