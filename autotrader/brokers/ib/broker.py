@@ -3,20 +3,26 @@ import numpy as np
 from autotrader.brokers.trading import Order, Trade, Position
 from autotrader.brokers.ib.utils import Utils
 
-# IMPORTANT DOCUMENTATION:
-#     - when closing a position using close_position(), if there are attached SL
-#       and/or TP orders, they must be closed manually using cancel_pending_order().
-#       Usually only one of the pair needs to be cancelled, and the other will too.
-#     - get_open_trades is ambiguous - use get_open_positions
-#     - There are some methods missing between virtual broker and this one...
-#       ideally all public methods should be shared across brokers, and private
-#       methods can be broker-specific. Can then just use wrappers where necessary.
-#     - required signal_dict keys for different security types (eg. futures 
-#       require symbol, exchange and contract_month)
-
 
 class Broker:
     """AutoTrader-InteractiveBrokers API interface.
+    
+    Attributes
+    ----------
+    utils : Utils
+        The broker utilities.
+    ib : ib_insync connection
+        Used to query IB.
+    account : str
+        The active IB account.
+    
+    Notes
+    -----
+        - when closing a position using close_position(), if there are attached SL
+          and/or TP orders, they must be closed manually using cancel_pending_order().
+          Usually only one of the pair needs to be cancelled, and the other will too.
+        - required signal_dict keys for different security types (eg. futures 
+          require symbol, exchange and contract_month)
     """
     
     def __init__(self, config: dict, utils: Utils = None) -> None:
@@ -257,9 +263,10 @@ class Broker:
         dict
             The details of the trade.
         """
-        self._check_connection()
+        raise NotImplementedError("This method is not available.")
+        # self._check_connection()
         # TODO - implement (?)
-        return {}
+        # return {}
     
     
     def get_positions(self, instrument: str = None, 
@@ -354,10 +361,9 @@ class Broker:
                             from_time: str, to_time: str):
         """Returns historical price data.
         """
-        self._check_connection()
-        
-        # TODO - implement (?)
-        self.ib.reqHistoricalData()
+        # self._check_connection()
+        # self.ib.reqHistoricalData()
+        raise NotImplementedError("This method is not available.")
         
         
     def _connect(self, host, port, client_id, read_only, account):
