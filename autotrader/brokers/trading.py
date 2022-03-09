@@ -235,6 +235,9 @@ class Order:
     def _from_dict(cls, order_dict: dict) -> Order:
         return Order(**order_dict)
 
+# TODO - add order validation method, ie. for IB, check all attributes are
+# assigned (eg. sectype, etc)
+
 
 class Trade(Order):
     """AutoTrader Trade.
