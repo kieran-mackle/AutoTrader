@@ -67,7 +67,7 @@ class Order:
         
     
     def __str__(self):
-        return 'AutoTrader Order'
+        return f'{self.instrument} {self.order_type} Order'
     
     
     def __call__(self, broker = None, order_price: float = None, 

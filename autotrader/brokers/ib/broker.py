@@ -1,5 +1,5 @@
-import numpy as np
 import ib_insync
+import numpy as np
 from autotrader.brokers.trading import Order, Trade, Position
 from autotrader.brokers.ib.utils import Utils
 
@@ -13,6 +13,7 @@ from autotrader.brokers.ib.utils import Utils
 #       methods can be broker-specific. Can then just use wrappers where necessary.
 #     - required signal_dict keys for different security types (eg. futures 
 #       require symbol, exchange and contract_month)
+
 
 class Broker:
     """AutoTrader-InteractiveBrokers API interface.
@@ -73,8 +74,8 @@ class Broker:
 
         Parameters
         ----------
-        order_details : Order
-            An AutoTrader Order.
+        order: Order
+            The AutoTrader Order.
 
         Returns
         -------
@@ -84,7 +85,7 @@ class Broker:
         self._check_connection()
         
         # Assign order_time, order_price, HCF
-        price_data = self._get_price(instrument=order.instrument)
+        price_data = self._get_price(order)
         order_price = price_data['ask'] if order.direction > 0 else price_data['bid']
         
         # Call order with price and time
@@ -321,15 +322,15 @@ class Broker:
         return summary
     
     
-    def _get_price(self, instrument: str, snapshot: bool = True, **kwargs) -> dict:
+    def _get_price(self, order: Order, snapshot: bool = False, **kwargs) -> dict:
         """Returns current price (bid+ask) and home conversion factors.
         
         Parameters
         ----------
-        instrument : str
-            The trading instrument's symbol.
+        order: Order
+            The AutoTrader Order.
         snapshot : bool, optional
-            Request a snapshot of the price. The default is True.
+            Request a snapshot of the price. The default is False.
 
         Returns
         -------
@@ -338,12 +339,18 @@ class Broker:
         """
         self._check_connection()
         # TODO - verify functionality
-        contract = self._build_contract(instrument)
+        contract = self._build_contract(order)
         self.ib.qualifyContracts(contract)
-        data = self.ib.reqMktData(contract, snapshot=snapshot)
+        ticker = self.ib.reqMktData(contract)#, snapshot=snapshot)
+        while True:
+            print(ticker.last)
+            self.ib.sleep(1)
         
-        price = {"ask": data.ask,
-                 "bid": data.bid,
+        while ticker.last != ticker.last: self.ib.sleep(0.2)
+        self.ib.cancelMktData(contract)
+        
+        price = {"ask": ticker.ask,
+                 "bid": ticker.bid,
                  "negativeHCF": 1,
                  "positiveHCF": 1,}
         
