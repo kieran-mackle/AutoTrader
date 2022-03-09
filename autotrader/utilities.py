@@ -63,15 +63,24 @@ def get_config(environment: str, global_config: dict, feed: str) -> dict:
                            'PORT': port}
             
         elif feed.upper() == 'IB':
-            print("WARNING: Interactive brokers not fully supported yet.")
-            
+            # TODO - check port for live trading
             data_source = 'IB'
-            config_dict = {'data_source'    : data_source}
-            # Any extra information will be added to the config_dict above
+            host = global_config['host'] if 'host' in global_config else '127.0.0.1'
+            port = global_config['port'] if 'port' in global_config else 7497
+            client_id = global_config['clientID'] if 'clientID' in global_config else 1
+            read_only = global_config['read_only'] if 'read_only' in global_config else False
+            account = global_config['account'] if 'account' in global_config else ''
+            
+            config_dict = {'data_source': data_source,
+                           'host': host,
+                           'port': port,
+                           'clientID': client_id,
+                           'account': account,
+                           'read_only': read_only}
             
         elif feed.upper() == 'YAHOO':
             data_source = 'yfinance'
-            config_dict = {'data_source'    : data_source}
+            config_dict = {'data_source': data_source}
             
         else:
             print("Unrecognised data feed. Please check config and retry.")
@@ -92,11 +101,20 @@ def get_config(environment: str, global_config: dict, feed: str) -> dict:
                            'PORT': port}
             
         elif feed.upper() == 'IB':
-            print("WARNING: Interactive brokers not fully supported yet.")
-            
+            # TODO - check port for paper trading
             data_source = 'IB'
-            config_dict = {'data_source': data_source}
-            # Any extra information will be added to the config_dict above
+            host = global_config['host'] if 'host' in global_config else '127.0.0.1'
+            port = global_config['port'] if 'port' in global_config else 7497
+            client_id = global_config['clientID'] if 'clientID' in global_config else 1
+            read_only = global_config['read_only'] if 'read_only' in global_config else False
+            account = global_config['account'] if 'account' in global_config else ''
+            
+            config_dict = {'data_source': data_source,
+                           'host': host,
+                           'port': port,
+                           'clientID': client_id,
+                           'account': account,
+                           'read_only': read_only}
             
         elif feed.upper() == 'YAHOO':
             data_source = 'yfinance'
