@@ -338,22 +338,15 @@ class Broker:
             A dictionary containing the bid and ask prices.
         """
         self._check_connection()
-        # TODO - verify functionality
         contract = self._build_contract(order)
         self.ib.qualifyContracts(contract)
-        ticker = self.ib.reqMktData(contract)#, snapshot=snapshot)
-        while True:
-            print(ticker.last)
-            self.ib.sleep(1)
-        
-        while ticker.last != ticker.last: self.ib.sleep(0.2)
+        ticker = self.ib.reqMktData(contract, snapshot=snapshot)
+        while ticker.last != ticker.last: self.ib.sleep(1)
         self.ib.cancelMktData(contract)
-        
         price = {"ask": ticker.ask,
                  "bid": ticker.bid,
                  "negativeHCF": 1,
                  "positiveHCF": 1,}
-        
         return price
     
     
