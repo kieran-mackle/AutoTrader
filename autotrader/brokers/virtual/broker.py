@@ -61,22 +61,11 @@ class Broker:
     def place_order(self, order: Order, **kwargs) -> None:
         """Place order with broker.
         """
-        # Assign order_time, order_price, HCF
-        price_data = self._get_price(instrument=order.instrument, 
-                                     data=kwargs['data'], 
-                                     conversion_data=kwargs['quote_data'], 
-                                     i=kwargs['i'])
-        datetime_stamp = kwargs['data'].index[kwargs['i']]
         
-        if order.direction < 0:
-            order_price = price_data['bid']
-            HCF = price_data['negativeHCF']
-        else:
-            order_price = price_data['ask']
-            HCF = price_data['positiveHCF']
+        # Call order to set order time
+        datetime_stamp = kwargs['order_time']
+        order(order_time = datetime_stamp)
         
-        # Call order with price and time
-        order(self, order_price, datetime_stamp, HCF)
         
         if order.order_type == 'limit' or order.order_type == 'stop-limit':
             working_price = order.order_limit_price

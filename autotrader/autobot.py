@@ -685,6 +685,7 @@ class AutoTraderBot:
         # TODO - parameterise signal method name
         strategy_orders = self._strategy.generate_signal(i, open_positions)
         orders = self._check_orders(strategy_orders)
+        self._qualify_orders(orders, i)
         
         # Iterate over orders to submit
         for order in orders:
@@ -700,8 +701,7 @@ class AutoTraderBot:
                 
             else:
                 # Bot is trading
-                self._broker.place_order(order, data=self.data, 
-                                         quote_data=self.quote_data, i=i)
+                self._broker.place_order(order, order_time=self.data.index[i])
                 self._latest_orders.append(order)
         
         if int(self._verbosity) > 1:
@@ -864,29 +864,37 @@ class AutoTraderBot:
                             print("No trade direction provided for " + \
                                   f"{order.order_type} order. Order will be ignored.")
         
-        # TODO - option to provide order_price here, from data feed rather
-        # than broker
-        def add_price_data(orders: list) -> None:
-            """Passes price data to order to populate missing fields.
-            """
-            # TODO - what about yahoo?
-            for order in orders:
-                liveprice_func = getattr(self._get_data, f'{self._feed}_liveprice')
-                last_price = liveprice_func(order)
-                
-            
         # Perform checks
         checked_orders = check_type(orders)
         add_strategy_data(checked_orders)
         check_order_details(checked_orders)
-        # if liveprice:  # or, if stop distance is present? not sure. But need to allow blind orders?
-        #     add_price_data(orders) 
-        
-        # If adding price is a necessity, then first try get liveprice data. If
-        # not possible, just use the close price, which should already be available
         
         return checked_orders
         
+    
+    def _qualify_orders(self, orders: list, i: int) -> None:
+        """Passes price data to order to populate missing fields.
+        """
+        for order in orders:
+            if self._req_liveprice:
+                liveprice_func = getattr(self._get_data, f'{self._feed}_liveprice')
+                last_price = liveprice_func(order)
+            else:
+                last_price = {'bid': self.data.Close[i],
+                              'ask': self.data.Close[i],
+                              'negativeHCF': 1/self.quote_data.Close[i],
+                              'positiveHCF': 1/self.quote_data.Close[i]}
+            
+            if order.direction < 0:
+                order_price = last_price['bid']
+                HCF = last_price['negativeHCF']
+            else:
+                order_price = last_price['ask']
+                HCF = last_price['positiveHCF']
+            
+            # Call order with price and time
+            order(broker=self._broker, order_price=order_price, HCF=HCF)
+    
     
     def _update_backtest(self, i: int) -> None:
         """Updates virtual broker with latest price data for backtesting.

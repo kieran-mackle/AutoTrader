@@ -90,12 +90,8 @@ class Broker:
         """
         self._check_connection()
         
-        # Assign order_time, order_price, HCF
-        price_data = self._get_price(order)
-        order_price = price_data['ask'] if order.direction > 0 else price_data['bid']
-        
-        # Call order with price and time
-        order(broker=self, order_price=order_price)
+        # Call order to set order time
+        order()
         
         if order.order_type == 'market':
             self._place_market_order(order)

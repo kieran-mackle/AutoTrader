@@ -42,9 +42,8 @@ class Broker:
     def place_order(self, order: Order, **kwargs) -> None:
         """Disassemble order_details dictionary to place order.
         """
-        # Call order with price and time to complete missing attributes
-        order_price = 0 # Need to retrieve current price 
-        order(self, order_price)
+        # Call order to set order time
+        order()
         
         # Submit order to broker
         

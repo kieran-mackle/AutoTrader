@@ -1,7 +1,7 @@
 from __future__ import annotations
 import numpy as np
 from datetime import datetime
-# Broker utils
+from autotrader.brokers.broker_utils import BrokerUtils
 
 
 class Order:
@@ -144,8 +144,12 @@ class Order:
         """
         working_price = working_price if working_price is not None \
             else self._working_price
-            
-        pip_value = broker.utils.get_pip_ratio(self.instrument)
+        
+        if broker is None:
+            utils = BrokerUtils()
+        else:
+            utils = broker.utils
+        pip_value = utils.get_pip_ratio(self.instrument)
 
         # Calculate stop loss price
         if not self.stop_loss and self.stop_distance:

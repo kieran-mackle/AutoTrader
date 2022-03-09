@@ -93,6 +93,7 @@ class AutoTrader:
         self._uninitiated_strat_files = []
         self._uninitiated_strat_dicts = []
         self._feed = 'yahoo'
+        self._req_liveprice = False
         self._bots_deployed = []
         
         # Backtesting Parameters
@@ -143,8 +144,8 @@ class AutoTrader:
     
     
     def configure(self, verbosity: int = 1, broker: str = 'virtual', 
-                  feed: str = 'yahoo', notify: int = 0, 
-                  home_dir: str = None, use_stream: bool = False, 
+                  feed: str = 'yahoo', req_liveprice: bool = False, 
+                  notify: int = 0, home_dir: str = None, use_stream: bool = False, 
                   detach_bot: bool = False, check_data_alignment: bool = True, 
                   allow_dancing_bears: bool = False, account_id: str = None, 
                   environment: str = 'demo', show_plot: bool = False,
@@ -160,6 +161,9 @@ class AutoTrader:
             DESCRIPTION. The default is 'virtual'.
         feed : str, optional
             The data feed to be used ('yahoo', 'oanda', 'ib'). The default is 'yahoo'.
+        req_liveprice : bool, optional
+            Request live market price from broker before placing trade, rather 
+            than using the data already provided. The default is False. 
         notify : int, optional
             The level of email notifications (0, 1, 2). The default is 0.
         home_dir : str, optional
@@ -195,6 +199,7 @@ class AutoTrader:
         """
         self._verbosity = verbosity
         self._feed = feed
+        self._req_liveprice = req_liveprice
         self._broker_name = broker
         self._notify = notify
         self._home_dir = home_dir if home_dir is not None else os.getcwd()
