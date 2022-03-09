@@ -345,7 +345,7 @@ class Broker:
             A dictionary containing the bid and ask prices.
         """
         self._check_connection()
-        contract = self._build_contract(order)
+        contract = self.utils.build_contract(order)
         self.ib.qualifyContracts(contract)
         ticker = self.ib.reqMktData(contract, snapshot=snapshot)
         while ticker.last != ticker.last: self.ib.sleep(1)
@@ -426,7 +426,7 @@ class Broker:
         self._check_connection()
         
         # Build contract
-        contract = self._build_contract(order)
+        contract = self.utils.build_contract(order)
         
         # Create market order
         action = 'BUY' if order.size > 0 else 'SELL'
@@ -448,7 +448,7 @@ class Broker:
         self._check_connection()
         
         # Build contract
-        contract = self._build_contract(order)
+        contract = self.utils.build_contract(order)
         
         # Create stop limit order
         action = 'BUY' if order.size > 0 else 'SELL'
@@ -472,7 +472,7 @@ class Broker:
         self._check_connection()
         
         # Build contract
-        contract = self._build_contract(order)
+        contract = self.utils.build_contract(order)
         
         action = 'BUY' if order.size > 0 else 'SELL'
         units = abs(order.size)
@@ -575,68 +575,3 @@ class Broker:
                                              parentId=parentId)
         return stopLoss_order
     
-    
-    @staticmethod
-    def _build_contract(order: Order) -> ib_insync.contract.Contract:
-        """Builds IB contract from the order details.
-        """
-        instrument = order.instrument
-        security_type = order.secType
-        
-        # Get contract object
-        contract_object = getattr(ib_insync, security_type)
-        
-        if security_type == 'Stock':
-            # symbol='', exchange='', currency=''
-            exchange = order.exchange if order.exchange else 'SMART'
-            currency = order.currency if order.currency else 'USD'
-            contract = contract_object(symbol=instrument, exchange=exchange, currency=currency)
-            
-        elif security_type == 'Options':
-            raise NotImplementedError(f"Contract building for {security_type.lower()} trading is not supported yet.")
-            
-        elif security_type == 'Future':
-            # Requires order_details{'instrument', 'exchange', 'contract_month'}
-            exchange = order.exchange if order.exchange else 'GLOBEX'
-            currency = order.currency if order.currency else 'USD'
-            contract_month = order.contract_month
-            local_symbol = order.local_symbol if order.local_symbol else '' 
-            contract = contract_object(symbol=instrument, 
-                                       exchange=exchange, 
-                                       currency=currency,
-                                       lastTradeDateOrContractMonth=contract_month,
-                                       localSymbol=local_symbol)
-            
-        elif security_type == 'ContFuture':
-            raise NotImplementedError(f"Contract building for {security_type.lower()} trading is not supported yet.")
-            
-        elif security_type == 'Forex':
-            # pair='', exchange='IDEALPRO', symbol='', currency='', **kwargs)
-            exchange = order.exchange if order.exchange else 'IDEALPRO'
-            contract = contract_object(pair=instrument, exchange=exchange)
-            
-        elif security_type == 'Index':
-            raise NotImplementedError(f"Contract building for {security_type.lower()} trading is not supported yet.")
-            
-        elif security_type == 'CFD':
-            # symbol='', exchange='', currency='',
-            exchange = order.exchange if order.exchange else 'SMART'
-            currency = order.currency if order.currency else 'USD'
-            contract = contract_object(symbol=instrument, exchange=exchange, currency=currency)
-            
-        elif security_type == 'Commodity':
-            raise NotImplementedError(f"Contract building for {security_type.lower()} trading is not supported yet.")
-        elif security_type == 'Bond':
-            raise NotImplementedError(f"Contract building for {security_type.lower()} trading is not supported yet.")
-        elif security_type == 'FuturesOption':
-            raise NotImplementedError(f"Contract building for {security_type.lower()} trading is not supported yet.")
-        elif security_type == 'MutualFund':
-            raise NotImplementedError(f"Contract building for {security_type.lower()} trading is not supported yet.")
-        elif security_type == 'Warrant':
-            raise NotImplementedError(f"Contract building for {security_type.lower()} trading is not supported yet.")
-        elif security_type == 'Bag':
-            raise NotImplementedError(f"Contract building for {security_type.lower()} trading is not supported yet.")
-        elif security_type == 'Crypto':
-            raise NotImplementedError(f"Contract building for {security_type.lower()} trading is not supported yet.")
-        
-        return contract
