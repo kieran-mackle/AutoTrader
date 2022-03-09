@@ -508,6 +508,8 @@ class AutoTrader:
         """Performs essential checks and runs AutoTrader.
         """
         
+        # TODO - add check of feed and broker requests (even when backtesting)
+        
         # Define home_dir if undefined
         if self._home_dir is None:
             self._home_dir = os.getcwd()
