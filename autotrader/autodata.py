@@ -65,7 +65,7 @@ class GetData:
                 self.ib = ib_insync.IB()
                 self.ib.connect(host=host, port=port, clientId=client_id, 
                                 readonly=read_only, account=account)
-            # Define API for other data sources
+            
             
         self.allow_dancing_bears = allow_dancing_bears
         self.home_currency = None
@@ -118,76 +118,71 @@ class GetData:
             # if count is provided, count must be less than 5000
             if start_time is None and end_time is None:
                 # fetch count=N most recent candles
-                response    = self.api.instrument.candles(instrument,
-                                             granularity = granularity,
-                                             count = count
-                                             )
-                data        = self.response_to_df(response)
+                response = self.api.instrument.candles(instrument,
+                                                       granularity = granularity,
+                                                       count = count)
+                data = self.response_to_df(response)
                 
             elif start_time is not None and end_time is None:
                 # start_time + count
-                from_time   = start_time.timestamp()
-                response    = self.api.instrument.candles(instrument,
-                                             granularity = granularity,
-                                             count = count,
-                                             fromTime = from_time
-                                             )
-                data        = self.response_to_df(response)
+                from_time = start_time.timestamp()
+                response = self.api.instrument.candles(instrument,
+                                                       granularity = granularity,
+                                                       count = count,
+                                                       fromTime = from_time)
+                data = self.response_to_df(response)
             
             elif end_time is not None and start_time is None:
                 # end_time + count
-                to_time     = end_time.timestamp()
-                response    = self.api.instrument.candles(instrument,
+                to_time = end_time.timestamp()
+                response = self.api.instrument.candles(instrument,
                                              granularity = granularity,
                                              count = count,
-                                             toTime = to_time
-                                             )
-                data        = self.response_to_df(response)
+                                             toTime = to_time)
+                data = self.response_to_df(response)
                 
             else:
                 # start_time+end_time+count
                 print("Warning: ignoring count input since start_time and",
                        "end_time times have been specified.")
-                from_time       = start_time.timestamp()
-                to_time         = end_time.timestamp()
+                from_time = start_time.timestamp()
+                to_time = end_time.timestamp()
             
                 # try to get data 
-                response        = self.api.instrument.candles(instrument,
-                                                         granularity = granularity,
-                                                         fromTime = from_time,
-                                                         toTime = to_time
-                                                         )
+                response = self.api.instrument.candles(instrument,
+                                                       granularity = granularity,
+                                                       fromTime = from_time,
+                                                       toTime = to_time)
                 
                 # If the request is rejected, max candles likely exceeded
                 if response.status != 200:
-                    data        = self._get_extended_oanda_data(instrument,
+                    data = self._get_extended_oanda_data(instrument,
                                                          granularity,
                                                          from_time,
                                                          to_time)
                 else:
-                    data        = self.response_to_df(response)
+                    data = self.response_to_df(response)
                 
         else:
             # count is None
             # Assume that both start_time and end_time have been specified.
-            from_time       = start_time.timestamp()
-            to_time         = end_time.timestamp()
+            from_time = start_time.timestamp()
+            to_time = end_time.timestamp()
             
             # try to get data 
-            response        = self.api.instrument.candles(instrument,
-                                                     granularity = granularity,
-                                                     fromTime = from_time,
-                                                     toTime = to_time
-                                                     )
+            response = self.api.instrument.candles(instrument,
+                                                   granularity = granularity,
+                                                   fromTime = from_time,
+                                                   toTime = to_time)
             
             # If the request is rejected, max candles likely exceeded
             if response.status != 200:
-                data        = self._get_extended_oanda_data(instrument,
+                data = self._get_extended_oanda_data(instrument,
                                                      granularity,
                                                      from_time,
                                                      to_time)
             else:
-                data        = self.response_to_df(response)
+                data = self.response_to_df(response)
 
         return data
     
@@ -242,7 +237,7 @@ class GetData:
                          start_time: datetime, end_time: datetime):
         """Function to retrieve price conversion data.
         """
-        quote_currency  = pair[-3:]
+        quote_currency = pair[-3:]
         
         if self.home_currency is None or quote_currency == self.home_currency:
             quote_data = data
@@ -317,8 +312,7 @@ class GetData:
             conversions = {'S': 1,
                            'M': 60,
                            'H': 60*60,
-                           'D': 60*60*24
-                           }
+                           'D': 60*60*24}
             
             my_int = conversions[letter] * number
             
@@ -330,8 +324,7 @@ class GetData:
             
             conversions = {'m': 60,
                            'h': 60*60,
-                           'd': 60*60*24
-                           }
+                           'd': 60*60*24}
             
             my_int = conversions[letter] * number
         
@@ -386,7 +379,7 @@ class GetData:
     
     
     def yahoo_liveprice(self,):
-        raise NotImplementedError("Live price is not available from yahoo API.")
+        raise Exception("Live price is not available from yahoo API.")
         
     
     def _yahoo_quote_data(self, data: pd.DataFrame, pair: str, interval: str,
@@ -397,13 +390,14 @@ class GetData:
         return data
     
     
-    def ib(self, order: Order, instrument: str, **kwargs) -> pd.DataFrame:
-        # TODO - wont work the same as self.oanda, which requires instrument 
-        # input ... 
+    def ib(self, instrument: str, granularity: str, count: int,
+           start_time: datetime = None, end_time: datetime = None,
+           order: Order = None, **kwargs) -> pd.DataFrame:
+        raise NotImplementedError("Historical market data from IB is not yet supported.")
+        # TODO - implement
         utils = IB_Utils()
         contract = utils.build_contract(order)
         
-        # TODO - implement
         dt = ''
         barsList = []
         while True:
@@ -411,7 +405,7 @@ class GetData:
                 contract,
                 endDateTime=dt,
                 durationStr='10 D',
-                barSizeSetting='1 min',
+                barSizeSetting='1 min', # TODO - make as input
                 whatToShow='MIDPOINT',
                 useRTH=True,
                 formatDate=1)
