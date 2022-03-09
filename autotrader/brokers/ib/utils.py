@@ -4,11 +4,20 @@ from autotrader.brokers.trading import Order
 from dateutil.relativedelta import relativedelta
 from autotrader.brokers.broker_utils import BrokerUtils
 
+
 class Utils(BrokerUtils):
     def __init__(self):
         pass
     
         
+    def __repr__(self):
+        return 'AutoTrader-InteractiveBrokers Utilities'
+    
+    
+    def __str__(self):
+        return 'AutoTrader-InteractiveBrokers Utilities'
+    
+    
     def check_response(self, response):
         """Checks API response for errors.
 
