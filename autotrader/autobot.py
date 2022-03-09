@@ -796,8 +796,6 @@ class AutoTraderBot:
         types. If an order with no order type is provided, it will be ignored.
         """
         
-        # TODO - option to provide order_price here, from data feed rather
-        # than broker
         def check_type(orders):
             checked_orders = []
             if isinstance(orders, dict):
@@ -866,10 +864,26 @@ class AutoTraderBot:
                             print("No trade direction provided for " + \
                                   f"{order.order_type} order. Order will be ignored.")
         
+        # TODO - option to provide order_price here, from data feed rather
+        # than broker
+        def add_price_data(orders: list) -> None:
+            """Passes price data to order to populate missing fields.
+            """
+            # TODO - what about yahoo?
+            for order in orders:
+                liveprice_func = getattr(self._get_data, f'{self._feed}_liveprice')
+                last_price = liveprice_func(order)
+                
+            
         # Perform checks
         checked_orders = check_type(orders)
         add_strategy_data(checked_orders)
         check_order_details(checked_orders)
+        # if liveprice:  # or, if stop distance is present? not sure. But need to allow blind orders?
+        #     add_price_data(orders) 
+        
+        # If adding price is a necessity, then first try get liveprice data. If
+        # not possible, just use the close price, which should already be available
         
         return checked_orders
         

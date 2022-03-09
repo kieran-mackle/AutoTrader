@@ -1,8 +1,11 @@
 import v20
+import ib_insync
 import pandas as pd
 import yfinance as yf
 from typing import Union
 from datetime import datetime, timedelta
+from autotrader.brokers.trading import Order
+from autotrader.brokers.ib.utils import Utils as IB_Utils
 
 
 class GetData:
@@ -51,6 +54,17 @@ class GetData:
                 ACCESS_TOKEN = broker_config["ACCESS_TOKEN"]
                 port = broker_config["PORT"]
                 self.api = v20.Context(hostname=API, token=ACCESS_TOKEN, port=port)
+            
+            elif broker_config['data_source'] == 'IB':
+                host = broker_config['host']
+                port = broker_config['port'] 
+                client_id = broker_config['clientID']
+                read_only = broker_config['read_only']
+                account = broker_config['account']
+                
+                self.ib = ib_insync.IB()
+                self.ib.connect(host=host, port=port, clientId=client_id, 
+                                readonly=read_only, account=account)
             # Define API for other data sources
             
         self.allow_dancing_bears = allow_dancing_bears
@@ -178,6 +192,24 @@ class GetData:
         return data
     
     
+    def oanda_liveprice(self, order: Order, **kwargs) -> dict:
+        """Returns current price (bid+ask) and home conversion factors.
+        """
+        response = self.api.pricing.get(accountID = self.ACCOUNT_ID, 
+                                        instruments = order.instrument)
+        ask = response.body["prices"][0].closeoutAsk
+        bid = response.body["prices"][0].closeoutBid
+        negativeHCF = response.body["prices"][0].quoteHomeConversionFactors.negativeUnits
+        positiveHCF = response.body["prices"][0].quoteHomeConversionFactors.positiveUnits
+    
+        price = {"ask": ask,
+                 "bid": bid,
+                 "negativeHCF": negativeHCF,
+                 "positiveHCF": positiveHCF}
+    
+        return price
+    
+    
     def _get_extended_oanda_data(self, instrument, granularity, from_time, to_time):
         """Returns historical data between a date range."""
         max_candles = 5000
@@ -222,6 +254,13 @@ class GetData:
                                     end_time    = end_time)
         
         return quote_data
+    
+    
+    def _check_oanda_response(self, response):
+        """Placeholder method to check Oanda API response.
+        """
+        if response.status != 200:
+            print(response.reason)
     
     
     def response_to_df(self, response):
@@ -346,12 +385,73 @@ class GetData:
         return data
     
     
+    def yahoo_liveprice(self,):
+        raise NotImplementedError("Live price is not available from yahoo API.")
+        
+    
     def _yahoo_quote_data(self, data: pd.DataFrame, pair: str, interval: str,
                          from_date: datetime, to_date: datetime):
         """Returns nominal price data - quote conversion not supported for 
         Yahoo finance API.
         """
         return data
+    
+    
+    def ib(self, order: Order, instrument: str, **kwargs) -> pd.DataFrame:
+        # TODO - wont work the same as self.oanda, which requires instrument 
+        # input ... 
+        utils = IB_Utils()
+        contract = utils.build_contract(order)
+        
+        # TODO - implement
+        dt = ''
+        barsList = []
+        while True:
+            bars = self.ib.reqHistoricalData(
+                contract,
+                endDateTime=dt,
+                durationStr='10 D',
+                barSizeSetting='1 min',
+                whatToShow='MIDPOINT',
+                useRTH=True,
+                formatDate=1)
+            if not bars:
+                break
+            barsList.append(bars)
+            dt = bars[0].date
+        
+        # save to CSV file
+        allBars = [b for bars in reversed(barsList) for b in bars]
+        df = self.ib.util.df(allBars)
+        return df
+    
+    
+    def ib_liveprice(self, order: Order, snapshot: bool = False, **kwargs) -> dict:
+        """Returns current price (bid+ask) and home conversion factors.
+        
+        Parameters
+        ----------
+        order: Order
+            The AutoTrader Order.
+        snapshot : bool, optional
+            Request a snapshot of the price. The default is False.
+
+        Returns
+        -------
+        dict
+            A dictionary containing the bid and ask prices.
+        """
+        self._check_connection()
+        contract = self._build_contract(order)
+        self.ib.qualifyContracts(contract)
+        ticker = self.ib.reqMktData(contract, snapshot=snapshot)
+        while ticker.last != ticker.last: self.ib.sleep(1)
+        self.ib.cancelMktData(contract)
+        price = {"ask": ticker.ask,
+                 "bid": ticker.bid,
+                 "negativeHCF": 1,
+                 "positiveHCF": 1,}
+        return price
     
     
     @staticmethod
@@ -384,13 +484,6 @@ class GetData:
                                               end_date)
             
         return data
-    
-    
-    def _check_oanda_response(self, response):
-        """Placeholder method to check Oanda API response.
-        """
-        if response.status != 200:
-            print(response.reason)
     
     
     @staticmethod
