@@ -96,6 +96,8 @@ class AutoTraderBot:
             if 'sizing' in strategy_params else sizing
         strategy_params['period'] = strategy_params['period'] \
             if 'period' in strategy_params else period
+        strategy_params['INCLUDE_POSITIONS'] = strategy_config['INCLUDE_POSITIONS'] \
+            if 'INCLUDE_POSITIONS' in strategy_config else True
         self._strategy_params = strategy_params
         
         # Import Strategy
@@ -676,13 +678,12 @@ class AutoTraderBot:
         # Reset self._latest_orders
         self._latest_orders = []
         
-        if self._scan_mode:
-            open_positions = None
-        else:
+        if self._strategy_params['INCLUDE_POSITIONS']:
             open_positions = self._broker.get_positions(self.instrument)
+        else:
+            open_positions = None
         
         # Run strategy to get signals
-        # TODO - parameterise signal method name
         strategy_orders = self._strategy.generate_signal(i, open_positions)
         orders = self._check_orders(strategy_orders)
         self._qualify_orders(orders, i)

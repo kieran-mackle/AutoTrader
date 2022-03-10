@@ -29,6 +29,7 @@
 - For new Order, Trade and Position objects, support for legacy code is 
   included via `as_dict` methods, to convert class objects to dictionaries.
 - AutoTrader demo repository has been updated to reflect the changes above.
+- Option to include/exclude positions from broker when updating strategy.
 
 
 ## Version 0.5.0
