@@ -880,10 +880,8 @@ class AutoTraderBot:
                 liveprice_func = getattr(self._get_data, f'{self._feed}_liveprice')
                 last_price = liveprice_func(order)
             else:
-                last_price = {'bid': self.data.Close[i],
-                              'ask': self.data.Close[i],
-                              'negativeHCF': 1/self.quote_data.Close[i],
-                              'positiveHCF': 1/self.quote_data.Close[i]}
+                last_price = self._get_data._pseduo_liveprice(last=self.data.Close[i],
+                                                              quote_price=self.quote_data.Close[i])
             
             if order.direction < 0:
                 order_price = last_price['bid']
