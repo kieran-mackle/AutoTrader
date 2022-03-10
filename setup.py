@@ -34,6 +34,7 @@ setuptools.setup(
         "finta",
         "v20",
         "ib_insync",
+        "importlib-resources",
         ],
     setup_requires=[
             'setuptools_git',
