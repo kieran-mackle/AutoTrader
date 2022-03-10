@@ -97,8 +97,11 @@ class Broker:
                   f"Order Price: {working_price}\nTake Profit: {order.take_profit}"
             invalid_order = True
         
-        # Submit order
+        # Append order to orders
         order.id = self._get_new_order_id()
+        self.orders[order.id] = order
+        
+        # Submit order
         if invalid_order:
             if self.verbosity > 0:
                 print(f"  Order {order.id} rejected.\n")
@@ -107,9 +110,6 @@ class Broker:
             immediate_orders = ['close', 'reduce']
             status = 'open' if order.order_type in immediate_orders else 'pending'
             order.status = status
-        
-        # Append order to orders 
-        self.orders[order.id] = order
         
     
     def get_orders(self, instrument: str = None, 
