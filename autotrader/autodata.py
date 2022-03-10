@@ -449,6 +449,28 @@ class GetData:
     
     
     @staticmethod
+    def _pseduo_liveprice(last: float, quote_price: float = None) -> dict:
+        if quote_price is not None:
+            if last == quote_price:
+                negativeHCF = 1
+                positiveHCF = 1
+            else:
+                negativeHCF = 1/quote_price
+                positiveHCF = 1/quote_price
+                
+        else:
+            negativeHCF = 1
+            positiveHCF = 1
+        
+        price = {"ask": last,
+                 "bid": last,
+                 "negativeHCF": negativeHCF,
+                 "positiveHCF": positiveHCF}
+        
+        return price
+    
+    
+    @staticmethod
     def local(filepath: str, start_date: Union[str, datetime] = None, 
               end_date: Union[str, datetime] = None, utc: bool = True) -> pd.DataFrame:
         """Read local price data.
