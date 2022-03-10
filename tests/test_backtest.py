@@ -35,8 +35,9 @@ def test_macd_backtest():
     bt_results = at.analyse_backtest(bot)
     
     # Test backtest results
-    assert bt_results['no_trades'] == 236
-    assert round(bt_results['all_trades']['ending_balance'], 3) == 748.946
-    assert bt_results['long_trades']['no_trades'] == 99
-    assert bt_results['short_trades']['no_trades'] == 136
-    
+    assert bt_results['no_trades'] == 236, "Incorrect number of trades"
+    assert round(bt_results['all_trades']['ending_balance'], 3) == 748.946, "Incorrect ending balance"
+    assert bt_results['long_trades']['no_trades'] == 99, "Incorrect number of long trades"
+    assert bt_results['short_trades']['no_trades'] == 136, "Incorrect number of short trades"
+
+test_macd_backtest()
