@@ -497,26 +497,6 @@ class Broker:
             print("FATAL: All attempts to connect to Oanda API have failed.")
         
         
-    def _get_price(self, instrument: str, **kwargs) -> dict:
-        """Returns current price (bid+ask) and home conversion factors.
-        """
-        self._check_connection()
-        response = self.api.pricing.get(accountID = self.ACCOUNT_ID, 
-                                   instruments = instrument)
-        ask = response.body["prices"][0].closeoutAsk
-        bid = response.body["prices"][0].closeoutBid
-        negativeHCF = response.body["prices"][0].quoteHomeConversionFactors.negativeUnits
-        positiveHCF = response.body["prices"][0].quoteHomeConversionFactors.positiveUnits
-    
-        price = {"ask": ask,
-                 "bid": bid,
-                 "negativeHCF": negativeHCF,
-                 "positiveHCF": positiveHCF
-                 }
-    
-        return price
-    
-    
     def _place_market_order(self, order: Order):
         """Places market order.
         """

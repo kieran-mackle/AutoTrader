@@ -325,34 +325,6 @@ class Broker:
         return summary
     
     
-    def _get_price(self, order: Order, snapshot: bool = False, **kwargs) -> dict:
-        """Returns current price (bid+ask) and home conversion factors.
-        
-        Parameters
-        ----------
-        order: Order
-            The AutoTrader Order.
-        snapshot : bool, optional
-            Request a snapshot of the price. The default is False.
-
-        Returns
-        -------
-        dict
-            A dictionary containing the bid and ask prices.
-        """
-        self._check_connection()
-        contract = self.utils.build_contract(order)
-        self.ib.qualifyContracts(contract)
-        ticker = self.ib.reqMktData(contract, snapshot=snapshot)
-        while ticker.last != ticker.last: self.ib.sleep(1)
-        self.ib.cancelMktData(contract)
-        price = {"ask": ticker.ask,
-                 "bid": ticker.bid,
-                 "negativeHCF": 1,
-                 "positiveHCF": 1,}
-        return price
-    
-    
     def _get_historical_data(self, instrument: str, interval: str, 
                             from_time: str, to_time: str):
         """Returns historical price data.

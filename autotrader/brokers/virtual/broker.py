@@ -66,7 +66,6 @@ class Broker:
         datetime_stamp = kwargs['order_time']
         order(order_time = datetime_stamp)
         
-        
         if order.order_type == 'limit' or order.order_type == 'stop-limit':
             working_price = order.order_limit_price
         else:
@@ -235,40 +234,6 @@ class Broker:
         """Returns the margin available on the account.
         """
         return self.margin_available
-    
-    
-    def _get_price(self, instrument: str, data: pd.core.series.Series = None, 
-                   conversion_data: pd.core.series.Series = None, 
-                   i: int = None) -> dict:
-        """Returns the price data dict.
-        """
-        # TODO - where is this method called from? Can it be split to the feed
-        # for autodata?
-        # TODO - include bid/ask spread here
-        if conversion_data is not None:
-            ask = data.Close[i]
-            bid = data.Close[i]
-            conversion_price = conversion_data.Close[i]
-            
-            if bid == conversion_price:
-                negativeHCF = 1
-                positiveHCF = 1
-            else:
-                negativeHCF = 1/conversion_price
-                positiveHCF = 1/conversion_price
-        else:
-            # Allow calling get_price as placeholder for livetrading
-            ask = data.Close[i]
-            bid = data.Close[i]
-            negativeHCF = 1
-            positiveHCF = 1
-        
-        price = {"ask": ask,
-                 "bid": bid,
-                 "negativeHCF": negativeHCF,
-                 "positiveHCF": positiveHCF}
-        
-        return price
     
     
     def _fill_order(self, order_id: int, candle: pd.core.series.Series, 

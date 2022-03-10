@@ -89,11 +89,5 @@ class Broker:
     
     
     # Define here any private methods to support the public methods above
-    def _get_price(self, instrument: str, **kwargs) -> dict:
-        """Returns current price (bid+ask) and home conversion factors.
-        """
-        # This method is useful when placing an order
-        pass
-    
     
     

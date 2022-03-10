@@ -877,7 +877,7 @@ class AutoTraderBot:
         """
         for order in orders:
             if self._req_liveprice:
-                liveprice_func = getattr(self._get_data, f'{self._feed}_liveprice')
+                liveprice_func = getattr(self._get_data, f'{self._feed.lower()}_liveprice')
                 last_price = liveprice_func(order)
             else:
                 last_price = self._get_data._pseduo_liveprice(last=self.data.Close[i],
