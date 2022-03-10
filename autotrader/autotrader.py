@@ -798,7 +798,7 @@ class AutoTrader:
         backtest_results['no_cancelled'] = len(cancelled_orders)
         
         # Long trades
-        long_trades = trade_summary[trade_summary['size'] > 0]
+        long_trades = trade_summary[trade_summary['direction'] > 0]
         no_long = len(long_trades)
         backtest_results['long_trades'] = {}
         backtest_results['long_trades']['no_trades'] = no_long
@@ -818,7 +818,7 @@ class AutoTrader:
             backtest_results['long_trades']['long_wr']          = long_wr
             
         # Short trades
-        short_trades    = trade_summary[trade_summary['size'] < 0]
+        short_trades    = trade_summary[trade_summary['direction'] < 0]
         no_short        = len(short_trades)
         backtest_results['short_trades'] = {}
         backtest_results['short_trades']['no_trades'] = no_short
