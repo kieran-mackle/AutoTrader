@@ -74,13 +74,13 @@ class Broker:
         # Convert stop distance to price
         if not order.stop_loss and order.stop_distance:
             pip_value = self.utils.get_pip_ratio(order.instrument)
-            order.stop_loss = working_price - np.sign(order.size)*order.stop_distance*pip_value
+            order.stop_loss = working_price - order.direction*order.stop_distance*pip_value
         
         # Verify SL price
         invalid_order = False
-        if order.stop_loss and np.sign(order.size)*(working_price - order.stop_loss) < 0:
-            direction = 'long' if np.sign(order.size) > 0 else 'short'
-            SL_placement = 'below' if np.sign(order.size) > 0 else 'above'
+        if order.stop_loss and order.direction*(working_price - order.stop_loss) < 0:
+            direction = 'long' if order.direction > 0 else 'short'
+            SL_placement = 'below' if order.direction > 0 else 'above'
             reason = "Invalid stop loss request: stop loss must be "+ \
                     f"{SL_placement} the order price for a {direction}" + \
                     " trade order.\n"+ \
@@ -88,9 +88,9 @@ class Broker:
             invalid_order = True
         
         # Verify TP price
-        if order.take_profit is not None and np.sign(order.size)*(working_price - order.take_profit) > 0:
-            direction = 'long' if np.sign(order.size) > 0 else 'short'
-            TP_placement = 'above' if np.sign(order.size) > 0 else 'below'
+        if order.take_profit is not None and order.direction*(working_price - order.take_profit) > 0:
+            direction = 'long' if order.direction > 0 else 'short'
+            TP_placement = 'above' if order.direction > 0 else 'below'
             reason = "Invalid take profit request: take profit must be "+ \
                   f"{TP_placement} the order price for a {direction}" + \
                   " trade order.\n"+ \
@@ -207,7 +207,7 @@ class Broker:
                         long_margin += open_trades[trade_id].margin_required
                     else:
                         # Short trade
-                        short_units += open_trades[trade_id].size
+                        short_units += open_trades[trade_id].size # TODO - size vs direction ...
                         short_PL += open_trades[trade_id].unrealised_PL
                         short_margin += open_trades[trade_id].margin_required
             
@@ -244,14 +244,14 @@ class Broker:
         
         # Calculate margin requirements
         current_price = candle.Open
-        pip_value = self.utils.get_pip_ratio(order.instrument)
+        pip_value = self.utils.get_pip_ratio(order.instrument) # TODO - implications on non FX?
         size = self.orders[order_id].size
         HCF = self.orders[order_id].HCF
         position_value = abs(size) * current_price * HCF
         margin_required = self._calculate_margin(position_value)
         
-        spread_cost = abs(size) * self.spread * pip_value
-        spread_shift = 0.5 * np.sign(size) * self.spread * pip_value
+        spread_cost = abs(size) * self.spread * pip_value # TODO - check for abs(size) - should always be +
+        spread_shift = 0.5 * order.direction * self.spread * pip_value
         
         if margin_required < self.margin_available:
             # Fill order
@@ -317,7 +317,7 @@ class Broker:
                 # Check for limit orders
                 if order.order_type == 'limit':
                     # Limit order type
-                    if order.size > 0:
+                    if order.direction > 0:
                         if candle.Low < order.order_limit_price:
                             self._fill_order(order_id, candle, 
                                              order.order_limit_price)
@@ -343,13 +343,12 @@ class Broker:
                         pip_value = self.utils.get_pip_ratio(trade.instrument)
                         trade.stop_distance = distance / pip_value
                         
-                    if trade.size > 0:
+                    if trade.direction > 0:
                         # long position, stop loss only moves up
                         new_stop = candle.High - distance
                         if new_stop > trade.stop_loss:
                             self._update_stop_loss(trade_id, new_stop, 
                                                    new_stop_type='trailing')
-                        
                     else:
                         # short position, stop loss only moves down
                         new_stop = candle.Low + distance
@@ -358,7 +357,7 @@ class Broker:
                                                    new_stop_type='trailing')
                 
                 # Update trades
-                if trade.size > 0:
+                if trade.direction > 0:
                     # Long trade
                     if trade.stop_loss and \
                         candle.Low < trade.stop_loss:
@@ -377,10 +376,11 @@ class Broker:
                     else:
                         # Position is still open, update value of holding
                         size        = trade.size
+                        direction   = trade.direction
                         entry_price = trade.entry_price
                         price       = candle.Close
                         HCF         = trade.HCF
-                        trade_PL    = size*(price - entry_price)*HCF
+                        trade_PL    = direction*size*(price - entry_price)*HCF
                         unrealised_PL += trade_PL
                         
                         # Update PL of trade
@@ -403,10 +403,11 @@ class Broker:
                     else:
                         # Position is still open, update value of holding
                         size        = trade.size
+                        direction   = trade.direction
                         entry_price = trade.entry_price
                         price       = candle.Close
                         HCF         = trade.HCF
-                        trade_PL    = size*(price - entry_price)*HCF
+                        trade_PL    = direction*size*(price - entry_price)*HCF
                         unrealised_PL += trade_PL
                         
                         # Update PL of trade
@@ -461,13 +462,14 @@ class Broker:
         trade = self.trades[trade_id]
         entry_price = trade.entry_price
         size = trade.size
+        direction = trade.direction
         HCF = trade.HCF
         
         # Account for missing inputs
         exit_price = trade.last_price if not exit_price else exit_price
         
         # Update portfolio with profit/loss
-        gross_PL = size*(exit_price - entry_price)*HCF
+        gross_PL = direction*size*(exit_price - entry_price)*HCF
         commission = self._calculate_commissions(trade_id, exit_price, size)
         net_profit = gross_PL - commission
         
@@ -500,6 +502,7 @@ class Broker:
             order_type: 'reduce' # reduction order
             size: -1 # reduce long units by selling
         """
+        # TODO - check this will work with trade direction vs size 
         # Consired long vs. short units to be reduced
         instrument = order.instrument
         reduction_size = order.size
