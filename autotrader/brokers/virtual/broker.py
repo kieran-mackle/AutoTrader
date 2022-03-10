@@ -237,7 +237,7 @@ class Broker:
     
     
     def _fill_order(self, order_id: int, candle: pd.core.series.Series, 
-                       limit_price: float = None) -> None:
+                    limit_price: float = None) -> None:
         """Fills an open order.
         """
         order = self.orders[order_id]

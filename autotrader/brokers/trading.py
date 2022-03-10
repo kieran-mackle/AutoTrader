@@ -214,7 +214,7 @@ class Order:
                 self.size = sizing
             
             # Vectorise and save size
-            self.size = self.direction * size
+            self.size = self.direction * size # TODO - take direction out of size
     
     
     def _check_precision(self,):
