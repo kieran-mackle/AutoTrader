@@ -216,7 +216,13 @@ class Order:
     
     def _check_precision(self,):
         # TODO - implement
-        pass
+        raise NotImplementedError("This method has not been implemented yet.")
+    
+    
+    def _validate(self,):
+        # TODO - add order validation method, ie. for IB, check all attributes are
+        # assigned (eg. sectype, etc)
+        raise NotImplementedError("This method has not been implemented yet.")
     
     
     def as_dict(self) -> dict:
@@ -238,9 +244,6 @@ class Order:
     @classmethod
     def _from_dict(cls, order_dict: dict) -> Order:
         return Order(**order_dict)
-
-# TODO - add order validation method, ie. for IB, check all attributes are
-# assigned (eg. sectype, etc)
 
 
 class Trade(Order):
