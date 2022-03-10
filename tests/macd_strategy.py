@@ -53,7 +53,7 @@ class SimpleMACD:
             self.MACD_CO[i] == 1 and \
             self.MACD_CO_vals[i] < 0:
                 exit_dict = self.generate_exit_levels(signal=1, i=i)
-                new_order = Order(instrument=self.instrument, direction=1,
+                new_order = Order(direction=1,
                                   stop_loss=exit_dict['stop_loss'],
                                   take_profit=exit_dict['take_profit'])
                 
@@ -61,12 +61,12 @@ class SimpleMACD:
             self.MACD_CO[i] == -1 and \
             self.MACD_CO_vals[i] > 0:
                 exit_dict = self.generate_exit_levels(signal=-1, i=i)
-                new_order = Order(instrument=self.instrument, direction=-1,
+                new_order = Order(direction=-1,
                                   stop_loss=exit_dict['stop_loss'],
                                   take_profit=exit_dict['take_profit'])
 
         else:
-            new_order = {}
+            new_order = Order()
         
         return new_order
     
