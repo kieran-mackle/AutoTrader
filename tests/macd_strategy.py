@@ -1,27 +1,27 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-''' 
-MACD strategy. 
-------------------------
-Rules for strategy:
+import os
+from finta import TA
+import autotrader.indicators as indicators
+from autotrader.brokers.trading import Order
+
+
+class SimpleMACD:
+    """Simple MACD Strategy
+    
+    Rules
+    ------
     1. Trade in direction of trend, as per 200EMA.
     2. Entry signal on MACD cross below/above zero line.
     3. Set stop loss at recent price swing.
     4. Target 1.5 take profit.
-'''
-
-# Import packages
-import os
-from finta import TA
-import autotrader.indicators as indicators
-
-class SimpleMACD:
-    def __init__(self, params, data, pair):
+    """
+    
+    def __init__(self, params, data, instrument):
         """Define all indicators used in the strategy.
         """
         self.name = "MACD Trend Strategy"
         self.data = data
         self.params = params
+        self.instrument = instrument
         
         # 200EMA
         self.ema = TA.EMA(data, params['ema_period'])
@@ -48,33 +48,27 @@ class SimpleMACD:
     def generate_signal(self, i, current_position):
         """Define strategy to determine entry signals.
         """
-        order_type  = 'market'
-        signal_dict = {}
         
         if self.data.Close.values[i] > self.ema[i] and \
             self.MACD_CO[i] == 1 and \
             self.MACD_CO_vals[i] < 0:
-                signal = 1
+                exit_dict = self.generate_exit_levels(signal=1, i=i)
+                new_order = Order(instrument=self.instrument, direction=1,
+                                  stop_loss=exit_dict['stop_loss'],
+                                  take_profit=exit_dict['take_profit'])
                 
         elif self.data.Close.values[i] < self.ema[i] and \
             self.MACD_CO[i] == -1 and \
             self.MACD_CO_vals[i] > 0:
-                signal = -1
+                exit_dict = self.generate_exit_levels(signal=-1, i=i)
+                new_order = Order(instrument=self.instrument, direction=-1,
+                                  stop_loss=exit_dict['stop_loss'],
+                                  take_profit=exit_dict['take_profit'])
 
         else:
-            signal = 0
+            new_order = {}
         
-        # Calculate exit targets
-        exit_dict = self.generate_exit_levels(signal, i)
-        
-        # Construct signal dictionary
-        signal_dict["order_type"]   = order_type
-        signal_dict["direction"]    = signal
-        signal_dict["stop_loss"]    = exit_dict["stop_loss"]
-        signal_dict["stop_type"]    = exit_dict["stop_type"]
-        signal_dict["take_profit"]  = exit_dict["take_profit"]
-        
-        return signal_dict
+        return new_order
     
     
     def generate_exit_levels(self, signal, i):
@@ -121,7 +115,7 @@ if __name__ == "__main__":
     home_dir = os.getcwd()
     
     at = AutoTrader()
-    at.configure(verbosity=1, show_plot=False)
+    at.configure(verbosity=1, show_plot=True)
     at.add_strategy(config_dict=config, strategy=SimpleMACD)
     at.plot_settings(show_cancelled=False)
     at.add_data({'EUR_USD': 'EUR_USD_H4.csv'}, 
