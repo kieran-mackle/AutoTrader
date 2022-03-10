@@ -7,13 +7,13 @@ from autotrader.brokers.broker_utils import BrokerUtils
 class Order:
     """AutoTrader Order
     """
-    def __init__(self, instrument: str, direction: int,
+    def __init__(self, instrument: str = None, direction: int = None,
                  order_type: str = 'market', **kwargs) -> Order:
         
         # Required attributes
         self.instrument = instrument
-        self.order_type = order_type
         self.direction = direction
+        self.order_type = order_type
         self.size = None
         self.order_price = None
         self.order_time = None
@@ -67,7 +67,10 @@ class Order:
         
     
     def __str__(self):
-        return f'{self.instrument} {self.order_type} Order'
+        if self.instrument is None:
+            return 'Blank order'
+        else:
+            return f'{self.instrument} {self.order_type} Order'
     
     
     def __call__(self, broker = None, order_price: float = None, 
