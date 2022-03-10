@@ -23,6 +23,25 @@ def read_yaml(file_path: str) -> dict:
         return yaml.safe_load(f)
     
     
+def write_yaml(data: dict, filepath: str) -> None:
+    """Writes a dictionary to a yaml file.
+
+    Parameters
+    ----------
+    data : dict
+        The dictionary to write to yaml.
+    filepath : str
+        The filepath to save the yaml file.
+
+    Returns
+    -------
+    None
+        The data will be written to the filepath provided.
+    """
+    with open(filepath, 'w') as outfile:
+        yaml.dump(data, outfile, default_flow_style=False)
+        
+    
 def get_config(environment: str, global_config: dict, feed: str) -> dict:
     """Returns the configuration dictionary based on the requested 
     environment.
