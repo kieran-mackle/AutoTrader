@@ -152,13 +152,13 @@ class Order:
         pip_value = utils.get_pip_ratio(self.instrument)
 
         # Calculate stop loss price
-        if not self.stop_loss and self.stop_distance:
+        if self.stop_loss is None and self.stop_distance is not None:
             # Stop loss provided as pip distance, convert to price
             self.stop_loss = working_price - np.sign(self.direction)*\
                 self.stop_distance*pip_value
         
         # Calculate take profit price
-        if not self.take_profit and self.take_distance:
+        if self.take_profit is None and self.take_distance is not None:
             # Take profit pip distance specified, convert to price
             self.take_profit = working_price + np.sign(self.direction)*\
                 self.take_distance*pip_value
@@ -199,7 +199,7 @@ class Order:
         risk_pc = self._risk_pc if self._risk_pc is not None \
             else risk_pc
         
-        if not self.size:
+        if self.size is None:
             amount_risked = amount_risked if amount_risked else \
                 broker.get_NAV() * risk_pc / 100
             # Size not provided, need to calculate it
