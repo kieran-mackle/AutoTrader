@@ -61,7 +61,8 @@ class Order:
     
     def __repr__(self):
         if self.size is not None:
-            return f'{round(self.size,3)} unit {self.instrument} {self.order_type} order'
+            direction = 'long' if self.direction > 0 else 'short'
+            return f'{round(self.size,3)} unit {direction} {self.instrument} {self.order_type} order'
         else:
             return self.__str__()
         
@@ -214,7 +215,7 @@ class Order:
                 self.size = sizing
             
             # Vectorise and save size
-            self.size = self.direction * size
+            self.size = size
     
     
     def _check_precision(self,):

@@ -214,6 +214,7 @@ class BrokerUtils:
         times_list = []
         order_price = []
         size = []
+        direction = []
         stop_price = []
         take_price = []
         
@@ -232,6 +233,7 @@ class BrokerUtils:
             status.append(item.status)
             ids.append(item.id)
             size.append(item.size)
+            direction.append(item.direction)
             times_list.append(item.order_time)
             order_price.append(item.order_price)
             stop_price.append(item.stop_loss)
@@ -266,6 +268,7 @@ class BrokerUtils:
                                       "order_time": times_list,
                                       "fill_time": entry_time,
                                       "fill_price": entry_price, "size": size,
+                                      "direction": direction,
                                       "stop_loss": stop_price, "take_profit": take_price,
                                       "profit": profit, "balance": portfolio_balance,
                                       "exit_time": exit_times, "exit_price": exit_prices,
@@ -279,6 +282,7 @@ class BrokerUtils:
                                       "order_price": order_price,
                                       "order_time": times_list,
                                       "size": size,
+                                      "direction": direction,
                                       "stop_loss": stop_price, 
                                       "take_profit": take_price},
                                      index = pd.to_datetime(times_list))
