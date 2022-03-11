@@ -10,4 +10,6 @@ This is where the tutorials will be
 Getting AutoTrader
 ------------------
 
-`pip install autotrader`
+.. code::
+
+    pip install autotrader
