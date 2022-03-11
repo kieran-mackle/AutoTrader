@@ -684,7 +684,7 @@ class AutoTraderBot:
             open_positions = None
         
         # Run strategy to get signals
-        strategy_orders = self._strategy.generate_signal(i, open_positions)
+        strategy_orders = self._strategy.generate_signal(i, open_positions=open_positions)
         orders = self._check_orders(strategy_orders)
         self._qualify_orders(orders, i)
         
