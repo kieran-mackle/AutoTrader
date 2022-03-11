@@ -30,6 +30,9 @@
   included via `as_dict` methods, to convert class objects to dictionaries.
 - AutoTrader demo repository has been updated to reflect the changes above.
 - Option to include/exclude positions from broker when updating strategy.
+- Distinction of order/trade size and direction; size is now an absolute value
+  representing the number of units to be traded, while direction specifies
+  if the trade is long or short.
 
 
 ## Version 0.5.0
