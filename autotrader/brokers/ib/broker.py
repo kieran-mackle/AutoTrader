@@ -291,7 +291,6 @@ class Broker:
         for position in all_positions:
             units = position.position
             pnl = position.unrealizedPNL
-            # pos_symbol = position.contract.symbol
             pos_symbol = getattr(position.contract, symbol_attr)
             pos_dict = {'long_units': units if np.sign(units) > 0 else 0,
                         'long_PL': pnl if np.sign(units) > 0 else 0,
@@ -375,8 +374,12 @@ class Broker:
         """
         self._check_connection()
         
-        instrument = order.instrument
-        position = self.get_open_positions(instrument)[instrument]
+        positions = self.get_positions(instrument=order.instrument,
+                                       local_symbol=order.local_symbol)
+        if order.local_symbol is not None:
+            position = positions[order.local_symbol]
+        else:
+            position = positions[order.instrument]
         position_units = position['position']
         
         # Place opposing market order
