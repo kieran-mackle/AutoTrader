@@ -93,7 +93,10 @@ Average loss:            -$15.81
 ### Interactive Chart
 The interactive chart will look something like the one shown below.
 
-<iframe data-src="assets/charts/macd_backtest_demo.html" id="iframe" loading="lazy" style="width:100%; margin-top:1em; height:720px; overflow:hidden;" data-ga-on="wheel" data-ga-event-category="iframe" data-ga-event-action="wheel" src="assets/charts/macd_backtest_demo.html"></iframe>
+
+<iframe data-src="../_static/charts/macd_backtest_demo.html" id="iframe" loading="lazy" style="width:100%; margin-top:1em; height:720px; overflow:hidden;" data-ga-on="wheel" data-ga-event-category="iframe" data-ga-event-action="wheel" src="../_static/charts/macd_backtest_demo.html"></iframe>
+
+
 
 
 ### Accessing Backtest Data
