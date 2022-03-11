@@ -510,7 +510,7 @@ class Broker:
         
         response = self.api.order.market(accountID = self.ACCOUNT_ID,
                                          instrument = order.instrument,
-                                         units = size,
+                                         units = order.direction * size,
                                          takeProfitOnFill = take_profit_details,
                                          stopLossOnFill = stop_loss_details,)
         return response
@@ -534,7 +534,7 @@ class Broker:
         # Need to test cases when no stop/take is provided (as None type)
         response = self.api.order.market_if_touched(accountID = self.ACCOUNT_ID,
                                                     instrument = order.instrument,
-                                                    units = order.size,
+                                                    units = order.direction * order.size,
                                                     price = str(price),
                                                     takeProfitOnFill = take_profit_details,
                                                     stopLossOnFill = stop_loss_details,

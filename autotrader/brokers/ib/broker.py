@@ -295,8 +295,8 @@ class Broker:
             pos_dict = {'long_units': units if np.sign(units) > 0 else 0,
                         'long_PL': pnl if np.sign(units) > 0 else 0,
                         'long_margin': None,
-                        'short_units': units if np.sign(units) < 0 else 0,
-                        'short_PL': units if np.sign(units) < 0 else 0,
+                        'short_units': abs(units) if np.sign(units) < 0 else 0,
+                        'short_PL': pnl if np.sign(units) < 0 else 0,
                         'short_margin': None,
                         'total_margin': None,
                         'trade_IDs': None,
@@ -400,7 +400,7 @@ class Broker:
         contract = self.utils.build_contract(order)
         
         # Create market order
-        action = 'BUY' if order.size > 0 else 'SELL'
+        action = 'BUY' if order.direction > 0 else 'SELL'
         units = abs(order.size)
         market_order = ib_insync.MarketOrder(action, units, 
                                              orderId=self.ib.client.getReqId(),
@@ -422,7 +422,7 @@ class Broker:
         contract = self.utils.build_contract(order)
         
         # Create stop limit order
-        action = 'BUY' if order.size > 0 else 'SELL'
+        action = 'BUY' if order.direction > 0 else 'SELL'
         units = abs(order.size)
         lmtPrice = order.order_limit_price
         stopPrice = order.order_stop_price
@@ -445,7 +445,7 @@ class Broker:
         # Build contract
         contract = self.utils.build_contract(order)
         
-        action = 'BUY' if order.size > 0 else 'SELL'
+        action = 'BUY' if order.direction > 0 else 'SELL'
         units = abs(order.size)
         lmtPrice = order.order_limit_price
         IBorder = ib_insync.LimitOrder(action, units, lmtPrice, 
@@ -521,7 +521,7 @@ class Broker:
         """
         quantity = order.size
         takeProfitPrice = order.take_profit
-        action = 'BUY' if order.size < 0 else 'SELL'
+        action = 'BUY' if order.direction < 0 else 'SELL'
         takeProfit_order = ib_insync.LimitOrder(action, 
                                                 quantity, 
                                                 takeProfitPrice,
@@ -537,7 +537,7 @@ class Broker:
         # TODO - add support for trailing SL
         quantity = order.size
         stopLossPrice = order.stop_loss
-        action = 'BUY' if order.size < 0 else 'SELL'
+        action = 'BUY' if order.direction < 0 else 'SELL'
         stopLoss_order = ib_insync.StopOrder(action, 
                                              quantity, 
                                              stopLossPrice,
