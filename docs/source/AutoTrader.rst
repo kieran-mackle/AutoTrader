@@ -5,14 +5,14 @@ AutoTrader is the main module where you will run things from.
 
 
 
-AutoTrader
------------
+Configuration Methods
+----------------------
 
-More AutoTrader
----------------
+configure
+^^^^^^^^^^
+.. automethod:: autotrader.autotrader.AutoTrader.configure
 
-.. automodule:: autotrader.autotrader
-   :members:
-   :undoc-members:
-   :show-inheritance:
 
+backtest
+^^^^^^^^^^
+.. automethod:: autotrader.autotrader.AutoTrader.backtest

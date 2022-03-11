@@ -1,5 +1,5 @@
-Welcome to AutoTrader's documentation!
-======================================
+Welcome to AutoTrader documentation
+===================================
 Here you will find everything you need to start algotrading with AutoTrader.
 
 Check out the tutorials :ref:`here <tutorials>`.
@@ -13,19 +13,21 @@ Indices and tables
 * :ref:`search`
 
 
+.. toctree::
+   Getting Started <getstarted>
 
 .. toctree::
    :maxdepth: 2
    :caption: Tutorials
 
-   tutorials
+   Building a strategy <strategy-tut>
 
 .. toctree::
-   :maxdepth: 3
-   :caption: API Docs
+   :maxdepth: 2
+   :caption: API Documentation
    
-   autotrader
-   AutoTrader
-   utilities
-
-
+   Core Modules <core-modules>
+   Broker Interface <broker-interface>
+   Indicator Library <indicators>
+   Communications <comms>
+   Utilities <utilities>
