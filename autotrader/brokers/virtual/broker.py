@@ -1,5 +1,4 @@
 from __future__ import annotations
-import numpy as np
 import pandas as pd
 from autotrader.brokers.trading import Order, Trade, Position
 from autotrader.brokers.broker_utils import BrokerUtils
@@ -200,14 +199,14 @@ class Broker:
                 for trade_id in open_trades:
                     trade_IDs.append(trade_id)
                     total_margin += open_trades[trade_id].margin_required
-                    if open_trades[trade_id].size > 0:
+                    if open_trades[trade_id].direction > 0:
                         # Long trade
                         long_units += open_trades[trade_id].size
                         long_PL += open_trades[trade_id].unrealised_PL
                         long_margin += open_trades[trade_id].margin_required
                     else:
                         # Short trade
-                        short_units += open_trades[trade_id].size # TODO - size vs direction ...
+                        short_units += open_trades[trade_id].size
                         short_PL += open_trades[trade_id].unrealised_PL
                         short_margin += open_trades[trade_id].margin_required
             
@@ -250,7 +249,7 @@ class Broker:
         position_value = abs(size) * current_price * HCF
         margin_required = self._calculate_margin(position_value)
         
-        spread_cost = abs(size) * self.spread * pip_value # TODO - check for abs(size) - should always be +
+        spread_cost = abs(size) * self.spread * pip_value
         spread_shift = 0.5 * order.direction * self.spread * pip_value
         
         if margin_required < self.margin_available:
@@ -495,14 +494,13 @@ class Broker:
     def _reduce_position(self, order: Order) -> None:
         """Reduces the position of the specified instrument by FIFO. 
         
-        The size parameter of the order details is used to specify whether 
+        The direction parameter of the order is used to specify whether 
         to reduce long units, or to reduce short units. For example, the
         order details below will reduce long units of the position being 
         held.
             order_type: 'reduce' # reduction order
-            size: -1 # reduce long units by selling
+            direction: -1 # reduce long units by selling
         """
-        # TODO - check this will work with trade direction vs size 
         # Consired long vs. short units to be reduced
         instrument = order.instrument
         reduction_size = order.size
