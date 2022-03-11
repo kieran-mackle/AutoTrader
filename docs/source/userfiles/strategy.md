@@ -1,0 +1,212 @@
+# Trading Strategy
+
+Trading strategies are built as classes and must be stored in a strategies/ directory of your 
+[project](/AutoTrader/docs#project-directory-structure). This is so that AutoTrader can locate your strategy when running. Each
+strategy is required to have two methods. The first is the `__init__` method, which initialises the strategy by 
+pre-computing indicators used in the strategy logic. The second is the `generate_signal` method, which contains the 
+strategy logic and ouputs a dictionary named `signal_dict`. Read more about these methods below and take a look at the sample
+strategies in the [demo repository](https://github.com/kieran-mackle/autotrader-demo).
+
+
+## Methods
+A summary of the methods used in a strategy class is shown in the table below. Details of these methods are also provided. 
+
+|           Method           | Function                                                                                           |
+| :------------------------: | -------------------------------------------------------------------------------------------------- |
+|         `__init__`         | Initiates strategy by pre-computing indicators.                                                    |
+|     `generate_signal`      | Generates a trade signal based on the strategy logic and current time index.                       |
+|   `generate_exit_levels`   | (Optional) Helper function to calculate exit levels.                                               |
+
+
+
+### Initialisation
+The `__init__` method of a strategy initialises it with the following objects:
+  1. `params`: a dictionary containing the strategy parameters from your strategy configuration file
+  2. `data`: a dataframe of the instrument's price data 
+  3. `instrument`: a string object with the instruments name
+
+It is usually convenient to warm-start your strategy by pre-computing indicators and signals during the 
+initialisation of the strategy.
+
+```python
+def __init__(self, params, data, pair):
+    ''' Defines all indicators used in the strategy '''
+    self.name   = "Strategy name"
+    self.data   = data
+    self.params = params
+
+    # Calculate indicators here
+
+    # Path variables
+    strat_dir       = os.path.dirname(os.path.abspath(__file__))
+    self.home_dir   = os.path.join(strat_dir, '..')
+```
+
+#### Initialisation with access to the Broker
+In some cases, you may like to directly connect with the broker from your strategy module. In this case, you would
+include `INCLUDE_BROKER: True` in your [strategy configuration file](configuration-strategy). This will signal to 
+AutoTrader to instantiate your strategy with the broker API and broker utilities. You will therefore need to include
+these as inputs to your `__init__` method, as shown below. Now you can access the methods of the 
+[broker API](brokers-interface) directly from your strategy!
+
+```python
+def __init__(self, params, data, pair, broker, broker_utilities):
+    ''' Defines all indicators used in the strategy '''
+    self.name   = "Strategy name"
+    self.data   = data
+    self.params = params
+    self.broker = broker
+    self.utils  = broker_utilities
+```
+
+
+#### Indicators Dictionary
+If you wish to visualise any of the results from your strategy, you must also include information about which
+indicators you would like to plot. This information is stored in `self.indicators', a dictionary as defined 
+below. This dictionary is passed to [AutoPlot](autoplot). 
+
+```py
+self.indicators = {'indicator name': {'type': 'indicator type',
+                                      'data': self.indicator_data},
+                   'indicator name': {'type': 'indicator type',
+                                      'data': self.indicator_data},
+		  ...
+                  }
+
+```
+
+In this dictionary, the 'indicator name' is used to create a legend entry corresponding to the indicator. The sub-dictionary
+assigned to each indicator contains the specific information and associated data. The `type` key should be a string corresponding
+to the type of indicator, for example:
+- `'type': 'MA'` for an exponential moving average (or any type of moving average)
+- `'type': 'STOCH'` for stochastics
+Finally, the data associated with the indicator must also be provided. For indicators with one set of data, such as a moving average,
+simply provide the data with the `data` key. For indicators with multiple sets of data, such as MACD, provide a key for each set named
+according to the [indicator specification](autoplot#indicator-specification).
+See the example below for a strategy with MACD, two RSI's and two EMA's.
+
+```py
+self.indicators = {'MACD (12/26/9)': {'type': 'MACD',
+                                      'macd': self.MACD,
+                                      'signal': self.MACDsignal,
+                                      'histogram': self.MACDhist},
+                   'EMA (200)': {'type': 'MA',
+                                 'data': self.ema200},
+                   'RSI (14)': {'type': 'RSI',
+                                'data': self.rsi14},
+                   'RSI (7)': {'type': 'RSI',
+                               'data': self.rsi7},
+                   'EMA (21)': {'type': 'MA',
+                                'data': self.ema21}
+                  }
+```
+
+
+### Signal Generation
+Signals are generated using the `generate_signal` method. This method contains the logic behind your strategy 
+and returns a dictionary with details of the signal. The contents of the signal dictionary will largely depend 
+on the order type, but at a minimum must contain the order type and trade direction. Read more about this
+dictionary in the [*Broker API's* documentation](brokers-interface#order-handling).
+
+Some boilerplate code for this method is provided below.
+
+```python
+def generate_signal(self, i, current_positions):
+    ''' Define strategy to determine entry signals '''
+
+    order_type  = 'market'
+    signal_dict = {}
+
+    # Put entry strategy here
+    signal      = 0
+
+    # Calculate exit targets
+    exit_dict = self.generate_exit_levels(signal, i)
+
+    # Construct signal dictionary
+    signal_dict["order_type"]   = order_type
+    signal_dict["direction"]    = signal
+    signal_dict["stop_loss"]    = exit_dict["stop_loss"]
+    signal_dict["stop_type"]    = exit_dict["stop_type"]
+    signal_dict["take_profit"]  = exit_dict["take_profit"]
+
+    return signal_dict
+```
+
+Note that a dict of the current positions held with the broker is passed into the `generate_signal` function.
+This means that your strategy can take into account the positions you currently hold. The most obvious use of this
+is when trading instruments which cannot be shorted. In this case, you would only place a sell order when you 
+currently have an open position. 
+You might also wan't to avoid entering a trade if it contradicts the position you currently hold.
+Refer to the [AutoTrader docs](autotrader) for more information about this dict.
+
+
+
+
+### Exit Signals
+It is often useful to include a separate function for generating exit levels. In the code snippet above, a method
+`self.generate_exit_levels` is called to generate an exit level dictionary, `exit_dict`. Although this is completely 
+optional, it allows for complex exit strategies to be programmed. A template for this method is provided below.
+
+```python
+def generate_exit_levels(self, signal, i):
+    ''' Function to determine stop loss and take profit levels '''
+
+    # Put exit strategy here
+    stop = None
+    take = None
+    stop_type = 'limit'
+
+    exit_dict = {'stop_loss'    : stop, 
+                 'stop_type'    : stop_type,
+                 'take_profit'  : take}
+
+    return exit_dict
+```
+
+If you are building a strategy with no stop loss or take profit levels, you can simply leave them out of the `signal_dict`
+dictionary. This has the same effect as provide `None` to the stop loss and/or take profit keys.
+
+
+
+
+
+
+## Order Types
+
+*This section is currently in development. Please check back soon!*
+
+
+AutoTrader is intelligent when it comes to order types. If your strategy has no stop loss, you do not need to include it in the 
+signal dictionary. If you prefer to set a stop loss in terms of distance in pips, you can do that instead. Same goes for take 
+profit levels, specify price or distance in pips. The choice is yours.
+
+
+### Trade Order Types
+
+| Order | Behaviour |
+|:---------:| --------- |
+| `market` | Order will be filled at the market price. |
+| `limit` | Order will be filled at the limit price or better. |
+| `stop-limit` | Order will only be placed when the limit price is hit. |
+
+
+### Stop Loss Types
+
+| Stop loss | Behaviour |
+|:---------:| --------- |
+| `limit`   | Regular stop loss - position will close when hit. |
+|  `trailing` | Trailing stop loss. |
+
+
+## Deployed Live-trade Strategies
+If you will be deploying your strategy to livetrade using data from the price stream,
+you will need to add the following attributes and methods to your strategy.
+
+## Attributes
+`self.terminate`
+
+
+## Methods
+`exit_strategy`
+

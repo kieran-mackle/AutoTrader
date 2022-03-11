@@ -16,11 +16,19 @@ Indices and tables
 .. toctree::
    Getting Started <getstarted>
 
+
+
 .. toctree::
    :maxdepth: 2
    :caption: Tutorials
 
-   Building a strategy <strategy-tut>
+   Building a Strategy <tutorials/building-strategy>
+   Getting Price Data <tutorials/getting-data>
+   Backtesting <tutorials/backtesting>
+   Optimisation <tutorials/optimisation>
+   Going Live <tutorials/going-live>
+   Getting Help <tutorials/getting-help>
+
 
 .. toctree::
    :maxdepth: 2
