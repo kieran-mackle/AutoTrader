@@ -26,6 +26,7 @@ Indices and tables
    :maxdepth: 2
    :caption: API Documentation
    
+   User Input Files <user-files>
    Core Modules <core-modules>
    Broker Interface <broker-interface>
    Indicator Library <indicators>

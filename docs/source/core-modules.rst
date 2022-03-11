@@ -4,7 +4,7 @@ Core Modules
 .. toctree::
    :maxdepth: 3
    
-   AutoTrader
-   AutoData
-   AutoPlot
-   AutoBot
+   AutoTrader <core/AutoTrader>
+   AutoData <core/AutoData>
+   AutoPlot <core/AutoPlot>
+   AutoBot <core/AutoBot>

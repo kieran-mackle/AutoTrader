@@ -4,10 +4,10 @@
 `autotrader.lib.indicators`
 
 This page showcases the indicators available in AutoTraders' indicator library. All images shown here were created with 
-[AutoPlot](AutoPlot), using the `view_indicators` function. This function can be called using the code snipped provided 
+[AutoPlot](core/AutoPlot), using the `view_indicators` function. This function can be called using the code snipped provided 
 below, where `indicator_dict` is constructed for the indicator being plotted. This dictionary is shown for each indicator 
 below. Note that the [indicators dictionary](strategies#indicators-dictionary) passed to the `view_indicators` method must
-be formatted according to the correct [specification](autoplot#indicator-specification).
+be formatted according to the correct [specification](core/autoplot#indicator-specification).
 
 ```python
 from autotrader import autoplot
@@ -21,7 +21,7 @@ ap.view_indicators(indicator_dict)
 ```
 
 For each indicator below, the function definition in `lib/indicators.py` is provided, along with a sample code snippet of
-how to plot the indicator with [AutoPlot](AutoPlot).
+how to plot the indicator with [AutoPlot](core/AutoPlot).
 
 ## Indicators
 
@@ -54,7 +54,7 @@ Note that the supertrend dataframe also contains a trend column, indicating the 
 
 
 
-###HalfTrend Indicator
+### HalfTrend Indicator
 The HalfTrend indicator is based on the 
 [indicator by *everget*](https://www.tradingview.com/script/U1SJ8ubc-HalfTrend/) on
 TradingView.
@@ -121,7 +121,7 @@ indicator_dict = {'Bullish Engulfing Signal': {'type': 'Engulfing',
 ![Bullish Engulfing Pattern](assets/indicators/bullish-engulfing.jpg "Bullish Engulfing Pattern")
 
 
-
+(heikin-ashi)=
 ### Heikin-Ashi Candlesticks
 Returns a dataframe of [Heikin-Ashi](https://www.investopedia.com/trading/heikin-ashi-better-candlestick/) candlesticks.
 
@@ -144,6 +144,7 @@ for more information.
 ![Heikin-Ashi Candles](assets/indicators/HA.jpg "Heikin-Ashi Candles")
 
 
+(divergence)=
 ### Divergence
 The `autodetect_divergence` indicator can be used to detect divergence between price movements and and an indicator.
 
@@ -184,8 +185,10 @@ is actually a wrapper for other indicators, to make detecting divergence even si
 
 ![Divergence Indicator](assets/indicators/divergence.png "Divergence Indicator")
 
-**See also**: [`find_swings`](#swing-detection), [`classify_swings`](#classifying-swings) and [`detect_divergence`](#detecting-divergence)
 
+```{admonition} See Also
+[`find_swings`](swing-detection), [`classify_swings`](classifying-swings) and [`detect_divergence`](detecting-divergence)
+```
 
 
 
@@ -194,7 +197,7 @@ is actually a wrapper for other indicators, to make detecting divergence even si
 ## Utility Indicators
 The following is a collection of utility indicators which assist in building effective strategies.
 
-
+(swing-detection)=
 ### Swing Detection
 A common challenge of algo-trading is the ability to accurately pick recent swings in price to use as stop loss levels.
 This indicator attempts to solve that problem by locating the recent swings in price. This indicator returns a dataframe 
@@ -240,6 +243,7 @@ This indicator was used in the MACD strategy developed in the
 [tutorials](../tutorials/strategy) to set stop-losses.
 
 
+(classifying-swings)=
 ### Classifying Swings
 The `classify_swings` indicator may be used to detect 'higher highs' and 'lower lows'. This indicator of course 
 also detects 'lower highs' and 'higher lows'. It relies upon the output of the `find_swings` indicator.
@@ -282,11 +286,11 @@ The plot below gives an example of this indicator detecting higher lows in price
 ![AutoTrader Swing Classification](assets/indicators/swing-classification.png "AutoTrader Swing Classification")
 
 
+```{admonition} See Also
+[`find_swings`](swing-detection)
+```
 
-**See also**: [`find_swings`](#swing-detection)
-
-
-
+(detecting-divergence)=
 ### Detecting Divergence
 To detect divergence between price and an indicator, the `detect_divergence` indicator may be used. This indicator
 relies on both `find_swings` and `classify_swings`. It detects regular and hidden divergence.
@@ -310,14 +314,18 @@ def detect_divergence(classified_price_swings, classified_indicator_swings, tol=
 
 The example below shows the indicator detecting regular bullish divergence in price using the RSI as the indicator.
 
-![AutoTrader Divergence](assets/images/divergence.png "AutoTrader Divergence")
-
-**See also**: [`find_swings`](#swing-detection), [`classify_swings`](#classifying-swings) and 
-[`autodetect_divergence`](#divergence)
+![AutoTrader Divergence](assets/indicators/divergence.png "AutoTrader Divergence")
 
 
+```{admonition} See Also
+[`find_swings`](swing-detection), [`classify_swings`](classifying-swings) and 
+[`autodetect_divergence`](divergence)
+```
 
 
+
+
+(crossover)=
 ### Crossover
 Returns a list with values of `1` when input `list_1` crosses **above** input `list_2`, values of `-1` when input 
 `list_1` crosses **below** input `list_2`, and values of `0` elsewhere.
@@ -349,7 +357,7 @@ indicator_dict = {'MACD': {'type': 'MACD',
 
 
 
-
+(cross-value)=
 ### Cross Value
 Returns the value at which a crossover occurs using linear interpolation. Requires three inputs: two lists and a third
 list corresponding to the points in time which the two lists crossover. Consider the example described below.
@@ -358,7 +366,7 @@ list corresponding to the points in time which the two lists crossover. Consider
 def cross_values(a, b, ab_crossover)
 ```
 
-The example provided below builds upon the example described for the [crossover](#crossover) indicator. Again, the MACD
+The example provided below builds upon the example described for the [crossover](crossover) indicator. Again, the MACD
 indicator is used, and MACD/signal line crossovers are found using `indicators.crossover`. The specific values at which 
 this crossover occurs can then be calculated using `indicators.cross_values(macd, macd_signal, macd_crossover)`. This will
 return a list containing the values (in MACD y-axis units) where the crossover occured. This is shown in the image below,
@@ -384,7 +392,7 @@ indicator_dict = {'MACD': {'type': 'MACD',
 
 
 
-
+(candles-between-crosses)=
 ### Candles Between Crosses
 Returns a list with a count of how many candles have passed since the last crossover (that is, how many elements in
 a list since the last non-zero value).
@@ -417,7 +425,7 @@ indicator_dict = {'EMA (10)': {'type': 'MA',
 
 
 
-
+(heikin-ashi-run)=
 ### Heikin-Ashi Candlestick Run
 ```python
 def ha_candle_run(ha_data)
@@ -429,7 +437,7 @@ that by telling you how many candles into a trend the price action is.
 
 
 
-
+(merge-signals)=
 ### Merge signals
 Returns a single signal list which has merged two signal lists. 
 
@@ -438,7 +446,7 @@ def merge_signals(signal_1, signal_2)
 ```
 
 
-
+(rolling-signal)=
 ### Rolling Signal
 
 Returns a list which maintains the previous signal, until a new 
@@ -454,10 +462,10 @@ def rolling_signal_list(signals):
     '''
 ```
 
-
+(unroll-signals)=
 ### Unroll Signal List
 
-Performs the reverse function of [`rolling`](#rolling-signal).
+Performs the reverse function of [`rolling`](rolling-signal).
 
 ```py
 def unroll_signal_list(signals):

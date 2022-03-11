@@ -6,6 +6,6 @@ AutoTrader Broker Interface
 .. toctree::
    :maxdepth: 3
    
-   Virtual Broker <virtual-broker>
-   Oanda <oanda>
-   Interactive Brokers <ib>
+   Virtual Broker <broker/virtual-broker>
+   Oanda <broker/oanda>
+   Interactive Brokers <broker/ib>
