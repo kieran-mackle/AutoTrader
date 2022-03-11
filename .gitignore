@@ -119,6 +119,10 @@ _site/
 .jekyll-cache/
 Gemfile.lock
 
+# Sphinx docs
+docs/build/
+docs/source/_templates
+
 # Rope project settings
 .ropeproject
 
