@@ -3,6 +3,7 @@ Core Modules
 
 .. toctree::
    :maxdepth: 3
+   :hidden:
    
    AutoTrader <AutoTrader>
    AutoData <AutoData>

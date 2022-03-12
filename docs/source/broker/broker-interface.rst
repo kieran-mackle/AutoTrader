@@ -8,6 +8,7 @@ Explain how there is a standard interface between AutoTrader and external broker
 
 .. toctree::
    :maxdepth: 3
+   :hidden:
    
    Orders, Trades and Positions <trading>
    Virtual Broker <virtual-broker>
