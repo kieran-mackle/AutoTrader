@@ -15,7 +15,7 @@ Indices and tables
 
 .. toctree::
    Getting Started <getstarted>
-   Features <features>
+   Features <features/features>
 
 
 .. toctree::
@@ -29,9 +29,9 @@ Indices and tables
    :maxdepth: 2
    :caption: API Documentation
    
-   User Input Files <user-files>
-   Core Modules <core-modules>
-   Broker Interface <broker-interface>
+   User Input Files <userfiles/user-files>
+   Core Modules <core/core-modules>
+   Broker Interface <broker/broker-interface>
    Indicator Library <indicators>
    Communications <comms>
    Utilities <utilities>
