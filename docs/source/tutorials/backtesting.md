@@ -1,7 +1,7 @@
 # Backtesting in AutoTrader
 
 
-Now that you have [defined a strategy](strategy) and written the strategy [configuration file](../docs/configuration), you can
+Now that you have [defined a strategy](../userfiles/strategy) and written the strategy [configuration file](../userfiles/strategy-config.md), you can
 have some fun with backtesting. 
 
 ## Creating a Runfile
@@ -21,9 +21,13 @@ at.backtest(start = '1/1/2020',
 at.run()
 ```
 
-To run AutoTrader in [backtest mode](../docs/autotrader#backtest-mode), begin by 
+{ref}`Custom title <target_to_paragraph>`
 
-First, we import AutoTrader and creating an instance using `at = AutoTrader()`. Next, we use the `configure` method to set the 
+[wtf](target_to_paragraph)
+
+
+To run AutoTrader in [backtest mode](../core/AutoTrader#backtest-mode), begin by importing AutoTrader and creating 
+an instance using `at = AutoTrader()`. Next, we use the `configure` method to set the 
 verbosity of the code and tell AutoTrader that we would like to see a plot. Next, we add our strategy using the `add_strategy` method. 
 Then, we use the `backtest` method to define your backtest settings. In this example, we set the start and end dates of the backtest, the initial account balance and the leverage of the account. You can also define a commission here, as well as an average bid/ask price spread. Finally, we run AutoTrader with the command `at.run()`, and that's it.
 
@@ -32,7 +36,7 @@ Then, we use the `backtest` method to define your backtest settings. In this exa
 ## Backtest Results
 With a verbosity of 1, you will see an output similar to that shown below. As you can see, there is a detailed breakdown of 
 trades taken during the backtest period. Since we told AutoTrader to plot the results, you will also see the interactive chart
-shown [below](#interactive-chart).
+shown [below](interactive-chart).
 
 ### Performance Breakdown
 ```
@@ -89,7 +93,7 @@ Max loss:                -$18.15
 Average loss:            -$15.81
 ```
 
-
+(interactive-chart)=
 ### Interactive Chart
 The interactive chart will look something like the one shown below.
 
@@ -109,7 +113,7 @@ AutoTrader. Therefore, we can access every trade this bot took during the backte
 bot = at.bots_deployed[0]
 ```
 
-You will now have access to *bot*, an instance of [AutoBot](../docs/autobot). Of interest now is the backtest summary of the bot,
+You will now have access to *bot*, an instance of [AutoBot](../core/AutoBot). Of interest now is the backtest summary of the bot,
 written to `bot.backtest_summary`. This is a dictionary containing a history of trades taken, orders cancelled, trades still open, and
 more. Exploring this is left as an exercise to the reader.
 
