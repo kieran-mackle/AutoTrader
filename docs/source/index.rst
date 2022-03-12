@@ -2,7 +2,7 @@ Welcome to AutoTrader documentation
 ===================================
 Here you will find everything you need to start algotrading with AutoTrader.
 
-Check out the tutorials :ref:`here <tutorials>`.
+Check out the tutorials.
 
 
 Indices and tables
@@ -15,19 +15,14 @@ Indices and tables
 
 .. toctree::
    Getting Started <getstarted>
-
+   Features <features>
 
 
 .. toctree::
    :maxdepth: 2
    :caption: Tutorials
 
-   Building a Strategy <tutorials/building-strategy>
-   Getting Price Data <tutorials/getting-data>
-   Backtesting <tutorials/backtesting>
-   Optimisation <tutorials/optimisation>
-   Going Live <tutorials/going-live>
-   Getting Help <tutorials/getting-help>
+   Full Walkthrough <tutorials/walkthrough>
 
 
 .. toctree::

@@ -1,8 +1,4 @@
----
-title: Global Configuration
-permalink: docs/configuration-global
-key: docs-config-global
----
+# Account Configuration
 
 `./config/GLOBAL.yaml`
 

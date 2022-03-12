@@ -1,8 +1,5 @@
----
-title: Strategy Configuration
-permalink: docs/configuration-strategy
-key: docs-config-strategy
----
+# Strategy Configuration
+
 
 `./config/*.yaml`
 

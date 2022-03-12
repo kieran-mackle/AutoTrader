@@ -1,8 +1,7 @@
 # Building a Strategy
 
 
-The next few pages will provide a detailed walkthrough building and running a strategy with AutoTrader. For those short on time,
-refer to the [condensed quick-start](quick-start) guide.  
+The next few pages will provide a detailed walkthrough building and running a strategy with AutoTrader. 
 
 *Note: the code for the MACD crossover strategy shown in this tutorial can be found in the*
 *[demo repository](https://github.com/kieran-mackle/autotrader-demo).*
@@ -14,12 +13,12 @@ strategy you run in AutoTrader requires two things:
 1. A strategy module, containing all the logic of your strategy, and
 2. A configuration file, containing strategy configuration parameters.
 
-If you plan to take your strategy [live](live-trading), you will also need a [global configuration](../docs/configuration-global) 
+If you plan to take your strategy [live](going-live), you will also need a [global configuration](../userfiles/global-config) 
 file to connect to your broker, but we will get to that later. For now, the files above are enough to get started backtesting, so
 this tutorial will go over setting them up.
 
 Back to your directory structure: you must have a `config/` directory - containing your configuration files - and a 
-`strategies/` directory - containing (you guessed it) your [strategy files](../docs/strategies). When you 
+`strategies/` directory - containing (you guessed it) your [trading strategies](../userfiles/strategy). When you 
 run AutoTrader, it will look for the appropriate files under these directories. If you cloned the demo repository, you will
 see these directories set up already. Think of this directory structure as your 'bag' of algo-trading bots. 
 
@@ -104,9 +103,9 @@ Of course, you do not *need* to do anything with these inputs, but AutoTrader wi
 Nonetheless, it is usually convenient to calculate all indicators used in the strategy when it is instantiated. For the MACD 
 crossover strategy, this will look as shown below. Note the following:
 - the `finta` technical analysis package is used to calculate the 200 EMA and the MACD
-- the custom indicator `crossover` is used from the [built-in indicators](../docs/indicators#crossover)
+- the custom indicator `crossover` is used from the [built-in indicators](../indicators)
 - the fast, slow and smoothing periods of the MACD are defined in the `params` dictionary by the names of 'MACD_fast', 'MACD_slow' and 'MACD_smoothing`. These parameters come straight from our configuration file (defined below).
-- an `indicators` dict is defined to tell [AutoPlot](../docs/autoplot) which indicators to plot, and what to call them.
+- an `indicators` dict is defined to tell [AutoPlot](../core/AutoPlot) which indicators to plot, and what to call them.
 - the custom indicator `find_swings` is used to detect swings in the price, which will be used in the exit strategy.
 
 ```python
