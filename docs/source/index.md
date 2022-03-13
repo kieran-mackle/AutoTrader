@@ -2,21 +2,23 @@
 hide-toc: true
 ---
 
-# Welcome to AutoTrader's documentation
+# Welcome to AutoTrader's Documentation
 
-Here you will find everything you need to start algotrading with AutoTrader.
+AutoTrader is an event-driven platform designed to help in the development, optimisation and live 
+deployment of automated trading systems. Here you will find everything you need to start 
+algotrading with AutoTrader.
 
-Check out the tutorials.
+A basic level of experience with Python is recommended for using AutoTrader, but the documentation 
+aims to be clear enough that a beginner is able to pick up the key elements as they go. If you are 
+new to Python, you may find the tutorials especially useful.
 
-
-AutoTrader is an event-driven platform intended to help in the development, optimisation and live deployment of automated trading systems.
-
-A basic level of experience with Python is recommended for using AutoTrader, but the documentation aims to be clear enough that a beginner is able to pick up the key elements as they go. If you are new to Python, you may find the tutorials especially useful.
+If you are still deciding if AutoTrader is for you, check out the [features](features-landing) to 
+see what is on offer. Otherwise, head on over to the [Getting Started](getting-started) guide.
 
 
 ## Index
-
-{ref}`genindex`
+Looking for something specific? Try the search bar on the left, or take a look through the 
+{ref}`index <genindex>`.
 
 
 
@@ -32,7 +34,7 @@ Features <features/features>
 :caption: Tutorials
 :hidden:
 
-Full Walkthrough <tutorials/walkthrough>
+Complete Walkthrough <tutorials/walkthrough>
 Miscellaneous <tutorials/misc/misc-tuts>
 ```
 
