@@ -58,7 +58,7 @@ class GetData:
             elif broker_config['data_source'] == 'IB':
                 host = broker_config['host']
                 port = broker_config['port'] 
-                client_id = broker_config['clientID']
+                client_id = broker_config['clientID'] + 1
                 read_only = broker_config['read_only']
                 account = broker_config['account']
                 
@@ -401,20 +401,56 @@ class GetData:
     
     def ib(self, instrument: str, granularity: str, count: int,
            start_time: datetime = None, end_time: datetime = None,
-           order: Order = None, **kwargs) -> pd.DataFrame:
+           order: Order = None, durationStr: str = '10 mins', **kwargs) -> pd.DataFrame:
+        """
+
+        Parameters
+        ----------
+        instrument : str
+            DESCRIPTION.
+        granularity : str
+            DESCRIPTION.
+        count : int
+            DESCRIPTION.
+        start_time : datetime, optional
+            DESCRIPTION. The default is None.
+        end_time : datetime, optional
+            DESCRIPTION. The default is None.
+        order : Order, optional
+            DESCRIPTION. The default is None.
+        **kwargs : TYPE
+            DESCRIPTION.
+
+        Raises
+        ------
+        NotImplementedError
+            DESCRIPTION.
+
+        Returns
+        -------
+        df : TYPE
+            DESCRIPTION.
+        
+        Warnings
+        --------
+        This method is not recommended due to its high API poll rate.
+        
+        References
+        ----------
+        https://ib-insync.readthedocs.io/api.html?highlight=reqhistoricaldata#
+        """
         raise NotImplementedError("Historical market data from IB is not yet supported.")
         # TODO - implement
-        utils = IB_Utils()
-        contract = utils.build_contract(order)
+        contract = IB_Utils.build_contract(order)
         
         dt = ''
         barsList = []
         while True:
-            bars = self.ibibapi.reqHistoricalData(
+            bars = self.ibapi.reqHistoricalData(
                 contract,
                 endDateTime=dt,
-                durationStr='10 D',
-                barSizeSetting='1 min', # TODO - make as input
+                durationStr=durationStr,
+                barSizeSetting=granularity,
                 whatToShow='MIDPOINT',
                 useRTH=True,
                 formatDate=1)
@@ -423,7 +459,7 @@ class GetData:
             barsList.append(bars)
             dt = bars[0].date
         
-        # save to CSV file
+        # Convert bars to DataFrame
         allBars = [b for bars in reversed(barsList) for b in bars]
         df = self.ibapi.util.df(allBars)
         return df
@@ -443,6 +479,7 @@ class GetData:
         -------
         dict
             A dictionary containing the bid and ask prices.
+        
         """
         self._check_IB_connection()
         contract = IB_Utils.build_contract(order)
