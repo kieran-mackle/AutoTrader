@@ -1,17 +1,28 @@
----
-title: AutoTrader Broker Interface
-permalink: docs/brokers-interface
-key: docs-brokers-interface
----
+# AutoTrader Broker Interface
 
-To make the transition from backtesting to live-trading as easy as possible, each broker integrated into AutoTrader 
+
+```{toctree}
+:maxdepth: 3
+:hidden:
+
+Orders, Trades and Positions <trading>
+Virtual Broker <virtual-broker>
+Oanda <oanda>
+Interactive Brokers <ib>
+Broker Utilities <utils>
+```
+
+
+
+
+To make the transition from backtesting to live-trading seamless, each broker integrated into AutoTrader 
 interfaces with a strategy using a set of common methods. This means that the same strategy can be run with the 
 virtual broker or any other broker in live trading without changing a single line of code in your strategy. This 
 page provides a general overview of the methods contained within each broker interface module. Of course, the mechanics
 behind each method will change depending on the broker, however each method will behave in the same way.
 
 
-# Module Structure
+## Module Structure
 Each new broker API is contained within its own submodule of the `autotrader.brokers` module. This submodule must contain
 two more submodules:
 1. A core API module which communicates with the broker.
@@ -19,16 +30,15 @@ two more submodules:
 
 ```
 autotrader.brokers
-    |
-    |- BROKER API
-    |    |- API interface module
-    |    |- Broker API utility module 
-    |
-  broker_utils.py superclass
+├── broker_utils.py
+└── broker_name
+    ├── broker.py
+    ├── __init__.py
+    └── utils.py
 ```
 
 
-# Methods
+## Methods
 The shared methods of the brokers are described below.
 
 
@@ -48,7 +58,7 @@ The shared methods of the brokers are described below.
 
 
 
-## Utility Functions
+### Utility Functions
 
 Refer to the [Broker Utility Functions](virtual-utils) for more information.
 
@@ -57,7 +67,7 @@ Refer to the [Broker Utility Functions](virtual-utils) for more information.
 
 
 
-# Order Handling
+## Order Handling
 An order can be created by providing the required information in a dictionary. This dictionary must be 
 returned by a method named `generate_signal` in the [strategy module](strategies#signal-generation). This method is called 
 from the `_update` method of the [AutoBot module](autobot#core-methods), and then processed by the 
@@ -86,7 +96,7 @@ to include it in the signal dictionary. The same goes for all other optional key
 
 
 
-## Order Types
+### Order Types
 
 The following tables provides accepted values for the `order_type` specification of an order.
 
@@ -99,14 +109,14 @@ The following tables provides accepted values for the `order_type` specification
 | `reduce` | An order to reduce a postion | None |
 
 
-### Market Order
+#### Market Order
 `'order_type': 'market'`
 
 A market order triggers a trade immediately at the best available price, provided there is enough liquidity 
 to accomodate the order. Read more [here](https://www.investopedia.com/terms/m/marketorder.asp).
 
 
-### Limit Order
+#### Limit Order
 ```py
 'order_type': 'limit'
 'order_limit_price': 'x.xxxx'
@@ -117,7 +127,7 @@ be used to avoid slippage. However, a limit order is not gauranteed to be filled
 limit price must be specified. Read more about limit orders [here](https://www.investopedia.com/terms/l/limitorder.asp).
 
 
-### Stop-Limit Order
+#### Stop-Limit Order
 ```py
 'order_type': 'stop-limit'
 'order_limit_price': 'x.xxxx'
@@ -131,7 +141,7 @@ stop-limit orders [here](https://www.investopedia.com/terms/s/stop-limitorder.as
 
 
 
-### Close Order
+#### Close Order
 ```py
 'order_type': 'close'
 'related_orders': 224 # trade ID

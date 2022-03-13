@@ -1,8 +1,5 @@
----
-title: Virtual Broker
-permalink: docs/brokers-virtual
-key: docs-brokers-virtual
----
+# Virtual Broker
+
 `autotrader.brokers.virtual.virtual_broker`
 
 The virtual broker immitates the functionality of a real broker during backtests. It is constructed as a class 

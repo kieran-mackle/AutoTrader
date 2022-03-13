@@ -54,4 +54,5 @@ Utilities <utilities>
 :hidden:
 
 Change Log <changelog>
+License <license>
 ```

@@ -1,11 +1,5 @@
----
-title: Oanda Broker API
-description: OANDA v20 API script
-permalink: docs/brokers-oanda
-key: docs-brokers-oanda
-aside:
-  toc: false
----
+# Oanda Broker API
+
 
 `autotrader.brokers.oanda.Oanda`
 

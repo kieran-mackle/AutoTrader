@@ -1,2 +1,0 @@
-AutoTrader Utilities Module
-============================
