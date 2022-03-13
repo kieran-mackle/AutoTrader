@@ -8,9 +8,10 @@ AutoTrader is an event-driven platform designed to help in the development, opti
 deployment of automated trading systems. Here you will find everything you need to start 
 algotrading with AutoTrader.
 
-A basic level of experience with Python is recommended for using AutoTrader, but the documentation 
-aims to be clear enough that a beginner is able to pick up the key elements as they go. If you are 
-new to Python, you may find the tutorials especially useful.
+A basic level of experience with Python is recommended, but the documentation here 
+aims to be clear enough that a beginner is able to pick up the key components as they go. If you are 
+new to Python, you may find the tutorials especially useful. There is even a 
+[complete walkthrough](walkthrough), where a popular MACD trading strategy is built and tested.
 
 If you are still deciding if AutoTrader is for you, check out the [features](features-landing) to 
 see what is on offer. Otherwise, head on over to the [Getting Started](getting-started) guide.
@@ -34,7 +35,8 @@ Features <features/features>
 :caption: Tutorials
 :hidden:
 
-Complete Walkthrough <tutorials/walkthrough>
+Detailed Walkthrough <tutorials/walkthrough>
+Condensed Walkthrough <condensed-walkthrough>
 Miscellaneous <tutorials/misc/misc-tuts>
 ```
 

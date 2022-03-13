@@ -1,48 +1,27 @@
 # Building a Strategy
 
+A simple yet effective MACD crossover strategy will be developed in this section. An important note 
+here is that this strategy assumes that the trading instrument is a *contract for difference*, and 
+hence, can be shorted. 
 
-The next few pages will provide a detailed walkthrough building and running a strategy with AutoTrader. 
-
-*Note: the code for the MACD crossover strategy shown in this tutorial can be found in the*
-*[demo repository](https://github.com/kieran-mackle/autotrader-demo).*
-
-
-## Directory Organisation
-Before building a strategy in AutoTrader, it is important to understand the structure of a project. At a minimum, any 
-strategy you run in AutoTrader requires two things: 
-1. A strategy module, containing all the logic of your strategy, and
-2. A configuration file, containing strategy configuration parameters.
-
-If you plan to take your strategy [live](going-live), you will also need a [global configuration](global-config) 
-file to connect to your broker, but we will get to that later. For now, the files above are enough to get started backtesting, so
-this tutorial will go over setting them up.
-
-Back to your directory structure: you must have a `config/` directory - containing your configuration files - and a 
-`strategies/` directory - containing (you guessed it) your [trading strategies](../userfiles/strategy). When you 
-run AutoTrader, it will look for the appropriate files under these directories. If you cloned the demo repository, you will
-see these directories set up already. Think of this directory structure as your 'bag' of algo-trading bots. 
-
+```{tip}
+The code for the MACD crossover strategy shown in this tutorial can be found in the
+[demo repository](https://github.com/kieran-mackle/autotrader-demo).
 ```
-your_trading_project/
-  |- run_script.py                      # Run script to deploy trading bots
-  |- config/
-  |    |- GLOBAL.yaml                   # Global configuration file
-  |    |- your_strategy1_config.yaml    # Strategy-specific configuration file
-  |    |- your_strategy2_config.yaml    # Strategy-specific configuration file
-  |- strategies/
-  |    |- your_strategy1.py             # Strategy 1 module, containing strategy logic
-  |    |- your_strategy2.py             # Strategy 1 module, containing strategy logic
-```
+
 
 
 ## Strategy Construction
-*Follow along in the [demo repository](https://github.com/kieran-mackle/autotrader-demo/blob/main/strategies/macd.py): strategies/macd.py*
+Strategies in AutoTrader are built as class objects. They contain the logic required to map a set of 
+data into a trading signal, which then gets passed on to your broker. To make this possible, the strategy
+is instantiated with its parameters, price data for the instrument being traded, and the name of the 
+instrument being traded - but don't worry, this is all taken care of behind the scenes by 
+[AutoTrader](autotrader-docs). 
 
-Now we can get onto building the strategy - the simple yet effective MACD crossover. An important note here is that this strategy assumes
-that the underlying asset is a *contract for difference*, and hence, can be shorted. 
+
 
 ### MACD Strategy Rules
-The rules for this strategy are as follows.
+Lets start by defining the rules for this strategy.
 
 1. Trade in the direction of the trend, as determined by the 200EMA.
 2. Enter a long position when the MACD line crosses *up* over the signal line, and enter a short when the MACD line crosses *down* below 
@@ -52,15 +31,100 @@ zero line for short positions.
 3. Stop losses are set at recent price swings/significant price levels.
 4. Take profit levels are set at 1:1.5 risk-to-reward.
 
+From these rules, the following strategy parameters can be extracted:
+
+| Parameter | Nominal value |
+|-----------|---------------|
+| ema_period | 200 |
+| MACD_fast | 12  |
+| MACD_slow | 26  |
+| MACD_smoothing | 9 |
+| RR | 1.5 |
+
 An example of a long entry signal from this strategy is shown in the image below (generated using 
 [AutoTrader IndiView](../features/0.3-visualisation)).
 
 ![MACD crossover strategy](../assets/images/long_macd_signal.png "Long trade example for the MACD Crossover Strategy")
 
 
+### Strategy Configuration
+```{admonition} Follow Along
+Follow along in the demo repository: 
+config/[macd.yaml](https://github.com/kieran-mackle/autotrader-demo/blob/main/config/macd.yaml)
+```
+
+Now we can write the [strategy configuration](strategy-config) `.yaml` file. This file is a 
+convenient place to define your strategy parameters (using the `PARAMETERS` key) and which instruments to 
+trade using this strategy (using the `WATCHLIST` key). It is also used to tell AutoTrader where to find 
+your strategy - the `MODULE` key defines the prefix of the file where your strategy is written, and the
+`CLASS` key defines the actual class name of your strategy. 
+
+```{attention}
+YAML cares about whitespace; each nested key must be indented by two spaces more than its parent.
+```
+
+We will put our strategy parameters from the table above under the `PARAMETERS` key. You can call these parameters
+whatever you want, and that is how they will appear in your strategy. As you can see below, we define the EMA 
+period by the `ema_period` key, the MACD settings by the `MACD_fast`, `MACD_slow` and `MACD_smoothing` keys, 
+and the risk-to-reward ratio is by the `RR` key. 
+
+
+```yaml
+NAME: 'Simple_macd_strategy'
+MODULE: 'macd'
+CLASS: 'SimpleMACD'
+INTERVAL: '1h'
+SIZING: 'risk'
+RISK_PC: 1.5
+PARAMETERS:
+  ema_period: 200
+  MACD_fast: 12
+  MACD_slow: 26
+  MACD_smoothing: 9
+  
+  # Exit level parameters
+  RR: 1.5
+
+WATCHLIST: ['EURUSD=X']
+```
+
+This file is read by AutoTrader and passed into your strategy when it is instantiated. We will start by backtesting with the
+EUR/USD currency pair. However, to make things interesting, AutoTrader supports multi-instrument (and multi-timeframe) backtesting. This
+will be showcased later on.
+
+
+```{note}
+As of AutoTrader version `0.6.0`, you can now directly pass your strategy configuration to AutoTrader as a dictionary.
+```
+
+It is worth noting that we are taking advantage of AutoTrader's automatic position size calculation, by defining the 
+`SIZING: 'risk'` and `RISK_PC: 1.5` keys. These keys tell AutoTrader to use a risk-based approach to position sizing. As such,
+when an order is submitted from the strategy, AutoTrader will use the current price and stop-loss price to calculate the appropriate
+position size, capping the maximium loss to the percentage defined by `RISK_PC`. In this case, any single trade will only ever
+lose 1.5% of the account. 
+
+We also define the `INTERVAL: '1h'` key, signifying that our strategy will run the 1-hour timeframe. This value is used when 
+retrieving price data through [AutoData](autodata-docs), so make sure it matches the format required by your data feed. This
+is discussed more in the next section.
+
+
+
 ### Building the Strategy Module
+
+```{admonition} Follow Along
+Follow along in the demo repository: 
+strategies/[macd.py](https://github.com/kieran-mackle/autotrader-demo/blob/main/strategies/macd.py)
+```
+
+
+We are writing the class in a module called `macd.py`, hence `MODULE: 'macd'` in our strategy configuration.
+
+
 Strategies in AutoTrader are built as classes, instantiated with parameters from the configuration file, price data and 
-the name of the instrument being traded - but don't worry, this is all taken care of behind the scenes. The `params` dict is 
+the name of the instrument being traded - but don't worry, this is all taken care of behind the scenes. 
+
+
+The `params` dict is 
 read in from the strategy configuration file and contains all strategy-specific parameters. By providing the data to the 
 strategy upfront, strategies have a warm-up period before running, calculating all indicators when instantiated. The name of 
 the instrument being traded is also passed in to allow for more complex, portfolio-based trading systems. More on this later.
@@ -206,7 +270,6 @@ set this key to `0`, and nothing will happen. We also define our exit targets by
 
 
 
-
 #### Exit Signals
 As with any good strategy, we must define an exit strategy to manage risk. In this strategy, stop losses are set at recent swings 
 in price. Since this is a trend following strategy, market structure tells us that price is unlikely to break past a recent swing 
@@ -242,42 +305,5 @@ risk-to-reward (as defined by the `RR` key in our strategy parameters). This is 
 
 
 
-### Strategy Configuration
-*Follow along in the [demo repository](https://github.com/kieran-mackle/autotrader-demo/blob/main/config/macd.yaml): config/macd.yaml*
 
-The next step is to write the [strategy configuration](strategy-config) yaml file. This file is a convenient place to
-define your strategy parameters (using `PARAMETERS`) and which instruments to trade with using this strategy (using `WATCHLIST`). As
-you can see below, the default MACD settings of 12/26/9 are used. The risk-to-reward ratio is also defined by the `RR` key. As mentioned
-previously, this file is read by AutoTrader and passed into your strategy when it is instantiated. We will start by backtesting with the
-EUR/USD currency pair. However, to make things interesting, AutoTrader supports multi-instrument (and multi-timeframe) backtesting. This
-will be showcased later on.
-
-```yaml
-NAME: 'Simple_macd_strategy'
-MODULE: 'macd'
-CLASS: 'SimpleMACD'
-INTERVAL: '1h'
-SIZING: 'risk'
-RISK_PC: 1.5
-PARAMETERS:
-  ema_period: 200
-  MACD_fast: 12
-  MACD_slow: 26
-  MACD_smoothing: 9
-  
-  # Exit level parameters
-  RR: 1.5
-
-WATCHLIST: ['EURUSD=X']
-```
-
-It is worth noting that we are taking advantage of AutoTrader's automatic position size calculation, by defining the 
-`SIZING: 'risk'` and `RISK_PC: 1.5` keys. These keys tell AutoTrader to use a risk-based approach to position sizing. As such,
-when an order is submitted from the strategy, AutoTrader will use the current price and stop-loss price to calculate the appropriate
-position size, capping the maximium loss to the percentage defined by `RISK_PC`. In this case, any single trade will only ever
-lose 1.5% of the account. 
-
-We also define the `INTERVAL: '1h'` key, signifying that our strategy will run the 1-hour timeframe. 
-
-Read on to learn about getting price data to perform a backtest on.
 
