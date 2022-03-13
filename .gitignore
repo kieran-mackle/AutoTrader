@@ -148,4 +148,5 @@ Notes.txt
 *.out
 #*.csv
 #*.html
+*backtest-chart.html
 
