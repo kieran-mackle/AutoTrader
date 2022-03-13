@@ -8,14 +8,14 @@ AutoTrader is the main module where you will run things from.
 
 
 This page documents the methods of autotrader.py, the main executable in the software. It coordinates all workflows and 
-processes from the [configuration options](#run-configuration) and configuration files. A 
+processes from the [configuration options](autotrader-run-config) and configuration files. A 
 [strategy configuration](strategy-config) file is always required to run AutoTrader, as it dictates the technical 
 analysis to be performed on the price data. The way the strategy is used will depend on the 
-[mode of operation](#modes-of-operation) being used. After configuring the run settings of AutoTrader, the `run` method 
+[mode of operation](autotrader-modes-of-operation) being used. After configuring the run settings of AutoTrader, the `run` method 
 is used to proceed with the code.
 
 
-
+(autotrader-modes-of-operation)=
 ## Modes of Operation
 AutoTrader has three modes of operation:
   1. Livetrade mode
@@ -23,14 +23,14 @@ AutoTrader has three modes of operation:
   3. Scan mode
 
 By default, AutoTrader will run in livetrade mode. The run modes can be controlled by using the appropriate 
-[configuration methods](#configuration-methods). Each of these methods allow the user to modify the default
+[configuration methods](autotrader-config-methods). Each of these methods allow the user to modify the default
 attributes of AutoTrader.
 
-
+(autotrader-livetrade-mode)=
 ### Livetrade Mode
 If both `backtest_mode` and `scan_mode` attributes are set to `False`, AutoTrader will run in livetrade mode. 
 
-In livetrade mode, the data indexing is similar to that described [above](#data-indexing) in backtest mode, however, only the last 
+In livetrade mode, the data indexing is similar to that described [above](autotrader-data-indexing) in backtest mode, however, only the last 
 candle is indexed. This candle corresponds to latest market conditions, so long as the data retrieval was called upon runnning 
 AutoTrader, to retrieve the last `N` candles. This parameter is specified as the `period` in the 
 [strategy configuration](strategy-config) file.
@@ -48,12 +48,12 @@ The verbosity of email notifications can be controlled using the `notify` attrib
 
 Note that if daily email summaries are desired, `email_manager.py` must be employed in a scheduled job to send the summary.
 This is to allow for flexibility in when the daily summaries will be sent. Setting the `notify` flag to `1` or greater will
-therefore write to a text file containing all orders placed since the last email summary. See more information [here](emailing).
+therefore write to a text file containing all orders placed since the last email summary. See more information [here](emailing-utils).
 
-(target_to_paragraph)=
+(autotrader-backtest-mode)=
 ### Backtest Mode
 AutoTrader will run in backtest mode is the attribute `backtest_mode` is `True`. This will occur any time the 
-[backtest configuration](#backtest-configuration) method is used. Useful flags and notes for backtest mode are provided below.
+[backtest configuration](autotrader-backtest-config) method is used. Useful flags and notes for backtest mode are provided below.
 
 #### Verbosity
 The verbosity of the code is set by the `verbosity` attribute. In backtest mode, the values given to `verbosity` result in the 
@@ -79,7 +79,7 @@ indexing system employed. This system involves iterating through the entire data
 the method `generate_signal` from the strategy module is called to obtain a signal corresponding to the current timestep. 
 
 
-
+(autotrader-scan-mode)=
 ### Scan mode
 The third mode of AutoTrader is scan mode, activated by setting the `scan` attribute to `True`. When activated, AutoTrader will run
 as in livetrade mode, but instead of submitting an order to the broker when a signal is received, it will notify you that the scan 
@@ -100,16 +100,17 @@ attribute of AutoTrader in a similar way to the verbosity of the code.
 
 
 
-
+(autotrader-config-methods)=
 ## Configuration Methods
 The following methods are used to configure the behaviour of AutoTrader.
 
+(autotrader-run-config)=
 ### Run Configuration
 To configure the run settings of AutoTrader, the `configure` method should be used. This is mostly optional,
 and if not used, AutoTrader will run with the defualt settings. If you are livetrading, however, you will need to
 set the feed to match your broker and provide your trading account number. Additionally, if you are going to provide
 local data file(s), you should always call the `configure` method prior to specifying the local data via the 
-`add_data` [method](#providing-local-data), to ensure that file paths are correctly configured. 
+`add_data` [method](autotrader-local-data), to ensure that file paths are correctly configured. 
 
 ```py
 def configure(feed='yahoo', verbosity=1, notify=0, home_dir=None,
@@ -121,7 +122,7 @@ def configure(feed='yahoo', verbosity=1, notify=0, home_dir=None,
 
 #### Parameters
 The `configure` method has the following parameters. Note that many of these parameters are assigned as attributes to 
-[AutoTrader bots](autobot). 
+[AutoTrader bots](AutoBot). 
 
 | Parameter | Description |
 | ------- | ----------- |
@@ -151,9 +152,10 @@ def add_strategy(strategy_filename=None,
                  strategy_dict=None)
 ```
 
+(autotrader-local-data)=
 ### Providing Local Data
 To backtest a strategy using locally stored price data, the `add_data` method should be used to tell AutoTrader where the data
-is. Note that the `configure` [method](#run-configuration) should be called before calling `add_data`, as it will set the 
+is. Note that the `configure` [method](autotrader-run-config) should be called before calling `add_data`, as it will set the 
 `home_dir` parameter for your project. This method can be used to provide data for both single-timeframe strategies and 
 multiplie-timeframe strategies. 
 
@@ -198,7 +200,7 @@ at.add_data(data_dict={'EURUSD=X': {'1h': 'my_hourly_data.csv',
 
 
 
-
+(autotrader-backtest-config)=
 ### Backtest Configuration
 To configure the backtest settings, use the `backtest` method. 
 
@@ -245,7 +247,7 @@ optimise(opt_params, bounds, Ns=4)
 | Ns (int) | the number of points along each dimension of the optimisation grid |
 
 
-
+(autotrader-scan-config)=
 ### Scan Configuration
 ```py
 def scan(strategy_filename=None, scan_index=None)

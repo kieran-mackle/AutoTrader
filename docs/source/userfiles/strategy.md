@@ -1,3 +1,4 @@
+(trading-strategy)=
 # Trading Strategy
 
 Trading strategies are built as classes and must be stored in a strategies/ directory of your 

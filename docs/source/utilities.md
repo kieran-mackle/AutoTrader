@@ -1,3 +1,4 @@
+(utilities-module)=
 # AutoTrader Utilities Module
 
 
@@ -29,6 +30,7 @@
 ```
 
 
+(bot-manager-docs)=
 ## Bot Manager
 
 ```{eval-rst}

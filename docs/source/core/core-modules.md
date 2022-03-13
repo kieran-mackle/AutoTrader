@@ -37,21 +37,21 @@ you would like.
 
 
 ### User Input Files
-To run AutoTrader, a [strategy module](docs/strategies), containing the trading strategy, is required. Each strategy module
-requires it's own [strategy configuration](docs/configuration-strategy) file, containing the strategy parameters and strategy
-watchlist. There is a second configuration file, the [global configuration](docs/configuration-global) file, which is used 
-conditionally. If you are [live-trading](docs/autotrader#livetrade-mode), you will need to create a global configuration 
+To run AutoTrader, a [strategy module](trading-strategy), containing the trading strategy, is required. Each strategy module
+requires it's own [strategy configuration](strategy-config) file, containing the strategy parameters and strategy
+watchlist. There is a second configuration file, the [global configuration](global-config) file, which is used 
+conditionally. If you are [live-trading](autotrader-livetrade-mode), you will need to create a global configuration 
 file to provide brokerage account details. You will also need to do this if you wish to use a broker to obtain price data. 
-If you will only be [backtesting](docs/autotrader#backtest-mode) or [scanning](docs/autotrader#scan-mode), you do not need 
-to provide a global configuration file. In this case, [AutoData](docs/autodata) will revert to using the Yahoo Finance 
+If you will only be [backtesting](autotrader-backtest-mode) or [scanning](autotrader-scan-mode), you do not need 
+to provide a global configuration file. In this case, [AutoData](autodata-docs) will revert to using the Yahoo Finance 
 API for price data.
 
-The global configuration file is also used to store email account details for [email notifications](docs/emailing).
+The global configuration file is also used to store email account details for [email notifications](emailing-utils).
 
 ### AutoTrader
-AutoTrader is the brains behind the software - read the complete documentation for it [here](docs/autotrader). In brief,
+AutoTrader is the brains behind the software - read the complete documentation for it [here](autotrader-docs). In brief,
 it compiles each strategy and assigns a trading bot for each instrument in the strategy's watchlist (as defined in the 
-[strategy configuration](docs/configuration-strategy) file). Each of these bots will then monitor a single instrument
+[strategy configuration](strategy-config) file). Each of these bots will then monitor a single instrument
 to trade it according to the strategy it has been assigned. 
 
 The mechanism by which the bots are deployed depends on the update mode of AutoTrader. Bots can either be periodically
@@ -61,12 +61,12 @@ the bots will be deployed in detached-bot mode once only, trading continuously u
 In most strategies, periodic update mode is adequate. 
 
 ### Broker API Connection
-Each bot will also be connected to a [broker API](docs/brokers). When they recieve a signal from the trading strategy,
+Each bot will also be connected to a [broker API](broker-interface). When they recieve a signal from the trading strategy,
 they will place an order with the broker. This modular structure allows for a seamless transition from backtesting to 
 livetrading. 
 
 ### Post-Processing
-When [AutoTrader](docs/autotrader) has finished running its core processes, the relevant data will be passed on for 
+When [AutoTrader](autotrader-docs) has finished running its core processes, the relevant data will be passed on for 
 post-processing. This includes, but is not limited to, visualisation of results, emailing order details, and logging
 information where appropriate.
 
@@ -90,12 +90,10 @@ home_dir/
 ## Useful Links
 You can navigate the documentation using the sidebar, or start by following one of the links below.
 
-[AutoTrader Code](docs/autotrader): Details of the main code.
+[AutoTrader](autotrader-docs): Details of the main code.
 
-[Strategy Files](docs/strategies): Details of the strategy modules required to run AutoTrader.
+[User Input Files](userfiles): Details of the user-provided files used to run AutoTrader.
 
-[Configuration Files](docs/configuration): Details of the configuration files used to configure AutoTrader.
+[Broker Interface](broker-interface): Details of the brokers used in AutoTrader.
 
-[Broker API's](docs/brokers): Details of the brokers used in AutoTrader.
-
-[Utilities](docs/utility-functions): Details of the utility functions used in AutoTrader.
+[Utilities](utilities-module): Details of the utility functions used in AutoTrader.

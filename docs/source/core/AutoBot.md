@@ -12,7 +12,7 @@ they can be accessed from the `bots_deployed` attribute of the AutoTrader instan
 
 ## Run Modes
 AutoTrader trading bots have two modes: periodic update mode and detached mode. The active mode is controlled using the `detach_bot`
-attribute, which can be set from the [configuration method](autotrader#run-configuration) of AutoTrader. When set to `False` (which
+attribute, which can be set from the [configuration method](autotrader-run-config) of AutoTrader. When set to `False` (which
 is the default), the bots will run in periodic update mode.
 
 ### Periodic Update Mode
@@ -45,10 +45,10 @@ candles to perform the strategy on.
 ### Detached Bot Mode
 
 In detached bot mode, a new thread is spawned for each bot deployed, allowing it to run semi-independently. When a bot is deployed
-in this mode, it will be passed to the [bot manager](bot-manager). The main purpose of this run mode is to allow a trading bot to 
+in this mode, it will be passed to the [bot manager](bot-manager-docs). The main purpose of this run mode is to allow a trading bot to 
 maintain attributes from the time it is deployed until the time it is terminated. This is because it will only be deployed once, 
 meaning that the strategy it is assigned will only be instantiated once upon deployment. This mode is also more appropriate when
-using [AutoStream](autostream) for live trading on tick data. 
+using AutoStream for live trading on tick data. 
 
 ```{image} ../assets/images/light-detached-bot.svg
 :align: center
@@ -63,7 +63,7 @@ using [AutoStream](autostream) for live trading on tick data.
 
 In this mode, the bot will continue to trade indefinitely until a termination signal is received. This signal can either come from
 the strategy module or from the user via manual intervention. In the latter case, the user can send a termination signal to the 
-[bot manager](bot-manager), which will then safely terminate the bot from further trading. 
+[bot manager](bot-manager-docs), which will then safely terminate the bot from further trading. 
 
 
 
