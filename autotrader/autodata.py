@@ -62,9 +62,9 @@ class GetData:
                 read_only = broker_config['read_only']
                 account = broker_config['account']
                 
-                self.ib = ib_insync.IB()
-                self.ib.connect(host=host, port=port, clientId=client_id, 
-                                readonly=read_only, account=account)
+                self.ibapi = ib_insync.IB()
+                self.ibapi.connect(host=host, port=port, clientId=client_id, 
+                                   readonly=read_only, account=account)
             
             
         self.allow_dancing_bears = allow_dancing_bears
@@ -390,6 +390,15 @@ class GetData:
         return data
     
     
+    def _check_IB_connection(self):
+        """Checks if there is an active connection to IB.
+        """
+        self.ibapi.sleep(0)
+        connected = self.ibapi.isConnected()
+        if not connected:
+            raise ConnectionError("No active connection to IB.")
+    
+    
     def ib(self, instrument: str, granularity: str, count: int,
            start_time: datetime = None, end_time: datetime = None,
            order: Order = None, **kwargs) -> pd.DataFrame:
@@ -401,7 +410,7 @@ class GetData:
         dt = ''
         barsList = []
         while True:
-            bars = self.ib.reqHistoricalData(
+            bars = self.ibibapi.reqHistoricalData(
                 contract,
                 endDateTime=dt,
                 durationStr='10 D',
@@ -416,7 +425,7 @@ class GetData:
         
         # save to CSV file
         allBars = [b for bars in reversed(barsList) for b in bars]
-        df = self.ib.util.df(allBars)
+        df = self.ibapi.util.df(allBars)
         return df
     
     
@@ -435,12 +444,12 @@ class GetData:
         dict
             A dictionary containing the bid and ask prices.
         """
-        self._check_connection()
-        contract = self._build_contract(order)
-        self.ib.qualifyContracts(contract)
-        ticker = self.ib.reqMktData(contract, snapshot=snapshot)
-        while ticker.last != ticker.last: self.ib.sleep(1)
-        self.ib.cancelMktData(contract)
+        self._check_IB_connection()
+        contract = IB_Utils.build_contract(order)
+        self.ibapi.qualifyContracts(contract)
+        ticker = self.ibapi.reqMktData(contract, snapshot=snapshot)
+        while ticker.last != ticker.last: self.ibapi.sleep(1)
+        self.ibapi.cancelMktData(contract)
         price = {"ask": ticker.ask,
                  "bid": ticker.bid,
                  "negativeHCF": 1,
