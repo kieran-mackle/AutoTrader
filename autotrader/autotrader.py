@@ -133,6 +133,7 @@ class AutoTrader:
         self._jupyter_notebook = False
         self._show_cancelled = True
         self._chart_timeframe = 'default'
+        self._chart_theme = 'caliber'
         
     
     def __repr__(self):
@@ -565,7 +566,7 @@ class AutoTrader:
                       ohlc_height: int = 400, ohlc_width: int = 800, 
                       top_fig_height: int = 150, bottom_fig_height: int = 150, 
                       jupyter_notebook: bool = False, show_cancelled: bool = True,
-                      chart_timeframe: str = 'default') -> None:
+                      chart_timeframe: str = 'default', chart_theme: str = 'caliber') -> None:
         """Configure the plot settings.
 
         Parameters
@@ -594,6 +595,8 @@ class AutoTrader:
         chart_timeframe : str, optional
             The bar timeframe to use when gerating the chart. The timeframe
             provided must be a part of the strategy dataset. The default is 'default'.
+        chart_theme : bool, optional
+            The theme of the Bokeh chart generated. The default is "caliber".
 
         Returns
         -------
@@ -612,6 +615,7 @@ class AutoTrader:
         self._jupyter_notebook   = jupyter_notebook
         self._show_cancelled     = show_cancelled
         self._chart_timeframe    = chart_timeframe
+        self._chart_theme        = chart_theme
     
     
     def get_bots_deployed(self, instrument: str = None) -> dict:
@@ -1270,7 +1274,8 @@ class AutoTrader:
                      top_fig_height = self._top_fig_height,
                      bottom_fig_height = self._bottom_fig_height,
                      jupyter_notebook = self._jupyter_notebook,
-                     show_cancelled = self._show_cancelled)
+                     show_cancelled = self._show_cancelled,
+                     chart_theme = self._chart_theme)
         
         return ap
     

@@ -5,7 +5,7 @@ from math import pi
 
 from bokeh.models.annotations import Title
 from bokeh.plotting import figure, output_file, show, save
-from bokeh.io import output_notebook
+from bokeh.io import output_notebook, curdoc
 from bokeh.models import (CustomJS,
                           ColumnDataSource,
                           HoverTool,
@@ -52,6 +52,7 @@ class AutoPlot:
             AutoPlot will be instantiated and ready for plotting.
 
         """
+        self._chart_theme = "caliber"
         self._max_indis_over = 3
         self._max_indis_below = 2
         self._modified_data = None
@@ -97,7 +98,7 @@ class AutoPlot:
                   fig_tools: str = None, ohlc_height: int = None, 
                   ohlc_width: int = None, top_fig_height: int = None, 
                   bottom_fig_height: int = None, jupyter_notebook: bool = None, 
-                  show_cancelled: bool = None):
+                  show_cancelled: bool = None, chart_theme: str = None):
         """Configures the plot settings.
 
         Parameters
@@ -123,11 +124,18 @@ class AutoPlot:
             plotting. The default is False.
         show_cancelled : bool, optional
             Show/hide cancelled trades. The default is True.
+        chart_theme : bool, optional
+            The theme of the Bokeh chart generated. The default is "caliber".
 
         Returns
         -------
         None
             The plot settings will be saved to the active AutoTrader instance.
+        
+        References
+        ----------
+        https://docs.bokeh.org/en/latest/docs/first_steps/first_steps_4.html#using-themes
+        
         """
         
         self._max_indis_over = max_indis_over if max_indis_over is not None else self._max_indis_over
@@ -139,6 +147,7 @@ class AutoPlot:
         self._bottom_fig_height = bottom_fig_height if bottom_fig_height is not None else self._bottom_fig_height
         self._jupyter_notebook = jupyter_notebook if jupyter_notebook is not None else jupyter_notebook
         self._show_cancelled = show_cancelled if show_cancelled is not None else self._show_cancelled
+        self._chart_theme = chart_theme if chart_theme is not None else self._chart_theme
     
     
     def plot(self, instrument: str = None, indicators: dict = None, 
@@ -325,6 +334,10 @@ class AutoPlot:
                                        )
         fig.sizing_mode     = 'stretch_width'
         
+        # Set theme - # TODO - adapt line colours based on theme
+        curdoc().theme = self._chart_theme
+        
+        # TODO - improve writing to file / showing
         if show_fig:
             if self._jupyter_notebook:
                 output_notebook()
