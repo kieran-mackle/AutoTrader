@@ -286,30 +286,47 @@ class Broker:
         symbol_attr = 'symbol' if local_symbol is None else 'localSymbol'
         matching_symbol = instrument if local_symbol is None else local_symbol
         
+        # TODO - try matching local symbol anyway?
+        
         all_positions = self.ib.portfolio()
         open_positions = {}
         for position in all_positions:
             units = position.position
             pnl = position.unrealizedPNL
             pos_symbol = getattr(position.contract, symbol_attr)
+            # key_symbol = position.contract.localSymbol
             pos_dict = {'long_units': units if np.sign(units) > 0 else 0,
                         'long_PL': pnl if np.sign(units) > 0 else 0,
-                        'long_margin': None,
                         'short_units': abs(units) if np.sign(units) < 0 else 0,
                         'short_PL': pnl if np.sign(units) < 0 else 0,
-                        'short_margin': None,
-                        'total_margin': None,
-                        'trade_IDs': None,
-                        'position': units,
+                        'net_position': units,
                         'PL': pnl,
-                        'contract': position.contract}
+                        'contracts': [position.contract],
+                        'portfolio_items': [position],
+                        'instrument': pos_symbol}
         
-            if pos_symbol == matching_symbol:
+            if matching_symbol is not None and pos_symbol == matching_symbol:
                 # Only add positions in requested symbol
                 open_positions[pos_symbol] = Position(**pos_dict)
-            else:
+                
+            elif matching_symbol is None:
                 # Append all positions
-                open_positions[pos_symbol] = Position(**pos_dict)
+                if pos_symbol in open_positions:
+                    # Position item already exists, append portfolio item
+                    existing_pos = open_positions[pos_symbol]
+                    
+                    existing_pos.long_units += pos_dict['long_units']
+                    existing_pos.long_PL += pos_dict['long_PL']
+                    existing_pos.short_units += pos_dict['short_units']
+                    existing_pos.short_PL += pos_dict['short_PL']
+                    existing_pos.net_position += pos_dict['net_position']
+                    existing_pos.PL += pos_dict['PL']
+                    existing_pos.contracts.append(position.contract)
+                    existing_pos.portfolio_items.append(position)
+                    
+                else:
+                    # New position
+                    open_positions[pos_symbol] = Position(**pos_dict)
         
         return open_positions
     
@@ -380,7 +397,7 @@ class Broker:
             position = positions[order.local_symbol]
         else:
             position = positions[order.instrument]
-        position_units = position['position']
+        position_units = position['net_position']
         
         # Place opposing market order
         action = 'BUY' if position_units < 0 else 'SELL'

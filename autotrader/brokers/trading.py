@@ -336,6 +336,12 @@ class Position:
         self.total_margin = None
         self.trade_IDs = None
         
+        # IB Attributes
+        self.net_position = None
+        self.PL = None
+        self.contracts = None
+        self.portfolio_items = None
+        
         for item in kwargs:
             setattr(self, item, kwargs[item])
     
