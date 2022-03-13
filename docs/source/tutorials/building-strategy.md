@@ -10,17 +10,7 @@ The code for the MACD crossover strategy shown in this tutorial can be found in 
 ```
 
 
-
-## Strategy Construction
-Strategies in AutoTrader are built as class objects. They contain the logic required to map a set of 
-data into a trading signal, which then gets passed on to your broker. To make this possible, the strategy
-is instantiated with its parameters, price data for the instrument being traded, and the name of the 
-instrument being traded - but don't worry, this is all taken care of behind the scenes by 
-[AutoTrader](autotrader-docs). 
-
-
-
-### MACD Strategy Rules
+## Strategy Rules
 Lets start by defining the rules for this strategy.
 
 1. Trade in the direction of the trend, as determined by the 200EMA.
@@ -47,17 +37,29 @@ An example of a long entry signal from this strategy is shown in the image below
 ![MACD crossover strategy](../assets/images/long_macd_signal.png "Long trade example for the MACD Crossover Strategy")
 
 
+
+## Strategy Construction
+Strategies in AutoTrader are built as class objects. They contain the logic required to map a set of 
+data into a trading signal, which then gets passed on to your broker. To make this possible, the strategy
+is instantiated with its parameters, price data for the instrument being traded, and the name of the 
+instrument being traded - but don't worry, this is all taken care of behind the scenes by 
+[AutoTrader](autotrader-docs). 
+
+
+
 ### Strategy Configuration
 ```{admonition} Follow Along
 Follow along in the demo repository: 
 config/[macd.yaml](https://github.com/kieran-mackle/autotrader-demo/blob/main/config/macd.yaml)
 ```
 
-Now we can write the [strategy configuration](strategy-config) `.yaml` file. This file is a 
+Now, lets write the [strategy configuration](strategy-config) `.yaml` file. This file is a 
 convenient place to define your strategy parameters (using the `PARAMETERS` key) and which instruments to 
 trade using this strategy (using the `WATCHLIST` key). It is also used to tell AutoTrader where to find 
 your strategy - the `MODULE` key defines the prefix of the file where your strategy is written, and the
-`CLASS` key defines the actual class name of your strategy. 
+`CLASS` key defines the actual class name of your strategy. By separating the strategy parameters from the 
+strategy iteself, you are able to easily tweak the strategy to your liking, or perform hyperparameter
+optimisation (something we will get to shortly).
 
 ```{attention}
 YAML cares about whitespace; each nested key must be indented by two spaces more than its parent.
@@ -88,10 +90,9 @@ PARAMETERS:
 WATCHLIST: ['EURUSD=X']
 ```
 
-This file is read by AutoTrader and passed into your strategy when it is instantiated. We will start by backtesting with the
-EUR/USD currency pair. However, to make things interesting, AutoTrader supports multi-instrument (and multi-timeframe) backtesting. This
-will be showcased later on.
-
+This file is read by AutoTrader and passed into your strategy when it is instantiated. We will start by 
+backtesting with the EUR/USD currency pair, as specified by the `WATCHLIST` key. However, AutoTrader supports 
+multi-instrument (and multi-timeframe) trading. This will be showcased later on.
 
 ```{note}
 As of AutoTrader version `0.6.0`, you can now directly pass your strategy configuration to AutoTrader as a dictionary.
@@ -103,10 +104,9 @@ when an order is submitted from the strategy, AutoTrader will use the current pr
 position size, capping the maximium loss to the percentage defined by `RISK_PC`. In this case, any single trade will only ever
 lose 1.5% of the account. 
 
-We also define the `INTERVAL: '1h'` key, signifying that our strategy will run the 1-hour timeframe. This value is used when 
+We also define the `INTERVAL: '1h'` key, meaning that our strategy will run the 1-hour timeframe. This value is used when 
 retrieving price data through [AutoData](autodata-docs), so make sure it matches the format required by your data feed. This
 is discussed more in the next section.
-
 
 
 ### Building the Strategy Module
@@ -117,21 +117,25 @@ strategies/[macd.py](https://github.com/kieran-mackle/autotrader-demo/blob/main/
 ```
 
 
-We are writing the class in a module called `macd.py`, hence `MODULE: 'macd'` in our strategy configuration.
+Now we can write the strategy class `SimpleMACD` in a module called `macd.py` (hence `MODULE: 'macd'` 
+and `CLASS: 'SimpleMACD'` in our strategy configuration).
+Although strategy construction is extremely flexible, the class must contain at a minimum an `__init__` method, and a 
+method named `generate_signal`. 
 
 
-Strategies in AutoTrader are built as classes, instantiated with parameters from the configuration file, price data and 
-the name of the instrument being traded - but don't worry, this is all taken care of behind the scenes. 
 
 
-The `params` dict is 
-read in from the strategy configuration file and contains all strategy-specific parameters. By providing the data to the 
-strategy upfront, strategies have a warm-up period before running, calculating all indicators when instantiated. The name of 
-the instrument being traded is also passed in to allow for more complex, portfolio-based trading systems. More on this later.
 
-Although strategy construction is extremely flexible, the class must contain the `__init__` function and a method named 
-`generate_signal`, as shown below. Often, it is also convenient to define an exit strategy. In the example below, this is 
-contained within the `generate_exit_levels` method. The details of these methods follow.
+
+By providing the data to the strategy upfront, strategies have a warm-up period before running, calculating all indicators 
+when instantiated. The name of the instrument being traded is also passed in to allow for more complex, portfolio-based 
+trading systems. More on this later.
+
+```{caution}
+Be careful when defining indicators not to use methods which can lead to look-ahead. For example, backwards-filling values. 
+```
+
+
 
 ```py
 # Import packages

@@ -22,18 +22,19 @@ this tutorial will go over setting them up.
 Back to your directory structure: you must have a `config/` directory - containing your configuration files - and a 
 `strategies/` directory - containing (you guessed it) your [trading strategies](../userfiles/strategy). When you 
 run AutoTrader, it will look for the appropriate files under these directories. If you cloned the demo repository, you will
-see these directories set up already. Think of this directory structure as your 'bag' of algo-trading bots. 
+see these directories set up already. Think of this directory structure as your 'bag' of algo-trading bots. Sticking to 
+this will make path management super easy.
 
 ```
 your_trading_project/
-  |- run_script.py                      # Run script to deploy trading bots
-  |- config/
-  |    |- GLOBAL.yaml                   # Global configuration file
-  |    |- your_strategy1_config.yaml    # Strategy-specific configuration file
-  |    |- your_strategy2_config.yaml    # Strategy-specific configuration file
-  |- strategies/
-  |    |- your_strategy1.py             # Strategy 1 module, containing strategy logic
-  |    |- your_strategy2.py             # Strategy 1 module, containing strategy logic
+├── runfile.py                      # Run script to deploy trading bots
+├── config 
+│   ├── GLOBAL.yaml                 # Global configuration file
+│   ├── strategy1_config.yaml       # Strategy 1 configuration file
+│   └── strategy2_config.yaml       # Strategy 2 configuration file
+└── strategies
+    ├── strategy1.py                # Strategy 1 module, containing strategy 1 logic
+    └── strategy2.py                # Strategy 2 module, containing strategy 2 logic
 ```
 
 ```{note}
