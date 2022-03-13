@@ -22,7 +22,17 @@ bot will self-terminate. For this reason, AutoTrader must be run periodically to
 latest signal. This task is easily automated using [cron](https://en.wikipedia.org/wiki/Cron), or a similar job scheduler. A 
 single bot update in this mode is illustrated in the chart below.
 
-![workflow](../assets/images/periodic-update-run.svg "Periodic update mode")
+
+```{image} ../assets/images/light-periodic-update-run.svg
+:align: center
+:class: only-light
+```
+
+```{image} ../assets/images/dark-periodic-update-run.svg
+:align: center
+:class: only-dark
+```
+
 
 The reasoning behind this run mode is that many strategies act on the *close* of a candle, meaning that running the technical 
 analysis at each candle close is adequate to execute the strategy. For example, for a strategy running on the 4-hour timeframe,
@@ -40,7 +50,16 @@ maintain attributes from the time it is deployed until the time it is terminated
 meaning that the strategy it is assigned will only be instantiated once upon deployment. This mode is also more appropriate when
 using [AutoStream](autostream) for live trading on tick data. 
 
-![workflow](../assets/images/detached-bot.svg "Detached bot mode")
+```{image} ../assets/images/light-detached-bot.svg
+:align: center
+:class: only-light
+```
+
+```{image} ../assets/images/dark-detached-bot.svg
+:align: center
+:class: only-dark
+```
+
 
 In this mode, the bot will continue to trade indefinitely until a termination signal is received. This signal can either come from
 the strategy module or from the user via manual intervention. In the latter case, the user can send a termination signal to the 

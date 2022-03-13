@@ -24,7 +24,16 @@ Note that the flowchart below exemplifies running two trading strategies with si
 six trading bots). However, it is possible to run AutoTrader with as many or as few strategies and instruments as 
 you would like.
 
-![workflow](../assets/images/code-workflow.svg "AutoTrader Workflow")
+```{image} ../assets/images/light-code-workflow.svg
+:align: center
+:class: only-light
+```
+
+```{image} ../assets/images/dark-code-workflow.svg
+:align: center
+:class: only-dark
+```
+
 
 
 ### User Input Files
