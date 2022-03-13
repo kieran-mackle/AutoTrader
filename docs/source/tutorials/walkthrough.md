@@ -1,5 +1,5 @@
 (walkthrough)=
-# AutoTrader Detailed Walkthrough
+# Detailed AutoTrader Walkthrough
 The next few pages will walk you through building an algorithmic trading system in AutoTrader. There will also
 be links to sections of relevant code documentation.
 

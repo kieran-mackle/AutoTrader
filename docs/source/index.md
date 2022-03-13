@@ -36,7 +36,7 @@ Features <features/features>
 :hidden:
 
 Detailed Walkthrough <tutorials/walkthrough>
-Condensed Walkthrough <condensed-walkthrough>
+Condensed Walkthrough <tutorials/condensed-walkthrough>
 Miscellaneous <tutorials/misc/misc-tuts>
 ```
 
