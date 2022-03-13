@@ -66,7 +66,7 @@ Refer to the [Broker Utility Functions](virtual-utils) for more information.
 
 
 
-
+(order-handling)=
 ## Order Handling
 An order can be created by providing the required information in a dictionary. This dictionary must be 
 returned by a method named `generate_signal` in the [strategy module](strategies#signal-generation). This method is called 
@@ -171,7 +171,7 @@ manually with the `close_trade` and/or `partial_trade_close` methods.
 
 
 
-
+(broker-stop-loss-types)=
 ## Stop Loss Types
 AutoTrader supports both limit stop loss orders, and trailing stop loss orders. The keys required to specify these stop loss 
 types are provided in the table below. Note that `limit` stop losses are the default type, so if a `stop_price` (or 
@@ -203,3 +203,29 @@ A trailing stop loss can be used to protect unrealised gains by moving with pric
 `trailing` stop loss type, the initial stop loss position can be set by the price provided to the `stop_loss` key, or by providing
 the stop loss distance (in [pips](https://www.investopedia.com/ask/answers/06/pipexplained.asp)) to the `stop_distance` key.
 Read more about trailing stop loss orders [here](https://www.investopedia.com/terms/t/trailingstop.asp).
+
+
+
+
+
+## Supported Brokers
+
+### Virtual Broker
+At the heart of AutoTrader's backtesting algorithm is the virtual broker, a Python class intended to replicate the functionality of a real broker. 
+
+See the documentation of the [Virtual Broker](brokers-virtual) for more information.
+
+
+### Oanda v20 REST API
+AutoTrader supports Oanda's v20 REST API. This API is best suited for Foreign Exchange trading.
+
+See the documentation of the [OANDA v20 REST API](brokers-oanda) for more information.
+
+
+## Coming Soon
+Support for the following API's is in development:
+  - [Binance](https://www.binance.com/en/)
+  - [Interactive Brokers](https://www.interactivebrokers.com.au/en/index.php?f=5041)
+
+Would you like to see a broker supported in AutoTrader? Feel free to raise a feature request 
+[here](https://github.com/kieran-mackle/AutoTrader/issues/new/choose).

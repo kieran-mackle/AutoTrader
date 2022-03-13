@@ -1,3 +1,4 @@
+(autoplot-docs)=
 # AutoPlot
 
 
@@ -196,6 +197,7 @@ ap = AutoPlot(data)
 ap.plot(instrument=instrument)
 ```
 
+(autoplot-indi-spec)=
 ### Indicator Specification
 To plot indicators with AutoPlot, you must provide a dictionary containing each indicator. This dictionary must be structured
 according to the example provided below. 

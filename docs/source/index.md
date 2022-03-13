@@ -33,6 +33,7 @@ Features <features/features>
 :hidden:
 
 Full Walkthrough <tutorials/walkthrough>
+Miscellaneous <tutorials/misc/misc-tuts>
 ```
 
 ```{toctree}
@@ -40,7 +41,7 @@ Full Walkthrough <tutorials/walkthrough>
 :caption: API Documentation
 :hidden:
    
-User Input Files <userfiles/user-files>
+User Input Files <userfiles/userfiles>
 Core Modules <core/core-modules>
 Broker Interface <broker/broker-interface>
 Indicator Library <indicators>

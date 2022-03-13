@@ -6,8 +6,8 @@
 This page showcases the indicators available in AutoTraders' indicator library. All images shown here were created with 
 [AutoPlot](core/AutoPlot), using the `view_indicators` function. This function can be called using the code snipped provided 
 below, where `indicator_dict` is constructed for the indicator being plotted. This dictionary is shown for each indicator 
-below. Note that the [indicators dictionary](strategies#indicators-dictionary) passed to the `view_indicators` method must
-be formatted according to the correct [specification](core/autoplot#indicator-specification).
+below. Note that the [indicators dictionary](strategy-indicator-dict) passed to the `view_indicators` method must
+be formatted according to the correct [specification](autoplot-indi-spec).
 
 ```python
 from autotrader import autoplot
@@ -25,6 +25,7 @@ how to plot the indicator with [AutoPlot](core/AutoPlot).
 
 ## Indicators
 
+(indi-supertrend)=
 ### Supertrend Indicator
 
 A supertrend indicator, based on the indicator by user KivancOzbilgic on TradingView, is included in the AutoTrader
@@ -53,7 +54,7 @@ Note that the supertrend dataframe also contains a trend column, indicating the 
 ![SuperTrend Indicator](assets/indicators/supertrend.jpg "SuperTrend Indicator")
 
 
-
+(indi-halftrend)=
 ### HalfTrend Indicator
 The HalfTrend indicator is based on the 
 [indicator by *everget*](https://www.tradingview.com/script/U1SJ8ubc-HalfTrend/) on
@@ -83,7 +84,7 @@ indicator_dict = {'HalfTrend': {'type': 'HalfTrend',
 ![HalfTrend Indicator](assets/indicators/halftrend.png "HalfTrend Indicator")
 
 
-
+(indi-bearish-engulfing)=
 ### Bearish Engulfing Pattern
 Returns a list with values of `1` when the bearish engulfing pattern appears and a value of `0` elsewhere.
 
@@ -102,7 +103,7 @@ indicator_dict = {'Bearish Engulfing Signal': {'type': 'Engulfing',
 
 
 
-
+(indi-bullish-engulfing)=
 ### Bullish Engulfing Pattern
 Returns a list with values of `1` when the bullish engulfing pattern appears and a value of `0` elsewhere.
 
@@ -180,7 +181,9 @@ indicator_dict = {'RSI (14)': {'type': 'RSI',
                   }
 ```
 
-Below is an example of this indicator, as detailed in the [Detecting Divergence](../2021/11/08/detecting-divergence) blog post. Note that this indicator
+Below is an example of this indicator, as detailed in the 
+[Detecting Divergence](https://kieran-mackle.github.io/AutoTrader/2021/11/08/detecting-divergence.html) blog post. 
+Note that this indicator
 is actually a wrapper for other indicators, to make detecting divergence even simpler.
 
 ![Divergence Indicator](assets/indicators/divergence.png "Divergence Indicator")
@@ -240,7 +243,7 @@ input parameter `n`, which corresponds to the period of the EMA.
 ![AutoTrader Swing Detection](assets/indicators/swings.jpg "AutoTrader Swing Detection")
 
 This indicator was used in the MACD strategy developed in the 
-[tutorials](../tutorials/strategy) to set stop-losses.
+[tutorials](../tutorials/building-strategy) to set stop-losses.
 
 
 (classifying-swings)=

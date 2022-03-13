@@ -1,6 +1,6 @@
 # Optimising a Strategy with AutoTrader
 
-If you have successfully [set up a strategy](strategy) and run a [backtest](backtesting) on it, then you can optimise
+If you have successfully [set up a strategy](building-strategy) and run a [backtest](backtesting) on it, then you can optimise
 the strategy paramaters with ease. All you need to do is specify which parameters to optimise and what bounds 
 should be placed on them and that's it!
 
@@ -124,8 +124,10 @@ Let's take a look at the profit [before](backtesting) and after:
  
 
 #### Optimised Chart
-<iframe data-src="/AutoTrader/assets/charts/optimised_macd.html" id="iframe" loading="lazy" style="width:100%; margin-top:1em; height:720px; overflow:hidden;" data-ga-on="wheel" data-ga-event-category="iframe" data-ga-event-action="wheel" src="/AutoTrader/assets/charts/optimised_macd.html"></iframe>
+<iframe data-src="../_static/charts/optimised_macd.html" id="iframe" loading="lazy" style="width:100%; margin-top:1em; height:720px; overflow:hidden;" data-ga-on="wheel" data-ga-event-category="iframe" data-ga-event-action="wheel" src="../_static/charts/optimised_macd.html"></iframe>
 
 
 
 
+## A Word of Caution
+This strategy is now likely highly overfit.

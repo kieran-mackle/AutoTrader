@@ -1,8 +1,5 @@
----
-title: Running AutoTrader Automatically
-permalink: tutorials/automation
+# Running AutoTrader Automatically
 
----
 
 
 cron job

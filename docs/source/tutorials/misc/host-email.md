@@ -1,8 +1,5 @@
----
-title: Setting up a Host Email Account
-permalink: tutorials/host-email
-key: tut-host-email
----
+# Setting up a Host Email Account
+
 
 To send emails from python, you will need to configure a host email account which allows sending emails over python. See [here](https://realpython.com/python-send-email/#option-1-setting-up-a-gmail-account-for-development) for more information.
 

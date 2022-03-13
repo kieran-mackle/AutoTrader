@@ -18,7 +18,7 @@ A summary of the methods used in a strategy class is shown in the table below. D
 |   `generate_exit_levels`   | (Optional) Helper function to calculate exit levels.                                               |
 
 
-
+(strategy-init)=
 ### Initialisation
 The `__init__` method of a strategy initialises it with the following objects:
   1. `params`: a dictionary containing the strategy parameters from your strategy configuration file
@@ -59,7 +59,7 @@ def __init__(self, params, data, pair, broker, broker_utilities):
     self.utils  = broker_utilities
 ```
 
-
+(strategy-indicator-dict)=
 #### Indicators Dictionary
 If you wish to visualise any of the results from your strategy, you must also include information about which
 indicators you would like to plot. This information is stored in `self.indicators', a dictionary as defined 

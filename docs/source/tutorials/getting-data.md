@@ -1,11 +1,12 @@
+(getting-price-data)=
 # Getting Price Data
 
 
 AuotTrader is compatible with all kinds of price data, regardless of the nature of the security being traded. This means that
 it can be used for stocks, cryptocurrencies, foreign exchange, futures, options, commodities and even Mars bars - provided that 
 you can get historical price data for them. Luckily for you, AutoTrader is capable of retrieving price data for 
-[supported instruments](../supported-api) automatically using the utility function [AutoData](../docs/autodata). All you have 
-to do is provide a few details in the [configuration files](../docs/configuration) and runfile, and AutoTrader will take care of 
+[supported instruments](../supported-api) automatically using the utility function [AutoData](autodata-docs). All you have 
+to do is provide a few details in the [user configuration files](userfiles) and runfile, and AutoTrader will take care of 
 the rest. If you would prefer to provide your own price data, you can also pass a `.csv` file with your data to AutoTrader.
 
 ## For the MACD Strategy
@@ -29,7 +30,7 @@ continue with the tutorial [here](backtesting).
 ## AutoData
 AutoData is the automated data retrieval module of AutoTrader. It currently supports the Yahoo Finance and Oanda data feeds. 
 Which feed you use depends on the type of instruments you wish to trade, and/or the broker you are using. For detailed documenation
-of *AutoData*, refer to the [docs](../docs/autodata).
+of *AutoData*, refer to the [docs](autodata-docs).
 
 
 ### Yahoo Finance API
@@ -64,7 +65,7 @@ For those interested in trading in the foreign exchange, the
 
 This data feed can be accessed by specifying the feed as 'oanda'. Note that to use the this API, you must also 
 [make an account](https://www.oanda.com/au-en/trading/), obtain your API credentials, and specify them in the 
-[global configuration](../docs/configuration-global) file. These details will look somthing like those shown below.
+[global configuration](global-configuration) file. These details will look somthing like those shown below.
 
 ```yaml
 OANDA:

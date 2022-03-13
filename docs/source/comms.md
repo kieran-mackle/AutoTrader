@@ -1,7 +1,13 @@
 # AutoTrader Communications Subpackage
 
-
+(emailing-utils)=
 ## Emailing Utilities
+
+
+```{eval-rst}
+.. automodule:: autotrader.comms.emailing
+    :members:
+```
 
 
 

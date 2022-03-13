@@ -1,3 +1,4 @@
+(autotrader-docs)=
 # AutoTrader
 
 AutoTrader is the main module where you will run things from.
@@ -8,7 +9,7 @@ AutoTrader is the main module where you will run things from.
 
 This page documents the methods of autotrader.py, the main executable in the software. It coordinates all workflows and 
 processes from the [configuration options](#run-configuration) and configuration files. A 
-[strategy configuration](configuration-strategy) file is always required to run AutoTrader, as it dictates the technical 
+[strategy configuration](strategy-config) file is always required to run AutoTrader, as it dictates the technical 
 analysis to be performed on the price data. The way the strategy is used will depend on the 
 [mode of operation](#modes-of-operation) being used. After configuring the run settings of AutoTrader, the `run` method 
 is used to proceed with the code.
@@ -32,7 +33,7 @@ If both `backtest_mode` and `scan_mode` attributes are set to `False`, AutoTrade
 In livetrade mode, the data indexing is similar to that described [above](#data-indexing) in backtest mode, however, only the last 
 candle is indexed. This candle corresponds to latest market conditions, so long as the data retrieval was called upon runnning 
 AutoTrader, to retrieve the last `N` candles. This parameter is specified as the `period` in the 
-[strategy configuration](configuration-strategy) file.
+[strategy configuration](strategy-config) file.
 
 
 #### Email Notifications
@@ -68,9 +69,10 @@ following behaviour.
 #### Show Plot
 When the `show_plot` attribute is set to `True`, AutoTrader will pass a trade summary dictionary to `autoplot.py`. This dictionary
 will then be used to plot the trade history on a price chart, along with key indicators used in the strategy. Read more about 
-AutoPlot [here](autoplot).
+AutoPlot [here](autoplot-docs).
 
 
+(autotrader-data-indexing)=
 #### Data Indexing
 Although data and strategy indicators are pre-loaded when a strategy is instantiated, the platform is event-driven thanks to the 
 indexing system employed. This system involves iterating through the entire dataset, candlestick by candlestick. Upon each iteration,
@@ -86,8 +88,8 @@ console.
 
 
 #### Market Scan Notifications
-Email notifications require a host email account and a mailing list specified in the [global](configuration-global) and 
-[strategy](configuration-strategy) files as appropriate. The extent of these notifications is controlled by the `notify`
+Email notifications require a host email account and a mailing list specified in the [global](global-config) and 
+[strategy](strategy-config) files as appropriate. The extent of these notifications is controlled by the `notify`
 attribute of AutoTrader in a similar way to the verbosity of the code.
 
 |  `notify` value | Behaviour                                                   |
@@ -141,7 +143,7 @@ The `configure` method has the following parameters. Note that many of these par
 ### Providing Strategies
 Trading strategies can be added using the `add_strategy` method of AutoTrader. This method can be used multiple times
 to add multiple strategies to the same run. Note that this method accepts both `strategy_filename` and `strategy_dict`. 
-The first of these is used to provide the prefix of a [strategy configuration](configuration-strategy) file, while
+The first of these is used to provide the prefix of a [strategy configuration](strategy-config) file, while
 the second can be used to directly pass in a strategy configuration dictionary.
 
 ```py
@@ -165,7 +167,7 @@ suggested sub-directory, "./price_data", the path must be provided by the `data_
 
 | Parameter | Description |
 | ------- | ----------- |
-| `data_dict` (dict)| A dictionary containing the filenames of the price data, with keys corresponding to the instruments provided in the [strategy configurations](configuration-strategy) `WATCHLIST`. |
+| `data_dict` (dict)| A dictionary containing the filenames of the price data, with keys corresponding to the instruments provided in the [strategy configurations](strategy-config) `WATCHLIST`. |
 | `data_directory` (str)| The name of the sub-directory containing the price data. This sub-directory must be within the projects `home_dir`. Default value is `price_data`. |
 | `abs_dir_path` (str)| The absolute path to the data directory, which can be located anywhere on your computer. |
 
@@ -259,7 +261,7 @@ def scan(strategy_filename=None, scan_index=None)
 
 ## Help Methods
 The following methods are used to get help on the options and attributes of AutoTrader.
-See the [Getting Help](../tutorials/help) tutorial guide for an example of getting option-specific
+See the [Getting Help](../tutorials/getting-help) tutorial guide for an example of getting option-specific
 help from the code itself.
 
 ### Usage
@@ -291,7 +293,7 @@ The following methods are used internally by autotrader to coordinate the workfl
 | `_main` | Executes the core workflow of AutoTrader. |
 | `_clear_strategies` | Removes all strategies saved in autotrader instance. |
 | `_clear_bots` | Removes all deployed bots in autotrader instance. |
-| `_instantiate_autoplot` | Creates instance of [AutoPlot](autoplot). |
+| `_instantiate_autoplot` | Creates instance of [AutoPlot](autoplot-docs). |
 | `_update_strategy_watchlist` | Updates the watchlist of each strategy with the scan watchlist. |
 | `_assign_broker` | Configures and assigns appropriate broker for trading. |
 | `_configure_emailing` | Configure email settings. |

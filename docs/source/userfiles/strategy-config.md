@@ -1,3 +1,4 @@
+(strategy-config)=
 # Strategy Configuration
 
 

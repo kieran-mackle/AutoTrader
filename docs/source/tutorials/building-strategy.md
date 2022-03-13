@@ -13,7 +13,7 @@ strategy you run in AutoTrader requires two things:
 1. A strategy module, containing all the logic of your strategy, and
 2. A configuration file, containing strategy configuration parameters.
 
-If you plan to take your strategy [live](going-live), you will also need a [global configuration](../userfiles/global-config) 
+If you plan to take your strategy [live](going-live), you will also need a [global configuration](global-config) 
 file to connect to your broker, but we will get to that later. For now, the files above are enough to get started backtesting, so
 this tutorial will go over setting them up.
 
@@ -53,7 +53,7 @@ zero line for short positions.
 4. Take profit levels are set at 1:1.5 risk-to-reward.
 
 An example of a long entry signal from this strategy is shown in the image below (generated using 
-[AutoTrader IndiView](../features/visualisation)).
+[AutoTrader IndiView](../features/0.3-visualisation)).
 
 ![MACD crossover strategy](../assets/images/long_macd_signal.png "Long trade example for the MACD Crossover Strategy")
 
@@ -94,7 +94,7 @@ We will start by filling the skeleton of the strategy module above, and finish w
 #### Instantiation
 
 The only 'rule' about strategy instantiation is the number of inputs which `__init__` accepts.
-In *[most cases](../docs/strategies#initialisation)*, this method must accept the following three inputs:
+In *[most cases](strategy-init)*, this method must accept the following three inputs:
   1. `params`: a dictionary containing the strategy parameters from your strategy configuration file
   2. `data`: a dataframe of the instrument's price data 
   3. `instrument`: a string object with the instruments name
@@ -157,11 +157,11 @@ Since price data and all of your indicators are pre-loaded when your strategy is
 variable `i` is required to generate a signal at the correct timestamp. When backtesting with AutoTrader, the value 
 of `i` will vary from `0` to `len(data)`, as AutoTrader steps through each bar in your data. If you are running
 AutoTrader in live-trade mode, `i` will simply index the last candle in the data, corresponding to the most recent 
-market conditions. Read more about the indexing system [here](../docs/autotrader#data-indexing).
+market conditions. Read more about the indexing system [here](autotrader-data-indexing).
 
 The output of this function is a dictionary, `signal_dict`, containing the details of your signal/order. AutoTrader's virtual 
-broker supports multiple [order types](../docs/brokers-interface#order-handling), multiple 
-[stop loss types](../docs/brokers-interface#stop-loss-types) and anything else you might encounter with a real broker. 
+broker supports multiple [order types](order-handling), multiple 
+[stop loss types](broker-stop-loss-types) and anything else you might encounter with a real broker. 
 For this strategy, we will only be placing market orders when we get the entry signal. A long trade is triggered by setting 
 the 'direction' key of the `signal_dict` to `1`, and a short trade is triggered by setting the it to `-1`. If there is no signal, 
 set this key to `0`, and nothing will happen. We also define our exit targets by the `stop_loss` and `take_profit` keys of 
@@ -211,7 +211,7 @@ set this key to `0`, and nothing will happen. We also define our exit targets by
 As with any good strategy, we must define an exit strategy to manage risk. In this strategy, stop losses are set at recent swings 
 in price. Since this is a trend following strategy, market structure tells us that price is unlikely to break past a recent swing 
 level, unless of course the trend is reversing. The `find_swings` indicator built into AutoTrader's 
-[indicator library](../docs/indicators#price-swing-detection) makes this an easy task. Finally, take profits are set at 1:1.5
+[indicator library](swing-detection) makes this an easy task. Finally, take profits are set at 1:1.5
 risk-to-reward (as defined by the `RR` key in our strategy parameters). This is all completed with the code below.
 
 ```py
@@ -245,7 +245,7 @@ risk-to-reward (as defined by the `RR` key in our strategy parameters). This is 
 ### Strategy Configuration
 *Follow along in the [demo repository](https://github.com/kieran-mackle/autotrader-demo/blob/main/config/macd.yaml): config/macd.yaml*
 
-The next step is to write the [strategy configuration](../docs/configuration-strategy) yaml file. This file is a convenient place to
+The next step is to write the [strategy configuration](strategy-config) yaml file. This file is a convenient place to
 define your strategy parameters (using `PARAMETERS`) and which instruments to trade with using this strategy (using `WATCHLIST`). As
 you can see below, the default MACD settings of 12/26/9 are used. The risk-to-reward ratio is also defined by the `RR` key. As mentioned
 previously, this file is read by AutoTrader and passed into your strategy when it is instantiated. We will start by backtesting with the
@@ -279,5 +279,5 @@ lose 1.5% of the account.
 
 We also define the `INTERVAL: '1h'` key, signifying that our strategy will run the 1-hour timeframe. 
 
-[Read on](price-data) to learn about getting price data to perform a backtest on.
+Read on to learn about getting price data to perform a backtest on.
 

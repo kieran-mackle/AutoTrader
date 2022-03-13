@@ -1,3 +1,4 @@
+(autobot-docs)=
 # AutoBot
 
 

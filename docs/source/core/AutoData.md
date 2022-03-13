@@ -1,3 +1,4 @@
+(autodata-docs)=
 # AutoData
 
 

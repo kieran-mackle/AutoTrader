@@ -1,9 +1,10 @@
+(global-config)=
 # Account Configuration
 
 `./config/GLOBAL.yaml`
 
 The global configuration file is read by AutoTrader when runnning the code. Depending on your 
-[strategy config](configuration-strategy) file, some of the contents in the global configuration may be ignored. For example,
+[strategy config](strategy-configuration) file, some of the contents in the global configuration may be ignored. For example,
 mailing lists or trading sub-accounts. Nonetheless, you may specify all your account details in this file once when getting started, 
 and easily switch between brokers when required by specifying them in the strategy configuration file.
 
@@ -41,7 +42,7 @@ Note that the `DEFAULT_ACCOUNT_ID` will be used to trade when `ACCOUNT_ID` is no
 
 
 ### EMAILING
-If you would like to recieve [email notifactions](emailing), you will need to [set up](../tutorials/host-email) a host email account 
+If you would like to recieve [email notifactions](emailing-utils), you will need to set up a host email account 
 for AutoTrader to send emails from. The details of this host account are stored in the global config file under the 'HOST_ACCOUNT' 
 field, as shown below. Next, you can provide a mailing list of people to send emails to. You can also provide a mailing list in the
 strategy config file, in case you would like a different mailing list for different strategies.
