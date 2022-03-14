@@ -8,6 +8,7 @@ the [condensed walkthrough](condensed-walkthrough) might be better suited for yo
 ```
 
 
+(rec-dir-struc)=
 ## Directory Organisation
 Before building a strategy in AutoTrader, it is important to understand the structure of a project. At a minimum, any 
 strategy you run in AutoTrader requires two things: 

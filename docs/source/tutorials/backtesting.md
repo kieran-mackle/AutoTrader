@@ -1,35 +1,34 @@
 # Backtesting in AutoTrader
 
 
-Now that you have [defined a strategy](../userfiles/strategy) and written the strategy [configuration file](../userfiles/strategy-config.md), you can
-have some fun with backtesting. 
+Now that you have defined a strategy and written the strategy configuration file, you can have some fun with backtesting. 
+
 
 ## Creating a Runfile
-An easy way to quickly deploy a trading bot is to set up a run file. This file will import AutoTrader, configure the run settings
-and finally deploy your bot. This is all achieved in the example below.
+An easy way to quickly deploy a trading bot is to set up a run file. Here you can import AutoTrader, configure the run settings
+and deploy your bot. This is all achieved in the example below.
 
 ```py
 from autotrader.autotrader import AutoTrader
 
-at = AutoTrader()
-at.configure(show_plot=True, verbosity=1)
-at.add_strategy('macd')
-at.backtest(start = '1/1/2020',
+at = AutoTrader()                           # Create a new instance of AutoTrader
+at.configure(show_plot=True, verbosity=1)   # Configure the instance
+at.add_strategy('macd')                     # Add the strategy by its configuration file prefix
+at.backtest(start = '1/1/2020',             # Define the backtest settings
             end = '1/1/2021',
             initial_balance=1000,
             leverage = 30)
-at.run()
+at.run()                                    # Run AutoTrader!
 ```
 
-{ref}`Custom title <target_to_paragraph>`
-
-[wtf](target_to_paragraph)
-
-
-To run AutoTrader in [backtest mode](../core/AutoTrader#backtest-mode), begin by importing AutoTrader and creating 
-an instance using `at = AutoTrader()`. Next, we use the `configure` method to set the 
-verbosity of the code and tell AutoTrader that we would like to see a plot. Next, we add our strategy using the `add_strategy` method. 
-Then, we use the `backtest` method to define your backtest settings. In this example, we set the start and end dates of the backtest, the initial account balance and the leverage of the account. You can also define a commission here, as well as an average bid/ask price spread. Finally, we run AutoTrader with the command `at.run()`, and that's it.
+To run AutoTrader in [backtest mode](autotrader-backtest-mode), begin by importing AutoTrader and creating 
+an instance using `at = AutoTrader()`. Next, use the `configure` method to set the verbosity of the code and 
+tell AutoTrader that we would like to see a plot. Next, we add our strategy using the `add_strategy` method. 
+Here we pass the file prefix of the strategy configuration file, located in the `config/` [directory](rec-dir-struc).
+Then, we use the `backtest` method to define your backtest settings. In this example, we set the start and end 
+dates of the backtest, the initial account balance and the leverage of the account. You can also define a 
+commission here, as well as an average bid/ask price spread. Finally, we run AutoTrader with the command 
+`at.run()`, and that's it! 
 
 
 
@@ -37,6 +36,7 @@ Then, we use the `backtest` method to define your backtest settings. In this exa
 With a verbosity of 1, you will see an output similar to that shown below. As you can see, there is a detailed breakdown of 
 trades taken during the backtest period. Since we told AutoTrader to plot the results, you will also see the interactive chart
 shown [below](interactive-chart).
+
 
 ### Performance Breakdown
 ```
@@ -106,15 +106,16 @@ The interactive chart will look something like the one shown below.
 ### Accessing Backtest Data
 We can also access even more details related to the backtest. Without getting into too many details, every time AutoTrader is run, it
 deploys one trading bot per instrument in the watchlist, per strategy. In our example, we only used one strategy (MACD) and one 
-instrument (EUR/USD). Therefore, one trading bot was deployed. The details of this bot is stored in the `bots_deployed` attribute of 
-AutoTrader. Therefore, we can access every trade this bot took during the backtest by examining:
+instrument (EUR/USD). Therefore, one trading bot was deployed. The details of this bot is stored in the AutoTrader instance we created. 
+We can access the bots deployed by an instance of AutoTrader using the [`get_bots_deployed`](autotrader-bots-deployed) method, as 
+shown below.
 
 ```py
-bot = at.bots_deployed[0]
+bot = at.get_bots_deployed()
 ```
 
-You will now have access to *bot*, an instance of [AutoBot](../core/AutoBot). Of interest now is the backtest summary of the bot,
-written to `bot.backtest_summary`. This is a dictionary containing a history of trades taken, orders cancelled, trades still open, and
-more. Exploring this is left as an exercise to the reader.
+You will now have access to *bot*, an instance of [AutoBot](../core/AutoBot) which traded the MACD strategy on EUR/USD. Of interest 
+now is the backtest summary of the bot, written to `bot.backtest_summary`. This is a dictionary containing a history of trades taken,
+orders cancelled, trades still open, and more. Exploring this is left as an exercise to the reader.
 
 

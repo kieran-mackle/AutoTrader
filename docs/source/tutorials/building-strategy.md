@@ -46,7 +46,7 @@ instrument being traded - but don't worry, this is all taken care of behind the 
 [AutoTrader](autotrader-docs). 
 
 
-
+(macd-strat-config)=
 ### Strategy Configuration
 ```{admonition} Follow Along
 Follow along in the demo repository: 
