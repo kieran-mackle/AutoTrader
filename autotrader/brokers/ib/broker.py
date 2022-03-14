@@ -23,6 +23,9 @@ class Broker:
           Usually only one of the pair needs to be cancelled, and the other will too.
         - required signal_dict keys for different security types (eg. futures 
           require symbol, exchange and contract_month)
+        - The products localSymbol will always take precedence over the symbol.
+          As such, it should be used as much as possible to avoid accidental 
+          actions.
     """
     
     def __init__(self, config: dict, utils: Utils = None) -> None:
@@ -286,54 +289,62 @@ class Broker:
         appended to the returned Position objects' "contracts" and 
         "portfolio_items" attributes.
         """
+        
+        def adjust_position(existing_pos, portfolio_item, pos_dict):
+            # Position item already exists, append portfolio item
+            existing_pos.long_units += pos_dict['long_units']
+            existing_pos.long_PL += pos_dict['long_PL']
+            existing_pos.short_units += pos_dict['short_units']
+            existing_pos.short_PL += pos_dict['short_PL']
+            existing_pos.net_position += pos_dict['net_position']
+            existing_pos.PL += pos_dict['PL']
+            existing_pos.contracts.append(portfolio_item.contract)
+            existing_pos.portfolio_items.append(portfolio_item)
+        
         self._check_connection()
         
-        all_positions = self.ib.portfolio()
+        all_portfolio_items = self.ib.portfolio()
         open_positions = {}
-        for position in all_positions:
-            units = position.position
-            pnl = position.unrealizedPNL
-            pos_symbol = position.contract.symbol
+        for item in all_portfolio_items:
+            units = item.position
+            pnl = item.unrealizedPNL
+            pos_symbol = item.contract.symbol
             pos_dict = {'long_units': units if np.sign(units) > 0 else 0,
                         'long_PL': pnl if np.sign(units) > 0 else 0,
                         'short_units': abs(units) if np.sign(units) < 0 else 0,
                         'short_PL': pnl if np.sign(units) < 0 else 0,
                         'net_position': units,
                         'PL': pnl,
-                        'contracts': [position.contract],
-                        'portfolio_items': [position],
+                        'contracts': [item.contract],
+                        'portfolio_items': [item],
                         'instrument': pos_symbol}
             
-            
             symbol_match = instrument == pos_symbol
-            local_symbol_match = instrument == position.contract.localSymbol
-            unique_match = symbol_match or local_symbol_match
+            localSymbol_match = instrument == item.contract.localSymbol
+            unique_match = symbol_match or localSymbol_match
             
             if instrument is not None and unique_match:
                 
-                key_symbol = position.contract.localSymbol if \
-                    local_symbol_match else position.contract.symbol
+                key_symbol = item.contract.localSymbol if \
+                    localSymbol_match else item.contract.symbol
                 
                 pos_dict['instrument'] = key_symbol
                 
                 # Only add positions in requested symbol
-                open_positions[key_symbol] = Position(**pos_dict)
+                if pos_symbol in open_positions:
+                    # Position item already exists, append portfolio item
+                    existing_pos = open_positions[pos_symbol]
+                    adjust_position(existing_pos, item, pos_dict)
+                else:
+                    # New position
+                    open_positions[pos_symbol] = Position(**pos_dict)
                 
             elif instrument is None:
                 # Append all positions
                 if pos_symbol in open_positions:
                     # Position item already exists, append portfolio item
                     existing_pos = open_positions[pos_symbol]
-                    
-                    existing_pos.long_units += pos_dict['long_units']
-                    existing_pos.long_PL += pos_dict['long_PL']
-                    existing_pos.short_units += pos_dict['short_units']
-                    existing_pos.short_PL += pos_dict['short_PL']
-                    existing_pos.net_position += pos_dict['net_position']
-                    existing_pos.PL += pos_dict['PL']
-                    existing_pos.contracts.append(position.contract)
-                    existing_pos.portfolio_items.append(position)
-                    
+                    adjust_position(existing_pos, item, pos_dict)
                 else:
                     # New position
                     open_positions[pos_symbol] = Position(**pos_dict)
@@ -398,26 +409,27 @@ class Broker:
     
     def _close_position(self, order: Order, **kwargs):
         """Closes open position of symbol by placing opposing market order.
+        
+        Warning
+        -------
+        If the order instrument is for an underlying product, all contracts 
+        held attributed to the underlying will be closed.
         """
         self._check_connection()
         
-        positions = self.get_positions(instrument=order.instrument,
-                                       local_symbol=order.local_symbol)
-        if order.local_symbol is not None:
-            position = positions[order.local_symbol]
-        else:
-            position = positions[order.instrument]
-        position_units = position['net_position']
+        symbol = order.localSymbol if order.localSymbol is not None else order.instrument
+        positions = self.get_positions(instrument=symbol)
+        position = positions[symbol]
         
-        # TODO - what if the positon has multiple contracts on it? Iterate
-        
-        # Place opposing market order
-        action = 'BUY' if position_units < 0 else 'SELL'
-        units = abs(position_units)
-        IBorder = ib_insync.MarketOrder(action, units)
-        contract = position['contract']
-        self.ib.qualifyContracts(contract)
-        self.ib.placeOrder(contract, IBorder)
+        for item in position.portfolio_items:
+            # Place opposing market order
+            item_units = item.position
+            action = 'BUY' if item_units < 0 else 'SELL'
+            units = abs(item_units)
+            IB_order = ib_insync.MarketOrder(action, units)
+            contract = item.contract
+            self.ib.qualifyContracts(contract)
+            self.ib.placeOrder(contract, IB_order)
         
     
     def _place_market_order(self, order: Order):

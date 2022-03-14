@@ -36,7 +36,7 @@ class Order:
         self.secType = None
         self.exchange = None
         self.contract_month = None
-        self.local_symbol = None
+        self.localSymbol = None
         
         self.reason = None
         
@@ -99,9 +99,10 @@ class Order:
         self.order_time = order_time if order_time else self.order_time
         self.HCF = HCF if HCF else self.HCF
         
-        self._set_working_price()
-        self._calculate_exit_prices(broker)
-        self._calculate_position_size(broker)
+        if self.order_type not in ['close']:
+            self._set_working_price()
+            self._calculate_exit_prices(broker)
+            self._calculate_position_size(broker)
         
         self.status = 'submitted'
         self.submitted = True
@@ -135,7 +136,7 @@ class Order:
 
         Parameters
         ----------
-        broker : TYPE, optional
+        broker : AutoTrader Broker Interface, optional
             The autotrade-broker instance. The default is None.
         working_price : float, optional
             The working price used to calculate amount risked. The default is 
@@ -176,7 +177,7 @@ class Order:
 
         Parameters
         ----------
-        broker : TYPE, optional
+        broker : AutoTrader Broker Interface, optional
             The autotrade-broker instance. The default is None.
         working_price : float, optional
             The working price used to calculate amount risked. The default is None.
