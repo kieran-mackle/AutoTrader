@@ -103,6 +103,7 @@ self.indicators = {'MACD (12/26/9)': {'type': 'MACD',
 ```
 
 
+(strategy-signal-gen)=
 ### Signal Generation
 Signals are generated using the `generate_signal` method. This method contains the logic behind your strategy 
 and returns a dictionary with details of the signal. The contents of the signal dictionary will largely depend 
@@ -140,6 +141,12 @@ is when trading instruments which cannot be shorted. In this case, you would onl
 currently have an open position. 
 You might also wan't to avoid entering a trade if it contradicts the position you currently hold.
 Refer to the [AutoTrader docs](autotrader) for more information about this dict.
+
+
+```{tip}
+You can fire multiple orders at once from the `generate_signal` method! Simply return a list of the `Order`s 
+you would like to place, and they will be submitted one by one!
+```
 
 
 

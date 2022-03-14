@@ -35,6 +35,7 @@ extensions = [
         'sphinx.ext.napoleon',
         'sphinx_copybutton',
         'myst_parser',
+        'sphinx_inline_tabs',
 ]
 
 
@@ -76,7 +77,7 @@ html_theme_options = {
     ],
 }
 
-
+# "announcement": "AutoTrader v0.6.0 Released! See the changelog to see what is new.",
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,

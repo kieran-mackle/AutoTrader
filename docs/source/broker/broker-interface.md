@@ -27,7 +27,7 @@ behind each method will change depending on the broker, however each method will
 Each new broker API is contained within its own submodule of the `autotrader.brokers` module. This submodule must contain
 two more submodules:
 1. A core API module which communicates with the broker.
-2. A utility module containing helper functions related to the core API module. This will usually inherit attributes from the `BrokerUtils` [class](broker-utils).
+2. A utility module containing helper functions related to the core API module. This will usually inherit attributes from the `BrokerUtils` [class](utils).
 
 ```
 autotrader.brokers
@@ -61,7 +61,7 @@ The shared methods of the brokers are described below.
 
 ### Utility Functions
 
-Refer to the [Broker Utility Functions](virtual-utils) for more information.
+Refer to the [Broker Utility Functions](utils) for more information.
 
 
 
@@ -70,8 +70,8 @@ Refer to the [Broker Utility Functions](virtual-utils) for more information.
 (order-handling)=
 ## Order Handling
 An order can be created by providing the required information in a dictionary. This dictionary must be 
-returned by a method named `generate_signal` in the [strategy module](strategies#signal-generation). This method is called 
-from the `_update` method of the [AutoBot module](autobot#core-methods), and then processed by the 
+returned by a method named `generate_signal` in the [strategy module](strategy-signal-gen). This method is called 
+from the `_update` method of the [AutoBot module](autobot-docs), and then processed by the 
 `_process_signal` method. The contents of this dictionary will largely depend on the type of order, but at 
 a minimum, it must contain the order type and trade direction. Possible keys for this dictionary are provided
 in the table below. 
@@ -214,13 +214,13 @@ Read more about trailing stop loss orders [here](https://www.investopedia.com/te
 ### Virtual Broker
 At the heart of AutoTrader's backtesting algorithm is the virtual broker, a Python class intended to replicate the functionality of a real broker. 
 
-See the documentation of the [Virtual Broker](brokers-virtual) for more information.
+See the documentation of the [Virtual Broker](virtual-broker) for more information.
 
 
 ### Oanda v20 REST API
 AutoTrader supports Oanda's v20 REST API. This API is best suited for Foreign Exchange trading.
 
-See the documentation of the [OANDA v20 REST API](brokers-oanda) for more information.
+See the documentation of the [Oanda Broker](oanda-module-docs) module for more information.
 
 
 ## Coming Soon

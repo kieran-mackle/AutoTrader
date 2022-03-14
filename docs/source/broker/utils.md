@@ -26,7 +26,7 @@ A summary of the methods contained with the `BrokerUtils` class is provided in t
 
 ### Position Sizing
 The position sizing utility `get_size` is automatically used whenever the 'risk' option is used for the 
-`SIZING` method in the [strategy configuration](configuration-strategy#overview-of-options). This method
+`SIZING` method in the [strategy configuration](strategy-config-options). This method
 is a position size calculator similar to the one at [babypips](https://www.babypips.com/tools/position-size-calculator).
 
 ```

@@ -1,5 +1,6 @@
 # Trading Objects
 
+(order-object)=
 ## Orders
 
 ```{eval-rst}
@@ -10,7 +11,20 @@
 ```
 
 
+### Order types...
 
+(empty-order)=
+### Empty Order
+Useful when no signal is present. AutoTrader will recognise this as an empty order and skip over it.
+
+```python
+empty_order = Order()
+```
+
+
+
+
+(trade-object)=
 ## Trades
 ```{eval-rst}
 .. autoclass:: autotrader.brokers.trading.Trade
@@ -18,7 +32,7 @@
     :private-members: _inheret_order, _split
 ```
 
-
+(position-object)=
 ## Positions
 ```{eval-rst}
 .. autoclass:: autotrader.brokers.trading.Position

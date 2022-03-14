@@ -11,7 +11,7 @@ algotrading with AutoTrader.
 A basic level of experience with Python is recommended, but the documentation here 
 aims to be clear enough that a beginner is able to pick up the key components as they go. If you are 
 new to Python, you may find the tutorials especially useful. There is even a 
-[complete walkthrough](walkthrough), where a popular MACD trading strategy is built and tested.
+[complete walkthrough](tutorials/walkthrough), where a popular MACD trading strategy is built and tested.
 
 If you are still deciding if AutoTrader is for you, check out the [features](features-landing) to 
 see what is on offer. Otherwise, head on over to the [Getting Started](getting-started) guide.

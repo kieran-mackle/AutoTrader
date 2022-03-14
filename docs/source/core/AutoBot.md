@@ -67,3 +67,7 @@ the strategy module or from the user via manual intervention. In the latter case
 
 
 
+
+## Order Processing
+
+show methods to check orders

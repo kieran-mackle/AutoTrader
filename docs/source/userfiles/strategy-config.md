@@ -8,6 +8,7 @@ The strategy configuration file contains information related specifically to a s
 its own configuration file to be able to run. It is written as a [.yaml](https://www.redhat.com/en/topics/automation/what-is-yaml) 
 file. Note that spacing is important in .yaml files, with each level defined by two subsequent spaces.
 
+(strategy-config-options)=
 ## Overview of Options
 The keys of the strategy configuration file are described in the table below. Note that all parameters defined here will 
 be accessible in the [strategy](strategies), via the `params` dictionary. 

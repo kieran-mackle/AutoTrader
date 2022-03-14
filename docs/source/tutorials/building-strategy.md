@@ -169,11 +169,18 @@ For the MACD crossover strategy, instantiation will look as shown below. Note th
 - an `indicators` dict is defined to tell [AutoPlot](../core/AutoPlot) which indicators to plot, and what to title them
 - the custom indicator `find_swings` is used to detect swings in the price, which will be used in the exit strategy
 
+
+```{attention}
+The package structure of AutoTrader changed a bit with the release of `v0.6.0` to make imports a bit more logical. One 
+of these changes was the location of the indicators module, as shown in the code below.
+```
+
+````{tab} AutoTrader >= v0.6.0
 ```python
 # Import packages
 from finta import TA
-import autotrader.indicators as indicators
-from autotrader.brokers.trading import Order
+import autotrader.indicators as indicators # Changed package structure in v0.6.0
+from autotrader.brokers.trading import Order # New in v0.6.0
 
 class SimpleMACD:
 
@@ -204,27 +211,58 @@ class SimpleMACD:
         # Price swings
         self.swings = indicators.find_swings(data)
 ```
+````
+````{tab} AutoTrader < v0.6.0
+```python
+# Import packages
+from finta import TA
+from autotrader.lib import indicators
+
+class SimpleMACD:
+
+    def __init__(self, params, data, pair):
+        ''' Define all indicators used in the strategy '''
+        self.name   = "Simple MACD Trend Strategy"
+        self.data   = data
+        self.params = params
+        
+        # 200EMA
+        self.ema    = TA.EMA(data, params['ema_period'])
+        
+        # MACD
+        self.MACD = TA.MACD(data, self.params['MACD_fast'], 
+                            self.params['MACD_slow'], self.params['MACD_smoothing'])
+        self.MACD_CO        = indicators.crossover(self.MACD.MACD, self.MACD.SIGNAL)
+        self.MACD_CO_vals   = indicators.cross_values(self.MACD.MACD, 
+                                                      self.MACD.SIGNAL,
+                                                      self.MACD_CO)
+        # Construct indicators dict for plotting
+        self.indicators = {'MACD (12/26/9)': {'type': 'MACD',
+                                              'macd': self.MACD.MACD,
+                                              'signal': self.MACD.SIGNAL},
+                           'EMA (200)': {'type': 'MA',
+                                         'data': self.ema}}
+        
+        # Price swings
+        self.swings     = indicators.find_swings(data)
+```
+````
 
 Now with the inidicators calculated, we have everything we need to define the logic of the strategy.
-
-
-
-
-
-
-
-
-
-
 
 
 
 #### Strategy Signals
 
 The next step is to define the signal generation function, `generate_signal`. Make sure to use this name for all your strategies, as
-AutoTrader will call it when you run it. This method is where the logic of the strategy sits. The inputs to this function are `i`, 
-an indexing variable, and `current_positions`, a dictionary containing current positions held. We will not need the `current_positions`
-dictionary in this strategy, but it is useful in others (such as [portfolio rebalancing](https://github.com/kieran-mackle/autotrader-demo/blob/main/strategies/portfolio_rebalance.py)).
+AutoTrader will call it when you run it. This method is where the logic of the strategy sits. The named inputs to this function are 
+`i` - an indexing variable - and `current_position` - a dictionary containing current positions held. We will not need 
+the `current_position` dictionary in this strategy, but it is useful in others (such as [portfolio rebalancing](https://github.com/kieran-mackle/autotrader-demo/blob/main/strategies/portfolio_rebalance.py)). As such, we can use the 
+[`**kwargs`](https://stackoverflow.com/a/36908) argument to ignore it.
+
+```{important}
+Strategies must contain a `generate_signal` method!
+```
 
 Since price data and all of your indicators are pre-loaded when your strategy is instantiated, the indexing
 variable `i` is required to generate a signal at the correct timestamp. When backtesting with AutoTrader, the value 
@@ -232,32 +270,34 @@ of `i` will vary from `0` to `len(data)`, as AutoTrader steps through each bar i
 AutoTrader in live-trade mode, `i` will simply index the last candle in the data, corresponding to the most recent 
 market conditions. Read more about the indexing system [here](autotrader-data-indexing).
 
-The output of this function is a dictionary, `signal_dict`, containing the details of your signal/order. AutoTrader's virtual 
-broker supports multiple [order types](order-handling), multiple 
-[stop loss types](broker-stop-loss-types) and anything else you might encounter with a real broker. 
-For this strategy, we will only be placing market orders when we get the entry signal. A long trade is triggered by setting 
-the 'direction' key of the `signal_dict` to `1`, and a short trade is triggered by setting the it to `-1`. If there is no signal, 
-set this key to `0`, and nothing will happen. We also define our exit targets by the `stop_loss` and `take_profit` keys of 
-`signal_dict`. These price targets come from our exit strategy, defined in the next section. 
+
+As the name implies, the `generate_signal` method must return a trading signal - to either go long, short or do nothing.
+AutoTrader supports multiple [order types](order-handling), multiple [stop loss types](broker-stop-loss-types) and 
+anything else you might encounter with your live-trade broker. To create a new order, we can use the 
+[`Order`](order-object) object, imported from the [`autotrader.trading`](../broker/trading) module. For this strategy, 
+we will only be placing market orders when we get the entry signal, which are the default order type. 
+
+A long order can be created by specifying `direction=1` when creating the `Order`, whereas a short order can be created 
+by specifying `direction=-1`. If there is no trading signal this update, you can create an [empty order](empty-order) by
+simply `Order()`. We also define our exit targets by the `stop_loss` and `take_profit` arguments. These price targets 
+come from our exit strategy, defined in the next section. 
 
 
 ```{attention}
-AutoTrader v`0.6.0` introduced the `Order`, `Trade` and `Position` objects. Orders can now be created from 
+AutoTrader `v0.6.0` introduced the `Order`, `Trade` and `Position` objects. Orders can now be created from 
 strategies (as in the example below), rather than through dictionaries as was previously the case. Legacy
-functionality is still supported, so you don't need to modify existing strategies using `signal_dict`'s.
+functionality is still supported, so you don't need to modify existing strategies using `signal_dict`'s. See 
+the code tabs below to observe the changes.
 ```
 
 
-TODO - show the change in code using code tabs
-
-
-
+````{tab} AutoTrader >= v0.6.0
 ```python
-    def generate_signal(self, i, current_position):
+    def generate_signal(self, i, **kwargs):
         """Define strategy to determine entry signals.
         """
         
-        if self.data.Close.values[i] > self.ema[i] and \
+        if self.data.Close.values[i] > self.ema[i] and \ 
             self.MACD_CO[i] == 1 and \
             self.MACD_CO_vals[i] < 0:
                 exit_dict = self.generate_exit_levels(signal=1, i=i)
@@ -278,15 +318,56 @@ TODO - show the change in code using code tabs
         
         return new_order
 ```
+````
+````{tab} AutoTrader < v0.6.0
+```python
+    def generate_signal(self, i, **kwargs):
+        """Define strategy to determine entry signals.
+        """
+
+        order_type  = 'market'
+        signal_dict = {}
+        related_orders  = None
+        
+        if self.data.Close.values[i] > self.ema[i] and \    # Price is above 200 EMA
+            self.MACD_CO[i] == 1 and \                      # MACD cross above signal line
+            self.MACD_CO_vals[i] < 0:                       # MACD cross occured below zero
+                # Long entry signal
+                signal = 1
+                
+        elif self.data.Close.values[i] < self.ema[i] and \  # Price is below 200 EMA
+            self.MACD_CO[i] == -1 and \                     # MACD cross below signal line
+            self.MACD_CO_vals[i] > 0:                       # MACD cross occured above zero 
+                # short entry signal
+                signal = -1
+
+        else:
+            # No signal
+            signal = 0
+        
+        # Calculate exit targets
+        exit_dict = self.generate_exit_levels(signal, i)
+        
+        # Construct signal dictionary
+        signal_dict["order_type"]   = order_type
+        signal_dict["direction"]    = signal
+        signal_dict["stop_loss"]    = exit_dict["stop_loss"]
+        signal_dict["stop_type"]    = exit_dict["stop_type"]
+        signal_dict["take_profit"]  = exit_dict["take_profit"]
+        
+        return signal_dict
+```
+````
 
 
 
 #### Exit Signals
-As with any good strategy, we must define an exit strategy to manage risk. In this strategy, stop losses are set at recent swings 
+As with any good strategy, we must define an exit strategy to manage our risk. In this strategy, stop losses are set at recent swings 
 in price. Since this is a trend following strategy, market structure tells us that price is unlikely to break past a recent swing 
 level, unless of course the trend is reversing. The `find_swings` indicator built into AutoTrader's 
-[indicator library](swing-detection) makes this an easy task. Finally, take profits are set at 1:1.5
-risk-to-reward (as defined by the `RR` key in our strategy parameters). This is all completed with the code below.
+[indicator library](swing-detection) makes this an easy task. As per our rules, take profits are set at 1:1.5
+risk-to-reward ratio. This is all completed with the code below, which returns a dictionary with our exits, used by our 
+signal generation method in the section above.
 
 ```py
     def generate_exit_levels(self, signal, i):

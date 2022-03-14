@@ -1,3 +1,4 @@
+(oanda-module-docs)=
 # Oanda Broker API
 
 
@@ -6,12 +7,12 @@
 
 AutoTrader currently supports interaction with the [OANDA REST-v20 API](https://developer.oanda.com/rest-live-v20/introduction/).
 This is currently the preffered API for trading foreign exchange currencies. To use this API with AutoTrader, add your Oanda API
-account details to the [global configuration](configuration-global) and specifiy 'Oanda' as the `FEED` in your 
-[strategy configuration](configuration-strategy) file.
+account details to the [global configuration](global-config) and specifiy 'Oanda' as the `FEED` in your 
+[strategy configuration](strategy-config) file.
 
 
 ## Configuration
-Include the following yaml in your [global configuration](configuration-global) file.
+Include the following yaml in your [global configuration](global-config) file.
 
 ```yaml
 OANDA:
@@ -56,5 +57,5 @@ OANDA:
 
 ## Utility Functions
 
-Refer to the [Oanda Utility Functions](oanda-utils) for more information.
+Refer to the [Broker Utility Functions](utils) for more information.
 
