@@ -575,7 +575,7 @@ class AutoPlot:
             cpldata = pd.merge(self._data, cpldata, left_on='date', right_on='date')
             
             cplfig.line(cpldata.data_index.values,
-                        cpldata.Profit.values,
+                        cpldata.profit.values,
                         legend_label = "{}".format(instrument),
                         line_color = colors[ix])
         
@@ -631,6 +631,9 @@ class AutoPlot:
                                    [marfig]
                         ])
         final_fig.sizing_mode = 'scale_width'
+        
+        # Set theme - # TODO - adapt line colours based on theme
+        curdoc().theme = self._chart_theme
         
         if self._jupyter_notebook:
             output_notebook()
