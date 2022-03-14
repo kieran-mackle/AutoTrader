@@ -5,7 +5,7 @@ from autotrader.brokers.broker_utils import BrokerUtils
 
 
 class Order:
-    """AutoTrader Order
+    """AutoTrader Order object.
     """
     def __init__(self, instrument: str = None, direction: int = None,
                  order_type: str = 'market', **kwargs) -> Order:
@@ -326,6 +326,8 @@ class Trade(Order):
 
 
 class Position:
+    """AutoTrader Position object.
+    """
     def __init__(self, **kwargs):
         self.instrument = None
         self.long_units = None
