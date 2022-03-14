@@ -45,7 +45,7 @@ class SimpleMACD:
                                          'data': self.ema}}
         
         
-    def generate_signal(self, i, current_position):
+    def generate_signal(self, i, **kwargs):
         """Define strategy to determine entry signals.
         """
         

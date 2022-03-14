@@ -679,12 +679,12 @@ class AutoTraderBot:
         self._latest_orders = []
         
         if self._strategy_params['INCLUDE_POSITIONS']:
-            open_positions = self._broker.get_positions(self.instrument)
+            current_position = self._broker.get_positions(self.instrument)
         else:
-            open_positions = None
+            current_position = None
         
         # Run strategy to get signals
-        strategy_orders = self._strategy.generate_signal(i, open_positions=open_positions)
+        strategy_orders = self._strategy.generate_signal(i, current_position=current_position)
         orders = self._check_orders(strategy_orders)
         self._qualify_orders(orders, i)
         

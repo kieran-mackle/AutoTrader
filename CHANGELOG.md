@@ -34,7 +34,7 @@
   representing the number of units to be traded, while direction specifies
   if the trade is long or short.
 - Strategy module: method `generate_signal` is passed named arguments 
-  `i` and `open_positions`.
+  `i` and `current_position`.
 
 
 ## Version 0.5.0
