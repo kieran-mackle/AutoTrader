@@ -1,11 +1,10 @@
-(condensed-walkthrough)=
 # Condensed AutoTrader Walkthrough
 This page is a condensed version of the [detailed walkthrough](walkthrough). If you are 
 familiar with Python, it should be sufficient to get you up and running with AutoTrader.
 
 ```{tip}
 The code for the MACD crossover strategy shown in this tutorial can be found in the
-[demo repository](https://github.com/kieran-mackle/autotrader-demo).
+<a href="https://github.com/kieran-mackle/autotrader-demo" target="_blank">demo repository</a>.
 ```
 
 ## Strategy Rules

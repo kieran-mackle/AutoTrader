@@ -13,13 +13,13 @@ Maybe move all sub-pages under /features/* url
 :maxdepth: 2
 :hidden:
 
-Backtesting <0.1-backtesting>
-Optimisation <0.2-optimisation>
-Visualisation <0.3-visualisation>
-Trade Statistics <0.4-statistics>
-Scanning <0.5-scanning>
-Live Trading <0.6-live-trading>
-Data Feeds <0.7-data-feeds>
-Custom Indicators <0.8-indicators>
+Backtesting <backtesting>
+Optimisation <optimisation>
+Visualisation <visualisation>
+Trade Statistics <statistics>
+Scanning <scanning>
+Live Trading <live-trading>
+Data Feeds <data-feeds>
+Custom Indicators <indicators>
 ```
 
