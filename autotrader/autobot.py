@@ -727,7 +727,7 @@ class AutoTraderBot:
             
             # Assign current bars
             current_bar = self.data.iloc[i]
-            quote_bar = self.quote_data.iloc[i]
+            quote_bar = self.quote_data.iloc[i] # TODO - what if there is no quote data? Or is there always..
         
         
         # Update backtest
@@ -1074,7 +1074,7 @@ class AutoTraderBot:
             DESCRIPTION.
 
         """
-        
+        # TODO - verify this works with pd.Series
         if indexing.lower() == 'open':
             past_data = ohlc_data[ohlc_data.index < timestamp]
         elif indexing.lower() == 'close':
@@ -1084,6 +1084,18 @@ class AutoTraderBot:
             
         return past_data
     
+    
+    def _check_auxdata(self, auxdata: dict, timestamp: datetime, 
+                       indexing: str = 'open') -> dict:
+        processed_auxdata = {}
+        for key, item in auxdata.items():
+            if isinstance(item, pd.DataFrame) or isinstance(item, pd.Series):
+                processed_auxdata[key] = self._check_ohlc_data(item, 
+                                                        timestamp, indexing)
+            else:
+                processed_auxdata[key] = item
+        return processed_auxdata
+                
     
     def _check_data(self, timestamp: datetime, indexing: str = 'open') -> dict:
         """Wrapper for multiple datasets contained in a dictionary.
@@ -1102,19 +1114,56 @@ class AutoTraderBot:
 
         """
         
-        datasets = self._strat_data
+        if self._backtest_mode:
+            if isinstance(self._strat_data, dict):
+                processed_data = {}
+                if 'aux' in self._strat_data:
+                    base_data = self._strat_data['base']
+                    processed_auxdata = self._check_auxdata(self._strat_data['aux'],
+                                                            timestamp, indexing)
+                    
+                else:
+                    # MTF data
+                    base_data = self._strat_data
+                
+                # TODO - consider possibility when data is directly passed into bot
+                # This will qualify as 'MTF data' 
+                
+                # Process base OHLC data
+                processed_basedata = {}
+                for granularity, data in base_data.items():
+                    processed_basedata[granularity] = self._check_ohlc_data(data, 
+                                                            timestamp, indexing)
+                    
+                # Combine the results of the conditionals above
+                if 'aux' in self._strat_data:
+                    processed_data['aux'] = processed_auxdata
+                    processed_data['base'] = processed_basedata
+                else:
+                    processed_data = processed_basedata
+                
+            elif isinstance(self._strat_data, pd.DataFrame):
+                processed_data = self._check_ohlc_data(self._strat_data, 
+                                                       timestamp, indexing)
+            
+            else:
+                raise Exception("Unrecognised data type. Cannot process.")
+                
+            # TODO - use self._strategy_params['period'] to tail the data
         
-        checked_data = {}
-        for data_key in datasets: # TODO - key, item in datasets.items()
-            ohlc_data = datasets[data_key]
-            checked_data[data_key] = self.check_ohlc_data(ohlc_data, timestamp, indexing)
+        else:
+            # livetrading, fetch new data
+            # FOR LIVETRADING : Need to pull new data!
+            # Should the data here overwrite self.data? Perhaps in live mode yes
+            pass
+        
+        # Now have processed_data, which contains future safe data
         
         
-        # TODO - extra data steps:
-        # use self._strategy_params['period'] to tail the data
-        # return a standard dict form, regardless of the _strat_data format 
-            # (eg. single TF, MTF, +auxdata)
-        # FOR LIVETRADING : Need to pull new data!
         
-        return checked_data
+        # TODO - process quote data to get correct bar
+        
+        
+        
+        return processed_data
     
