@@ -1178,23 +1178,12 @@ class AutoTrader:
                 else:
                     self._bots_deployed.append(bot)
                     
-        
-        # Analyse price data using strategy
         if int(self._verbosity) > 0 and self._backtest_mode:
-            # Check data lengths of each bot
-            self._check_bot_data()
-            
             print("\nTrading...\n")
             backtest_start_time = timeit.default_timer()
             
-        
-        '''
-        CAREFUL: if running MTF, what timeframe will be used to 
-        call time.sleep()? And more importantly, what implications will
-        this have on bot._update()?
-        '''
-        
         # TODO - what is going to happen to detach_bot attribute?
+        # Begin trading
         if self._mode.lower() == 'continuous':
             # Running in continuous update mode
             if self._backtest_mode:
@@ -1204,7 +1193,7 @@ class AutoTrader:
                 while timestamp <= end_time:
                     # Update each bot with latest data to generate signal
                     for bot in self._bots_deployed:
-                        bot._update(timestamp)
+                        bot._update(timestamp=timestamp)
                         
                     # Iterate through time
                     timestamp += self._timestep
@@ -1217,20 +1206,22 @@ class AutoTrader:
         
             else:
                 # Live trading
-                starttime = time.time()
+                deploy_time = time.time()
                 while True: # TODO - make while running, or similar
-                    bot._update()
-                    time.sleep(self._timestep - ((time.time() - starttime) % self._timestep))
+                    for bot in self._bots_deployed:
+                        bot._update(timestamp=timestamp)
+                    time.sleep(self._timestep - ((time.time() - deploy_time) % self._timestep))
                     
         elif self._mode.lower() == 'periodic':
             # Trading in periodic update mode
             if self._backtest_mode:
                 # Backtesting
+                self._check_bot_data()
                 start_range, end_range = self._bots_deployed[0]._get_iteration_range()
                 for i in range(start_range, end_range):
                     # Update each bot with latest data to generate signal
                     for bot in self._bots_deployed:
-                        bot._update(i)
+                        bot._update(i=i)
                         
                     # Update backtest tracking
                     NAV.append(self._broker.NAV)
@@ -1239,9 +1230,9 @@ class AutoTrader:
         
             else:
                 # Live trading
-                bot._update(-1)  # Process most recent signal
+                bot._update(i=-1) # Process most recent signal
         
-        if self._backtest_mode:
+        if int(self._verbosity) > 0 and self._backtest_mode:
             backtest_end_time = timeit.default_timer()
         
         # Backtest Post-Processing
