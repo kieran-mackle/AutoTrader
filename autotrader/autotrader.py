@@ -1173,27 +1173,30 @@ class AutoTrader:
             backtest_start_time = timeit.default_timer()
             
         if not self._detach_bot:
-            start_range, end_range = self._bots_deployed[0]._get_iteration_range()
-            
-            for i in range(start_range, end_range):
-                
-                # Update each bot with latest data to generate signal
-                for bot in self._bots_deployed:
-                    
-                    # If backtesting, update virtual broker with latest data
-                    if self._backtest_mode:
+            # Trading in periodic update mode
+            if self._backtest_mode:
+                # Backtesting
+                start_range, end_range = self._bots_deployed[0]._get_iteration_range()
+                for i in range(start_range, end_range):
+                    # Update each bot with latest data to generate signal
+                    for bot in self._bots_deployed:
+                        # Update virtual broker with latest data
                         bot._update_backtest(i)
-                    
-                    # Update bot
-                    bot._update(i)
-                    
-                
-                if self._backtest_mode is True:
-                    NAV.append(self._broker.NAV)
-                    balance.append(self._broker.portfolio_balance)
-                    margin.append(self._broker.margin_available)
-        
-        backtest_end_time = timeit.default_timer()
+                        
+                        # Update trading bot
+                        bot._update(i)
+                        
+                        # Update backtest tracking
+                        NAV.append(self._broker.NAV)
+                        balance.append(self._broker.portfolio_balance)
+                        margin.append(self._broker.margin_available)
+            
+            else:
+                # Live trading
+                bot._update(-1)  # Get latest signal
+            
+        if self._backtest_mode:
+            backtest_end_time = timeit.default_timer()
         
         # Backtest Post-Processing
         # Data iteration complete - proceed to post-processing
