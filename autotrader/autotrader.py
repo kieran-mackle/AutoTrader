@@ -71,6 +71,7 @@ class AutoTrader:
         
         self._verbosity = 1
         self._mode = 'periodic'
+        self._data_indexing = 'open' # TODO - add this to configure method 
         self._broker_verbosity = 0
         self._notify = 0
         self._email_params = None
@@ -218,6 +219,7 @@ class AutoTrader:
         self._MTF_initialisation = MTF_initialisation
         self._jupyter_notebook = jupyter_notebook
         self._run_mode = mode
+        # TODO - add this to configure method 
         
         
     def add_strategy(self, config_filename: str = None, 
@@ -1206,7 +1208,8 @@ class AutoTrader:
             # Running in continuous update mode
             if self._backtest_mode:
                 # Backtesting
-                start_time = 0 # datetime
+                # TODO - define the params below
+                start_time = 0 # datetime # Might not need to define here
                 end_time = 0 # datetime
                 timestep = 0 # timedelta (from granularity)
                 

@@ -171,8 +171,7 @@ class AutoTraderBot:
             self._abs_data_filepath = False
         
         self._get_data = GetData(broker_config, self._allow_dancing_bears)
-        data, quote_data, MTF_data = self._retrieve_data(instrument, 
-                                                         self._feed)
+        data, quote_data, MTF_data = self._retrieve_data(instrument, self._feed)
         
         # Check data
         if len(data) == 0:
@@ -199,11 +198,16 @@ class AutoTraderBot:
             my_strat = strategy(params, strat_data, instrument)
             
         # Assign strategy to local attributes
-        self._strategy = my_strat
         self.data = data
         self.MTF_data = MTF_data
-        self.quote_data = quote_data
+        self.quote_data = quote_data  # TODO - cosider making private
+        self._strat_data = strat_data
+        self._strategy = my_strat
         self._latest_orders = []
+        
+        # strat_data will either contain a single timeframe OHLC dataframe, 
+        # a dictionary of MTF dataframes, or a dict with 'base' and 'aux' keys,
+        # for aux and base strategy data (which could be single of MTF).
         
         # Assign strategy attributes for tick-based strategy development
         if self._backtest_mode:
@@ -705,10 +709,9 @@ class AutoTraderBot:
         
         if self._mode == 'continuous':
             # Running in continuous update mode
-            unchecked_data = 0 # whatever gets passed to the strategy, 
-            # could be MTF or otherwise, but when does the data refresh?
+            future_checked_data = self._check_data(timestamp, self._data_indexing)
             
-            future_checked_data = self._check_historical_data(unchecked_data)
+            
             data = future_checked_data.tail(self._strategy_params['period'])
             
             # Assign current bars
@@ -1042,3 +1045,76 @@ class AutoTraderBot:
         adj_data, adj_quote_data = adjusted_datasets
         
         return adj_data, adj_quote_data
+    
+    
+    @staticmethod
+    def _check_ohlc_data(ohlc_data: pd.DataFrame, timestamp: datetime, 
+                         indexing: str = 'open') -> pd.DataFrame:
+        """Checks the index of inputted data to ensure it contains no future 
+        data.
+
+        Parameters
+        ----------
+        ohlc_data : pd.DataFrame
+            DESCRIPTION.
+        timestamp : datetime
+            DESCRIPTION.
+        indexing : str, optional
+            How the OHLC data has been indexed (either by bar 'open' time, or
+            bar 'close' time). The default is 'open'.
+
+        Raises
+        ------
+        Exception
+            DESCRIPTION.
+
+        Returns
+        -------
+        past_data : TYPE
+            DESCRIPTION.
+
+        """
+        
+        if indexing.lower() == 'open':
+            past_data = ohlc_data[ohlc_data.index < timestamp]
+        elif indexing.lower() == 'close':
+            past_data = ohlc_data[ohlc_data.index <= timestamp]
+        else:
+            raise Exception(f"Unrecognised indexing type '{indexing}'.")
+            
+        return past_data
+    
+    
+    def _check_data(self, timestamp: datetime, indexing: str = 'open') -> dict:
+        """Wrapper for multiple datasets contained in a dictionary.
+
+        Parameters
+        ----------
+        timestamp : datetime
+            DESCRIPTION.
+        indexing : str, optional
+            DESCRIPTION. The default is 'open'.
+
+        Returns
+        -------
+        checked_data : TYPE
+            DESCRIPTION.
+
+        """
+        
+        datasets = self._strat_data
+        
+        checked_data = {}
+        for data_key in datasets: # TODO - key, item in datasets.items()
+            ohlc_data = datasets[data_key]
+            checked_data[data_key] = self.check_ohlc_data(ohlc_data, timestamp, indexing)
+        
+        
+        # TODO - extra data steps:
+        # use self._strategy_params['period'] to tail the data
+        # return a standard dict form, regardless of the _strat_data format 
+            # (eg. single TF, MTF, +auxdata)
+        # FOR LIVETRADING : Need to pull new data!
+        
+        return checked_data
+    
