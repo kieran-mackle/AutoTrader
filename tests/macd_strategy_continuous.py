@@ -18,6 +18,9 @@ class SimpleMACD:
     def __init__(self, params, data, instrument):
         """Define all indicators used in the strategy.
         """
+        
+        # TODO - do I want to move away from instantiating with data? 
+        
         self.name = "MACD Trend Strategy"
         self.params = params
         self.instrument = instrument

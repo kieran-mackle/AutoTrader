@@ -1177,7 +1177,64 @@ class AutoTrader:
             print("\nTrading...\n")
             backtest_start_time = timeit.default_timer()
             
-        if not self._detach_bot:
+        
+        '''
+        Idea is to have a timestamp here, which gets incremented each
+        iteration by the granularity. 
+        
+        That timestamp then gets passed to each bot, where it is used
+        to filter the data that gets passed to the strategy. This happens
+        in AutoBot.
+        
+        In backtest mode, only data before the timestamp gets passed on. 
+        
+        In livetrade mode, no data filtering needs to be done, as if we are
+        live, we cannot have future data anyway, so pass it all on. 
+        
+        There may be filtering to only pass the specified data length (eg
+        the PERIOD <aside: maybe rename that...>) to prevent ridiculous 
+        calculations (eg. ema on 3000 bars or whatever).
+        
+        
+        CAREFUL: if running MTF, what timeframe will be used to 
+        call time.sleep()? And more importantly, what implications will
+        this have on bot._update()?
+        '''
+        
+        # TODO - what is going to happen to detach_bot attribute?
+        if self._mode == 'continuous':
+            # Running in continuous update mode
+            if self._backtest_mode:
+                # Backtesting
+                start_time = 0 # datetime
+                end_time = 0 # datetime
+                timestep = 0 # timedelta (from granularity)
+                
+                timestamp = start_time # datetime
+                while timestamp <= end_time:
+                    # Update each bot with latest data to generate signal
+                    for bot in self._bots_deployed:
+                        bot._update(timestamp)
+                        
+                    # Iterate through time
+                    timestamp += timestep
+                    
+                    # Update backtest tracking stats
+                    # TODO - what size will these be? might cause problems...
+                    NAV.append(self._broker.NAV)
+                    balance.append(self._broker.portfolio_balance)
+                    margin.append(self._broker.margin_available)
+        
+            else:
+                # Live trading
+                starttime = time.time()
+                while True: # TODO - make while running, or similar
+                    granularity = 0 # in seconds
+                    # TODO - should I use timestep here instead of granularity?
+                    bot._update() # TODO - Calling this needs to update the data
+                    time.sleep(granularity - ((time.time() - starttime) % granularity))
+                    
+        else:
             # Trading in periodic update mode
             if self._backtest_mode:
                 # Backtesting
@@ -1185,10 +1242,6 @@ class AutoTrader:
                 for i in range(start_range, end_range):
                     # Update each bot with latest data to generate signal
                     for bot in self._bots_deployed:
-                        # Update virtual broker with latest data
-                        bot._update_backtest(i)
-                        
-                        # Update trading bot
                         bot._update(i)
                         
                     # Update backtest tracking
@@ -1198,82 +1251,7 @@ class AutoTrader:
         
             else:
                 # Live trading
-                bot._update(-1)  # Get latest signal
-        
-        
-        # Continuous update mode
-        if False: # if self._mode == 'continuous':
-            # Running in continuous mode    
-            if self._backtest_mode:
-                # Backtesting
-                start_time = 0
-                end_time = 0
-                timestep = 0
-                timestamp = 0
-                while timestamp <= end_time:
-                    timestamp += timestep
-                
-                start_range, end_range = self._bots_deployed[0]._get_iteration_range()
-                for i in range(start_range, end_range):
-                    # Update each bot with latest data to generate signal
-                    for bot in self._bots_deployed:
-                        # Update virtual broker with latest data
-                        bot._update_backtest(i)
-                        
-                        # Update trading bot
-                        bot._update(i)
-                        
-                    # Update backtest tracking 
-                    # TODO - what size will these be? might cause problems...
-                    NAV.append(self._broker.NAV)
-                    balance.append(self._broker.portfolio_balance)
-                    margin.append(self._broker.margin_available)
-        
-            else:
-                # Live trading
-                starttime = time.time()
-                while True: # while running, or similar
-                    granularity = 0 # in seconds
-                    bot._update() # Calling this needs to update the data
-                    time.sleep(granularity - ((time.time() - starttime) % granularity))
-                
-                
-            '''
-            Idea is to have a timestamp here, which gets incremented each
-            iteration by the granularity. 
-            
-            That timestamp then gets passed to each bot, where it is used
-            to filter the data that gets passed to the strategy. This happens
-            in AutoBot.
-            
-            In backtest mode, only data before the timestamp gets passed on. 
-            
-            In livetrade mode, no data filtering needs to be done, as if we are
-            live, we cannot have future data anyway, so pass it all on. 
-            
-            There may be filtering to only pass the specified data length (eg
-            the PERIOD <aside: maybe rename that...>) to prevent ridiculous 
-            calculations (eg. ema on 3000 bars or whatever).
-            
-            There will need to be some mechanism in place to ensure that repeat
-            data does not get sent to the strategy, or else there might be
-            duplicate orders coming through. This is unlinkely with single TF,
-            single bot tests, but more likely when data lengths are different.
-            
-            Theoretically, this will allow MTF strategies to actually run on
-            different timeframes, since the data lengths do not need to match.
-            
-            CAREFUL: if running MTF, what timeframe will be used to 
-            call time.sleep()? And more importantly, what implications will
-            this have on bot._update()?
-            
-            For now, dont worry about threading...
-            '''
-            pass
-            
-        
-        
-        
+                bot._update(-1)  # Process most recent signal
         
         if self._backtest_mode:
             backtest_end_time = timeit.default_timer()

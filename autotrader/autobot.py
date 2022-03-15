@@ -697,18 +697,11 @@ class AutoTraderBot:
           workflow at instantiation.
         - Anywhere i is used, try replace by simply passing around
           the relevant bar.
+        - Think about what happens when the timestamp is such that it provides
+          less than the requested number of bars...
         """
         # Reset self._latest_orders
         self._latest_orders = []
-        
-        
-        # TODO - need to work out where to place this
-        # Answer -> after defining current bar ... but does it need to be
-        # before calling generate_signal?? I dont think so... but double check
-        if self._backtest_mode:
-            # Running backtest
-            self._update_backtest(i)
-            
         
         if self._mode == 'continuous':
             # Running in continuous update mode
@@ -717,9 +710,6 @@ class AutoTraderBot:
             
             future_checked_data = self._check_historical_data(unchecked_data)
             data = future_checked_data.tail(self._strategy_params['period'])
-            
-            # Get strategy orders
-            strategy_orders = self._strategy.generate_signal(data)
             
             # Assign current bars
             current_bar = data.iloc[-1]
@@ -732,12 +722,20 @@ class AutoTraderBot:
             else:
                 current_position = None
             
-            # Get strategy orders
-            strategy_orders = self._strategy.generate_signal(i, current_position=current_position)
-            
             # Assign current bars
-            current_bar = data.iloc[i] # TODO - self.data.iloc[i] ? 
+            current_bar = self.data.iloc[i]
             quote_bar = self.quote_data.iloc[i]
+        
+        
+        # Update backtest
+        if self._backtest_mode:
+            self._update_backtest(current_bar)
+        
+        # Get strategy orders
+        if self._mode == 'continuous':
+            strategy_orders = self._strategy.generate_signal(data)
+        else:
+            strategy_orders = self._strategy.generate_signal(i, current_position=current_position)
         
         # Check and qualify orders
         orders = self._check_orders(strategy_orders)
@@ -759,7 +757,6 @@ class AutoTraderBot:
                 # Bot is trading
                 self._broker.place_order(order, order_time=current_bar.name)
                 self._latest_orders.append(order)
-        
         
         if int(self._verbosity) > 1:
             if len(self._latest_orders) > 0:
