@@ -1186,11 +1186,11 @@ class AutoTrader:
                         # Update trading bot
                         bot._update(i)
                         
-                        # Update backtest tracking
-                        NAV.append(self._broker.NAV)
-                        balance.append(self._broker.portfolio_balance)
-                        margin.append(self._broker.margin_available)
-            
+                    # Update backtest tracking
+                    NAV.append(self._broker.NAV)
+                    balance.append(self._broker.portfolio_balance)
+                    margin.append(self._broker.margin_available)
+        
             else:
                 # Live trading
                 bot._update(-1)  # Get latest signal
