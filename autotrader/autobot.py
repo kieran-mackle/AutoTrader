@@ -679,46 +679,71 @@ class AutoTraderBot:
         return data
     
     
-    def _update(self, i: int) -> None:
+    def _update(self, i: int = None, timestamp: datetime = None) -> None:
         """Update strategy with latest data and generate latest signal.
+        
+        TODO
+        -----
+        - need to have a mechanism in place to prevent duplicate signals. This
+          can be as simple as keeping track of the last timestamp recieved, and
+          not acting on the current timestamp if it matches the previous (or,
+          if it is too close to the previous timestamp... MTF).
+        - if backtesting, call self._update_backtest before proceeding, then
+          remove that call from autotrader.
+        - implement mechanism to update data attributes each update... for 
+          backtesting, this should just be a sliding window of the data loaded
+          at instantiation, but for livetrading, the data needs to be fetched 
+          again. This might be achieved more seemlessly by splitting the 
+          workflow at instantiation.
+        - Anywhere i is used, try replace by simply passing around
+          the relevant bar.
         """
         # Reset self._latest_orders
         self._latest_orders = []
         
-        if self._strategy_params['INCLUDE_POSITIONS']:
-            current_position = self._broker.get_positions(self.instrument)
-        else:
-            current_position = None
         
-        # Run strategy to get signals
-        strategy_orders = self._strategy.generate_signal(i, current_position=current_position)
+        # TODO - need to work out where to place this
+        # Answer -> after defining current bar ... but does it need to be
+        # before calling generate_signal?? I dont think so... but double check
+        if self._backtest_mode:
+            # Running backtest
+            self._update_backtest(i)
+            
         
-        if False: # if self._mode = 'continuous'
-            '''
-            Something like:
-                
-            unchecked_data = whatever gets passed to the strategy, could be MTF or otherwise
+        if self._mode == 'continuous':
+            # Running in continuous update mode
+            unchecked_data = 0 # whatever gets passed to the strategy, 
+            # could be MTF or otherwise, but when does the data refresh?
+            
             future_checked_data = self._check_historical_data(unchecked_data)
             data = future_checked_data.tail(self._strategy_params['period'])
+            
+            # Get strategy orders
             strategy_orders = self._strategy.generate_signal(data)
             
-            Anywhere else where i is used, try replace by simply passing around
-            the relevant bar. For example, 
-            if using i:
-                current_bar = data.iloc[i]
+            # Assign current bars
+            current_bar = data.iloc[-1]
+            quote_bar = self.quote_data.iloc[-1] # TODO - where will this come from?
+        
+        else:
+            # Running in periodic update mode
+            if self._strategy_params['INCLUDE_POSITIONS']:
+                current_position = self._broker.get_positions(self.instrument)
             else:
-                current_bar = data.iloc[-1]
+                current_position = None
             
-            current_time = current_bar.index
+            # Get strategy orders
+            strategy_orders = self._strategy.generate_signal(i, current_position=current_position)
             
-            '''
-            pass
+            # Assign current bars
+            current_bar = data.iloc[i] # TODO - self.data.iloc[i] ? 
+            quote_bar = self.quote_data.iloc[i]
         
-        
+        # Check and qualify orders
         orders = self._check_orders(strategy_orders)
-        self._qualify_orders(orders, i)
+        self._qualify_orders(orders, current_bar, quote_bar)
         
-        # Iterate over orders to submit
+        # Submit orders
         for order in orders:
             if self._scan_mode:
                 # Bot is scanning
@@ -732,8 +757,9 @@ class AutoTraderBot:
                 
             else:
                 # Bot is trading
-                self._broker.place_order(order, order_time=self.data.index[i])
+                self._broker.place_order(order, order_time=current_bar.name)
                 self._latest_orders.append(order)
+        
         
         if int(self._verbosity) > 1:
             if len(self._latest_orders) > 0:
@@ -746,11 +772,11 @@ class AutoTraderBot:
                     print(order_string)
             else:
                 if int(self._verbosity) > 2:
-                    print("{}: No signal detected ({}).".format(self.data.index[i].strftime("%b %d %Y %H:%M:%S"),
+                    print("{}: No signal detected ({}).".format(current_bar.name.strftime("%b %d %Y %H:%M:%S"),
                                                                 self.instrument))
         
         # Check for orders placed and/or scan hits
-        if int(self._notify) > 0 and self._backtest_mode is False:
+        if int(self._notify) > 0 and not self._backtest_mode:
             
             for order_details in self._latest_orders:
                 self._broker_utils.write_to_order_summary(order_details, 
@@ -904,7 +930,8 @@ class AutoTraderBot:
         return checked_orders
         
     
-    def _qualify_orders(self, orders: list, i: int) -> None:
+    def _qualify_orders(self, orders: list, current_bar: pd.core.series.Series,
+                        quote_bar: pd.core.series.Series) -> None:
         """Passes price data to order to populate missing fields.
         """
         for order in orders:
@@ -912,8 +939,8 @@ class AutoTraderBot:
                 liveprice_func = getattr(self._get_data, f'{self._feed.lower()}_liveprice')
                 last_price = liveprice_func(order)
             else:
-                last_price = self._get_data._pseduo_liveprice(last=self.data.Close[i],
-                                                              quote_price=self.quote_data.Close[i])
+                last_price = self._get_data._pseduo_liveprice(last=current_bar.Close,
+                                                              quote_price=quote_bar.Close)
             
             if order.direction < 0:
                 order_price = last_price['bid']
@@ -926,11 +953,10 @@ class AutoTraderBot:
             order(broker=self._broker, order_price=order_price, HCF=HCF)
     
     
-    def _update_backtest(self, i: int) -> None:
+    def _update_backtest(self, current_bar: pd.core.series.Series) -> None:
         """Updates virtual broker with latest price data for backtesting.
         """
-        candle = self.data.iloc[i]
-        self._broker._update_positions(candle, self.instrument)
+        self._broker._update_positions(current_bar, self.instrument)
     
     
     def _next_candle_open(self, granularity: str) -> datetime:

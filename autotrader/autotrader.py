@@ -1202,7 +1202,42 @@ class AutoTrader:
         
         
         # Continuous update mode
-        if False: # while developing
+        if False: # if self._mode == 'continuous':
+            # Running in continuous mode    
+            if self._backtest_mode:
+                # Backtesting
+                start_time = 0
+                end_time = 0
+                timestep = 0
+                timestamp = 0
+                while timestamp <= end_time:
+                    timestamp += timestep
+                
+                start_range, end_range = self._bots_deployed[0]._get_iteration_range()
+                for i in range(start_range, end_range):
+                    # Update each bot with latest data to generate signal
+                    for bot in self._bots_deployed:
+                        # Update virtual broker with latest data
+                        bot._update_backtest(i)
+                        
+                        # Update trading bot
+                        bot._update(i)
+                        
+                    # Update backtest tracking 
+                    # TODO - what size will these be? might cause problems...
+                    NAV.append(self._broker.NAV)
+                    balance.append(self._broker.portfolio_balance)
+                    margin.append(self._broker.margin_available)
+        
+            else:
+                # Live trading
+                starttime = time.time()
+                while True: # while running, or similar
+                    granularity = 0 # in seconds
+                    bot._update() # Calling this needs to update the data
+                    time.sleep(granularity - ((time.time() - starttime) % granularity))
+                
+                
             '''
             Idea is to have a timestamp here, which gets incremented each
             iteration by the granularity. 
@@ -1227,6 +1262,10 @@ class AutoTrader:
             
             Theoretically, this will allow MTF strategies to actually run on
             different timeframes, since the data lengths do not need to match.
+            
+            CAREFUL: if running MTF, what timeframe will be used to 
+            call time.sleep()? And more importantly, what implications will
+            this have on bot._update()?
             
             For now, dont worry about threading...
             '''
