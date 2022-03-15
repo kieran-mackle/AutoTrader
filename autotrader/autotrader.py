@@ -1181,30 +1181,13 @@ class AutoTrader:
             
         
         '''
-        Idea is to have a timestamp here, which gets incremented each
-        iteration by the granularity. 
-        
-        That timestamp then gets passed to each bot, where it is used
-        to filter the data that gets passed to the strategy. This happens
-        in AutoBot.
-        
-        In backtest mode, only data before the timestamp gets passed on. 
-        
-        In livetrade mode, no data filtering needs to be done, as if we are
-        live, we cannot have future data anyway, so pass it all on. 
-        
-        There may be filtering to only pass the specified data length (eg
-        the PERIOD <aside: maybe rename that...>) to prevent ridiculous 
-        calculations (eg. ema on 3000 bars or whatever).
-        
-        
         CAREFUL: if running MTF, what timeframe will be used to 
         call time.sleep()? And more importantly, what implications will
         this have on bot._update()?
         '''
         
         # TODO - what is going to happen to detach_bot attribute?
-        if self._mode == 'continuous':
+        if self._mode.lower() == 'continuous':
             # Running in continuous update mode
             if self._backtest_mode:
                 # Backtesting
@@ -1237,7 +1220,7 @@ class AutoTrader:
                     bot._update() # TODO - Calling this needs to update the data
                     time.sleep(granularity - ((time.time() - starttime) % granularity))
                     
-        else:
+        elif self._mode.lower() == 'periodic':
             # Trading in periodic update mode
             if self._backtest_mode:
                 # Backtesting

@@ -76,6 +76,7 @@ class AutoTraderBot:
         
         # Assign local attributes
         self.instrument = instrument
+        self.auxdata = auxdata
         self._broker = broker
         
         # Unpack strategy parameters and assign to strategy_params
@@ -170,23 +171,25 @@ class AutoTraderBot:
         else:
             self._abs_data_filepath = False
         
+        # Fetch data
         self._get_data = GetData(broker_config, self._allow_dancing_bears)
-        data, quote_data, MTF_data = self._retrieve_data(instrument, self._feed)
+        strat_data = self._refresh_data()
+        # data, quote_data, MTF_data = self._retrieve_data(instrument, self._feed)
         
-        # Check data
-        if len(data) == 0:
-            raise Exception("Error retrieving data.")
+        # # Check data
+        # if len(data) == 0:
+        #     raise Exception("Error retrieving data.")
         
-        # Data assignment
-        if MTF_data is None:
-            strat_data = data
-        else:
-            strat_data = MTF_data
+        # # Data assignment
+        # if MTF_data is None:
+        #     strat_data = data
+        # else:
+        #     strat_data = MTF_data
         
-        # Auxiliary data assignment
-        if auxdata is not None:
-            strat_data = {'base': strat_data,
-                          'aux': auxdata}
+        # # Auxiliary data assignment
+        # if auxdata is not None:
+        #     strat_data = {'base': strat_data,
+        #                   'aux': auxdata}
         
         # Instantiate Strategy
         include_broker = strategy_config['INCLUDE_BROKER'] \
@@ -198,16 +201,12 @@ class AutoTraderBot:
             my_strat = strategy(params, strat_data, instrument)
             
         # Assign strategy to local attributes
-        self.data = data
-        self.MTF_data = MTF_data
-        self.quote_data = quote_data  # TODO - cosider making private
+        # self.data = data
+        # self.MTF_data = MTF_data
+        # self.quote_data = quote_data  # TODO - cosider making private
         self._strat_data = strat_data
         self._strategy = my_strat
         self._latest_orders = []
-        
-        # strat_data will either contain a single timeframe OHLC dataframe, 
-        # a dictionary of MTF dataframes, or a dict with 'base' and 'aux' keys,
-        # for aux and base strategy data (which could be single of MTF).
         
         # Assign strategy attributes for tick-based strategy development
         if self._backtest_mode:
@@ -287,6 +286,37 @@ class AutoTraderBot:
         # Update strategy with new data
         self._strategy.initialise_strategy(strat_data)
         
+    
+    def _refresh_data(self):
+        # Fetch new data
+        data, quote_data, MTF_data = self._retrieve_data(self.instrument, self._feed)
+        
+        # Check data returned is valid
+        if len(data) == 0:
+            raise Exception("Error retrieving data.")
+        
+        # Data assignment
+        if MTF_data is None:
+            strat_data = data
+        else:
+            strat_data = MTF_data
+        
+        # Auxiliary data assignment
+        if self.auxdata is not None:
+            strat_data = {'base': strat_data,
+                          'aux': self.auxdata}
+        
+        # Assign data attributes to bot
+        self.data = data
+        self.MTF_data = MTF_data
+        self.quote_data = quote_data  # TODO - cosider making private
+        
+        # strat_data will either contain a single timeframe OHLC dataframe, 
+        # a dictionary of MTF dataframes, or a dict with 'base' and 'aux' keys,
+        # for aux and base strategy data (which could be single of MTF).
+        
+        return strat_data
+    
     
     def _retrieve_data(self, instrument: str, feed: str, 
                        base_data: pd.DataFrame = None) -> pd.DataFrame:
@@ -692,31 +722,24 @@ class AutoTraderBot:
           can be as simple as keeping track of the last timestamp recieved, and
           not acting on the current timestamp if it matches the previous (or,
           if it is too close to the previous timestamp... MTF).
-        - if backtesting, call self._update_backtest before proceeding, then
+        - Think about what happens when the timestamp is such that it provides
+          less than the requested number of bars...
+        / if backtesting, call self._update_backtest before proceeding, then
           remove that call from autotrader.
-        - implement mechanism to update data attributes each update... for 
+        / implement mechanism to update data attributes each update... for 
           backtesting, this should just be a sliding window of the data loaded
           at instantiation, but for livetrading, the data needs to be fetched 
           again. This might be achieved more seemlessly by splitting the 
           workflow at instantiation.
-        - Anywhere i is used, try replace by simply passing around
+        / Anywhere i is used, try replace by simply passing around
           the relevant bar.
-        - Think about what happens when the timestamp is such that it provides
-          less than the requested number of bars...
         """
-        # Reset self._latest_orders
+        # Reset latest orders
         self._latest_orders = []
         
         if self._mode == 'continuous':
             # Running in continuous update mode
-            future_checked_data = self._check_data(timestamp, self._data_indexing)
-            
-            
-            data = future_checked_data.tail(self._strategy_params['period'])
-            
-            # Assign current bars
-            current_bar = data.iloc[-1]
-            quote_bar = self.quote_data.iloc[-1] # TODO - where will this come from?
+            strat_data, current_bar, quote_bar = self._check_data(timestamp, self._data_indexing)
         
         else:
             # Running in periodic update mode
@@ -727,8 +750,7 @@ class AutoTraderBot:
             
             # Assign current bars
             current_bar = self.data.iloc[i]
-            quote_bar = self.quote_data.iloc[i] # TODO - what if there is no quote data? Or is there always..
-        
+            quote_bar = self.quote_data.iloc[i]
         
         # Update backtest
         if self._backtest_mode:
@@ -736,7 +758,7 @@ class AutoTraderBot:
         
         # Get strategy orders
         if self._mode == 'continuous':
-            strategy_orders = self._strategy.generate_signal(data)
+            strategy_orders = self._strategy.generate_signal(strat_data)
         else:
             strategy_orders = self._strategy.generate_signal(i, current_position=current_position)
         
@@ -749,7 +771,7 @@ class AutoTraderBot:
             if self._scan_mode:
                 # Bot is scanning
                 scan_hit = {"size"  : order.size,
-                            "entry" : self.data.Close[i],
+                            "entry" : current_bar.Close,
                             "stop"  : order.stop_loss,
                             "take"  : order.take_profit,
                             "signal": order.direction}
@@ -1049,7 +1071,7 @@ class AutoTraderBot:
     
     @staticmethod
     def _check_ohlc_data(ohlc_data: pd.DataFrame, timestamp: datetime, 
-                         indexing: str = 'open') -> pd.DataFrame:
+                         indexing: str = 'open', tail_bars: int = None) -> pd.DataFrame:
         """Checks the index of inputted data to ensure it contains no future 
         data.
 
@@ -1062,7 +1084,10 @@ class AutoTraderBot:
         indexing : str, optional
             How the OHLC data has been indexed (either by bar 'open' time, or
             bar 'close' time). The default is 'open'.
-
+        tail_bars : int, optional
+            If provided, the data will be truncated to provide the number
+            of bars specified. The default is None.
+        
         Raises
         ------
         Exception
@@ -1081,17 +1106,20 @@ class AutoTraderBot:
             past_data = ohlc_data[ohlc_data.index <= timestamp]
         else:
             raise Exception(f"Unrecognised indexing type '{indexing}'.")
+        
+        if tail_bars is not None:
+            past_data = past_data.tail(tail_bars)
             
         return past_data
     
     
     def _check_auxdata(self, auxdata: dict, timestamp: datetime, 
-                       indexing: str = 'open') -> dict:
+                       indexing: str = 'open', tail_bars: int = None) -> dict:
         processed_auxdata = {}
         for key, item in auxdata.items():
             if isinstance(item, pd.DataFrame) or isinstance(item, pd.Series):
-                processed_auxdata[key] = self._check_ohlc_data(item, 
-                                                        timestamp, indexing)
+                processed_auxdata[key] = self._check_ohlc_data(item, timestamp, 
+                                                        indexing, tail_bars)
             else:
                 processed_auxdata[key] = item
         return processed_auxdata
@@ -1113,15 +1141,13 @@ class AutoTraderBot:
             DESCRIPTION.
 
         """
-        
         if self._backtest_mode:
+            bars = self._strategy_params['period']
             if isinstance(self._strat_data, dict):
-                processed_data = {}
                 if 'aux' in self._strat_data:
                     base_data = self._strat_data['base']
                     processed_auxdata = self._check_auxdata(self._strat_data['aux'],
-                                                            timestamp, indexing)
-                    
+                                                            timestamp, indexing, bars)
                 else:
                     # MTF data
                     base_data = self._strat_data
@@ -1133,37 +1159,36 @@ class AutoTraderBot:
                 processed_basedata = {}
                 for granularity, data in base_data.items():
                     processed_basedata[granularity] = self._check_ohlc_data(data, 
-                                                            timestamp, indexing)
-                    
+                                                            timestamp, indexing, bars)
+                
+                # Extract current bar
+                current_bar = processed_basedata[list(processed_basedata.keys())[0]].iloc[-1]
+                
                 # Combine the results of the conditionals above
+                strat_data = {}
                 if 'aux' in self._strat_data:
-                    processed_data['aux'] = processed_auxdata
-                    processed_data['base'] = processed_basedata
+                    strat_data['aux'] = processed_auxdata
+                    strat_data['base'] = processed_basedata
                 else:
-                    processed_data = processed_basedata
+                    strat_data = processed_basedata
                 
             elif isinstance(self._strat_data, pd.DataFrame):
-                processed_data = self._check_ohlc_data(self._strat_data, 
-                                                       timestamp, indexing)
+                strat_data = self._check_ohlc_data(self._strat_data, 
+                                                       timestamp, indexing, bars)
+                current_bar = strat_data.iloc[-1]
             
             else:
                 raise Exception("Unrecognised data type. Cannot process.")
-                
-            # TODO - use self._strategy_params['period'] to tail the data
-        
+            
         else:
-            # livetrading, fetch new data
-            # FOR LIVETRADING : Need to pull new data!
-            # Should the data here overwrite self.data? Perhaps in live mode yes
-            pass
+            # Livetrading - fetch new data
+            strat_data = self._refresh_data()
+            current_bar = self.data.iloc[-1]
         
-        # Now have processed_data, which contains future safe data
+        # Process quote data
+        quote_data = self._check_ohlc_data(self.quote_data, timestamp, 
+                                           indexing, bars)
+        quote_bar = quote_data.iloc[-1]
         
-        
-        
-        # TODO - process quote data to get correct bar
-        
-        
-        
-        return processed_data
+        return strat_data, current_bar, quote_bar
     
