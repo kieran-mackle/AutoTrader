@@ -499,6 +499,11 @@ class AutoTraderBot:
                 # Using price stream data file
                 custom_data_filepath = self._data_file
                 
+                datafile_copied_path = custom_data_filepath.split('.')[0] + \
+                    '_copy.' + custom_data_filepath.split('.')[1]
+                print(custom_data_filepath)
+                print(datafile_copied_path)
+                
                 # Make copy of file to prevent read-write errors
                 copy2(custom_data_filepath, self.abs_streamfile_copy)
                 

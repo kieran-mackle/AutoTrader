@@ -430,6 +430,8 @@ class AutoTrader:
         # TODO - add option to specify strategy, in case multiple strategies
         # (requiring different data) are added to the instance
         
+        # TODO - alow adding data DIRECTLY, not as a filepath
+        
         dir_path = abs_dir_path if abs_dir_path is not None else os.path.join(self._home_dir, data_directory)
         
         # Trading data
