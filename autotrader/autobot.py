@@ -145,7 +145,7 @@ class AutoTraderBot:
             
             # Start stream
             self._initiate_stream()
-
+        
         # Multiple time-frame initialisation option
         if self._MTF_initialisation:
             # Only retrieve MTF_data once upon initialisation and store
@@ -160,9 +160,13 @@ class AutoTraderBot:
             if type(data_dict) == str:
                 # Single timeframe data file provided
                 self._data_file = data_dict
+                self._base_interval = interval
+                self._MTF_intervals = []
             else:
                 # MTF data provided
                 self._MTF_data_files = data_dict
+                self._base_interval = interval.split(',')[0]
+                self._MTF_intervals = interval.split(',')[1:]
         else:
             self._abs_data_filepath = False
         
