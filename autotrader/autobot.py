@@ -501,17 +501,15 @@ class AutoTraderBot:
                 
                 datafile_copied_path = custom_data_filepath.split('.')[0] + \
                     '_copy.' + custom_data_filepath.split('.')[1]
-                print(custom_data_filepath)
-                print(datafile_copied_path)
                 
                 # Make copy of file to prevent read-write errors
-                copy2(custom_data_filepath, self.abs_streamfile_copy)
+                copy2(custom_data_filepath, datafile_copied_path)
                 
                 if int(self._verbosity) > 1:
                     print("Using data file specified ({}).".format(custom_data_filepath))
                 
                 # Read datafile to get base interval data
-                data = pd.read_csv(self.abs_streamfile_copy, 
+                data = pd.read_csv(datafile_copied_path, 
                                    index_col = 0,
                                    skipinitialspace=True)
                 
@@ -521,7 +519,7 @@ class AutoTraderBot:
                                                 errors='ignore')
                     
                     # Remove copied file
-                    os.remove(self.abs_streamfile_copy)
+                    os.remove(datafile_copied_path)
                     
                 else:
                     # Stream has not had enough time to write data yet, revert 
