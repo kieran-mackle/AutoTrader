@@ -692,6 +692,29 @@ class AutoTraderBot:
         
         # Run strategy to get signals
         strategy_orders = self._strategy.generate_signal(i, current_position=current_position)
+        
+        if False: # if self._mode = 'continuous'
+            '''
+            Something like:
+                
+            unchecked_data = whatever gets passed to the strategy, could be MTF or otherwise
+            future_checked_data = self._check_historical_data(unchecked_data)
+            data = future_checked_data.tail(self._strategy_params['period'])
+            strategy_orders = self._strategy.generate_signal(data)
+            
+            Anywhere else where i is used, try replace by simply passing around
+            the relevant bar. For example, 
+            if using i:
+                current_bar = data.iloc[i]
+            else:
+                current_bar = data.iloc[-1]
+            
+            current_time = current_bar.index
+            
+            '''
+            pass
+        
+        
         orders = self._check_orders(strategy_orders)
         self._qualify_orders(orders, i)
         

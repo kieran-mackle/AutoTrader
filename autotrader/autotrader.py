@@ -70,6 +70,7 @@ class AutoTrader:
         self._order_summary_fp = None
         
         self._verbosity = 1
+        self._mode = 'periodic'
         self._broker_verbosity = 0
         self._notify = 0
         self._email_params = None
@@ -151,7 +152,7 @@ class AutoTrader:
                   allow_dancing_bears: bool = False, account_id: str = None, 
                   environment: str = 'demo', show_plot: bool = False,
                   MTF_initialisation: bool = False, 
-                  jupyter_notebook: bool = False) -> None:
+                  jupyter_notebook: bool = False, mode: str = 'periodic') -> None:
         """Configures run settings for AutoTrader.
 
         Parameters
@@ -191,6 +192,9 @@ class AutoTrader:
         jupyter_notebook : bool, optional
             Set to True when running in Jupyter notebook environment. The 
             default is False.
+        mode : str, optional
+            The run mode (either 'periodic' or 'continuous'). The default is
+            'periodic'.
 
         Returns
         -------
@@ -213,6 +217,7 @@ class AutoTrader:
         self._show_plot = show_plot
         self._MTF_initialisation = MTF_initialisation
         self._jupyter_notebook = jupyter_notebook
+        self._run_mode = mode
         
         
     def add_strategy(self, config_filename: str = None, 
@@ -1194,7 +1199,43 @@ class AutoTrader:
             else:
                 # Live trading
                 bot._update(-1)  # Get latest signal
+        
+        
+        # Continuous update mode
+        if False: # while developing
+            '''
+            Idea is to have a timestamp here, which gets incremented each
+            iteration by the granularity. 
             
+            That timestamp then gets passed to each bot, where it is used
+            to filter the data that gets passed to the strategy. This happens
+            in AutoBot.
+            
+            In backtest mode, only data before the timestamp gets passed on. 
+            
+            In livetrade mode, no data filtering needs to be done, as if we are
+            live, we cannot have future data anyway, so pass it all on. 
+            
+            There may be filtering to only pass the specified data length (eg
+            the PERIOD <aside: maybe rename that...>) to prevent ridiculous 
+            calculations (eg. ema on 3000 bars or whatever).
+            
+            There will need to be some mechanism in place to ensure that repeat
+            data does not get sent to the strategy, or else there might be
+            duplicate orders coming through. This is unlinkely with single TF,
+            single bot tests, but more likely when data lengths are different.
+            
+            Theoretically, this will allow MTF strategies to actually run on
+            different timeframes, since the data lengths do not need to match.
+            
+            For now, dont worry about threading...
+            '''
+            pass
+            
+        
+        
+        
+        
         if self._backtest_mode:
             backtest_end_time = timeit.default_timer()
         

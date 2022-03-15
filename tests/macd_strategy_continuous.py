@@ -53,7 +53,6 @@ class SimpleMACD:
         self.swings = indicators.find_swings(data)
         
         
-        
     def generate_signal(self, data):
         """Define strategy to determine entry signals.
         """
