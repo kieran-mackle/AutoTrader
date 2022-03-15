@@ -173,38 +173,18 @@ class AutoTraderBot:
         
         # Fetch data
         self._get_data = GetData(broker_config, self._allow_dancing_bears)
-        strat_data = self._refresh_data()
-        # data, quote_data, MTF_data = self._retrieve_data(instrument, self._feed)
-        
-        # # Check data
-        # if len(data) == 0:
-        #     raise Exception("Error retrieving data.")
-        
-        # # Data assignment
-        # if MTF_data is None:
-        #     strat_data = data
-        # else:
-        #     strat_data = MTF_data
-        
-        # # Auxiliary data assignment
-        # if auxdata is not None:
-        #     strat_data = {'base': strat_data,
-        #                   'aux': auxdata}
+        self._refresh_data()
         
         # Instantiate Strategy
         include_broker = strategy_config['INCLUDE_BROKER'] \
             if 'INCLUDE_BROKER' in strategy_config else False
         if include_broker:
-            my_strat = strategy(params, strat_data, instrument, 
+            my_strat = strategy(params, self._strat_data, instrument, 
                                 self._broker, self._broker_utils)
         else:
-            my_strat = strategy(params, strat_data, instrument)
+            my_strat = strategy(params, self._strat_data, instrument)
             
         # Assign strategy to local attributes
-        # self.data = data
-        # self.MTF_data = MTF_data
-        # self.quote_data = quote_data  # TODO - cosider making private
-        self._strat_data = strat_data
         self._strategy = my_strat
         self._latest_orders = []
         
@@ -307,6 +287,7 @@ class AutoTraderBot:
                           'aux': self.auxdata}
         
         # Assign data attributes to bot
+        self._strat_data = strat_data
         self.data = data
         self.MTF_data = MTF_data
         self.quote_data = quote_data  # TODO - cosider making private
@@ -718,12 +699,12 @@ class AutoTraderBot:
         
         TODO
         -----
-        - need to have a mechanism in place to prevent duplicate signals. This
+        / need to have a mechanism in place to prevent duplicate signals. This
           can be as simple as keeping track of the last timestamp recieved, and
           not acting on the current timestamp if it matches the previous (or,
           if it is too close to the previous timestamp... MTF).
-        - Think about what happens when the timestamp is such that it provides
-          less than the requested number of bars...
+        - Only for livetrading now, think about what happens when the timestamp 
+          is such that it provides less than the requested number of bars
         / if backtesting, call self._update_backtest before proceeding, then
           remove that call from autotrader.
         / implement mechanism to update data attributes each update... for 
@@ -752,112 +733,116 @@ class AutoTraderBot:
             current_bar = self.data.iloc[i]
             quote_bar = self.quote_data.iloc[i]
         
-        # Update backtest
-        if self._backtest_mode:
-            self._update_backtest(current_bar)
+        # Check for duplicated data
+        duplicate_data = self._check_last_bar(current_bar)
         
-        # Get strategy orders
-        if self._mode == 'continuous':
-            strategy_orders = self._strategy.generate_signal(strat_data)
-        else:
-            strategy_orders = self._strategy.generate_signal(i, current_position=current_position)
-        
-        # Check and qualify orders
-        orders = self._check_orders(strategy_orders)
-        self._qualify_orders(orders, current_bar, quote_bar)
-        
-        # Submit orders
-        for order in orders:
-            if self._scan_mode:
-                # Bot is scanning
-                scan_hit = {"size"  : order.size,
-                            "entry" : current_bar.Close,
-                            "stop"  : order.stop_loss,
-                            "take"  : order.take_profit,
-                            "signal": order.direction}
-                self._scan_results[self.instrument] = scan_hit
-                pass
-                
+        if not duplicate_data:
+            # Update backtest
+            if self._backtest_mode:
+                self._update_backtest(current_bar)
+            
+            # Get strategy orders
+            if self._mode == 'continuous':
+                strategy_orders = self._strategy.generate_signal(strat_data)
             else:
-                # Bot is trading
-                self._broker.place_order(order, order_time=current_bar.name)
-                self._latest_orders.append(order)
-        
-        if int(self._verbosity) > 1:
-            if len(self._latest_orders) > 0:
-                for order in self._latest_orders:
-                    order_string = "{}: {} {}".format(order.order_time.strftime("%b %d %Y %H:%M:%S"), 
-                                                      order.instrument, 
-                                                      order.order_type) + \
-                        " order of {} units placed at {}.".format(order.size,
-                                                                  order.order_price)
-                    print(order_string)
-            else:
-                if int(self._verbosity) > 2:
-                    print("{}: No signal detected ({}).".format(current_bar.name.strftime("%b %d %Y %H:%M:%S"),
-                                                                self.instrument))
-        
-        # Check for orders placed and/or scan hits
-        if int(self._notify) > 0 and not self._backtest_mode:
+                strategy_orders = self._strategy.generate_signal(i, current_position=current_position)
             
-            for order_details in self._latest_orders:
-                self._broker_utils.write_to_order_summary(order_details, 
-                                                         self._order_summary_fp)
+            # Check and qualify orders
+            orders = self._check_orders(strategy_orders)
+            self._qualify_orders(orders, current_bar, quote_bar)
             
-            if int(self._notify) > 1 and \
-                self._email_params['mailing_list'] is not None and \
-                self._email_params['host_email'] is not None:
-                    if int(self._verbosity) > 0 and len(self._latest_orders) > 0:
-                            print("Sending emails ...")
-                            
-                    for order_details in self._latest_orders:
-                        emailing.send_order(order_details,
-                                            self._email_params['mailing_list'],
-                                            self._email_params['host_email'])
-                        
-                    if int(self._verbosity) > 0 and len(self._latest_orders) > 0:
-                            print("  Done.\n")
-            
-        # Check scan results
-        if self._scan_mode:
-            # Construct scan details dict
-            scan_details    = {'index'      : self._scan_index,
-                               'strategy'   : self._strategy.name,
-                               'timeframe'  : self._strategy_params['granularity']
-                               }
-            
-            # Report AutoScan results
-            # Scan reporting with no emailing requested.
-            if int(self._verbosity) > 0 or \
-                int(self._notify) == 0:
-                if len(self._scan_results) == 0:
-                    print("{}: No signal detected.".format(self.instrument))
+            # Submit orders
+            for order in orders:
+                if self._scan_mode:
+                    # Bot is scanning
+                    scan_hit = {"size"  : order.size,
+                                "entry" : current_bar.Close,
+                                "stop"  : order.stop_loss,
+                                "take"  : order.take_profit,
+                                "signal": order.direction}
+                    self._scan_results[self.instrument] = scan_hit
+                    pass
+                    
                 else:
-                    # Scan detected hits
-                    for instrument in self._scan_results:
-                        signal = self._scan_results[instrument]['signal']
-                        signal_type = 'Long' if signal == 1 else 'Short'
-                        print(f"{instrument}: {signal_type} signal detected.")
+                    # Bot is trading
+                    self._broker.place_order(order, order_time=current_bar.name)
+                    self._latest_orders.append(order)
             
-            if int(self._notify) > 0:
-                # Emailing requested
-                if len(self._scan_results) > 0 and \
+            if int(self._verbosity) > 1:
+                if len(self._latest_orders) > 0:
+                    for order in self._latest_orders:
+                        order_string = "{}: {} {}".format(order.order_time.strftime("%b %d %Y %H:%M:%S"), 
+                                                          order.instrument, 
+                                                          order.order_type) + \
+                            " order of {} units placed at {}.".format(order.size,
+                                                                      order.order_price)
+                        print(order_string)
+                else:
+                    if int(self._verbosity) > 2:
+                        print("{}: No signal detected ({}).".format(current_bar.name.strftime("%b %d %Y %H:%M:%S"),
+                                                                    self.instrument))
+            
+            # Check for orders placed and/or scan hits
+            if int(self._notify) > 0 and not self._backtest_mode:
+                
+                for order_details in self._latest_orders:
+                    self._broker_utils.write_to_order_summary(order_details, 
+                                                             self._order_summary_fp)
+                
+                if int(self._notify) > 1 and \
                     self._email_params['mailing_list'] is not None and \
                     self._email_params['host_email'] is not None:
-                    # There was a scanner hit and email information is provided
-                    emailing.send_scan_results(self._scan_results, 
-                                               scan_details, 
-                                               self._email_params['mailing_list'],
-                                               self._email_params['host_email'])
-                elif int(self._notify) > 1 and \
-                    self._email_params['mailing_list'] is not None and \
-                    self._email_params['host_email'] is not None:
-                    # There was no scan hit, but notify set > 1, so send email
-                    # regardless.
-                    emailing.send_scan_results(self._scan_results, 
-                                               scan_details, 
-                                               self._email_params['mailing_list'],
-                                               self._email_params['host_email'])
+                        if int(self._verbosity) > 0 and len(self._latest_orders) > 0:
+                                print("Sending emails ...")
+                                
+                        for order_details in self._latest_orders:
+                            emailing.send_order(order_details,
+                                                self._email_params['mailing_list'],
+                                                self._email_params['host_email'])
+                            
+                        if int(self._verbosity) > 0 and len(self._latest_orders) > 0:
+                                print("  Done.\n")
+                
+            # Check scan results
+            if self._scan_mode:
+                # Construct scan details dict
+                scan_details    = {'index'      : self._scan_index,
+                                   'strategy'   : self._strategy.name,
+                                   'timeframe'  : self._strategy_params['granularity']
+                                   }
+                
+                # Report AutoScan results
+                # Scan reporting with no emailing requested.
+                if int(self._verbosity) > 0 or \
+                    int(self._notify) == 0:
+                    if len(self._scan_results) == 0:
+                        print("{}: No signal detected.".format(self.instrument))
+                    else:
+                        # Scan detected hits
+                        for instrument in self._scan_results:
+                            signal = self._scan_results[instrument]['signal']
+                            signal_type = 'Long' if signal == 1 else 'Short'
+                            print(f"{instrument}: {signal_type} signal detected.")
+                
+                if int(self._notify) > 0:
+                    # Emailing requested
+                    if len(self._scan_results) > 0 and \
+                        self._email_params['mailing_list'] is not None and \
+                        self._email_params['host_email'] is not None:
+                        # There was a scanner hit and email information is provided
+                        emailing.send_scan_results(self._scan_results, 
+                                                   scan_details, 
+                                                   self._email_params['mailing_list'],
+                                                   self._email_params['host_email'])
+                    elif int(self._notify) > 1 and \
+                        self._email_params['mailing_list'] is not None and \
+                        self._email_params['host_email'] is not None:
+                        # There was no scan hit, but notify set > 1, so send email
+                        # regardless.
+                        emailing.send_scan_results(self._scan_results, 
+                                                   scan_details, 
+                                                   self._email_params['mailing_list'],
+                                                   self._email_params['host_email'])
                     
     
     def _check_orders(self, orders) -> list:
@@ -1099,6 +1084,9 @@ class AutoTraderBot:
             DESCRIPTION.
 
         """
+        # TODO - add flag to control if future filtering takes place, to avoid
+        # doing it on livetrade data (only want to tail)
+        
         # TODO - verify this works with pd.Series
         if indexing.lower() == 'open':
             past_data = ohlc_data[ohlc_data.index < timestamp]
@@ -1141,16 +1129,17 @@ class AutoTraderBot:
             DESCRIPTION.
 
         """
-        if self._backtest_mode:
-            bars = self._strategy_params['period']
-            if isinstance(self._strat_data, dict):
-                if 'aux' in self._strat_data:
-                    base_data = self._strat_data['base']
-                    processed_auxdata = self._check_auxdata(self._strat_data['aux'],
+        def process_strat_data(original_strat_data):
+            sufficient_data = True
+            
+            if isinstance(original_strat_data, dict):
+                if 'aux' in original_strat_data:
+                    base_data = original_strat_data['base']
+                    processed_auxdata = self._check_auxdata(original_strat_data['aux'],
                                                             timestamp, indexing, bars)
                 else:
                     # MTF data
-                    base_data = self._strat_data
+                    base_data = original_strat_data
                 
                 # TODO - consider possibility when data is directly passed into bot
                 # This will qualify as 'MTF data' 
@@ -1161,34 +1150,66 @@ class AutoTraderBot:
                     processed_basedata[granularity] = self._check_ohlc_data(data, 
                                                             timestamp, indexing, bars)
                 
-                # Extract current bar
-                current_bar = processed_basedata[list(processed_basedata.keys())[0]].iloc[-1]
-                
                 # Combine the results of the conditionals above
                 strat_data = {}
-                if 'aux' in self._strat_data:
+                if 'aux' in original_strat_data:
                     strat_data['aux'] = processed_auxdata
                     strat_data['base'] = processed_basedata
                 else:
                     strat_data = processed_basedata
+                    
+                # Extract current bar
+                first_tf_data = processed_basedata[list(processed_basedata.keys())[0]]
+                current_bar = first_tf_data.iloc[-1]
                 
-            elif isinstance(self._strat_data, pd.DataFrame):
-                strat_data = self._check_ohlc_data(self._strat_data, 
-                                                       timestamp, indexing, bars)
+                # Check that enough bars have accumulated
+                if len(first_tf_data) < bars:
+                    sufficient_data = False
+                
+            elif isinstance(original_strat_data, pd.DataFrame):
+                strat_data = self._check_ohlc_data(original_strat_data, 
+                                                   timestamp, indexing, bars)
                 current_bar = strat_data.iloc[-1]
+                
+                # Check that enough bars have accumulated
+                if len(strat_data) < bars:
+                    sufficient_data = False
             
             else:
                 raise Exception("Unrecognised data type. Cannot process.")
             
-        else:
-            # Livetrading - fetch new data
-            strat_data = self._refresh_data()
-            current_bar = self.data.iloc[-1]
+            return strat_data, current_bar, sufficient_data
         
+        bars = self._strategy_params['period']
+        
+        if self._backtest_mode:
+            strat_data, current_bar, sufficient_data = process_strat_data(self._strat_data)
+        else:
+            self._refresh_data()
+            strat_data, current_bar, sufficient_data = process_strat_data(self._strat_data)
+            # TODO - maybe I do want to pass this through checks, to prevent 
+            # having data which is 10000 bars long? Can wrap logic above in func
+
+        # TODO - can I improve the code above to reduce repeating?        
+
         # Process quote data
         quote_data = self._check_ohlc_data(self.quote_data, timestamp, 
                                            indexing, bars)
         quote_bar = quote_data.iloc[-1]
         
-        return strat_data, current_bar, quote_bar
+        return strat_data, current_bar, quote_bar, sufficient_data
     
+    
+    def _check_last_bar(self, current_bar) -> bool:
+        """Checks for duplicate data to prevent duplicate signals.
+        """
+        if self._mode == 'continuous':
+            # For now, will just check current_bar doesn't match last bar
+            # For extension, can check that the bar isn't too close to the previous,
+            # in the case of MTF or other
+            # TODO - implement
+            pass
+        else:
+            return False
+        
+        
