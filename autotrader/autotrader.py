@@ -71,6 +71,7 @@ class AutoTrader:
         
         self._verbosity = 1
         self._mode = 'periodic'
+        self._timestep = pd.Timedelta('10s').to_pytimedelta()
         self._data_indexing = 'open' # TODO - add this to configure method 
         self._broker_verbosity = 0
         self._notify = 0
@@ -153,7 +154,8 @@ class AutoTrader:
                   allow_dancing_bears: bool = False, account_id: str = None, 
                   environment: str = 'demo', show_plot: bool = False,
                   MTF_initialisation: bool = False, 
-                  jupyter_notebook: bool = False, mode: str = 'periodic') -> None:
+                  jupyter_notebook: bool = False, mode: str = 'periodic',
+                  update_interval: str = '10s') -> None:
         """Configures run settings for AutoTrader.
 
         Parameters
@@ -196,7 +198,12 @@ class AutoTrader:
         mode : str, optional
             The run mode (either 'periodic' or 'continuous'). The default is
             'periodic'.
-
+        update_interval : str, optional
+            The update interval to use when running in 'continuous' mode. This
+            should align with the highest resolution bar granularity in your
+            strategy to allow adequate updates. The string inputted will be
+            converted to a timedelta object. The default is '10s'.
+        
         Returns
         -------
         None
@@ -219,7 +226,8 @@ class AutoTrader:
         self._MTF_initialisation = MTF_initialisation
         self._jupyter_notebook = jupyter_notebook
         self._run_mode = mode
-        # TODO - add this to configure method 
+        self._timestep = pd.Timedelta(update_interval).to_pytimedelta()
+        self._data_indexing = 'open' # TODO - add this to configure method args
         
         
     def add_strategy(self, config_filename: str = None, 
@@ -1191,19 +1199,15 @@ class AutoTrader:
             # Running in continuous update mode
             if self._backtest_mode:
                 # Backtesting
-                # TODO - define the params below
-                start_time = 0 # datetime # Might not need to define here
-                end_time = 0 # datetime
-                timestep = 0 # timedelta (from granularity)
-                
-                timestamp = start_time # datetime
+                end_time = self._data_end # datetime
+                timestamp = self._data_start # datetime
                 while timestamp <= end_time:
                     # Update each bot with latest data to generate signal
                     for bot in self._bots_deployed:
                         bot._update(timestamp)
                         
                     # Iterate through time
-                    timestamp += timestep
+                    timestamp += self._timestep
                     
                     # Update backtest tracking stats
                     # TODO - what size will these be? might cause problems...
@@ -1215,10 +1219,8 @@ class AutoTrader:
                 # Live trading
                 starttime = time.time()
                 while True: # TODO - make while running, or similar
-                    granularity = 0 # in seconds
-                    # TODO - should I use timestep here instead of granularity?
-                    bot._update() # TODO - Calling this needs to update the data
-                    time.sleep(granularity - ((time.time() - starttime) % granularity))
+                    bot._update()
+                    time.sleep(self._timestep - ((time.time() - starttime) % self._timestep))
                     
         elif self._mode.lower() == 'periodic':
             # Trading in periodic update mode
