@@ -391,7 +391,7 @@ class AutoTrader:
             may be used when the datafiles are stored outside of the project
             directory. The default is None.
         auxdata : dict, optional
-            A dictionary containing raw data to supplement the 
+            A dictionary containing the data paths to supplement the 
             data passed to the strategy module. For strategies involving 
             multiple products, the keys of this dictionary must correspond
             to the products, with the auxdata in nested dictionaries or 
@@ -440,16 +440,14 @@ class AutoTrader:
             The auxdata dictionary can take the form shown below. This data 
             will be passed on to your strategy.
         
-            >>> auxdata = {'product1': aux_price_data, 
-                           'product2': {'extra_data1': dataset1,
-                                        'extra_data2': dataset2}
+            >>> auxdata = {'product1': 'aux_price_data.csv', 
+                           'product2': {'extra_data1': 'dataset1.csv',
+                                        'extra_data2': 'dataset2.csv'}
                            }
             
         """
         # TODO - add option to specify strategy, in case multiple strategies
         # (requiring different data) are added to the instance
-        
-        # TODO - alow adding data DIRECTLY, not as a filepath
         
         dir_path = abs_dir_path if abs_dir_path is not None else os.path.join(self._home_dir, data_directory)
         
@@ -489,7 +487,19 @@ class AutoTrader:
             
             self._local_quote_data = local_quote_data
         
-        self._auxdata = auxdata
+        if auxdata is not None:
+            modified_auxdata = {}
+            for product, item in auxdata.items():
+                if isinstance(item, dict):
+                    # Multiple datasets for product
+                    modified_auxdata[product] = {}
+                    for key, dataset in item:
+                        modified_auxdata[product][key] = os.path.join(dir_path, dataset)
+                else:
+                    # Item is not dict
+                    modified_auxdata[product] = os.path.join(dir_path, item)
+                    
+            self._auxdata = modified_auxdata
     
     
     def scan(self, strategy_filename: str = None, 
