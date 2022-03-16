@@ -697,25 +697,7 @@ class AutoTraderBot:
     
     
     def _update(self, i: int = None, timestamp: datetime = None) -> None:
-        """Update strategy with latest data and generate latest signal.
-        
-        TODO
-        -----
-        / need to have a mechanism in place to prevent duplicate signals. This
-          can be as simple as keeping track of the last timestamp recieved, and
-          not acting on the current timestamp if it matches the previous (or,
-          if it is too close to the previous timestamp... MTF).
-        / Only for livetrading now, think about what happens when the timestamp 
-          is such that it provides less than the requested number of bars
-        / if backtesting, call self._update_backtest before proceeding, then
-          remove that call from autotrader.
-        / implement mechanism to update data attributes each update... for 
-          backtesting, this should just be a sliding window of the data loaded
-          at instantiation, but for livetrading, the data needs to be fetched 
-          again. This might be achieved more seemlessly by splitting the 
-          workflow at instantiation.
-        / Anywhere i is used, try replace by simply passing around
-          the relevant bar.
+        """Update strategy with the latest data and generate a trade signal.
         """
         # Reset latest orders
         self._latest_orders = []
@@ -723,7 +705,7 @@ class AutoTraderBot:
         if self._run_mode == 'continuous':
             # Running in continuous update mode
             strat_data, current_bar, quote_bar, sufficient_data = self._check_data(timestamp, self._data_indexing)
-        
+            
         else:
             # Running in periodic update mode
             if self._strategy_params['INCLUDE_POSITIONS']:
@@ -1018,6 +1000,9 @@ class AutoTraderBot:
         the entire dataset is iterated over. For livetrading, only the latest candle
         is used. ONLY USED IN BACKTESTING NOW.
         """
+        
+        # TODO - print warning if period is greater than data length
+        
         start_range = self._strategy_params['period']
         end_range = len(self.data)
         return start_range, end_range
@@ -1088,7 +1073,6 @@ class AutoTraderBot:
 
         """
         if check_for_future_data:
-            # TODO - verify this works with pd.Series
             if indexing.lower() == 'open':
                 past_data = ohlc_data[ohlc_data.index < timestamp]
             elif indexing.lower() == 'close':
@@ -1149,9 +1133,6 @@ class AutoTraderBot:
                 else:
                     # MTF data
                     base_data = original_strat_data
-                
-                # TODO - consider possibility when data is directly passed into bot
-                # This will qualify as 'MTF data' 
                 
                 # Process base OHLC data
                 processed_basedata = {}
@@ -1218,10 +1199,11 @@ class AutoTraderBot:
             # in the case of MTF or other
             if self._last_bar is not None:
                 duplicate = (current_bar == self._last_bar).all()
-            else:
-                self._last_bar = current_bar
-        
-        if int(self._verbosity) > 1:
+            
+            # Reset last bar
+            self._last_bar = current_bar
+            
+        if int(self._verbosity) > 1 and duplicate:
             print("Duplicate bar detected. Skipping.")
         
         return duplicate
