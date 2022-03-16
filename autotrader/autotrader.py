@@ -70,7 +70,7 @@ class AutoTrader:
         self._order_summary_fp = None
         
         self._verbosity = 1
-        self._mode = 'periodic'
+        self._run_mode = 'periodic'
         self._timestep = pd.Timedelta('10s').to_pytimedelta()
         self._data_indexing = 'open' # TODO - add this to configure method 
         self._broker_verbosity = 0
@@ -1135,6 +1135,7 @@ class AutoTrader:
             NAV     = []
             balance = []
             margin  = []
+            tradetimes = []
         
         if int(self._verbosity) > 0:
             if self._backtest_mode:
@@ -1184,7 +1185,7 @@ class AutoTrader:
             
         # TODO - what is going to happen to detach_bot attribute?
         # Begin trading
-        if self._mode.lower() == 'continuous':
+        if self._run_mode.lower() == 'continuous':
             # Running in continuous update mode
             if self._backtest_mode:
                 # Backtesting
@@ -1195,14 +1196,14 @@ class AutoTrader:
                     for bot in self._bots_deployed:
                         bot._update(timestamp=timestamp)
                         
-                    # Iterate through time
-                    timestamp += self._timestep
-                    
                     # Update backtest tracking stats
-                    # TODO - what size will these be? might cause problems...
                     NAV.append(self._broker.NAV)
                     balance.append(self._broker.portfolio_balance)
                     margin.append(self._broker.margin_available)
+                    tradetimes.append(timestamp)
+                    
+                    # Iterate through time
+                    timestamp += self._timestep
         
             else:
                 # Live trading
@@ -1212,7 +1213,7 @@ class AutoTrader:
                         bot._update(timestamp=timestamp)
                     time.sleep(self._timestep - ((time.time() - deploy_time) % self._timestep))
                     
-        elif self._mode.lower() == 'periodic':
+        elif self._run_mode.lower() == 'periodic':
             # Trading in periodic update mode
             if self._backtest_mode:
                 # Backtesting
@@ -1227,6 +1228,7 @@ class AutoTrader:
                     NAV.append(self._broker.NAV)
                     balance.append(self._broker.portfolio_balance)
                     margin.append(self._broker.margin_available)
+                tradetimes = None # Use bot data index
         
             else:
                 # Live trading
@@ -1240,7 +1242,7 @@ class AutoTrader:
         if self._backtest_mode is True:
             # Create backtest summary for each bot 
             for bot in self._bots_deployed:
-                bot._create_backtest_summary(balance, NAV, margin)            
+                bot._create_backtest_summary(balance, NAV, margin, tradetimes)            
             
             if int(self._verbosity) > 0:
                 print(f"Backtest complete (runtime {round((backtest_end_time - backtest_start_time), 3)} s).")

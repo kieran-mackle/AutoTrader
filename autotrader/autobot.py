@@ -720,7 +720,7 @@ class AutoTraderBot:
         # Reset latest orders
         self._latest_orders = []
         
-        if self._mode == 'continuous':
+        if self._run_mode == 'continuous':
             # Running in continuous update mode
             strat_data, current_bar, quote_bar, sufficient_data = self._check_data(timestamp, self._data_indexing)
         
@@ -745,7 +745,7 @@ class AutoTraderBot:
                 self._update_backtest(current_bar)
             
             # Get strategy orders
-            if self._mode == 'continuous':
+            if self._run_mode == 'continuous':
                 strategy_orders = self._strategy.generate_signal(strat_data)
             else:
                 strategy_orders = self._strategy.generate_signal(i, current_position=current_position)
@@ -981,13 +981,16 @@ class AutoTraderBot:
             
 
     def _create_backtest_summary(self, balance: pd.Series, NAV: pd.Series, 
-                                margin: pd.Series) -> dict:
+                                margin: pd.Series, trade_times = None) -> dict:
         """Constructs backtest summary dictionary for further processing.
         """
         trade_summary = self._broker_utils.trade_summary(trades=self._broker.trades,
                                                          instrument=self.instrument)
         order_summary = self._broker_utils.trade_summary(orders=self._broker.orders,
                                                          instrument=self.instrument)
+        
+        if trade_times is None:
+            trade_times = self.data.index
         
         # closed_trades = trade_summary[trade_summary.status == 'closed']
         open_trade_summary = trade_summary[trade_summary.status == 'open']
@@ -999,7 +1002,7 @@ class AutoTraderBot:
                                                               'NAV': NAV, 
                                                               'margin': margin,
                                                               'drawdown': np.array(NAV)/np.maximum.accumulate(NAV) - 1}, 
-                                                        index=self.data.index)
+                                                        index=trade_times)
         backtest_dict['trade_summary'] = trade_summary
         backtest_dict['indicators'] = self._strategy.indicators if hasattr(self._strategy, 'indicators') else None
         backtest_dict['instrument'] = self.instrument
@@ -1132,6 +1135,13 @@ class AutoTraderBot:
             DESCRIPTION.
 
         """
+        def get_current_bar(data):
+            if len(data) > 0:
+                current_bar = data.iloc[-1]
+            else:
+                current_bar = None
+            return current_bar
+        
         def process_strat_data(original_strat_data, check_for_future_data):
             sufficient_data = True
             
@@ -1163,7 +1173,7 @@ class AutoTraderBot:
                     
                 # Extract current bar
                 first_tf_data = processed_basedata[list(processed_basedata.keys())[0]]
-                current_bar = first_tf_data.iloc[-1]
+                current_bar = get_current_bar(first_tf_data)
                 
                 # Check that enough bars have accumulated
                 if len(first_tf_data) < bars:
@@ -1172,7 +1182,7 @@ class AutoTraderBot:
             elif isinstance(original_strat_data, pd.DataFrame):
                 strat_data = self._check_ohlc_data(original_strat_data, 
                              timestamp, indexing, bars, check_for_future_data)
-                current_bar = strat_data.iloc[-1]
+                current_bar = get_current_bar(strat_data)
                 
                 # Check that enough bars have accumulated
                 if len(strat_data) < bars:
@@ -1197,7 +1207,7 @@ class AutoTraderBot:
         # Process quote data
         quote_data = self._check_ohlc_data(self.quote_data, timestamp, 
                                            indexing, bars)
-        quote_bar = quote_data.iloc[-1]
+        quote_bar = get_current_bar(quote_data)
         
         return strat_data, current_bar, quote_bar, sufficient_data
     
@@ -1206,12 +1216,12 @@ class AutoTraderBot:
         """Checks for duplicate data to prevent duplicate signals.
         """
         duplicate = False
-        if self._mode == 'continuous':
+        if self._run_mode == 'continuous':
             # For now, will just check current_bar doesn't match last bar
             # For extension, can check that the bar isn't too close to the previous,
             # in the case of MTF or other
             if self._last_bar is not None:
-                duplicate = True if current_bar == self._last_bar else False
+                duplicate = (current_bar == self._last_bar).all()
             else:
                 self._last_bar = current_bar
             
