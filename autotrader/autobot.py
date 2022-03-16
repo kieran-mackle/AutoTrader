@@ -292,7 +292,7 @@ class AutoTraderBot:
         self._strat_data = strat_data
         self.data = data
         self.MTF_data = MTF_data
-        self.quote_data = quote_data  # TODO - cosider making private
+        self.quote_data = quote_data
         
         # strat_data will either contain a single timeframe OHLC dataframe, 
         # a dictionary of MTF dataframes, or a dict with 'base' and 'aux' keys,
@@ -1001,10 +1001,16 @@ class AutoTraderBot:
         is used. ONLY USED IN BACKTESTING NOW.
         """
         
-        # TODO - print warning if period is greater than data length
-        
         start_range = self._strategy_params['period']
         end_range = len(self.data)
+        
+        if len(self.data) < start_range:
+            raise Exception("There are not enough bars in the data to " + \
+                            "run the backtest with the current strategy " + \
+                            "configuration settings. Either extend the " + \
+                            "backtest period, or reduce the PERIOD key of " + \
+                            "your strategy configuration.")
+        
         return start_range, end_range
     
     
