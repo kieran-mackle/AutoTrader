@@ -11,7 +11,7 @@ from scipy.optimize import brute
 from datetime import datetime, timedelta
 from autotrader.autoplot import AutoPlot
 from autotrader.autobot import AutoTraderBot
-from autotrader.utilities import read_yaml, get_config, get_watchlist, ManageBot
+from autotrader.utilities import read_yaml, get_config, get_watchlist
 
 
 class AutoTrader:
@@ -79,12 +79,8 @@ class AutoTrader:
         self._show_plot = False
         
         # Livetrade Parameters
-        self._detach_bot = False
         self._check_data_alignment = True
         self._allow_dancing_bears = False
-        self._use_stream = False
-        self._MTF_initialisation = False
-        self._stream_config = None
         
         self._broker = None
         self._broker_utils = None
@@ -149,11 +145,9 @@ class AutoTrader:
     
     def configure(self, verbosity: int = 1, broker: str = 'virtual', 
                   feed: str = 'yahoo', req_liveprice: bool = False, 
-                  notify: int = 0, home_dir: str = None, use_stream: bool = False, 
-                  detach_bot: bool = False, check_data_alignment: bool = True, 
+                  notify: int = 0, home_dir: str = None, 
                   allow_dancing_bears: bool = False, account_id: str = None, 
                   environment: str = 'demo', show_plot: bool = False,
-                  MTF_initialisation: bool = False, 
                   jupyter_notebook: bool = False, mode: str = 'periodic',
                   update_interval: str = '10s', data_index_time: str = 'open') -> None:
         """Configures run settings for AutoTrader.
@@ -173,13 +167,6 @@ class AutoTrader:
             The level of email notifications (0, 1, 2). The default is 0.
         home_dir : str, optional
             The project home directory. The default is the current working directory.
-        use_stream : bool, optional
-            Use price stream as data feed (Oanda only). The default is False.
-        detach_bot : bool, optional
-            Spawn new thread for each bot deployed. The default is False.
-        check_data_alignment : bool, optional
-            Verify time of latest candle in data recieved against current 
-            time. The default is True.
         allow_dancing_bears : bool, optional
             Allow incomplete candles to be passed to the strategy. The default is False.
         account_id : str, optional
@@ -189,9 +176,6 @@ class AutoTrader:
             default is 'demo'.
         show_plot : bool, optional
             Automatically generate backtest chart. The default is False.
-        MTF_initialisation : bool, optional
-            Only download mutliple time-frame data when initialising the 
-            strategy, rather than every update. The default is False.
         jupyter_notebook : bool, optional
             Set to True when running in Jupyter notebook environment. The 
             default is False.
@@ -220,14 +204,10 @@ class AutoTrader:
         self._broker_name = broker
         self._notify = notify
         self._home_dir = home_dir if home_dir is not None else os.getcwd()
-        self._use_stream = use_stream
-        self._detach_bot = detach_bot
-        self._check_data_alignment = check_data_alignment
         self._allow_dancing_bears = allow_dancing_bears
         self._account_id = account_id
         self._environment = environment
         self._show_plot = show_plot
-        self._MTF_initialisation = MTF_initialisation
         self._jupyter_notebook = jupyter_notebook
         self._run_mode = mode
         self._timestep = pd.Timedelta(update_interval).to_pytimedelta()
@@ -1157,10 +1137,6 @@ class AutoTrader:
             
         broker_config = get_config(self._environment, global_config, self._feed)
         
-        # Construct stream_config dict
-        if self._use_stream:
-            self._stream_config = broker_config
-        
         if self._account_id is not None:
             # Overwrite default account in global config
             broker_config['ACCOUNT_ID'] = self._account_id
@@ -1208,22 +1184,23 @@ class AutoTrader:
                 bot = AutoTraderBot(instrument, strategy_dict,
                                     self._broker, data_dict, quote_data_path, 
                                     auxdata, self)
+                self._bots_deployed.append(bot)
                 
-                if self._detach_bot is True and self._backtest_mode is False:
-                    # Send bot to bot manager to monitor stream
-                    print("Passing bot to bot manager...")
-                    bot_name_string = "{}_{}_{}".format(strategy.replace(' ',''),
-                           self._strategy_configs[strategy]['INTERVAL'].split(',')[0],
-                                                        instrument)
-                    ManageBot(bot, self._home_dir, bot_name_string, self._use_stream)
-                else:
-                    self._bots_deployed.append(bot)
+                # if self._detach_bot is True and self._backtest_mode is False:
+                #     # Send bot to bot manager to monitor stream
+                #     print("Passing bot to bot manager...")
+                #     bot_name_string = "{}_{}_{}".format(strategy.replace(' ',''),
+                #            self._strategy_configs[strategy]['INTERVAL'].split(',')[0],
+                #                                         instrument)
+                #     ManageBot(bot, self._home_dir, bot_name_string, self._use_stream)
+                # else:
+                #     self._bots_deployed.append(bot)
                     
+                
         if int(self._verbosity) > 0 and self._backtest_mode:
             print("\nTrading...\n")
             backtest_start_time = timeit.default_timer()
             
-        # TODO - what is going to happen to detach_bot attribute?
         # Begin trading
         if self._run_mode.lower() == 'continuous':
             # Running in continuous update mode
@@ -1247,8 +1224,9 @@ class AutoTrader:
         
             else:
                 # Live trading
+                # TODO - re-visit BotManager (see commented code above)
                 deploy_time = time.time()
-                while True: # TODO - make while running, or similar and improve livetrade functionality
+                while True:
                     for bot in self._bots_deployed:
                         bot._update(timestamp=timestamp)
                     time.sleep(self._timestep - ((time.time() - deploy_time) % self._timestep))

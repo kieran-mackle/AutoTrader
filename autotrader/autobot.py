@@ -1,17 +1,11 @@
-import sys
 import os
-import time
-import pytz
-import threading
 import importlib
 import numpy as np
 import pandas as pd
-from shutil import copy2
 from datetime import datetime
 from autotrader.comms import emailing
 from autotrader.autodata import GetData
 from autotrader.brokers.trading import Order
-from autotrader.autostream import AutoStream
 from autotrader.utilities import read_yaml, get_config
 
 
@@ -126,37 +120,9 @@ class AutoTraderBot:
             global_config = None
         broker_config = get_config(self._environment, global_config, self._feed)
    
-        # Start price streaming - TODO - now redundant
-        if self._use_stream and self._backtest_mode is False:
-            
-            # Check how many granularities were requested
-            if len(interval.split(',')) > 1:
-                # MTF strategy
-                self._base_interval = interval.split(',')[0]
-                self._MTF_intervals = interval.split(',')[1:]
-                
-                # Initiate time_to_download dict
-                self._time_to_download = {}
-                for granularity in self._MTF_intervals:
-                    self._time_to_download[granularity] = datetime.now(tz=pytz.utc)
-                
-            else:
-                # Single timeframe strategy
-                self._base_interval = interval
-                self._MTF_intervals = []
-            
-            # Start stream
-            self._initiate_stream()
-        
-        # Multiple time-frame initialisation option - # TODO - remove
-        if self._MTF_initialisation:
-            # Only retrieve MTF_data once upon initialisation and store
-            # instantiation MTF_data
-            self.MTF_data = None
-        
         # Data retrieval
-        self._quote_data_file = quote_data_path # Either str or None
-        self._data_filepaths = data_dict # Either str or dict, or None
+        self._quote_data_file = quote_data_path     # Either str or None
+        self._data_filepaths = data_dict            # Either str or dict, or None
         self._auxdata_files = auxdata
         
         # Fetch data
@@ -199,65 +165,6 @@ class AutoTraderBot:
         return 'AutoTraderBot instance'
     
     
-    def _initiate_stream(self) -> None:
-        """Spawns AutoStream into a new thread.
-        """
-        record_ticks = False
-        record_candles = False
-        if self._base_interval == 'tick' or self._base_interval == 'ticks':
-            record_ticks = True
-        else:
-            record_candles = True
-        
-        stream_granularity = self._base_interval
-        self._no_candles = self._strategy_params['period']
-        
-        self._AS = AutoStream(self._home_dir, 
-                             self._stream_config, 
-                             self.instrument, 
-                             granularity = stream_granularity,
-                             record_ticks = record_ticks, 
-                             record_candles = record_candles,
-                             no_candles = self._no_candles,
-                             bot = self)
-        
-        stream_thread = threading.Thread(target = self._AS.start, 
-                                         args=(), daemon=False)
-        print('Spawning new thread to stream data.')
-        stream_thread.start()
-        
-    
-    def _recieve_stream_data(self) -> None:
-        """Method to tell AutoStream to send data to bot. Called from 
-        bot manager.
-        """
-        self._AS.update_bot = True
-    
-    
-    def _update_strategy_data(self, data: pd.DataFrame = None) -> None:
-        """Method to update strategy with latest data. Called by the bot
-        manager and autostream.
-        """
-        # TODO - redundant
-        if data is not None:
-            # Update data attribute (for livetrade compatibility)
-            self.data = data
-        
-        # Retrieve new data
-        new_data, _, MTF_data = self._retrieve_data(self.instrument, 
-                                                    self._feed,
-                                                    base_data = data)
-        
-        # Check for MTF_data
-        if MTF_data is None:
-            strat_data = new_data
-        else:
-            strat_data = MTF_data
-        
-        # Update strategy with new data
-        self._strategy.initialise_strategy(strat_data)
-        
-    
     def _refresh_data(self):
         
         # TODO - allow user to pass in custom data retrieval object, to 
@@ -294,327 +201,6 @@ class AutoTraderBot:
         # a dictionary of MTF dataframes, or a dict with 'base' and 'aux' keys,
         # for aux and base strategy data (which could be single of MTF).
         
-    
-    def _old_retrieve_data(self, instrument: str, feed: str, 
-                       base_data: pd.DataFrame = None) -> pd.DataFrame:
-        """Retrieves price data from AutoData.
-        """
-        interval = self._strategy_params['granularity']
-        period = self._strategy_params['period']
-        price_data_path = os.path.join(self._home_dir, 'price_data')
-        
-        if self._backtest_mode is True:
-            # Running in backtest mode 
-            self._get_data.base_currency = self._base_currency
-            from_date = self._data_start
-            to_date = self._data_end
-            
-            if self._data_file is not None:
-                # Read local data file
-                custom_data_file = self._data_file
-                custom_data_filepath = os.path.join(price_data_path, 
-                                                    custom_data_file) \
-                    if not self._abs_data_filepath else custom_data_file
-                
-                if int(self._verbosity) > 1:
-                    print("Using data file specified ({}).".format(custom_data_file))
-                data = self._get_data.local(custom_data_filepath, self._data_start, 
-                                            self._data_end)
-                
-                # Load quote data
-                if self._quote_data_file is not None:
-                    quote_data = self._get_data.local(self._quote_data_file, 
-                                                      self._data_start, 
-                                                      self._data_end)
-                else:
-                    quote_data = data
-                
-                # Correct any data mismatches
-                data, quote_data = self._match_quote_data(data, quote_data)
-                MTF_data = None
-            
-            elif self._MTF_data_files is not None:
-                # Read local MTF data files
-                MTF_data_files = self._MTF_data_files
-                MTF_granularities = list(MTF_data_files.keys())
-                
-                MTF_data = {}
-                for granularity in MTF_data_files:
-                    # Extract data 
-                    custom_data_file = MTF_data_files[granularity]
-                    custom_data_filepath = os.path.join(price_data_path, 
-                                                        custom_data_file) \
-                        if not self._abs_data_filepath else custom_data_file
-                    if int(self._verbosity) > 1:
-                        print("Using data file specified ({}).".format(MTF_data_files[granularity]))
-                    data = self._get_data.local(custom_data_filepath, self._data_start, 
-                                                self._data_end)
-                    
-                    if granularity == MTF_granularities[0]:
-                        # Assign quote data for backtesting
-                        if self._quote_data_file is not None:
-                            quote_data = self._get_data.local(self._quote_data_file, 
-                                                              self._data_start, 
-                                                              self._data_end)
-                            data, quote_data = self._match_quote_data(data, quote_data)
-                        else:
-                            quote_data = data
-                    
-                    # Add to MTF_data dict
-                    MTF_data[granularity] = data
-                
-                # Extract first dataset to use as base
-                first_granularity = MTF_granularities[0]
-                data = MTF_data[first_granularity]
-                quote_data = quote_data
-                
-            else:
-                # No data file(s) provided, proceed to download
-                if int(self._verbosity) > 1:
-                    print(f"\nDownloading OHLC price data for {instrument}.")
-                
-                if self._optimise_mode is True:
-                    # Check if historical data already exists
-                    historical_data_name = f'hist_{interval}{instrument}.csv'
-                    historical_quote_data_name = f'hist_{interval}{instrument}_quote.csv'
-                    data_dir_path = os.path.join(self._home_dir, 'price_data')
-                    historical_data_file_path = os.path.join(self._home_dir, 
-                                        'price_data', historical_data_name)
-                    historical_quote_data_file_path = os.path.join(self._home_dir, 
-                                        'price_data', historical_quote_data_name)
-                    
-                    try:
-                        data = self._get_data.local(historical_data_file_path)
-                        quote_data = self._get_data.local(historical_quote_data_file_path)
-                    except:
-                        # Data file does not yet exist, download
-                        data = getattr(self._get_data, feed.lower())(instrument,
-                                       granularity = interval, start_time = from_date,
-                                       end_time = to_date)
-                        quote_data = getattr(self._get_data,f'_{feed.lower()}_quote_data')(data,
-                                             instrument, interval, from_date, to_date)
-                        data, quote_data = self._broker_utils.check_dataframes(data, quote_data)
-                        
-                        # Check if price_data folder exists
-                        if not os.path.exists(data_dir_path):
-                            # If price data directory doesn't exist, make it
-                            os.makedirs(data_dir_path)
-                            
-                        # Save data in file/s
-                        data.to_csv(historical_data_file_path)
-                        quote_data.to_csv(historical_quote_data_file_path)
-
-                    MTF_data = None
-                        
-                else:
-                    # Running in single-instrument MTF backtest mode
-                    MTF_data = {}
-                    for granularity in interval.split(','):
-                        data = getattr(self._get_data, feed.lower())(instrument,
-                                                             granularity = granularity,
-                                                             start_time = from_date,
-                                                             end_time = to_date)
-                        
-                        # Only get quote data for first granularity
-                        if granularity == interval.split(',')[0]:
-                            quote_data = getattr(self._get_data, f'_{feed.lower()}_quote_data')(data,
-                                                 instrument, granularity, from_date, to_date)
-                        
-                            data, quote_data = self._broker_utils.check_dataframes(data.drop_duplicates(), 
-                                                                                  quote_data.drop_duplicates())
-                        
-                        MTF_data[granularity] = data
-                    
-                    # Extract first dataset to use as base
-                    first_granularity = interval.split(',')[0]
-                    data = MTF_data[first_granularity]
-                    quote_data = quote_data
-                
-                if MTF_data is not None and len(MTF_data) == 1:
-                    MTF_data = None
-                
-                if int(self._verbosity) > 1:
-                    print("  Done.\n")
-            
-            return data, quote_data, MTF_data
-        
-        else:
-            # Running in livetrade mode or scan mode
-            if self._use_stream:
-                # Streaming data
-                
-                # First assign data
-                if base_data is not None:
-                    data = base_data
-                else:
-                    print("Stream data has not been recieved yet.")
-                    print("Passing NoneType as data.")
-                    data = None
-                
-                # Now retrieve MTF data
-                if len(interval.split(',')) > 1:
-                    # Fetch MTF data
-                    MTF_data = {self._base_interval: data}
-                    
-                    if self._MTF_initialisation:
-                        # Download MTF data for strategy initialisation only
-                        if self.MTF_data is None:
-                            # MTF_data has not been retrieved yet
-                            for granularity in self._MTF_intervals:
-                                data = getattr(self._get_data, feed.lower())(instrument,
-                                                                            granularity = granularity,
-                                                                            count=period)
-                                
-                                if self._check_data_alignment:
-                                    data = self._verify_data_alignment(data, instrument, feed, period, 
-                                                                       price_data_path)
-                                
-                                MTF_data[granularity] = data
-                            
-                            self.MTF_data = MTF_data
-                            
-                        else:
-                            # MTF_data already exists, reuse
-                            MTF_data = self.MTF_data
-                            
-                            # Replace base_interval data with latest data
-                            MTF_data[self._base_interval] = data
-                            
-                    else:
-                        # Download MTF data each update
-                        for granularity in self._MTF_intervals:
-                            if datetime.now(tz=pytz.utc) > self._time_to_download[granularity]:
-                                # Update MTF data
-                                data = getattr(self._get_data, feed.lower())(instrument,
-                                               granularity = granularity, count = period)
-                            
-                                if self._check_data_alignment:
-                                    data = self._verify_data_alignment(data, instrument, feed, period, 
-                                                                       price_data_path)
-                                
-                                # Append to MTF_data
-                                MTF_data[granularity] = data
-                                
-                                # Update next time_to_download
-                                self._time_to_download[granularity] = self._next_candle_open(granularity)
-                            
-                            else:
-                                # Use previously downloaded MTF data
-                                MTF_data[granularity] = self.MTF_data[granularity]
-                        
-                        # Update self.MTF_data with latest MTF data
-                        self.MTF_data = MTF_data
-                            
-                else:
-                    # There is only one timeframe of data
-                    MTF_data = None
-                
-            
-            elif self._data_file is not None:
-                # Using price stream data file
-                custom_data_filepath = self._data_file
-                
-                datafile_copied_path = custom_data_filepath.split('.')[0] + \
-                    '_copy.' + custom_data_filepath.split('.')[1]
-                
-                # Make copy of file to prevent read-write errors
-                copy2(custom_data_filepath, datafile_copied_path)
-                
-                if int(self._verbosity) > 1:
-                    print("Using data file specified ({}).".format(custom_data_filepath))
-                
-                # Read datafile to get base interval data
-                data = pd.read_csv(datafile_copied_path, 
-                                   index_col = 0,
-                                   skipinitialspace=True)
-                
-                if len(data) > 0:
-                    data.index = pd.to_datetime(data.index, 
-                                                infer_datetime_format=True,
-                                                errors='ignore')
-                    
-                    # Remove copied file
-                    os.remove(datafile_copied_path)
-                    
-                else:
-                    # Stream has not had enough time to write data yet, revert 
-                    # to downloading M1 data
-                    data = getattr(self._get_data, feed.lower())(instrument,
-                                   granularity = 'M1', count = period)
-                    
-                    if self._check_data_alignment:
-                        data = self._verify_data_alignment(data, instrument, feed, period, 
-                                                           price_data_path)
-                
-                # Fetch MTF data
-                MTF_data = {self._base_interval: data}
-                
-                if self._MTF_initialisation:
-                    # Download MTF data for strategy initialisation only
-                    if self.MTF_data is None:
-                        # MTF_data has not been retrieved yet
-                        for granularity in self._MTF_intervals:
-                            data = getattr(self._get_data, feed.lower())(instrument,
-                                           granularity = granularity, count=period)
-                            
-                            if self._check_data_alignment:
-                                data = self._verify_data_alignment(data, instrument, feed, period, 
-                                                                   price_data_path)
-                            
-                            MTF_data[granularity] = data
-                        
-                        self.MTF_data = MTF_data
-                        
-                    else:
-                        # MTF_data already exists, reuse
-                        MTF_data = self.MTF_data
-                        
-                        # Replace base_interval data with latest data
-                        MTF_data[self._base_interval] = data
-                        
-                else:
-                    # Download MTF data each update
-                    for granularity in self._MTF_intervals:
-                        data = getattr(self._get_data, feed.lower())(instrument,
-                                       granularity = granularity, count=period)
-                        
-                        if self._check_data_alignment:
-                            data = self._verify_data_alignment(data, instrument, feed, period, 
-                                                               price_data_path)
-                        
-                        MTF_data[granularity] = data
-                        
-                if len(MTF_data) == 1:
-                    # There is only one timeframe of data
-                    MTF_data = None
-                    
-            else:            
-                # Running in periodic-download mode
-                MTF_data = {}
-                for granularity in interval.split(','):
-                    if granularity == "tick":
-                        print("Warning: cannot download historic tick data. " + \
-                              "Please change candlestick granularity in " + \
-                              "strategy configuration. Exiting.")
-                        sys.exit(0)
-                        
-                    data = getattr(self._get_data, feed.lower())(instrument,
-                                   granularity = granularity, count=period)
-                    
-                    if self._check_data_alignment:
-                        data = self._verify_data_alignment(data, instrument, feed, period, 
-                                                           price_data_path)
-                    
-                    MTF_data[granularity] = data
-                
-                first_granularity = interval.split(',')[0]
-                data = MTF_data[first_granularity]
-                
-                if len(MTF_data) == 1:
-                        MTF_data = None
-            
-            return data, None, MTF_data
-    
     
     def _retrieve_data(self, instrument: str, feed: str) -> pd.DataFrame:
         
@@ -695,71 +281,6 @@ class AutoTraderBot:
         return data[(data.index >= from_date) & (data.index <= to_date)]
         
 
-    def _verify_data_alignment(self, data: pd.DataFrame, instrument: str, 
-                               feed: str, period: str, 
-                               price_data_path: str) -> pd.DataFrame:
-        """Verifies data time-alignment based on current time and last
-        candle in data. 
-        
-        When using MTF data, this method will only check the base timeframe.
-        """
-        # TODO - method redundant?
-        interval = self._strategy_params['granularity'].split(',')[0]
-        
-        # Check data time alignment
-        current_time = datetime.now(tz=pytz.utc)
-        last_candle_closed = self._broker_utils.last_period(current_time, interval)
-        data_ts = data.index[-1].to_pydatetime().timestamp()
-        
-        if data_ts != last_candle_closed.timestamp():
-            # Time misalignment detected - attempt to correct
-            count = 0
-            while data_ts != last_candle_closed.timestamp():
-                print("  Time misalginment detected at {}".format(datetime.now().strftime("%H:%M:%S")),
-                      "({}/{}).".format(data.index[-1].minute, last_candle_closed.minute),
-                      "Trying again...")
-                time.sleep(3) # wait 3 seconds...
-                data = getattr(self._get_data, feed.lower())(instrument,
-                                granularity = interval,
-                                count=period)
-                data_ts = data.index[-1].to_pydatetime().timestamp()
-                count += 1
-                if count == 3:
-                    break
-            
-            if data_ts != last_candle_closed.timestamp():
-                # Time misalignment still present - attempt to correct
-                # Check price data directory to see if the stream has caught 
-                # the latest candle
-                price_data_filename = "{0}{1}.txt".format(interval, instrument)
-                abs_price_path = os.path.join(price_data_path, price_data_filename)
-                
-                if os.path.exists(abs_price_path):
-                    # Price data file matching instrument and granularity 
-                    # exists, check latest candle in file
-                    f = open(abs_price_path, "r")
-                    price_lines = f.readlines()
-                    
-                    if len(price_lines) > 1:
-                        latest_candle = price_lines[-1].split(',')
-                        latest_candle_time = datetime.strptime(latest_candle[0],
-                                                                '%Y-%m-%d %H:%M:%S')
-                        UTC_last_candle_in_file = latest_candle_time.replace(tzinfo=pytz.UTC)
-                        price_data_ts = UTC_last_candle_in_file.timestamp()
-                        
-                        if price_data_ts == last_candle_closed.timestamp():
-                            data = self._broker_utils.update_data_with_candle(data, latest_candle)
-                            data_ts = data.index[-1].to_pydatetime().timestamp()
-                            print("  Data updated using price stream.")
-            
-            # if data is still misaligned, perform manual adjustment.
-            if data_ts != last_candle_closed.timestamp():
-                print("  Could not retrieve updated data. Aborting.")
-                sys.exit(0)
-        
-        return data
-    
-    
     def _update(self, i: int = None, timestamp: datetime = None) -> None:
         """Update strategy with the latest data and generate a trade signal.
         """
@@ -1015,17 +536,6 @@ class AutoTraderBot:
         self._broker._update_positions(current_bar, self.instrument)
     
     
-    def _next_candle_open(self, granularity: str) -> datetime:
-        """Returns the UTC datetime object corresponding to the open time of the 
-        next candle.
-        """
-        current_ts = datetime.now(tz=pytz.utc).timestamp()
-        granularity_in_seconds = self._broker_utils.interval_to_seconds(granularity)
-        next_candle_open_ts = granularity_in_seconds * np.ceil(current_ts / granularity_in_seconds)
-        
-        return datetime.fromtimestamp(next_candle_open_ts, tz=pytz.utc)
-            
-
     def _create_backtest_summary(self, balance: pd.Series, NAV: pd.Series, 
                                 margin: pd.Series, trade_times = None) -> dict:
         """Constructs backtest summary dictionary for further processing.
@@ -1076,13 +586,6 @@ class AutoTraderBot:
                             "your strategy configuration.")
         
         return start_range, end_range
-    
-    
-    def _replace_data(self, data: pd.DataFrame) -> None:
-        """Function to replace the data assigned locally and to the strategy.
-        """
-        self.data = data
-        self._strategy.data = data
     
     
     def _match_quote_data(self, data: pd.DataFrame, 
