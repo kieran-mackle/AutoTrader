@@ -170,7 +170,9 @@ class AutoTraderBot:
         # TODO - allow user to pass in custom data retrieval object, to 
         # customise how data is delivered. The retrieve_data method (and others)
         # could be abstracted away into their own class, which could be inherited
-        # by user feeds.
+        # by user feeds. The current timestamp should be passed into this method,
+        # as well as retrive data method, to allow data retrieval based 
+        # on timestamp (think contracts with expiries)
         
         # Fetch new data
         data, multi_data, quote_data, auxdata = self._retrieve_data(self.instrument, self._feed)
