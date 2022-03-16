@@ -339,7 +339,8 @@ class AutoTrader:
         self._broker_name = 'virtual'
         
     
-    def optimise(self, opt_params: list, bounds: list, Ns: int = 4) -> None:
+    def optimise(self, opt_params: list, bounds: list, Ns: int = 4,
+                 force_download: bool = False) -> None:
         """Optimisation configuration.
         
         Parameters
@@ -347,13 +348,33 @@ class AutoTrader:
         opt_params : list
             The parameters to be optimised, as they  are named in the 
             strategy configuration file.
-        
         bounds : list(tuples)
             The bounds on each of the parameters to be optimised, specified
-            as a tuple of the form (lower, upper) for each parameter.
-        
-        Ns : int
+            as a tuple of the form (lower, upper) for each parameter. The
+            default is 4.
+        force_download : bool, optional
+            Force AutoTrader to download data each iteration. This is not
+            recommended. Instead, you should provide local download to optimise
+            on, using the add_data method. The default is False.
+        Ns : int, optional
             The number of points along each dimension of the optimisation grid.
+        
+        Raises
+        ------
+        Exception:
+            When force_download is False, and local data has not been added 
+            through the add_data method. Note that add_data should be called
+            prior to calling the optimise method.
+        
+        Returns
+        -------
+        None:
+            The optimisation settings will be saved to the active AutoTrader
+            instance.
+        
+        See Also
+        --------
+        AutoTrader.add_data()
         """
         
         if type(bounds) == str:
@@ -367,6 +388,11 @@ class AutoTrader:
         self._opt_params = opt_params
         self._bounds = bounds
         self._Ns = Ns
+        
+        if self._local_data is None:
+            raise Exception("Local data files have not been provided. " +\
+                            "Please do so using AutoTrader.add_data(), " +\
+                            "or set force_download to True to proceed.")
         
         
     def add_data(self, data_dict: dict = None, quote_data: dict = None, 
@@ -1170,7 +1196,7 @@ class AutoTrader:
             for instrument in self._strategy_configs[strategy]['WATCHLIST']:
                 data_dict = self._local_data[instrument] \
                     if self._local_data is not None else None
-                quote_data_dict = self._local_quote_data[instrument] \
+                quote_data_path = self._local_quote_data[instrument] \
                     if self._local_quote_data is not None else None
                 auxdata = self._auxdata[instrument] \
                     if self._auxdata is not None else None
@@ -1180,7 +1206,7 @@ class AutoTrader:
                                  'class': self._strategy_classes[strategy_class] \
                                      if strategy_class in self._strategy_classes else None}
                 bot = AutoTraderBot(instrument, strategy_dict,
-                                    self._broker, data_dict, quote_data_dict, 
+                                    self._broker, data_dict, quote_data_path, 
                                     auxdata, self)
                 
                 if self._detach_bot is True and self._backtest_mode is False:
