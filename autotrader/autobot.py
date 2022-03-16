@@ -186,6 +186,7 @@ class AutoTraderBot:
             my_strat = strategy(params, self._strat_data, instrument)
             
         # Assign strategy to local attributes
+        self._last_bar = None
         self._strategy = my_strat
         self._latest_orders = []
         
@@ -721,7 +722,7 @@ class AutoTraderBot:
         
         if self._mode == 'continuous':
             # Running in continuous update mode
-            strat_data, current_bar, quote_bar = self._check_data(timestamp, self._data_indexing)
+            strat_data, current_bar, quote_bar, sufficient_data = self._check_data(timestamp, self._data_indexing)
         
         else:
             # Running in periodic update mode
@@ -733,11 +734,12 @@ class AutoTraderBot:
             # Assign current bars
             current_bar = self.data.iloc[i]
             quote_bar = self.quote_data.iloc[i]
+            sufficient_data = True
         
         # Check for duplicated data
         duplicate_data = self._check_last_bar(current_bar)
         
-        if not duplicate_data:
+        if sufficient_data and not duplicate_data:
             # Update backtest
             if self._backtest_mode:
                 self._update_backtest(current_bar)
@@ -1203,13 +1205,16 @@ class AutoTraderBot:
     def _check_last_bar(self, current_bar) -> bool:
         """Checks for duplicate data to prevent duplicate signals.
         """
+        duplicate = False
         if self._mode == 'continuous':
             # For now, will just check current_bar doesn't match last bar
             # For extension, can check that the bar isn't too close to the previous,
             # in the case of MTF or other
-            # TODO - implement
-            pass
-        else:
-            return False
+            if self._last_bar is not None:
+                duplicate = True if current_bar == self._last_bar else False
+            else:
+                self._last_bar = current_bar
+            
+        return duplicate
         
         
