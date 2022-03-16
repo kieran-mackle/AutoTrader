@@ -100,7 +100,8 @@ class GetData:
         -----
             If a candlestick count is provided, only one of start time or end
             time should be provided. If neither is provided, the N most
-            recent candles will be provided.
+            recent candles will be provided. If both are provided, the count
+            will be ignored, and instead the dates will be used.
         
         Examples
         --------
@@ -146,8 +147,8 @@ class GetData:
                 
             else:
                 # start_time+end_time+count
-                print("Warning: ignoring count input since start_time and",
-                       "end_time times have been specified.")
+                # print("Warning: ignoring count input since start_time and",
+                #        "end_time times have been specified.")
                 from_time = start_time.timestamp()
                 to_time = end_time.timestamp()
             
@@ -371,8 +372,8 @@ class GetData:
         - Intraday data cannot exceed 60 days.
         """
         
-        if count is not None:
-            # Convert count to start and end dates (currently assumes end=now)
+        if count is not None and start_time is None and end_time is None:
+            # Convert count to start and end dates (assumes end=now)
             end_time = datetime.now()
             start_time = end_time - timedelta(seconds=self._granularity_to_seconds(granularity, 'yahoo')*count)
         
