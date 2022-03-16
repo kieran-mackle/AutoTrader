@@ -255,9 +255,11 @@ class AutoPlot:
         bottom_figs = []
         
         if backtest_dict is not None:
-            
-            NAV             = backtest_dict['account_history']['NAV']
-            balance         = backtest_dict['account_history']['balance']
+            account_hist = backtest_dict['account_history']
+            if len(account_hist) != len(self._data):
+                account_hist = self._interpolate_and_merge(account_hist)
+            NAV             = account_hist['NAV']
+            balance         = account_hist['balance']
             trade_summary   = backtest_dict['trade_summary']
             indicators      = backtest_dict['indicators']
             open_trades     = backtest_dict['open_trades']
@@ -390,6 +392,14 @@ class AutoPlot:
             merged_data.rename(columns={data.name: name}, inplace=True)
         
         return merged_data
+    
+    
+    def _interpolate_and_merge(self, df):
+        dt_data = self._data.set_index('date')
+        concat_data = pd.concat([dt_data, df]).sort_index()
+        interp_data = concat_data.interpolate(method='nearest').fillna(method='bfill')
+        merged_data = self._merge_data(interp_data).drop_duplicates()
+        return merged_data[list(df.columns) + ['date']].set_index('date')
     
     
     def _add_backtest_price_data(self, backtest_price_data: pd.DataFrame) -> None:
@@ -1152,8 +1162,8 @@ class AutoPlot:
                                      left_on='date', right_index=True)
         
         # Backtesting signals
-        long_trades = trade_summary[trade_summary['size'] > 0]
-        shorts_trades = trade_summary[trade_summary['size'] < 0]
+        long_trades = trade_summary[trade_summary['direction'] > 0]
+        shorts_trades = trade_summary[trade_summary['direction'] < 0]
         
         if cancelled_summary is False and open_summary is False:
             

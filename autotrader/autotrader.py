@@ -70,6 +70,9 @@ class AutoTrader:
         self._order_summary_fp = None
         
         self._verbosity = 1
+        self._run_mode = 'periodic'
+        self._timestep = pd.Timedelta('10s').to_pytimedelta()
+        self._data_indexing = 'open'
         self._broker_verbosity = 0
         self._notify = 0
         self._email_params = None
@@ -151,7 +154,8 @@ class AutoTrader:
                   allow_dancing_bears: bool = False, account_id: str = None, 
                   environment: str = 'demo', show_plot: bool = False,
                   MTF_initialisation: bool = False, 
-                  jupyter_notebook: bool = False) -> None:
+                  jupyter_notebook: bool = False, mode: str = 'periodic',
+                  update_interval: str = '10s', data_index_time: str = 'open') -> None:
         """Configures run settings for AutoTrader.
 
         Parameters
@@ -191,7 +195,19 @@ class AutoTrader:
         jupyter_notebook : bool, optional
             Set to True when running in Jupyter notebook environment. The 
             default is False.
-
+        mode : str, optional
+            The run mode (either 'periodic' or 'continuous'). The default is
+            'periodic'.
+        update_interval : str, optional
+            The update interval to use when running in 'continuous' mode. This
+            should align with the highest resolution bar granularity in your
+            strategy to allow adequate updates. The string inputted will be
+            converted to a timedelta object. The default is '10s'.
+        data_index_time : str, optional
+            The time by which the data is indexed. Either 'open', if the data
+            is indexed by the bar open time, or 'close', if the data is indexed
+            by the bar close time. The default is 'open'.
+        
         Returns
         -------
         None
@@ -213,6 +229,9 @@ class AutoTrader:
         self._show_plot = show_plot
         self._MTF_initialisation = MTF_initialisation
         self._jupyter_notebook = jupyter_notebook
+        self._run_mode = mode
+        self._timestep = pd.Timedelta(update_interval).to_pytimedelta()
+        self._data_indexing = data_index_time
         
         
     def add_strategy(self, config_filename: str = None, 
@@ -1120,6 +1139,7 @@ class AutoTrader:
             NAV     = []
             balance = []
             margin  = []
+            tradetimes = []
         
         if int(self._verbosity) > 0:
             if self._backtest_mode:
@@ -1163,39 +1183,62 @@ class AutoTrader:
                 else:
                     self._bots_deployed.append(bot)
                     
-        
-        # Analyse price data using strategy
         if int(self._verbosity) > 0 and self._backtest_mode:
-            # Check data lengths of each bot
-            self._check_bot_data()
-            
             print("\nTrading...\n")
             backtest_start_time = timeit.default_timer()
             
-        if not self._detach_bot:
+        # TODO - what is going to happen to detach_bot attribute?
+        # Begin trading
+        if self._run_mode.lower() == 'continuous':
+            # Running in continuous update mode
+            if self._backtest_mode:
+                # Backtesting
+                end_time = self._data_end # datetime
+                timestamp = self._data_start # datetime
+                while timestamp <= end_time:
+                    # Update each bot with latest data to generate signal
+                    for bot in self._bots_deployed:
+                        bot._update(timestamp=timestamp)
+                        
+                    # Update backtest tracking stats
+                    NAV.append(self._broker.NAV)
+                    balance.append(self._broker.portfolio_balance)
+                    margin.append(self._broker.margin_available)
+                    tradetimes.append(timestamp)
+                    
+                    # Iterate through time
+                    timestamp += self._timestep
+        
+            else:
+                # Live trading
+                deploy_time = time.time()
+                while True: # TODO - make while running, or similar and improve livetrade functionality
+                    for bot in self._bots_deployed:
+                        bot._update(timestamp=timestamp)
+                    time.sleep(self._timestep - ((time.time() - deploy_time) % self._timestep))
+                    
+        elif self._run_mode.lower() == 'periodic':
             # Trading in periodic update mode
             if self._backtest_mode:
                 # Backtesting
+                self._check_bot_data()
                 start_range, end_range = self._bots_deployed[0]._get_iteration_range()
                 for i in range(start_range, end_range):
                     # Update each bot with latest data to generate signal
                     for bot in self._bots_deployed:
-                        # Update virtual broker with latest data
-                        bot._update_backtest(i)
-                        
-                        # Update trading bot
-                        bot._update(i)
+                        bot._update(i=i)
                         
                     # Update backtest tracking
                     NAV.append(self._broker.NAV)
                     balance.append(self._broker.portfolio_balance)
                     margin.append(self._broker.margin_available)
+                    tradetimes.append(self._bots_deployed[0].data.index[i])
         
             else:
                 # Live trading
-                bot._update(-1)  # Get latest signal
-            
-        if self._backtest_mode:
+                bot._update(i=-1) # Process most recent signal
+        
+        if int(self._verbosity) > 0 and self._backtest_mode:
             backtest_end_time = timeit.default_timer()
         
         # Backtest Post-Processing
@@ -1203,7 +1246,7 @@ class AutoTrader:
         if self._backtest_mode is True:
             # Create backtest summary for each bot 
             for bot in self._bots_deployed:
-                bot._create_backtest_summary(balance, NAV, margin)            
+                bot._create_backtest_summary(balance, NAV, margin, tradetimes)            
             
             if int(self._verbosity) > 0:
                 print(f"Backtest complete (runtime {round((backtest_end_time - backtest_start_time), 3)} s).")
