@@ -1224,7 +1224,10 @@ class AutoTraderBot:
                 duplicate = (current_bar == self._last_bar).all()
             else:
                 self._last_bar = current_bar
-            
+        
+        if int(self._verbosity) > 1:
+            print("Duplicate bar detected. Skipping.")
+        
         return duplicate
         
         
