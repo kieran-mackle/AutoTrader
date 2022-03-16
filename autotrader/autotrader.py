@@ -72,7 +72,7 @@ class AutoTrader:
         self._verbosity = 1
         self._run_mode = 'periodic'
         self._timestep = pd.Timedelta('10s').to_pytimedelta()
-        self._data_indexing = 'open' # TODO - add this to configure method 
+        self._data_indexing = 'open'
         self._broker_verbosity = 0
         self._notify = 0
         self._email_params = None
@@ -155,7 +155,7 @@ class AutoTrader:
                   environment: str = 'demo', show_plot: bool = False,
                   MTF_initialisation: bool = False, 
                   jupyter_notebook: bool = False, mode: str = 'periodic',
-                  update_interval: str = '10s') -> None:
+                  update_interval: str = '10s', data_index_time: str = 'open') -> None:
         """Configures run settings for AutoTrader.
 
         Parameters
@@ -203,6 +203,10 @@ class AutoTrader:
             should align with the highest resolution bar granularity in your
             strategy to allow adequate updates. The string inputted will be
             converted to a timedelta object. The default is '10s'.
+        data_index_time : str, optional
+            The time by which the data is indexed. Either 'open', if the data
+            is indexed by the bar open time, or 'close', if the data is indexed
+            by the bar close time. The default is 'open'.
         
         Returns
         -------
@@ -227,7 +231,7 @@ class AutoTrader:
         self._jupyter_notebook = jupyter_notebook
         self._run_mode = mode
         self._timestep = pd.Timedelta(update_interval).to_pytimedelta()
-        self._data_indexing = 'open' # TODO - add this to configure method args
+        self._data_indexing = data_index_time
         
         
     def add_strategy(self, config_filename: str = None, 
@@ -1208,7 +1212,7 @@ class AutoTrader:
             else:
                 # Live trading
                 deploy_time = time.time()
-                while True: # TODO - make while running, or similar
+                while True: # TODO - make while running, or similar and improve livetrade functionality
                     for bot in self._bots_deployed:
                         bot._update(timestamp=timestamp)
                     time.sleep(self._timestep - ((time.time() - deploy_time) % self._timestep))
