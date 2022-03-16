@@ -36,6 +36,8 @@
 - Strategy module: method `generate_signal` is passed named arguments 
   `i` and `current_position`.
 - Continuous mode: single instantiation, iteration by timestamp
+- AutoStream deprecated: if using streamed data, local data file paths should
+  be provided using the `add_data` method.
 
 
 ## Version 0.5.0
