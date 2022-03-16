@@ -172,6 +172,7 @@ class AutoTraderBot:
             self._abs_data_filepath = False
         
         # Fetch data
+        # TODO - fetch auxdata in here, so it can update in live mode too
         self._get_data = GetData(broker_config, self._allow_dancing_bears)
         self._refresh_data()
         
@@ -703,7 +704,7 @@ class AutoTraderBot:
           can be as simple as keeping track of the last timestamp recieved, and
           not acting on the current timestamp if it matches the previous (or,
           if it is too close to the previous timestamp... MTF).
-        - Only for livetrading now, think about what happens when the timestamp 
+        / Only for livetrading now, think about what happens when the timestamp 
           is such that it provides less than the requested number of bars
         / if backtesting, call self._update_backtest before proceeding, then
           remove that call from autotrader.
@@ -1056,7 +1057,8 @@ class AutoTraderBot:
     
     @staticmethod
     def _check_ohlc_data(ohlc_data: pd.DataFrame, timestamp: datetime, 
-                         indexing: str = 'open', tail_bars: int = None) -> pd.DataFrame:
+                         indexing: str = 'open', tail_bars: int = None,
+                         check_for_future_data: bool = True) -> pd.DataFrame:
         """Checks the index of inputted data to ensure it contains no future 
         data.
 
@@ -1084,16 +1086,14 @@ class AutoTraderBot:
             DESCRIPTION.
 
         """
-        # TODO - add flag to control if future filtering takes place, to avoid
-        # doing it on livetrade data (only want to tail)
-        
-        # TODO - verify this works with pd.Series
-        if indexing.lower() == 'open':
-            past_data = ohlc_data[ohlc_data.index < timestamp]
-        elif indexing.lower() == 'close':
-            past_data = ohlc_data[ohlc_data.index <= timestamp]
-        else:
-            raise Exception(f"Unrecognised indexing type '{indexing}'.")
+        if check_for_future_data:
+            # TODO - verify this works with pd.Series
+            if indexing.lower() == 'open':
+                past_data = ohlc_data[ohlc_data.index < timestamp]
+            elif indexing.lower() == 'close':
+                past_data = ohlc_data[ohlc_data.index <= timestamp]
+            else:
+                raise Exception(f"Unrecognised indexing type '{indexing}'.")
         
         if tail_bars is not None:
             past_data = past_data.tail(tail_bars)
@@ -1102,12 +1102,13 @@ class AutoTraderBot:
     
     
     def _check_auxdata(self, auxdata: dict, timestamp: datetime, 
-                       indexing: str = 'open', tail_bars: int = None) -> dict:
+                       indexing: str = 'open', tail_bars: int = None,
+                       check_for_future_data: bool = True) -> dict:
         processed_auxdata = {}
         for key, item in auxdata.items():
             if isinstance(item, pd.DataFrame) or isinstance(item, pd.Series):
                 processed_auxdata[key] = self._check_ohlc_data(item, timestamp, 
-                                                        indexing, tail_bars)
+                                    indexing, tail_bars, check_for_future_data)
             else:
                 processed_auxdata[key] = item
         return processed_auxdata
@@ -1129,14 +1130,14 @@ class AutoTraderBot:
             DESCRIPTION.
 
         """
-        def process_strat_data(original_strat_data):
+        def process_strat_data(original_strat_data, check_for_future_data):
             sufficient_data = True
             
             if isinstance(original_strat_data, dict):
                 if 'aux' in original_strat_data:
                     base_data = original_strat_data['base']
                     processed_auxdata = self._check_auxdata(original_strat_data['aux'],
-                                                            timestamp, indexing, bars)
+                                    timestamp, indexing, bars, check_for_future_data)
                 else:
                     # MTF data
                     base_data = original_strat_data
@@ -1148,7 +1149,7 @@ class AutoTraderBot:
                 processed_basedata = {}
                 for granularity, data in base_data.items():
                     processed_basedata[granularity] = self._check_ohlc_data(data, 
-                                                            timestamp, indexing, bars)
+                                timestamp, indexing, bars, check_for_future_data)
                 
                 # Combine the results of the conditionals above
                 strat_data = {}
@@ -1168,7 +1169,7 @@ class AutoTraderBot:
                 
             elif isinstance(original_strat_data, pd.DataFrame):
                 strat_data = self._check_ohlc_data(original_strat_data, 
-                                                   timestamp, indexing, bars)
+                             timestamp, indexing, bars, check_for_future_data)
                 current_bar = strat_data.iloc[-1]
                 
                 # Check that enough bars have accumulated
@@ -1183,14 +1184,13 @@ class AutoTraderBot:
         bars = self._strategy_params['period']
         
         if self._backtest_mode:
-            strat_data, current_bar, sufficient_data = process_strat_data(self._strat_data)
+            check_for_future_data = True
         else:
             self._refresh_data()
-            strat_data, current_bar, sufficient_data = process_strat_data(self._strat_data)
-            # TODO - maybe I do want to pass this through checks, to prevent 
-            # having data which is 10000 bars long? Can wrap logic above in func
+            check_for_future_data = False
 
-        # TODO - can I improve the code above to reduce repeating?        
+        strat_data, current_bar, sufficient_data = process_strat_data(self._strat_data, 
+                                                                      check_for_future_data)
 
         # Process quote data
         quote_data = self._check_ohlc_data(self.quote_data, timestamp, 
