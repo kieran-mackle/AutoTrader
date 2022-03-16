@@ -1162,8 +1162,8 @@ class AutoPlot:
                                      left_on='date', right_index=True)
         
         # Backtesting signals
-        long_trades = trade_summary[trade_summary['size'] > 0]
-        shorts_trades = trade_summary[trade_summary['size'] < 0]
+        long_trades = trade_summary[trade_summary['direction'] > 0]
+        shorts_trades = trade_summary[trade_summary['direction'] < 0]
         
         if cancelled_summary is False and open_summary is False:
             
