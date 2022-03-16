@@ -1228,7 +1228,7 @@ class AutoTrader:
                     NAV.append(self._broker.NAV)
                     balance.append(self._broker.portfolio_balance)
                     margin.append(self._broker.margin_available)
-                tradetimes = None # Use bot data index
+                    tradetimes.append(self._bots_deployed[0].data.index[i])
         
             else:
                 # Live trading
