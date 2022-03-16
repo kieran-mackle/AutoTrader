@@ -37,7 +37,7 @@ class AutoTraderBot:
     """
     
     def __init__(self, instrument: str, strategy_dict: dict, 
-                 broker, data_dict: dict, quote_data_dict: dict, 
+                 broker, data_dict: dict, quote_data_path: str, 
                  auxdata: dict, autotrader_instance) -> None:
         """Instantiates an AutoTrader Bot.
 
@@ -51,8 +51,9 @@ class AutoTraderBot:
             The AutoTrader Broker module.
         data_dict : dict
             The strategy data.
-        quote_data_dict : dict
-            The quote data for the trading instrument (backtesting only).
+        quote_data_path : str
+            The quote data filepath for the trading instrument 
+            (for backtesting only).
         auxdata : dict
             Auxiliary strategy data.
         autotrader_instance : AutoTrader
@@ -76,10 +77,10 @@ class AutoTraderBot:
         
         # Assign local attributes
         self.instrument = instrument
-        self.auxdata = auxdata
         self._broker = broker
         
         # Unpack strategy parameters and assign to strategy_params
+        # TODO - clean this up
         strategy_config = strategy_dict['config']
         interval = strategy_config["INTERVAL"]
         period = strategy_config["PERIOD"]
@@ -125,7 +126,7 @@ class AutoTraderBot:
             global_config = None
         broker_config = get_config(self._environment, global_config, self._feed)
    
-        # Start price streaming
+        # Start price streaming - TODO - now redundant
         if self._use_stream and self._backtest_mode is False:
             
             # Check how many granularities were requested
@@ -147,32 +148,20 @@ class AutoTraderBot:
             # Start stream
             self._initiate_stream()
         
-        # Multiple time-frame initialisation option
+        # Multiple time-frame initialisation option - # TODO - remove
         if self._MTF_initialisation:
             # Only retrieve MTF_data once upon initialisation and store
             # instantiation MTF_data
             self.MTF_data = None
         
         # Data retrieval
-        self._quote_data_file = quote_data_dict
-        if data_dict is not None:
-            # Local data files provided
-            self._abs_data_filepath = True
-            if type(data_dict) == str:
-                # Single timeframe data file provided
-                self._data_file = data_dict
-                self._base_interval = interval
-                self._MTF_intervals = []
-            else:
-                # MTF data provided
-                self._MTF_data_files = data_dict
-                self._base_interval = interval.split(',')[0]
-                self._MTF_intervals = interval.split(',')[1:]
-        else:
-            self._abs_data_filepath = False
+        self._quote_data_file = quote_data_path # Either str or None
+        self._data_filepaths = data_dict # Either str or dict, or None
+        self._auxdata_files = auxdata
         
         # Fetch data
-        self._get_data = GetData(broker_config, self._allow_dancing_bears)
+        self._get_data = GetData(broker_config, self._allow_dancing_bears,
+                                 self._base_currency)
         self._refresh_data()
         
         # Instantiate Strategy
@@ -249,6 +238,7 @@ class AutoTraderBot:
         """Method to update strategy with latest data. Called by the bot
         manager and autostream.
         """
+        # TODO - redundant
         if data is not None:
             # Update data attribute (for livetrade compatibility)
             self.data = data
@@ -276,38 +266,36 @@ class AutoTraderBot:
         # by user feeds.
         
         # Fetch new data
-        data, quote_data, MTF_data = self._retrieve_data(self.instrument, self._feed)
+        data, multi_data, quote_data, auxdata = self._retrieve_data(self.instrument, self._feed)
         
         # Check data returned is valid
         if len(data) == 0:
             raise Exception("Error retrieving data.")
         
         # Data assignment
-        if MTF_data is None:
+        if multi_data is None:
             strat_data = data
         else:
-            strat_data = MTF_data
+            strat_data = multi_data
         
         # Auxiliary data assignment
-        # TODO - refresh auxdata in here, so it can update in live mode too
-        if self.auxdata is not None:
+        if auxdata is not None:
             strat_data = {'base': strat_data,
-                          'aux': self.auxdata}
+                          'aux': auxdata}
         
         # Assign data attributes to bot
         self._strat_data = strat_data
         self.data = data
-        self.MTF_data = MTF_data
+        self.multi_data = multi_data
+        self.auxdata = auxdata
         self.quote_data = quote_data
         
         # strat_data will either contain a single timeframe OHLC dataframe, 
         # a dictionary of MTF dataframes, or a dict with 'base' and 'aux' keys,
         # for aux and base strategy data (which could be single of MTF).
         
-        return strat_data
     
-    
-    def _retrieve_data(self, instrument: str, feed: str, 
+    def _old_retrieve_data(self, instrument: str, feed: str, 
                        base_data: pd.DataFrame = None) -> pd.DataFrame:
         """Retrieves price data from AutoData.
         """
@@ -327,6 +315,7 @@ class AutoTraderBot:
                 custom_data_filepath = os.path.join(price_data_path, 
                                                     custom_data_file) \
                     if not self._abs_data_filepath else custom_data_file
+                
                 if int(self._verbosity) > 1:
                     print("Using data file specified ({}).".format(custom_data_file))
                 data = self._get_data.local(custom_data_filepath, self._data_start, 
@@ -367,8 +356,7 @@ class AutoTraderBot:
                             quote_data = self._get_data.local(self._quote_data_file, 
                                                               self._data_start, 
                                                               self._data_end)
-                            data, quote_data = self._match_quote_data(data, 
-                                                                      quote_data)
+                            data, quote_data = self._match_quote_data(data, quote_data)
                         else:
                             quote_data = data
                     
@@ -596,7 +584,6 @@ class AutoTraderBot:
                         
                         MTF_data[granularity] = data
                         
-                        
                 if len(MTF_data) == 1:
                     # There is only one timeframe of data
                     MTF_data = None
@@ -627,8 +614,78 @@ class AutoTraderBot:
                         MTF_data = None
             
             return data, None, MTF_data
-
-
+    
+    
+    def _retrieve_data(self, instrument: str, feed: str) -> pd.DataFrame:
+        
+        # Retrieve main data
+        if self._data_filepaths is not None:
+            # Local data filepaths provided
+            if isinstance(self._data_filepaths, str):
+                # Single data filepath provided
+                data = self._get_data.local(self._data_filepaths, self._data_start, 
+                                            self._data_end)
+                multi_data = None
+                
+            elif isinstance(self._data_filepaths, dict):
+                # Multiple data filepaths provided
+                multi_data = {}
+                for granularity, filepath in self._data_filepaths.items():
+                    data = self._get_data.local(filepath, self._data_start, self._data_end)
+                    multi_data[granularity] = data
+                
+                # Extract first dataset as base data
+                data = multi_data[list(self._data_filepaths.keys())[0]]
+        
+        else:
+            # Download data
+            multi_data = {}
+            for granularity in self._strategy_params['granularity'].split(','):
+                data_func = getattr(self._get_data, feed.lower())
+                data = data_func(instrument, granularity=granularity, 
+                                 count=self._strategy_params['period'], 
+                                 start_time=self._data_start,
+                                 end_time=self._data_end)
+                
+                multi_data[granularity] = data
+            
+            data = multi_data[self._strategy_params['granularity'].split(',')[0]]
+            
+            if len(multi_data) == 1:
+                multi_data = None
+        
+        # Retrieve quote data
+        if self._quote_data_file is not None:
+            quote_data = self._get_data.local(self._quote_data_file, 
+                                              self._data_start, self._data_end)
+        else:
+            quote_data_func = getattr(self._get_data,f'_{feed.lower()}_quote_data')
+            quote_data = quote_data_func(data, instrument, 
+                                         self._strategy_params['granularity'].split(',')[0], 
+                                         self._data_start, self._data_end)
+        
+        # Retrieve auxiliary data
+        if self._auxdata_files is not None:
+            if isinstance(self.auxdata, str):
+                # Single data filepath provided
+                auxdata = self._get_data.local(self.auxdata, self._data_start, 
+                                               self._data_end)
+                
+            elif isinstance(self.auxdata, dict):
+                # Multiple data filepaths provided
+                auxdata = {}
+                for key, filepath in self.auxdata.items():
+                    data = self._get_data.local(filepath, self._data_start, self._data_end)
+                    auxdata[key] = data
+        else:
+            auxdata = None
+        
+        # Correct any data mismatches
+        data, quote_data = self._match_quote_data(data, quote_data)
+        
+        return data, multi_data, quote_data, auxdata
+        
+    
     @staticmethod
     def _check_data_period(data: pd.DataFrame, from_date: datetime, 
                            to_date: datetime) -> pd.DataFrame:
@@ -646,6 +703,7 @@ class AutoTraderBot:
         
         When using MTF data, this method will only check the base timeframe.
         """
+        # TODO - method redundant?
         interval = self._strategy_params['granularity'].split(',')[0]
         
         # Check data time alignment
