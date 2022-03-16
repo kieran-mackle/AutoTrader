@@ -172,7 +172,6 @@ class AutoTraderBot:
             self._abs_data_filepath = False
         
         # Fetch data
-        # TODO - fetch auxdata in here, so it can update in live mode too
         self._get_data = GetData(broker_config, self._allow_dancing_bears)
         self._refresh_data()
         
@@ -270,6 +269,12 @@ class AutoTraderBot:
         
     
     def _refresh_data(self):
+        
+        # TODO - allow user to pass in custom data retrieval object, to 
+        # customise how data is delivered. The retrieve_data method (and others)
+        # could be abstracted away into their own class, which could be inherited
+        # by user feeds.
+        
         # Fetch new data
         data, quote_data, MTF_data = self._retrieve_data(self.instrument, self._feed)
         
@@ -284,6 +289,7 @@ class AutoTraderBot:
             strat_data = MTF_data
         
         # Auxiliary data assignment
+        # TODO - refresh auxdata in here, so it can update in live mode too
         if self.auxdata is not None:
             strat_data = {'base': strat_data,
                           'aux': self.auxdata}
