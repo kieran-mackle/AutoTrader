@@ -30,7 +30,8 @@ class GetData:
     """
     
     def __init__(self, broker_config: dict = None, 
-                 allow_dancing_bears: bool = False) -> None:
+                 allow_dancing_bears: bool = False,
+                 home_currency: str = None) -> None:
         """Instantiates GetData.
 
         Parameters
@@ -41,6 +42,9 @@ class GetData:
         allow_dancing_bears : bool, optional
             A flag to allow incomplete bars to be returned in the data. The 
             default is False.
+        home_currency : str, optional
+            The home currency to use when fetching quote data. The default 
+            is None.
 
         Returns
         -------
@@ -66,9 +70,8 @@ class GetData:
                 self.ibapi.connect(host=host, port=port, clientId=client_id, 
                                    readonly=read_only, account=account)
             
-            
         self.allow_dancing_bears = allow_dancing_bears
-        self.home_currency = None
+        self.home_currency = home_currency
         
 
     def oanda(self, instrument: str, granularity: str, count: int = None, 
