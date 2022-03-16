@@ -1016,14 +1016,10 @@ class AutoTraderBot:
     def _get_iteration_range(self) -> int:
         """Checks mode of operation and returns data iteration range. For backtesting,
         the entire dataset is iterated over. For livetrading, only the latest candle
-        is used.
+        is used. ONLY USED IN BACKTESTING NOW.
         """
-        if self._backtest_mode:
-            start_range = 0
-        else:
-            start_range = len(self.data)-1
-        end_range       = len(self.data)
-
+        start_range = self._strategy_params['period']
+        end_range = len(self.data)
         return start_range, end_range
     
     
