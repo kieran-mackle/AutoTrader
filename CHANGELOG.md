@@ -35,6 +35,7 @@
   if the trade is long or short.
 - Strategy module: method `generate_signal` is passed named arguments 
   `i` and `current_position`.
+- Continuous mode: single instantiation, iteration by timestamp
 
 
 ## Version 0.5.0
