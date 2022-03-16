@@ -242,11 +242,14 @@ class GetData:
         if self.home_currency is None or quote_currency == self.home_currency:
             quote_data = data
         else:
-            conversion_pair = self.home_currency + "_" + quote_currency
-            quote_data = self.oanda(instrument  = conversion_pair,
-                                    granularity = granularity,
-                                    start_time  = start_time,
-                                    end_time    = end_time)
+            try:
+                conversion_pair = self.home_currency + "_" + quote_currency
+                quote_data = self.oanda(instrument  = conversion_pair,
+                                        granularity = granularity,
+                                        start_time  = start_time,
+                                        end_time    = end_time)
+            except:
+                quote_data = data
         
         return quote_data
     
