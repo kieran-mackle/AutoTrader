@@ -38,7 +38,8 @@
 - Continuous mode: single instantiation, iteration by timestamp
 - AutoStream deprecated: if using streamed data, local data file paths should
   be provided using the `add_data` method.
-
+- Abstracted data update method into `DataStream` class 
+  (within `autotrader.utilities` module) to allow custom data pipelines
 
 ## Version 0.5.0
 Breaking change:
