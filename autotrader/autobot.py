@@ -226,6 +226,7 @@ class AutoTraderBot:
         if sufficient_data and not duplicate_data:
             # Update backtest
             if self._backtest_mode:
+                # TODO - get backtest bars, rather than single bar only
                 self._update_backtest(current_bar)
             
             # Get strategy orders
@@ -755,5 +756,36 @@ class AutoTraderBot:
             print("Duplicate bar detected. Skipping.")
         
         return duplicate
+        
+    
+    def _check_strategy_for_plot_data(self):
+        """Checks the bot's strategy to see if it has plot_data and
+        plot_type attributes.
+
+        Returns
+        -------
+        plot_data : pd.DataFrame
+            The data to plot.
+        plot_type : str
+            The type of plot to create.
+            
+        Notes
+        -----
+        This method is a placeholder for a future feature, allowing 
+        customisation of what is plotted by setting plot_data and plot_type
+        attributes from within a strategy.
+        """
+        strat_params = self._strategy.__dict__
+        if 'plot_data' in strat_params:
+            plot_data = strat_params['plot_data']
+        else:
+            plot_data = self.data
+            
+        if 'plot_type' in strat_params:
+            plot_type = strat_params['plot_type']
+        else:
+            plot_type = 'candle'
+        return plot_data, plot_type
+            
         
         

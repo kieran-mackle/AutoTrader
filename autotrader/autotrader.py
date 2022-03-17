@@ -727,8 +727,9 @@ class AutoTrader:
                 # Multi-bot backtest
                 self.plot_multibot_backtest()
                 return
-            
-        ap = self._instantiate_autoplot(bot.data)
+        
+        data, plot_type = bot._check_strategy_for_plot_data()
+        ap = self._instantiate_autoplot(data, plot_type)
         profit_df = pd.merge(bot.data, 
                              bot.backtest_summary['trade_summary']['profit'], 
                              left_index=True, right_index=True).profit.cumsum()
@@ -1322,10 +1323,29 @@ class AutoTrader:
         self._bots_deployed = []
     
     
-    def _instantiate_autoplot(self, data: pd.DataFrame):
+    def _instantiate_autoplot(self, data: pd.DataFrame, 
+                              plot_type: str = 'candle') -> AutoPlot:
         """Creates instance of AutoPlot.
+
+        Parameters
+        ----------
+        data : pd.DataFrame
+            The data to instantiate AutoPlot with.
+        plot_type : str, optional
+            (Not yet implemented) The main plot type. The default is 'candle'.
+
+        Raises
+        ------
+        Exception
+            When attempting to plot on missing data timeframe.
+
+        Returns
+        -------
+        AutoPlot
+            An instance of AutoPlot.
         """
         # TODO - check length of data to prevent plotting over some length...
+        # TODO - implement plot type feature
         if self._chart_timeframe == 'default':
             ap = AutoPlot(data)
         else:
