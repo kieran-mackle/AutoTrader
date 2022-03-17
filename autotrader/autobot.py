@@ -454,7 +454,7 @@ class AutoTraderBot:
             # Append strategy parameters to each order
             for order in orders:
                 order.instrument = self.instrument if not order.instrument else order.instrument
-                order.strategy = self._strategy.name
+                order.strategy = self._strategy.name if 'name' in self._strategy.__dict__ else None
                 order.granularity = self._strategy_params['granularity']
                 order._sizing = self._strategy_params['sizing']
                 order._risk_pc = self._strategy_params['risk_pc']
