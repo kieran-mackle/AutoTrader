@@ -131,6 +131,20 @@ class AutoTraderBot:
         # Fetch data
         self._get_data = GetData(broker_config, self._allow_dancing_bears,
                                  self._base_currency)
+        
+        # Create instance of data stream object
+        stream_attributes = {"data_filepaths": self._data_filepaths,
+                             "quote_data_file": self._quote_data_file,
+                             "auxdata_files": self._auxdata_files,
+                             "strategy_params": self._strategy_params,
+                             "get_data": self._get_data,
+                             "data_start": self._data_start,
+                             "data_end": self._data_end,
+                             "instrument": self.instrument,
+                             "feed": self._feed}
+        self.Stream = self._data_stream_object(**stream_attributes)
+        
+        # Initial data call
         self._refresh_data(deploy_dt)
         
         # Instantiate Strategy
@@ -168,147 +182,6 @@ class AutoTraderBot:
         return 'AutoTraderBot instance'
     
     
-    def _refresh_data(self, timestamp: datetime = None, **kwargs):
-        """Refreshes the active Bot's data attributes for trading.
-
-        Parameters
-        ----------
-        timestamp : datetime, optional
-            The current timestamp. If None, datetime.now() will be called.
-            The default is None.
-        **kwargs : dict
-            Any other named arguments.
-
-        Raises
-        ------
-        Exception
-            When there is an error retrieving the data.
-
-        Returns
-        -------
-        None: 
-            The up-to-date data will be assigned to the Bot instance.
-
-        """
-        
-        timestamp = datetime.now() if timestamp is None else timestamp
-        
-        # TODO - allow user to pass in custom data retrieval object, to 
-        # customise how data is delivered. The retrieve_data method (and others)
-        # could be abstracted away into their own class, which could be inherited
-        # by user feeds.
-        
-        # Fetch new data
-        data, multi_data, quote_data, auxdata = self._retrieve_data(instrument=self.instrument, 
-                                                                    feed=self._feed,
-                                                                    timestamp=timestamp)
-        
-        # Check data returned is valid
-        if len(data) == 0:
-            raise Exception("Error retrieving data.")
-        
-        # Data assignment
-        if multi_data is None:
-            strat_data = data
-        else:
-            strat_data = multi_data
-        
-        # Auxiliary data assignment
-        if auxdata is not None:
-            strat_data = {'base': strat_data,
-                          'aux': auxdata}
-        
-        # Assign data attributes to bot
-        self._strat_data = strat_data
-        self.data = data
-        self.multi_data = multi_data
-        self.auxdata = auxdata
-        self.quote_data = quote_data
-        
-        # strat_data will either contain a single timeframe OHLC dataframe, 
-        # a dictionary of MTF dataframes, or a dict with 'base' and 'aux' keys,
-        # for aux and base strategy data (which could be single of MTF).
-        
-    
-    def _retrieve_data(self, instrument: str, feed: str, **kwargs) -> pd.DataFrame:
-        
-        # Retrieve main data
-        if self._data_filepaths is not None:
-            # Local data filepaths provided
-            if isinstance(self._data_filepaths, str):
-                # Single data filepath provided
-                data = self._get_data.local(self._data_filepaths, self._data_start, 
-                                            self._data_end)
-                multi_data = None
-                
-            elif isinstance(self._data_filepaths, dict):
-                # Multiple data filepaths provided
-                multi_data = {}
-                for granularity, filepath in self._data_filepaths.items():
-                    data = self._get_data.local(filepath, self._data_start, self._data_end)
-                    multi_data[granularity] = data
-                
-                # Extract first dataset as base data
-                data = multi_data[list(self._data_filepaths.keys())[0]]
-        
-        else:
-            # Download data
-            multi_data = {}
-            for granularity in self._strategy_params['granularity'].split(','):
-                data_func = getattr(self._get_data, feed.lower())
-                data = data_func(instrument, granularity=granularity, 
-                                 count=self._strategy_params['period'], 
-                                 start_time=self._data_start,
-                                 end_time=self._data_end)
-                
-                multi_data[granularity] = data
-            
-            data = multi_data[self._strategy_params['granularity'].split(',')[0]]
-            
-            if len(multi_data) == 1:
-                multi_data = None
-        
-        # Retrieve quote data
-        if self._quote_data_file is not None:
-            quote_data = self._get_data.local(self._quote_data_file, 
-                                              self._data_start, self._data_end)
-        else:
-            quote_data_func = getattr(self._get_data,f'_{feed.lower()}_quote_data')
-            quote_data = quote_data_func(data, instrument, 
-                                         self._strategy_params['granularity'].split(',')[0], 
-                                         self._data_start, self._data_end)
-        
-        # Retrieve auxiliary data
-        if self._auxdata_files is not None:
-            if isinstance(self.auxdata, str):
-                # Single data filepath provided
-                auxdata = self._get_data.local(self.auxdata, self._data_start, 
-                                               self._data_end)
-                
-            elif isinstance(self.auxdata, dict):
-                # Multiple data filepaths provided
-                auxdata = {}
-                for key, filepath in self.auxdata.items():
-                    data = self._get_data.local(filepath, self._data_start, self._data_end)
-                    auxdata[key] = data
-        else:
-            auxdata = None
-        
-        # Correct any data mismatches
-        data, quote_data = self._match_quote_data(data, quote_data)
-        
-        return data, multi_data, quote_data, auxdata
-        
-    
-    @staticmethod
-    def _check_data_period(data: pd.DataFrame, from_date: datetime, 
-                           to_date: datetime) -> pd.DataFrame:
-        """Checks and returns the dataset matching the backtest start and 
-        end dates (as close as possible).
-        """
-        return data[(data.index >= from_date) & (data.index <= to_date)]
-        
-
     def _update(self, i: int = None, timestamp: datetime = None) -> None:
         """Update strategy with the latest data and generate a trade signal.
         
@@ -458,6 +331,57 @@ class AutoTraderBot:
                                                    self._email_params['mailing_list'],
                                                    self._email_params['host_email'])
                     
+    
+    def _refresh_data(self, timestamp: datetime = None, **kwargs):
+        """Refreshes the active Bot's data attributes for trading.
+
+        Parameters
+        ----------
+        timestamp : datetime, optional
+            The current timestamp. If None, datetime.now() will be called.
+            The default is None.
+        **kwargs : dict
+            Any other named arguments.
+
+        Raises
+        ------
+        Exception
+            When there is an error retrieving the data.
+
+        Returns
+        -------
+        None: 
+            The up-to-date data will be assigned to the Bot instance.
+
+        """
+        
+        timestamp = datetime.now() if timestamp is None else timestamp
+        
+        # Fetch new data
+        data, multi_data, quote_data, auxdata = self.Stream.refresh(timestamp=timestamp)
+        
+        # Check data returned is valid
+        if len(data) == 0:
+            raise Exception("Error retrieving data.")
+        
+        # Data assignment
+        if multi_data is None:
+            strat_data = data
+        else:
+            strat_data = multi_data
+        
+        # Auxiliary data assignment
+        if auxdata is not None:
+            strat_data = {'base': strat_data,
+                          'aux': auxdata}
+        
+        # Assign data attributes to bot
+        self._strat_data = strat_data
+        self.data = data
+        self.multi_data = multi_data
+        self.auxdata = auxdata
+        self.quote_data = quote_data
+        
     
     def _check_orders(self, orders) -> list:
         """Checks that orders returned from strategy are in the correct
@@ -630,32 +554,6 @@ class AutoTraderBot:
                             "your strategy configuration.")
         
         return start_range, end_range
-    
-    
-    def _match_quote_data(self, data: pd.DataFrame, 
-                          quote_data: pd.DataFrame) -> pd.DataFrame:
-        """Function to match index of trading data and quote data.
-        """
-        datasets = [data, quote_data]
-        adjusted_datasets = []
-        
-        for dataset in datasets:
-            # Initialise common index
-            common_index = dataset.index
-            
-            # Update common index by intersection with other data 
-            for other_dataset in datasets:
-                common_index = common_index.intersection(other_dataset.index)
-            
-            # Adjust data using common index found
-            adj_data = dataset[dataset.index.isin(common_index)]
-            
-            adjusted_datasets.append(adj_data)
-        
-        # Unpack adjusted datasets
-        adj_data, adj_quote_data = adjusted_datasets
-        
-        return adj_data, adj_quote_data
     
     
     @staticmethod

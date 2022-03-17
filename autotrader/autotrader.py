@@ -11,7 +11,7 @@ from scipy.optimize import brute
 from datetime import datetime, timedelta
 from autotrader.autoplot import AutoPlot
 from autotrader.autobot import AutoTraderBot
-from autotrader.utilities import read_yaml, get_config, get_watchlist
+from autotrader.utilities import read_yaml, get_config, get_watchlist, DataStream
 
 
 class AutoTrader:
@@ -73,6 +73,7 @@ class AutoTrader:
         self._run_mode = 'periodic'
         self._timestep = pd.Timedelta('10s').to_pytimedelta()
         self._data_indexing = 'open'
+        self._data_stream_object = DataStream
         self._broker_verbosity = 0
         self._notify = 0
         self._email_params = None
@@ -377,7 +378,7 @@ class AutoTrader:
         
     def add_data(self, data_dict: dict = None, quote_data: dict = None, 
                  data_directory: str = 'price_data', abs_dir_path: str = None, 
-                 auxdata: dict = None) -> None:
+                 auxdata: dict = None, stream_object = None) -> None:
         """Specify local data to run a backtest on.
 
         Parameters
@@ -402,7 +403,10 @@ class AutoTrader:
             multiple products, the keys of this dictionary must correspond
             to the products, with the auxdata in nested dictionaries or 
             otherwise. The default is None.
-
+        stream_object : DataStream, optional
+            A custom data stream object, allowing custom data pipelines. The 
+            default is DataStream (from autotrader.utilities).
+        
         Raises
         ------
         Exception
@@ -418,6 +422,11 @@ class AutoTrader:
         ------
             To ensure proper directory configuration, this method should only 
             be called after calling autotrader.configure().
+            
+            The data provided to the strategy will either contain a single 
+            timeframe OHLC dataframe, a dictionary of MTF dataframes, or 
+            a dict with 'base' and 'aux' keys, for aux and base strategy 
+            data (which could be single of MTF).
             
         Examples
         --------
@@ -506,6 +515,10 @@ class AutoTrader:
                     modified_auxdata[product] = os.path.join(dir_path, item)
                     
             self._auxdata = modified_auxdata
+        
+        # Assign data stream object
+        if stream_object is not None:
+            self._data_stream_object = stream_object
     
     
     def scan(self, strategy_filename: str = None, 

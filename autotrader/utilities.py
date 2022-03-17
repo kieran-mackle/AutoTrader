@@ -4,6 +4,9 @@ import yaml
 import time
 import threading
 import traceback
+import pandas as pd
+from datetime import datetime
+from autotrader.autodata import GetData
 
 
 def read_yaml(file_path: str) -> dict:
@@ -450,3 +453,146 @@ class ManageBot:
         seconds = conversions[letter] * number
         
         return seconds
+    
+
+class DataStream:
+    """Data stream class.
+    
+    This class is intended to provide a means of custom data pipelines.
+    
+    Methods
+    -------
+    _retrieve_data
+        Returns data, multi_data, quote_data, auxdata
+    
+    """
+    
+    def __init__(self, **kwargs):
+        # Attributes
+        self.instrument = None
+        self.feed = None
+        self.data_filepaths = None
+        self.quote_data_file = None
+        self.auxdata_files = None
+        self.strategy_params = None
+        self.get_data  = None
+        self.data_start = None
+        self.data_end = None
+        
+        # Unpack kwargs
+        for item in kwargs:
+            setattr(self, item, kwargs[item])
+        
+    
+    def refresh(self, timestamp: datetime = None):
+        """Returns up-to-date trading data.
+
+        Parameters
+        ----------
+        timestamp : datetime, optional
+            The current timestamp. The default is None.
+
+        Returns
+        -------
+        data : pd.DataFrame
+            The OHLC price data.
+        multi_data : dict
+            A dictionary of DataFrames.
+        quote_data : pd.DataFrame
+            The quote data.
+        auxdata : dict
+            Strategy auxiliary data.
+
+        """
+        # Retrieve main data
+        if self.data_filepaths is not None:
+            # Local data filepaths provided
+            if isinstance(self.data_filepaths, str):
+                # Single data filepath provided
+                data = self.get_data.local(self.data_filepaths, self.data_start, 
+                                            self.data_end)
+                multi_data = None
+                
+            elif isinstance(self.data_filepaths, dict):
+                # Multiple data filepaths provided
+                multi_data = {}
+                for granularity, filepath in self.data_filepaths.items():
+                    data = self.get_data.local(filepath, self.data_start, self.data_end)
+                    multi_data[granularity] = data
+                
+                # Extract first dataset as base data
+                data = multi_data[list(self.data_filepaths.keys())[0]]
+        
+        else:
+            # Download data
+            multi_data = {}
+            for granularity in self.strategy_params['granularity'].split(','):
+                data_func = getattr(self.get_data, self.feed.lower())
+                data = data_func(self.instrument, granularity=granularity, 
+                                 count=self.strategy_params['period'], 
+                                 start_time=self.data_start,
+                                 end_time=self.data_end)
+                
+                multi_data[granularity] = data
+            
+            data = multi_data[self.strategy_params['granularity'].split(',')[0]]
+            
+            if len(multi_data) == 1:
+                multi_data = None
+        
+        # Retrieve quote data
+        if self.quote_data_file is not None:
+            quote_data = self.get_data.local(self.quote_data_file, 
+                                              self.data_start, self.data_end)
+        else:
+            quote_data_func = getattr(self.get_data,f'_{self.feed.lower()}_quote_data')
+            quote_data = quote_data_func(data, self.instrument, 
+                                         self.strategy_params['granularity'].split(',')[0], 
+                                         self.data_start, self.data_end)
+        
+        # Retrieve auxiliary data
+        if self.auxdata_files is not None:
+            if isinstance(self.auxdata_files, str):
+                # Single data filepath provided
+                auxdata = self.get_data.local(self.auxdata_files, self.data_start, 
+                                               self.data_end)
+                
+            elif isinstance(self.auxdata_files, dict):
+                # Multiple data filepaths provided
+                auxdata = {}
+                for key, filepath in self.auxdata_files.items():
+                    data = self.get_data.local(filepath, self.data_start, self.data_end)
+                    auxdata[key] = data
+        else:
+            auxdata = None
+        
+        # Correct any data mismatches
+        data, quote_data = self.match_quote_data(data, quote_data)
+        
+        return data, multi_data, quote_data, auxdata
+        
+    
+    def match_quote_data(self, data: pd.DataFrame, 
+                         quote_data: pd.DataFrame) -> pd.DataFrame:
+        """Function to match index of trading data and quote data.
+        """
+        datasets = [data, quote_data]
+        adjusted_datasets = []
+        
+        for dataset in datasets:
+            # Initialise common index
+            common_index = dataset.index
+            
+            # Update common index by intersection with other data 
+            for other_dataset in datasets:
+                common_index = common_index.intersection(other_dataset.index)
+            
+            # Adjust data using common index found
+            adj_data = dataset[dataset.index.isin(common_index)]
+            
+            adjusted_datasets.append(adj_data)
+        
+        # Unpack adjusted datasets
+        adj_data, adj_quote_data = adjusted_datasets
+        
+        return adj_data, adj_quote_data
