@@ -423,6 +423,11 @@ class AutoTrader:
             To ensure proper directory configuration, this method should only 
             be called after calling autotrader.configure().
             
+            The data provided to the strategy will either contain a single 
+            timeframe OHLC dataframe, a dictionary of MTF dataframes, or 
+            a dict with 'base' and 'aux' keys, for aux and base strategy 
+            data (which could be single of MTF).
+            
         Examples
         --------
             An example data_dict is shown below.
