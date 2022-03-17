@@ -600,7 +600,8 @@ class DataStream:
         return adj_data, adj_quote_data
     
     
-    def get_trading_bars(self, data: pd.DataFrame, quote_bars: bool) -> dict:
+    def get_trading_bars(self, data: pd.DataFrame, quote_bars: bool,
+                         timestamp: datetime = None) -> dict:
         """Returns a dictionary of the current bars of the products being 
         traded.
 
