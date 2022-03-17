@@ -601,7 +601,8 @@ class DataStream:
     
     
     def get_trading_bars(self, data: pd.DataFrame, quote_bars: bool,
-                         timestamp: datetime = None) -> dict:
+                         timestamp: datetime = None, 
+                         processed_strategy_data: dict = None) -> dict:
         """Returns a dictionary of the current bars of the products being 
         traded.
 

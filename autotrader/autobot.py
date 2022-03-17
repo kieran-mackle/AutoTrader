@@ -148,11 +148,14 @@ class AutoTraderBot:
         self._refresh_data(deploy_dt)
         
         # Instantiate Strategy
+        # TODO - document changes: instead of include broker, just include all,
+        # or similar. Then use kwargs in init to handle
         include_broker = strategy_config['INCLUDE_BROKER'] \
             if 'INCLUDE_BROKER' in strategy_config else False
         if include_broker:
             my_strat = strategy(params, self._strat_data, instrument, 
-                                self._broker, self._broker_utils)
+                                self._broker, self._broker_utils, 
+                                data_stream=self.Stream)
         else:
             my_strat = strategy(params, self._strat_data, instrument)
             
@@ -661,14 +664,15 @@ class AutoTraderBot:
             Boolean flag whether sufficient data is available.
 
         """
-        def get_current_bars(data: pd.DataFrame, quote_data: bool = False) -> dict:
+        def get_current_bars(data: pd.DataFrame, quote_data: bool = False,
+                             processed_strategy_data: dict = None) -> dict:
             """Returns the current bars of data. If the inputted data is for
             quote bars, then the quote_data boolean will be True.
             """
             if len(data) > 0:
                 current_bars = self.Stream.get_trading_bars(data=data, 
-                                                            quote_bars=quote_data, 
-                                                            timestamp=timestamp)
+                                quote_bars=quote_data, timestamp=timestamp,
+                                processed_strategy_data=processed_strategy_data)
             else:
                 current_bars = None
             return current_bars
@@ -701,7 +705,8 @@ class AutoTraderBot:
                     
                 # Extract current bar
                 first_tf_data = processed_basedata[list(processed_basedata.keys())[0]]
-                current_bars = get_current_bars(first_tf_data)
+                current_bars = get_current_bars(first_tf_data, 
+                                                processed_strategy_data=strat_data)
                 
                 # Check that enough bars have accumulated
                 if len(first_tf_data) < bars:
@@ -710,7 +715,8 @@ class AutoTraderBot:
             elif isinstance(original_strat_data, pd.DataFrame):
                 strat_data = self._check_ohlc_data(original_strat_data, 
                              timestamp, indexing, bars, check_for_future_data)
-                current_bars = get_current_bars(strat_data)
+                current_bars = get_current_bars(strat_data,
+                                                processed_strategy_data=strat_data)
                 
                 # Check that enough bars have accumulated
                 if len(strat_data) < bars:
@@ -737,7 +743,7 @@ class AutoTraderBot:
         # Process quote data
         quote_data = self._check_ohlc_data(self.quote_data, timestamp, 
                                            indexing, bars)
-        quote_bars = get_current_bars(quote_data, True)
+        quote_bars = get_current_bars(quote_data, True, strat_data)
         
         return strat_data, current_bars, quote_bars, sufficient_data
     
