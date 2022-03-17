@@ -479,6 +479,9 @@ class DataStream:
         self._data_start 
         self._data_end
         
+        # The returns of retrieve_data could eventually be assigned as 
+        # attributes to this class?
+        
     
     def _retrieve_data(self, instrument: str, feed: str, **kwargs):
         
