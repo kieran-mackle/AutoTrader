@@ -132,17 +132,17 @@ class AutoTraderBot:
         self._get_data = GetData(broker_config, self._allow_dancing_bears,
                                  self._base_currency)
         
-        # New DataStream object construction
-        atts = {"_data_filepaths": self._data_filepaths,
-        "_quote_data_file": self._quote_data_file,
-        "_auxdata_files": self._auxdata_files,
-        "_strategy_params": self._strategy_params,
-        "_get_data": self._get_data,
-        "_data_start": self._data_start,
-        "_data_end": self._data_end}
-        
         # Create instance of data stream object
-        self.Stream = self._data_stream_object(**atts)
+        stream_attributes = {"data_filepaths": self._data_filepaths,
+                             "quote_data_file": self._quote_data_file,
+                             "auxdata_files": self._auxdata_files,
+                             "strategy_params": self._strategy_params,
+                             "get_data": self._get_data,
+                             "data_start": self._data_start,
+                             "data_end": self._data_end,
+                             "instrument": self.instrument,
+                             "feed": self._feed}
+        self.Stream = self._data_stream_object(**stream_attributes)
         
         # Initial data call
         self._refresh_data(deploy_dt)
@@ -181,62 +181,6 @@ class AutoTraderBot:
     def __str__(self):
         return 'AutoTraderBot instance'
     
-    
-    def _refresh_data(self, timestamp: datetime = None, **kwargs):
-        """Refreshes the active Bot's data attributes for trading.
-
-        Parameters
-        ----------
-        timestamp : datetime, optional
-            The current timestamp. If None, datetime.now() will be called.
-            The default is None.
-        **kwargs : dict
-            Any other named arguments.
-
-        Raises
-        ------
-        Exception
-            When there is an error retrieving the data.
-
-        Returns
-        -------
-        None: 
-            The up-to-date data will be assigned to the Bot instance.
-
-        """
-        
-        timestamp = datetime.now() if timestamp is None else timestamp
-        
-        # Fetch new data
-        data, multi_data, quote_data, auxdata = self.Stream._retrieve_data(instrument=self.instrument, 
-                                                    feed=self._feed, timestamp=timestamp)
-        
-        # Check data returned is valid
-        if len(data) == 0:
-            raise Exception("Error retrieving data.")
-        
-        # Data assignment
-        if multi_data is None:
-            strat_data = data
-        else:
-            strat_data = multi_data
-        
-        # Auxiliary data assignment
-        if auxdata is not None:
-            strat_data = {'base': strat_data,
-                          'aux': auxdata}
-        
-        # Assign data attributes to bot
-        self._strat_data = strat_data
-        self.data = data
-        self.multi_data = multi_data
-        self.auxdata = auxdata
-        self.quote_data = quote_data
-        
-        # strat_data will either contain a single timeframe OHLC dataframe, 
-        # a dictionary of MTF dataframes, or a dict with 'base' and 'aux' keys,
-        # for aux and base strategy data (which could be single of MTF).
-        
     
     def _update(self, i: int = None, timestamp: datetime = None) -> None:
         """Update strategy with the latest data and generate a trade signal.
@@ -387,6 +331,61 @@ class AutoTraderBot:
                                                    self._email_params['mailing_list'],
                                                    self._email_params['host_email'])
                     
+    
+    def _refresh_data(self, timestamp: datetime = None, **kwargs):
+        """Refreshes the active Bot's data attributes for trading.
+
+        Parameters
+        ----------
+        timestamp : datetime, optional
+            The current timestamp. If None, datetime.now() will be called.
+            The default is None.
+        **kwargs : dict
+            Any other named arguments.
+
+        Raises
+        ------
+        Exception
+            When there is an error retrieving the data.
+
+        Returns
+        -------
+        None: 
+            The up-to-date data will be assigned to the Bot instance.
+
+        """
+        
+        timestamp = datetime.now() if timestamp is None else timestamp
+        
+        # Fetch new data
+        data, multi_data, quote_data, auxdata = self.Stream._retrieve_data(timestamp=timestamp)
+        
+        # Check data returned is valid
+        if len(data) == 0:
+            raise Exception("Error retrieving data.")
+        
+        # Data assignment
+        if multi_data is None:
+            strat_data = data
+        else:
+            strat_data = multi_data
+        
+        # Auxiliary data assignment
+        if auxdata is not None:
+            strat_data = {'base': strat_data,
+                          'aux': auxdata}
+        
+        # Assign data attributes to bot
+        self._strat_data = strat_data
+        self.data = data
+        self.multi_data = multi_data
+        self.auxdata = auxdata
+        self.quote_data = quote_data
+        
+        # strat_data will either contain a single timeframe OHLC dataframe, 
+        # a dictionary of MTF dataframes, or a dict with 'base' and 'aux' keys,
+        # for aux and base strategy data (which could be single of MTF).
+        
     
     def _check_orders(self, orders) -> list:
         """Checks that orders returned from strategy are in the correct

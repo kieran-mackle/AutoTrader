@@ -467,95 +467,111 @@ class DataStream:
     """
     
     def __init__(self, **kwargs):
+        # Attributes
+        self.instrument = None
+        self.feed = None
+        self.data_filepaths = None
+        self.quote_data_file = None
+        self.auxdata_files = None
+        self.strategy_params = None
+        self.get_data  = None
+        self.data_start = None
+        self.data_end = None
+        
         # Unpack kwargs
         for item in kwargs:
             setattr(self, item, kwargs[item])
         
-        self._data_filepaths
-        self._quote_data_file
-        self._auxdata_files
-        self._strategy_params # period, granularity
-        self._get_data # class instance GetData_instance: GetData,
-        self._data_start 
-        self._data_end
-        
-        # The returns of retrieve_data could eventually be assigned as 
-        # attributes to this class?
-        
     
-    def _retrieve_data(self, instrument: str, feed: str, **kwargs):
-        
+    def _retrieve_data(self, timestamp: datetime = None):
+        """Returns trading data.
+
+        Parameters
+        ----------
+        timestamp : datetime, optional
+            The current timestamp. The default is None.
+
+        Returns
+        -------
+        data : pd.DataFrame
+            The OHLC price data.
+        multi_data : dict
+            A dictionary of DataFrames.
+        quote_data : pd.DataFrame
+            The quote data.
+        auxdata : dict
+            Strategy auxiliary data.
+
+        """
         # Retrieve main data
-        if self._data_filepaths is not None:
+        if self.data_filepaths is not None:
             # Local data filepaths provided
-            if isinstance(self._data_filepaths, str):
+            if isinstance(self.data_filepaths, str):
                 # Single data filepath provided
-                data = self._get_data.local(self._data_filepaths, self._data_start, 
-                                            self._data_end)
+                data = self.get_data.local(self.data_filepaths, self.data_start, 
+                                            self.data_end)
                 multi_data = None
                 
-            elif isinstance(self._data_filepaths, dict):
+            elif isinstance(self.data_filepaths, dict):
                 # Multiple data filepaths provided
                 multi_data = {}
-                for granularity, filepath in self._data_filepaths.items():
-                    data = self._get_data.local(filepath, self._data_start, self._data_end)
+                for granularity, filepath in self.data_filepaths.items():
+                    data = self.get_data.local(filepath, self.data_start, self.data_end)
                     multi_data[granularity] = data
                 
                 # Extract first dataset as base data
-                data = multi_data[list(self._data_filepaths.keys())[0]]
+                data = multi_data[list(self.data_filepaths.keys())[0]]
         
         else:
             # Download data
             multi_data = {}
-            for granularity in self._strategy_params['granularity'].split(','):
-                data_func = getattr(self._get_data, feed.lower())
-                data = data_func(instrument, granularity=granularity, 
-                                 count=self._strategy_params['period'], 
-                                 start_time=self._data_start,
-                                 end_time=self._data_end)
+            for granularity in self.strategy_params['granularity'].split(','):
+                data_func = getattr(self.get_data, self.feed.lower())
+                data = data_func(self.instrument, granularity=granularity, 
+                                 count=self.strategy_params['period'], 
+                                 start_time=self.data_start,
+                                 end_time=self.data_end)
                 
                 multi_data[granularity] = data
             
-            data = multi_data[self._strategy_params['granularity'].split(',')[0]]
+            data = multi_data[self.strategy_params['granularity'].split(',')[0]]
             
             if len(multi_data) == 1:
                 multi_data = None
         
         # Retrieve quote data
-        if self._quote_data_file is not None:
-            quote_data = self._get_data.local(self._quote_data_file, 
-                                              self._data_start, self._data_end)
+        if self.quote_data_file is not None:
+            quote_data = self.get_data.local(self.quote_data_file, 
+                                              self.data_start, self.data_end)
         else:
-            quote_data_func = getattr(self._get_data,f'_{feed.lower()}_quote_data')
-            quote_data = quote_data_func(data, instrument, 
-                                         self._strategy_params['granularity'].split(',')[0], 
-                                         self._data_start, self._data_end)
+            quote_data_func = getattr(self.get_data,f'_{self.feed.lower()}_quote_data')
+            quote_data = quote_data_func(data, self.instrument, 
+                                         self.strategy_params['granularity'].split(',')[0], 
+                                         self.data_start, self.data_end)
         
         # Retrieve auxiliary data
-        if self._auxdata_files is not None:
-            if isinstance(self._auxdata_files, str):
+        if self.auxdata_files is not None:
+            if isinstance(self.auxdata_files, str):
                 # Single data filepath provided
-                auxdata = self._get_data.local(self._auxdata_files, self._data_start, 
-                                               self._data_end)
+                auxdata = self.get_data.local(self.auxdata_files, self.data_start, 
+                                               self.data_end)
                 
-            elif isinstance(self._auxdata_files, dict):
+            elif isinstance(self.auxdata_files, dict):
                 # Multiple data filepaths provided
                 auxdata = {}
-                for key, filepath in self._auxdata_files.items():
-                    data = self._get_data.local(filepath, self._data_start, self._data_end)
+                for key, filepath in self.auxdata_files.items():
+                    data = self.get_data.local(filepath, self.data_start, self.data_end)
                     auxdata[key] = data
         else:
             auxdata = None
         
         # Correct any data mismatches
-        data, quote_data = self._match_quote_data(data, quote_data)
+        data, quote_data = self.match_quote_data(data, quote_data)
         
         return data, multi_data, quote_data, auxdata
         
-    # TODO - perhaps include all _check_* data methods from autobot, so
-    # that they can then be inherited elsewhere
     
-    def _match_quote_data(self, data: pd.DataFrame, 
+    def match_quote_data(self, data: pd.DataFrame, 
                           quote_data: pd.DataFrame) -> pd.DataFrame:
         """Function to match index of trading data and quote data.
         """
