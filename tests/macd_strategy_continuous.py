@@ -129,14 +129,14 @@ if __name__ == "__main__":
     home_dir = os.getcwd()
     
     at = AutoTrader()
-    at.configure(verbosity=1, show_plot=False, 
+    at.configure(verbosity=1, show_plot=True, 
                  mode='continuous', update_interval='4h')
     at.add_strategy(config_dict=config, strategy=SimpleMACD)
     at.plot_settings(show_cancelled=False)
     at.add_data({'EUR_USD': 'EUR_USD_H4.csv'}, 
                 data_directory=os.path.join(home_dir, 'data'))
-    at.backtest(start = '1/1/2015',
-                end = '1/3/2022',
+    at.backtest(start = '1/1/2017',
+                end = '1/1/2018',
                 initial_balance=1000,
                 leverage=30,
                 spread=0.5,

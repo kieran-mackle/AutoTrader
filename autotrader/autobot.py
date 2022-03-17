@@ -147,6 +147,7 @@ class AutoTraderBot:
         # Create instance of data stream
         self.Stream = DataStream(**atts)
         
+        # Initial data call
         self._refresh_data(deploy_dt)
         
         # Instantiate Strategy
@@ -240,15 +241,6 @@ class AutoTraderBot:
         # for aux and base strategy data (which could be single of MTF).
         
     
-    @staticmethod
-    def _check_data_period(data: pd.DataFrame, from_date: datetime, 
-                           to_date: datetime) -> pd.DataFrame:
-        """Checks and returns the dataset matching the backtest start and 
-        end dates (as close as possible).
-        """
-        return data[(data.index >= from_date) & (data.index <= to_date)]
-        
-
     def _update(self, i: int = None, timestamp: datetime = None) -> None:
         """Update strategy with the latest data and generate a trade signal.
         
