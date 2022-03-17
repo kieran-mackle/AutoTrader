@@ -1196,7 +1196,7 @@ class AutoTrader:
                                  'class': self._strategy_classes[strategy_class] \
                                      if strategy_class in self._strategy_classes else None}
                 bot = AutoTraderBot(instrument, strategy_dict,
-                                    self._broker, self._data_end, data_dict, 
+                                    self._broker, self._data_start, data_dict, 
                                     quote_data_path, auxdata, self)
                 self._bots_deployed.append(bot)
                 
@@ -1269,6 +1269,9 @@ class AutoTrader:
         
         if int(self._verbosity) > 0 and self._backtest_mode:
             backtest_end_time = timeit.default_timer()
+        
+        
+        # TODO - option to pickle bot instances when they finish
         
         # Backtest Post-Processing
         # Data iteration complete - proceed to post-processing
