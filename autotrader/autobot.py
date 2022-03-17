@@ -280,15 +280,15 @@ class AutoTraderBot:
         
         # Retrieve auxiliary data
         if self._auxdata_files is not None:
-            if isinstance(self.auxdata, str):
+            if isinstance(self._auxdata_files, str):
                 # Single data filepath provided
-                auxdata = self._get_data.local(self.auxdata, self._data_start, 
+                auxdata = self._get_data.local(self._auxdata_files, self._data_start, 
                                                self._data_end)
                 
-            elif isinstance(self.auxdata, dict):
+            elif isinstance(self._auxdata_files, dict):
                 # Multiple data filepaths provided
                 auxdata = {}
-                for key, filepath in self.auxdata.items():
+                for key, filepath in self._auxdata_files.items():
                     data = self._get_data.local(filepath, self._data_start, self._data_end)
                     auxdata[key] = data
         else:
