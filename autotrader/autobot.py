@@ -157,7 +157,7 @@ class AutoTraderBot:
             my_strat = strategy(params, self._strat_data, instrument)
             
         # Assign strategy to local attributes
-        self._last_bar = None
+        self._last_bars = None
         self._strategy = my_strat
         self._latest_orders = []
         
@@ -206,7 +206,7 @@ class AutoTraderBot:
         
         if self._run_mode == 'continuous':
             # Running in continuous update mode
-            strat_data, current_bar, quote_bar, sufficient_data = self._check_data(timestamp, self._data_indexing)
+            strat_data, current_bars, quote_bars, sufficient_data = self._check_data(timestamp, self._data_indexing)
             
         else:
             # Running in periodic update mode
@@ -216,18 +216,17 @@ class AutoTraderBot:
                 current_position = None
             
             # Assign current bars
-            current_bar = self.data.iloc[i]
-            quote_bar = self.quote_data.iloc[i]
+            current_bars = {self.instrument: self.data.iloc[i]}
+            quote_bars = {self.instrument: self.quote_data.iloc[i]}
             sufficient_data = True
         
-        # Check for duplicated data
-        duplicate_data = self._check_last_bar(current_bar)
+        # Check for new data
+        new_data = self._check_last_bar(current_bars) 
         
-        if sufficient_data and not duplicate_data:
-            # Update backtest
+        if sufficient_data and new_data:
             if self._backtest_mode:
-                # TODO - get backtest bars, rather than single bar only
-                self._update_backtest(current_bar)
+                # Update backtest with bar
+                self._update_backtest(current_bars)
             
             # Get strategy orders
             if self._run_mode == 'continuous':
@@ -237,23 +236,22 @@ class AutoTraderBot:
             
             # Check and qualify orders
             orders = self._check_orders(strategy_orders)
-            self._qualify_orders(orders, current_bar, quote_bar)
+            self._qualify_orders(orders, current_bars, quote_bars)
             
             # Submit orders
             for order in orders:
                 if self._scan_mode:
                     # Bot is scanning
                     scan_hit = {"size"  : order.size,
-                                "entry" : current_bar.Close,
+                                "entry" : current_bars[order.instrument].Close,
                                 "stop"  : order.stop_loss,
                                 "take"  : order.take_profit,
                                 "signal": order.direction}
                     self._scan_results[self.instrument] = scan_hit
-                    pass
                     
                 else:
                     # Bot is trading
-                    self._broker.place_order(order, order_time=current_bar.name)
+                    self._broker.place_order(order, order_time=current_bars[order.instrument].name)
                     self._latest_orders.append(order)
             
             if int(self._verbosity) > 1:
@@ -267,7 +265,7 @@ class AutoTraderBot:
                         print(order_string)
                 else:
                     if int(self._verbosity) > 2:
-                        print("{}: No signal detected ({}).".format(current_bar.name.strftime("%b %d %Y %H:%M:%S"),
+                        print("{}: No signal detected ({}).".format(order.order_time.strftime("%b %d %Y %H:%M:%S"),
                                                                     self.instrument))
             
             # Check for orders placed and/or scan hits
@@ -476,8 +474,8 @@ class AutoTraderBot:
         return checked_orders
         
     
-    def _qualify_orders(self, orders: list, current_bar: pd.core.series.Series,
-                        quote_bar: pd.core.series.Series) -> None:
+    def _qualify_orders(self, orders: list, current_bars: dict,
+                        quote_bars: dict) -> None:
         """Passes price data to order to populate missing fields.
         """
         for order in orders:
@@ -485,8 +483,8 @@ class AutoTraderBot:
                 liveprice_func = getattr(self._get_data, f'{self._feed.lower()}_liveprice')
                 last_price = liveprice_func(order)
             else:
-                last_price = self._get_data._pseduo_liveprice(last=current_bar.Close,
-                                                              quote_price=quote_bar.Close)
+                last_price = self._get_data._pseduo_liveprice(last=current_bars[order.instrument].Close,
+                                                              quote_price=quote_bars[order.instrument].Close)
             
             if order.direction < 0:
                 order_price = last_price['bid']
@@ -499,10 +497,11 @@ class AutoTraderBot:
             order(broker=self._broker, order_price=order_price, HCF=HCF)
     
     
-    def _update_backtest(self, current_bar: pd.core.series.Series) -> None:
+    def _update_backtest(self, current_bars: dict) -> None:
         """Updates virtual broker with latest price data for backtesting.
         """
-        self._broker._update_positions(current_bar, self.instrument)
+        for product, bar in current_bars.items():
+            self._broker._update_positions(bar, product)
     
     
     def _create_backtest_summary(self, balance: pd.Series, NAV: pd.Series, 
@@ -654,22 +653,23 @@ class AutoTraderBot:
         -------
         strat_data : dict
             The checked strategy data.
-        current_bar : pd.core.series.Series
-            The current bar.
-        quote_bar : pd.core.series.Series
-            The current quote data bar.
+        current_bars : dict(pd.core.series.Series)
+            The current bars for each product.
+        quote_bars : dict(pd.core.series.Series)
+            The current quote data bars for each product.
         sufficient_data : bool
             Boolean flag whether sufficient data is available.
 
         """
-        def get_current_bar(data: pd.DataFrame) -> pd.core.series.Series:
-            """Returns the current bar of data.
+        def get_current_bars(data: pd.DataFrame, quote_data: bool = False) -> dict:
+            """Returns the current bars of data. If the inputted data is for
+            quote bars, then the quote_data boolean will be True.
             """
             if len(data) > 0:
-                current_bar = data.iloc[-1]
+                current_bars = self.Stream.get_trading_bars(data, quote_data)
             else:
-                current_bar = None
-            return current_bar
+                current_bars = None
+            return current_bars
         
         def process_strat_data(original_strat_data, check_for_future_data):
             sufficient_data = True
@@ -699,7 +699,7 @@ class AutoTraderBot:
                     
                 # Extract current bar
                 first_tf_data = processed_basedata[list(processed_basedata.keys())[0]]
-                current_bar = get_current_bar(first_tf_data)
+                current_bars = get_current_bars(first_tf_data)
                 
                 # Check that enough bars have accumulated
                 if len(first_tf_data) < bars:
@@ -708,7 +708,7 @@ class AutoTraderBot:
             elif isinstance(original_strat_data, pd.DataFrame):
                 strat_data = self._check_ohlc_data(original_strat_data, 
                              timestamp, indexing, bars, check_for_future_data)
-                current_bar = get_current_bar(strat_data)
+                current_bars = get_current_bars(strat_data)
                 
                 # Check that enough bars have accumulated
                 if len(strat_data) < bars:
@@ -717,45 +717,55 @@ class AutoTraderBot:
             else:
                 raise Exception("Unrecognised data type. Cannot process.")
             
-            return strat_data, current_bar, sufficient_data
+            return strat_data, current_bars, sufficient_data
         
+        # Define minimum number of bars for strategy to run
         bars = self._strategy_params['period']
         
         if self._backtest_mode:
             check_for_future_data = True
         else:
+            # Livetrading; refresh all data
             self._refresh_data(timestamp)
             check_for_future_data = False
 
-        strat_data, current_bar, sufficient_data = process_strat_data(self._strat_data, 
+        strat_data, current_bars, sufficient_data = process_strat_data(self._strat_data, 
                                                                       check_for_future_data)
 
         # Process quote data
         quote_data = self._check_ohlc_data(self.quote_data, timestamp, 
                                            indexing, bars)
-        quote_bar = get_current_bar(quote_data)
+        quote_bars = get_current_bars(quote_data, True)
         
-        return strat_data, current_bar, quote_bar, sufficient_data
+        return strat_data, current_bars, quote_bars, sufficient_data
     
     
-    def _check_last_bar(self, current_bar) -> bool:
-        """Checks for duplicate data to prevent duplicate signals.
+    def _check_last_bar(self, current_bars: dict) -> bool:
+        """Checks for new data to prevent duplicate signals.
         """
-        duplicate = False
-        if self._run_mode == 'continuous':
-            # For now, will just check current_bar doesn't match last bar
-            # For extension, can check that the bar isn't too close to the previous,
-            # in the case of MTF or other
-            if self._last_bar is not None:
-                duplicate = (current_bar == self._last_bar).all()
+        try:
+            duplicated_bars = []
+            for product, bar in current_bars.items():
+                if (bar == self._last_bar[product]).all():
+                    duplicated_bars.append(True)
+                else:
+                    duplicated_bars.append(False)
+                    
+            if len(duplicated_bars) == sum(duplicated_bars):
+                new_data = False
+            else: 
+                new_data = True
             
-            # Reset last bar
-            self._last_bar = current_bar
+        except:
+            new_data = True
+        
+        # Reset last bars
+        self._last_bars = current_bars
             
-        if int(self._verbosity) > 1 and duplicate:
+        if int(self._verbosity) > 1 and not new_data:
             print("Duplicate bar detected. Skipping.")
         
-        return duplicate
+        return new_data
         
     
     def _check_strategy_for_plot_data(self):
