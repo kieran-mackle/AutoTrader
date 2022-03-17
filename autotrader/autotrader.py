@@ -1182,8 +1182,8 @@ class AutoTrader:
                                  'class': self._strategy_classes[strategy_class] \
                                      if strategy_class in self._strategy_classes else None}
                 bot = AutoTraderBot(instrument, strategy_dict,
-                                    self._broker, data_dict, quote_data_path, 
-                                    auxdata, self)
+                                    self._broker, self._data_end, data_dict, 
+                                    quote_data_path, auxdata, self)
                 self._bots_deployed.append(bot)
                 
                 # if self._detach_bot is True and self._backtest_mode is False:
@@ -1228,7 +1228,7 @@ class AutoTrader:
                 deploy_time = time.time()
                 while True:
                     for bot in self._bots_deployed:
-                        bot._update(timestamp=timestamp)
+                        bot._update(timestamp=datetime.now())
                     time.sleep(self._timestep - ((time.time() - deploy_time) % self._timestep))
                     
         elif self._run_mode.lower() == 'periodic':

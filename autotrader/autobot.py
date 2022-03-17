@@ -31,8 +31,9 @@ class AutoTraderBot:
     """
     
     def __init__(self, instrument: str, strategy_dict: dict, 
-                 broker, data_dict: dict, quote_data_path: str, 
-                 auxdata: dict, autotrader_instance) -> None:
+                 broker, deploy_dt: datetime, data_dict: dict, 
+                 quote_data_path: str, auxdata: dict, 
+                 autotrader_instance) -> None:
         """Instantiates an AutoTrader Bot.
 
         Parameters
@@ -43,6 +44,8 @@ class AutoTraderBot:
             The strategy configuration dictionary.
         broker : AutoTrader Broker instance
             The AutoTrader Broker module.
+        deploy_dt : datetime
+            The datetime stamp of the bot deployment time.
         data_dict : dict
             The strategy data.
         quote_data_path : str
@@ -123,12 +126,12 @@ class AutoTraderBot:
         # Data retrieval
         self._quote_data_file = quote_data_path     # Either str or None
         self._data_filepaths = data_dict            # Either str or dict, or None
-        self._auxdata_files = auxdata
+        self._auxdata_files = auxdata               # Either str or dict, or None
         
         # Fetch data
         self._get_data = GetData(broker_config, self._allow_dancing_bears,
                                  self._base_currency)
-        self._refresh_data()
+        self._refresh_data(deploy_dt)
         
         # Instantiate Strategy
         include_broker = strategy_config['INCLUDE_BROKER'] \
@@ -165,17 +168,40 @@ class AutoTraderBot:
         return 'AutoTraderBot instance'
     
     
-    def _refresh_data(self):
+    def _refresh_data(self, timestamp: datetime = None, **kwargs):
+        """Refreshes the active Bot's data attributes for trading.
+
+        Parameters
+        ----------
+        timestamp : datetime, optional
+            The current timestamp. If None, datetime.now() will be called.
+            The default is None.
+        **kwargs : dict
+            Any other named arguments.
+
+        Raises
+        ------
+        Exception
+            When there is an error retrieving the data.
+
+        Returns
+        -------
+        None: 
+            The up-to-date data will be assigned to the Bot instance.
+
+        """
+        
+        timestamp = datetime.now() if timestamp is None else timestamp
         
         # TODO - allow user to pass in custom data retrieval object, to 
         # customise how data is delivered. The retrieve_data method (and others)
         # could be abstracted away into their own class, which could be inherited
-        # by user feeds. The current timestamp should be passed into this method,
-        # as well as retrive data method, to allow data retrieval based 
-        # on timestamp (think contracts with expiries)
+        # by user feeds.
         
         # Fetch new data
-        data, multi_data, quote_data, auxdata = self._retrieve_data(self.instrument, self._feed)
+        data, multi_data, quote_data, auxdata = self._retrieve_data(instrument=self.instrument, 
+                                                                    feed=self._feed,
+                                                                    timestamp=timestamp)
         
         # Check data returned is valid
         if len(data) == 0:
@@ -204,7 +230,7 @@ class AutoTraderBot:
         # for aux and base strategy data (which could be single of MTF).
         
     
-    def _retrieve_data(self, instrument: str, feed: str) -> pd.DataFrame:
+    def _retrieve_data(self, instrument: str, feed: str, **kwargs) -> pd.DataFrame:
         
         # Retrieve main data
         if self._data_filepaths is not None:
@@ -628,23 +654,25 @@ class AutoTraderBot:
         ohlc_data : pd.DataFrame
             DESCRIPTION.
         timestamp : datetime
-            DESCRIPTION.
+            The current timestamp.
         indexing : str, optional
             How the OHLC data has been indexed (either by bar 'open' time, or
             bar 'close' time). The default is 'open'.
         tail_bars : int, optional
             If provided, the data will be truncated to provide the number
             of bars specified. The default is None.
+        check_for_future_data : bool, optional
+            A flag to check for future entries in the data. The default is True.
         
         Raises
         ------
         Exception
-            DESCRIPTION.
+            When an unrecognised data indexing type is specified.
 
         Returns
         -------
-        past_data : TYPE
-            DESCRIPTION.
+        past_data : pd.DataFrame
+            The checked data.
 
         """
         if check_for_future_data:
@@ -664,6 +692,29 @@ class AutoTraderBot:
     def _check_auxdata(self, auxdata: dict, timestamp: datetime, 
                        indexing: str = 'open', tail_bars: int = None,
                        check_for_future_data: bool = True) -> dict:
+        """Function to check the strategy auxiliary data.
+
+        Parameters
+        ----------
+        auxdata : dict
+            The strategy's auxiliary data.
+        timestamp : datetime
+            The current timestamp.
+        indexing : str, optional
+            How the OHLC data has been indexed (either by bar 'open' time, or
+            bar 'close' time). The default is 'open'.
+        tail_bars : int, optional
+            If provided, the data will be truncated to provide the number
+            of bars specified. The default is None.
+        check_for_future_data : bool, optional
+            A flag to check for future entries in the data. The default is True.
+
+        Returns
+        -------
+        dict
+            The checked auxiliary data.
+
+        """
         processed_auxdata = {}
         for key, item in auxdata.items():
             if isinstance(item, pd.DataFrame) or isinstance(item, pd.Series):
@@ -686,11 +737,19 @@ class AutoTraderBot:
 
         Returns
         -------
-        checked_data : TYPE
-            DESCRIPTION.
+        strat_data : dict
+            The checked strategy data.
+        current_bar : pd.core.series.Series
+            The current bar.
+        quote_bar : pd.core.series.Series
+            The current quote data bar.
+        sufficient_data : bool
+            Boolean flag whether sufficient data is available.
 
         """
-        def get_current_bar(data):
+        def get_current_bar(data: pd.DataFrame) -> pd.core.series.Series:
+            """Returns the current bar of data.
+            """
             if len(data) > 0:
                 current_bar = data.iloc[-1]
             else:
@@ -750,7 +809,7 @@ class AutoTraderBot:
         if self._backtest_mode:
             check_for_future_data = True
         else:
-            self._refresh_data()
+            self._refresh_data(timestamp)
             check_for_future_data = False
 
         strat_data, current_bar, sufficient_data = process_strat_data(self._strat_data, 
