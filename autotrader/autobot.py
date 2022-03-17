@@ -311,6 +311,22 @@ class AutoTraderBot:
 
     def _update(self, i: int = None, timestamp: datetime = None) -> None:
         """Update strategy with the latest data and generate a trade signal.
+        
+
+        Parameters
+        ----------
+        i : int, optional
+            The indexing parameter used when running in periodic update mode. 
+            The default is None.
+        timestamp : datetime, optional
+            The timestamp parameter used when running in continuous update 
+            mode. The default is None.
+
+        Returns
+        -------
+        None
+            Trade signals generated will be submitted to the broker.
+
         """
         # Reset latest orders
         self._latest_orders = []

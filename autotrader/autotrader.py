@@ -1224,7 +1224,8 @@ class AutoTrader:
         
             else:
                 # Live trading
-                # TODO - re-visit BotManager (see commented code above)
+                # TODO - re-visit BotManager (see commented code above) to add 
+                # monitoring and management to live strategies
                 deploy_time = time.time()
                 while True:
                     for bot in self._bots_deployed:
