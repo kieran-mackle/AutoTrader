@@ -8,9 +8,6 @@ from autotrader.autodata import GetData
 from autotrader.brokers.trading import Order
 from autotrader.utilities import read_yaml, get_config
 
-from autotrader.utilities import DataStream
-
-
 
 class AutoTraderBot:
     """AutoTrader Trading Bot.
@@ -144,8 +141,8 @@ class AutoTraderBot:
         "_data_start": self._data_start,
         "_data_end": self._data_end}
         
-        # Create instance of data stream
-        self.Stream = DataStream(**atts)
+        # Create instance of data stream object
+        self.Stream = self._data_stream_object(**atts)
         
         # Initial data call
         self._refresh_data(deploy_dt)
