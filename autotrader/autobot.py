@@ -666,8 +666,9 @@ class AutoTraderBot:
             quote bars, then the quote_data boolean will be True.
             """
             if len(data) > 0:
-                current_bars = self.Stream.get_trading_bars(data, quote_data, 
-                                                            timestamp)
+                current_bars = self.Stream.get_trading_bars(data=data, 
+                                                            quote_bars=quote_data, 
+                                                            timestamp=timestamp)
             else:
                 current_bars = None
             return current_bars
