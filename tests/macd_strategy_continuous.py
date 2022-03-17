@@ -55,6 +55,8 @@ class SimpleMACD:
         # Price swings
         self.swings = indicators.find_swings(data)
         
+        # TODO - append data to self.indicators as it is created
+        
         
     def generate_signal(self, data):
         """Define strategy to determine entry signals.
