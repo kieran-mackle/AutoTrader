@@ -41,19 +41,19 @@ class Broker:
         """
         self.utils = utils if utils is not None else Utils()
         
-        host = config['host'] if 'host' in config else '127.0.0.1'
-        port = config['port'] if 'port' in config else 7497
-        client_id = config['clientID'] if 'clientID' in config else 1
-        read_only = config['read_only'] if 'read_only' in config else False
+        self.host = config['host'] if 'host' in config else '127.0.0.1'
+        self.port = config['port'] if 'port' in config else 7497
+        self.client_id = config['clientID'] if 'clientID' in config else 1
+        self.read_only = config['read_only'] if 'read_only' in config else False
         account = config['account'] if 'account' in config else ''
         
         self.ib = ib_insync.IB()
-        self.ib.connect(host=host, port=port, clientId=client_id, 
-                        readonly=read_only, account=account)
+        self.ib.connect(host=self.host, port=self.port, clientId=self.client_id, 
+                        readonly=self.read_only, account=account)
         
         self.account = account if account != '' else self._get_account()
         
-    
+        
     def __repr__(self):
         return 'AutoTrader-InteractiveBrokers interface'
     
@@ -371,11 +371,11 @@ class Broker:
         raise NotImplementedError("This method is not available.")
         
         
-    def _connect(self, host, port, client_id, read_only, account):
+    def _connect(self):
         """Connects from IB application.
         """
-        self.ib.connect(host=host, port=port, clientId=client_id, 
-                        readonly=read_only, account=account)
+        self.ib.connect(host=self.host, port=self.port, clientId=self.client_id, 
+                        readonly=self.read_only, account=self.account)
         
     
     def _disconnect(self):
@@ -385,12 +385,21 @@ class Broker:
         
 
     def _check_connection(self):
-        """Checks if there is an active connection to IB.
+        """Checks if there is an active connection to IB. If not, will 
+        attempt to reconnect.
         """
         self._refresh()
         connected = self.ib.isConnected()
-        if not connected:
-            raise ConnectionError("No active connection to IB.")
+        
+        while not connected:
+            try:
+                self._connect()
+            except:
+                pass
+            connected = self.ib.isConnected()
+        
+        # if not connected:
+        #     raise ConnectionError("No active connection to IB.")
     
     
     def _refresh(self):
