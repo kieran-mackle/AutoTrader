@@ -220,12 +220,10 @@ class AutoTraderBot:
             quote_bars = {self.instrument: self.quote_data.iloc[i]}
             sufficient_data = True
         
-        # Check for duplicated data
-        # TODO - would make more sense if this was a bool for new data, 
-        # since there *may* be some duplicate data 
-        duplicated_data = self._check_last_bar(current_bars) 
+        # Check for new data
+        new_data = self._check_last_bar(current_bars) 
         
-        if sufficient_data and not duplicated_data:
+        if sufficient_data and new_data:
             if self._backtest_mode:
                 # Update backtest with bar
                 self._update_backtest(current_bars)
@@ -743,15 +741,7 @@ class AutoTraderBot:
     
     
     def _check_last_bar(self, current_bars: dict) -> bool:
-        """Checks for duplicate data to prevent duplicate signals.
-        
-        If there are multiple products being traded, and any one of those
-        products has non-duplicate data, False will be returned, regardless
-        or whether the other products have duplicate data.
-        
-        For now, will just check current_bar doesn't match last bar.
-        For extension, can check that the bar isn't too close to the previous,
-        in the case of MTF or other.
+        """Checks for new data to prevent duplicate signals.
         """
         try:
             duplicated_bars = []
@@ -762,20 +752,20 @@ class AutoTraderBot:
                     duplicated_bars.append(False)
                     
             if len(duplicated_bars) == sum(duplicated_bars):
-                duplicated = True
+                new_data = False
             else: 
-                duplicated = False
+                new_data = True
             
         except:
-            duplicated = False
+            new_data = True
         
         # Reset last bars
         self._last_bars = current_bars
             
-        if int(self._verbosity) > 1 and duplicated:
+        if int(self._verbosity) > 1 and not new_data:
             print("Duplicate bar detected. Skipping.")
         
-        return duplicated
+        return new_data
         
     
     def _check_strategy_for_plot_data(self):
