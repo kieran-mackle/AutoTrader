@@ -483,6 +483,8 @@ class DataStream:
         for item in kwargs:
             setattr(self, item, kwargs[item])
         
+        # TODO - assign outputs of method below as attributes?
+        
     
     def refresh(self, timestamp: datetime = None):
         """Returns up-to-date trading data.
@@ -596,3 +598,30 @@ class DataStream:
         adj_data, adj_quote_data = adjusted_datasets
         
         return adj_data, adj_quote_data
+    
+    
+    def get_trading_bars(self, data: pd.DataFrame, quote_bars: bool) -> dict:
+        """Returns a dictionary of the current bars of the products being 
+        traded.
+
+        Parameters
+        ----------
+        data : pd.DataFrame
+            The strategy base OHLC data.
+        quote_bars : bool
+            Boolean flag to signal that quote data bars are being requested.
+
+        Returns
+        -------
+        dict
+            A dictionary of bars, keyed by the product name.
+        
+        Notes
+        -----
+        The quote data bars dictionary must have the exact same keys as the
+        trading bars dictionary. The quote_bars boolean flag is provided for
+        this reason.
+        """
+        return {self.instrument: data.iloc[-1]}
+    
+    

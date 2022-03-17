@@ -40,6 +40,9 @@
   be provided using the `add_data` method.
 - Abstracted data update method into `DataStream` class 
   (within `autotrader.utilities` module) to allow custom data pipelines
+- Ability to trade multiple contracts on an underlying asset (continuous 
+  mode only)
+
 
 ## Version 0.5.0
 Breaking change:
