@@ -8,6 +8,9 @@ from autotrader.autodata import GetData
 from autotrader.brokers.trading import Order
 from autotrader.utilities import read_yaml, get_config
 
+from autotrader.utilities import DataStream
+
+
 
 class AutoTraderBot:
     """AutoTrader Trading Bot.
@@ -199,9 +202,20 @@ class AutoTraderBot:
         # by user feeds.
         
         # Fetch new data
-        data, multi_data, quote_data, auxdata = self._retrieve_data(instrument=self.instrument, 
-                                                                    feed=self._feed,
-                                                                    timestamp=timestamp)
+        atts = {"_data_filepaths": self._data_filepaths,
+        "_quote_data_file": self._quote_data_file,
+        "_auxdata_files": self._auxdata_files,
+        "_strategy_params": self._strategy_params,
+        "_get_data": self._get_data,
+        "_data_start": self._data_start,
+        "_data_end": self._data_end}
+        
+        DS = DataStream(**atts)
+        data, multi_data, quote_data, auxdata = DS._retrieve_data(instrument=self.instrument, 
+                                                                    feed=self._feed,timestamp=timestamp)
+        # data, multi_data, quote_data, auxdata = self._retrieve_data(instrument=self.instrument, 
+        #                                                             feed=self._feed,
+        #                                                             timestamp=timestamp)
         
         # Check data returned is valid
         if len(data) == 0:

@@ -4,6 +4,8 @@ import yaml
 import time
 import threading
 import traceback
+import pandas as pd
+from autotrader.autodata import GetData
 
 
 def read_yaml(file_path: str) -> dict:
@@ -450,3 +452,127 @@ class ManageBot:
         seconds = conversions[letter] * number
         
         return seconds
+    
+
+class DataStream:
+    """Data stream class.
+    
+    This class is intended to provide a means of custom data pipelines.
+    
+    Methods
+    -------
+    _retrieve_data
+        Returns data, multi_data, quote_data, auxdata
+    
+    """
+    
+    def __init__(self, **kwargs):
+        # Unpack kwargs
+        for item in kwargs:
+            setattr(self, item, kwargs[item])
+        
+        self._data_filepaths
+        self._quote_data_file
+        self._auxdata_files
+        self._strategy_params # period, granularity
+        self._get_data # class instance GetData_instance: GetData,
+        self._data_start 
+        self._data_end
+        
+    
+    def _retrieve_data(self, instrument: str, feed: str, **kwargs):
+        
+        # Retrieve main data
+        if self._data_filepaths is not None:
+            # Local data filepaths provided
+            if isinstance(self._data_filepaths, str):
+                # Single data filepath provided
+                data = self._get_data.local(self._data_filepaths, self._data_start, 
+                                            self._data_end)
+                multi_data = None
+                
+            elif isinstance(self._data_filepaths, dict):
+                # Multiple data filepaths provided
+                multi_data = {}
+                for granularity, filepath in self._data_filepaths.items():
+                    data = self._get_data.local(filepath, self._data_start, self._data_end)
+                    multi_data[granularity] = data
+                
+                # Extract first dataset as base data
+                data = multi_data[list(self._data_filepaths.keys())[0]]
+        
+        else:
+            # Download data
+            multi_data = {}
+            for granularity in self._strategy_params['granularity'].split(','):
+                data_func = getattr(self._get_data, feed.lower())
+                data = data_func(instrument, granularity=granularity, 
+                                 count=self._strategy_params['period'], 
+                                 start_time=self._data_start,
+                                 end_time=self._data_end)
+                
+                multi_data[granularity] = data
+            
+            data = multi_data[self._strategy_params['granularity'].split(',')[0]]
+            
+            if len(multi_data) == 1:
+                multi_data = None
+        
+        # Retrieve quote data
+        if self._quote_data_file is not None:
+            quote_data = self._get_data.local(self._quote_data_file, 
+                                              self._data_start, self._data_end)
+        else:
+            quote_data_func = getattr(self._get_data,f'_{feed.lower()}_quote_data')
+            quote_data = quote_data_func(data, instrument, 
+                                         self._strategy_params['granularity'].split(',')[0], 
+                                         self._data_start, self._data_end)
+        
+        # Retrieve auxiliary data
+        if self._auxdata_files is not None:
+            if isinstance(self._auxdata_files, str):
+                # Single data filepath provided
+                auxdata = self._get_data.local(self._auxdata_files, self._data_start, 
+                                               self._data_end)
+                
+            elif isinstance(self._auxdata_files, dict):
+                # Multiple data filepaths provided
+                auxdata = {}
+                for key, filepath in self._auxdata_files.items():
+                    data = self._get_data.local(filepath, self._data_start, self._data_end)
+                    auxdata[key] = data
+        else:
+            auxdata = None
+        
+        # Correct any data mismatches
+        data, quote_data = self._match_quote_data(data, quote_data)
+        
+        return data, multi_data, quote_data, auxdata
+        
+    # TODO - perhaps include all _check_* data methods from autobot, so
+    # that they can then be inherited elsewhere
+    
+    def _match_quote_data(self, data: pd.DataFrame, 
+                          quote_data: pd.DataFrame) -> pd.DataFrame:
+        """Function to match index of trading data and quote data.
+        """
+        datasets = [data, quote_data]
+        adjusted_datasets = []
+        
+        for dataset in datasets:
+            # Initialise common index
+            common_index = dataset.index
+            
+            # Update common index by intersection with other data 
+            for other_dataset in datasets:
+                common_index = common_index.intersection(other_dataset.index)
+            
+            # Adjust data using common index found
+            adj_data = dataset[dataset.index.isin(common_index)]
+            
+            adjusted_datasets.append(adj_data)
+        
+        # Unpack adjusted datasets
+        adj_data, adj_quote_data = adjusted_datasets
+        
+        return adj_data, adj_quote_data
