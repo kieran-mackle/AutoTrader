@@ -358,7 +358,7 @@ class AutoTraderBot:
         timestamp = datetime.now() if timestamp is None else timestamp
         
         # Fetch new data
-        data, multi_data, quote_data, auxdata = self.Stream._retrieve_data(timestamp=timestamp)
+        data, multi_data, quote_data, auxdata = self.Stream.refresh(timestamp=timestamp)
         
         # Check data returned is valid
         if len(data) == 0:
@@ -381,10 +381,6 @@ class AutoTraderBot:
         self.multi_data = multi_data
         self.auxdata = auxdata
         self.quote_data = quote_data
-        
-        # strat_data will either contain a single timeframe OHLC dataframe, 
-        # a dictionary of MTF dataframes, or a dict with 'base' and 'aux' keys,
-        # for aux and base strategy data (which could be single of MTF).
         
     
     def _check_orders(self, orders) -> list:

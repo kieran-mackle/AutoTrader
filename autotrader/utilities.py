@@ -5,6 +5,7 @@ import time
 import threading
 import traceback
 import pandas as pd
+from datetime import datetime
 from autotrader.autodata import GetData
 
 
@@ -483,8 +484,8 @@ class DataStream:
             setattr(self, item, kwargs[item])
         
     
-    def _retrieve_data(self, timestamp: datetime = None):
-        """Returns trading data.
+    def refresh(self, timestamp: datetime = None):
+        """Returns up-to-date trading data.
 
         Parameters
         ----------
@@ -572,7 +573,7 @@ class DataStream:
         
     
     def match_quote_data(self, data: pd.DataFrame, 
-                          quote_data: pd.DataFrame) -> pd.DataFrame:
+                         quote_data: pd.DataFrame) -> pd.DataFrame:
         """Function to match index of trading data and quote data.
         """
         datasets = [data, quote_data]
