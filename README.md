@@ -18,11 +18,13 @@
   <a href="https://pepy.tech/project/autotrader">
     <img src="https://pepy.tech/badge/autotrader/week" alt="Monthly downloads" >
   </a>
+  
+  <a>
+    <img src="https://github.com/kieran-mackle/AutoTrader-Private/actions/workflows/ci.yml/badge.svg" alt="Build Status" >
+  </a>
 
 </p>
 
-
-![GitHub CI](https://github.com/kieran-mackle/AutoTrader-Private/actions/workflows/ci.yml/badge.svg)
 
 
 AutoTrader is Python-based platform intended to help in the development, optimisation and deployment of automated trading systems. 
