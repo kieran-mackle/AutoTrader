@@ -262,9 +262,9 @@ class Broker:
             trade.time_filled = candle.name
             
             if limit_price is None:
-                trade.entry_price = candle.Open + spread_shift
+                trade.fill_price = candle.Open + spread_shift
             else:
-                trade.entry_price = limit_price + spread_shift
+                trade.fill_price = limit_price + spread_shift
             self.trades[trade_id] = trade
             
             # Subtract spread cost from account NAV
@@ -337,7 +337,7 @@ class Broker:
                         pip_distance = trade.stop_distance
                         distance = pip_distance*pip_value # price units
                     else:
-                        distance = abs(trade.entry_price - \
+                        distance = abs(trade.fill_price - \
                                        trade.stop_loss)
                         pip_value = self.utils.get_pip_ratio(trade.instrument)
                         trade.stop_distance = distance / pip_value
@@ -376,10 +376,10 @@ class Broker:
                         # Position is still open, update value of holding
                         size        = trade.size
                         direction   = trade.direction
-                        entry_price = trade.entry_price
+                        fill_price = trade.fill_price
                         price       = candle.Close
                         HCF         = trade.HCF
-                        trade_PL    = direction*size*(price - entry_price)*HCF
+                        trade_PL    = direction*size*(price - fill_price)*HCF
                         unrealised_PL += trade_PL
                         
                         # Update PL of trade
@@ -403,10 +403,10 @@ class Broker:
                         # Position is still open, update value of holding
                         size        = trade.size
                         direction   = trade.direction
-                        entry_price = trade.entry_price
+                        fill_price = trade.fill_price
                         price       = candle.Close
                         HCF         = trade.HCF
-                        trade_PL    = direction*size*(price - entry_price)*HCF
+                        trade_PL    = direction*size*(price - fill_price)*HCF
                         unrealised_PL += trade_PL
                         
                         # Update PL of trade
@@ -459,7 +459,7 @@ class Broker:
             The trade will be marked as closed.
         """
         trade = self.trades[trade_id]
-        entry_price = trade.entry_price
+        fill_price = trade.fill_price
         size = trade.size
         direction = trade.direction
         HCF = trade.HCF
@@ -468,7 +468,7 @@ class Broker:
         exit_price = trade.last_price if not exit_price else exit_price
         
         # Update portfolio with profit/loss
-        gross_PL = direction*size*(exit_price - entry_price)*HCF
+        gross_PL = direction*size*(exit_price - fill_price)*HCF
         commission = self._calculate_commissions(trade_id, exit_price, size)
         net_profit = gross_PL - commission
         
@@ -556,11 +556,11 @@ class Broker:
         """Calculates trade commissions.
         """
         if self.commission_scheme == 'percentage':
-            entry_price = self.trades[trade_id].entry_price
+            fill_price = self.trades[trade_id].fill_price
             size = self.trades[trade_id].size if units is None else units
             HCF = self.trades[trade_id].HCF
             
-            open_trade_value = abs(size)*entry_price*HCF
+            open_trade_value = abs(size)*fill_price*HCF
             close_trade_value = abs(size)*exit_price*HCF
             commission  = (self.commission/100) * (open_trade_value + close_trade_value)
         

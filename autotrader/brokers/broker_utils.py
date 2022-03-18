@@ -220,7 +220,7 @@ class BrokerUtils:
         
         if trades:
             entry_time = []
-            entry_price = []
+            fill_price = []
             profit = []
             portfolio_balance = []
             exit_times = []
@@ -242,7 +242,7 @@ class BrokerUtils:
         if trades:
             for trade_id, trade in iter_dict.items():
                 entry_time.append(trade.time_filled)
-                entry_price.append(trade.entry_price)
+                fill_price.append(trade.fill_price)
                 profit.append(trade.profit)
                 portfolio_balance.append(trade.balance)
                 exit_times.append(trade.exit_time)
@@ -267,7 +267,7 @@ class BrokerUtils:
                                       "order_price": order_price,
                                       "order_time": times_list,
                                       "fill_time": entry_time,
-                                      "fill_price": entry_price, "size": size,
+                                      "fill_price": fill_price, "size": size,
                                       "direction": direction,
                                       "stop_loss": stop_price, "take_profit": take_price,
                                       "profit": profit, "balance": portfolio_balance,
