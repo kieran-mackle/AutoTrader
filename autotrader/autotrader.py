@@ -1178,7 +1178,7 @@ class AutoTrader:
             else:
                 print("AutoTrader Livetrade")
                 print("--------------------")
-                print("Time: {}\n".format(datetime.now().strftime("%A, %B %d %Y, "+
+                print("Current time: {}".format(datetime.now().strftime("%A, %B %d %Y, "+
                                                                   "%H:%M:%S")))
         
         # Assign strategy to bot for each instrument in watchlist 

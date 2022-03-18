@@ -162,7 +162,6 @@ class AutoTraderBot:
         # Assign strategy to local attributes
         self._last_bars = None
         self._strategy = my_strat
-        self._latest_orders = []
         
         # Assign strategy attributes for tick-based strategy development
         if self._backtest_mode:
@@ -204,9 +203,6 @@ class AutoTraderBot:
             Trade signals generated will be submitted to the broker.
 
         """
-        # Reset latest orders
-        self._latest_orders = []
-        
         if self._run_mode == 'continuous':
             # Running in continuous update mode
             strat_data, current_bars, quote_bars, sufficient_data = self._check_data(timestamp, self._data_indexing)
@@ -255,11 +251,10 @@ class AutoTraderBot:
                 else:
                     # Bot is trading
                     self._broker.place_order(order, order_time=current_bars[order.instrument].name)
-                    self._latest_orders.append(order)
             
             if int(self._verbosity) > 1:
-                if len(self._latest_orders) > 0:
-                    for order in self._latest_orders:
+                if len(orders) > 0:
+                    for order in orders:
                         order_string = "{}: {} {}".format(order.order_time.strftime("%b %d %Y %H:%M:%S"), 
                                                           order.instrument, 
                                                           order.order_type) + \
@@ -268,37 +263,38 @@ class AutoTraderBot:
                         print(order_string)
                 else:
                     if int(self._verbosity) > 2:
-                        print("{}: No signal detected ({}).".format(order.order_time.strftime("%b %d %Y %H:%M:%S"),
-                                                                    self.instrument))
+                        current_time = current_bars[list(current_bars.keys())[0]].name.strftime('%b %d %Y %H:%M:%S')
+                        print(f"{current_time}: No signal detected ({self.instrument}).")
             
             # Check for orders placed and/or scan hits
-            if int(self._notify) > 0 and not self._backtest_mode:
+            # TODO - reimplement code below (update for new order objects)
+            # if int(self._notify) > 0 and not self._backtest_mode:
                 
-                for order_details in self._latest_orders:
-                    self._broker_utils.write_to_order_summary(order_details, 
-                                                             self._order_summary_fp)
+            #     for order in orders:
+            #         self._broker_utils.write_to_order_summary(order, 
+            #                                                  self._order_summary_fp)
                 
-                if int(self._notify) > 1 and \
-                    self._email_params['mailing_list'] is not None and \
-                    self._email_params['host_email'] is not None:
-                        if int(self._verbosity) > 0 and len(self._latest_orders) > 0:
-                                print("Sending emails ...")
+            #     if int(self._notify) > 1 and \
+            #         self._email_params['mailing_list'] is not None and \
+            #         self._email_params['host_email'] is not None:
+            #             if int(self._verbosity) > 0 and len(self._latest_orders) > 0:
+            #                     print("Sending emails ...")
                                 
-                        for order_details in self._latest_orders:
-                            emailing.send_order(order_details,
-                                                self._email_params['mailing_list'],
-                                                self._email_params['host_email'])
+            #             for order_details in self._latest_orders:
+            #                 emailing.send_order(order_details,
+            #                                     self._email_params['mailing_list'],
+            #                                     self._email_params['host_email'])
                             
-                        if int(self._verbosity) > 0 and len(self._latest_orders) > 0:
-                                print("  Done.\n")
-                
+            #             if int(self._verbosity) > 0 and len(self._latest_orders) > 0:
+            #                     print("  Done.\n")
+            
             # Check scan results
             if self._scan_mode:
                 # Construct scan details dict
-                scan_details    = {'index'      : self._scan_index,
-                                   'strategy'   : self._strategy.name,
-                                   'timeframe'  : self._strategy_params['granularity']
-                                   }
+                scan_details = {'index': self._scan_index,
+                                'strategy': self._strategy.name,
+                                'timeframe': self._strategy_params['granularity']
+                                }
                 
                 # Report AutoScan results
                 # Scan reporting with no emailing requested.
@@ -465,9 +461,6 @@ class AutoTraderBot:
                 if order.order_type in ['market', 'limit', 'stop-limit', 'reduce']:
                     if not order.direction:
                         del orders[ix]
-                        if self._verbosity > 1:
-                            print("No trade direction provided for " + \
-                                  f"{order.order_type} order. Order will be ignored.")
         
         # Perform checks
         checked_orders = check_type(orders)
