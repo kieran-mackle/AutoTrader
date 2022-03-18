@@ -8,9 +8,9 @@ import numpy as np
 import pandas as pd
 from ast import literal_eval
 from scipy.optimize import brute
-from datetime import datetime, timedelta
 from autotrader.autoplot import AutoPlot
 from autotrader.autobot import AutoTraderBot
+from datetime import datetime, timedelta, timezone
 from autotrader.utilities import read_yaml, get_config, get_watchlist, DataStream
 
 
@@ -1243,7 +1243,7 @@ class AutoTrader:
                 deploy_time = time.time()
                 while True:
                     for bot in self._bots_deployed:
-                        bot._update(timestamp=datetime.now())
+                        bot._update(timestamp=datetime.now(timezone.utc))
                     time.sleep(self._timestep - ((time.time() - deploy_time) % self._timestep))
                     
         elif self._run_mode.lower() == 'periodic':
