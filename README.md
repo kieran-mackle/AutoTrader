@@ -22,6 +22,8 @@
 </p>
 
 
+![GitHub CI](https://github.com/kieran-mackle/AutoTrader-Private/actions/workflows/ci.yml/badge.svg)
+
 
 AutoTrader is Python-based platform intended to help in the development, optimisation and deployment of automated trading systems. 
 From simple indicator-based strategies, to complex non-directional hedging strategies, AutoTrader can do it all. If you prefer a more hands-on 
