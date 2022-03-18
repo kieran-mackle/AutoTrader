@@ -59,11 +59,9 @@ class SimpleMACD:
     def generate_signal(self, data):
         """Define strategy to determine entry signals.
         """
-        
         # Feature calculation
         self.calculate_features(data)
-        
-        i = -1
+        i = -1 # Now just use latest data
         if self.data.Close.values[i] > self.ema[i] and \
             self.MACD_CO[i] == 1 and \
             self.MACD_CO_vals[i] < 0:
