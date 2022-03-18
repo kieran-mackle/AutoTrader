@@ -2,8 +2,8 @@ import os
 import importlib
 import numpy as np
 import pandas as pd
-from datetime import datetime
 from autotrader.comms import emailing
+from datetime import datetime, timezone
 from autotrader.autodata import GetData
 from autotrader.brokers.trading import Order
 from autotrader.utilities import read_yaml, get_config
@@ -357,7 +357,7 @@ class AutoTraderBot:
 
         """
         
-        timestamp = datetime.now() if timestamp is None else timestamp
+        timestamp = datetime.now(timezone.utc) if timestamp is None else timestamp
         
         # Fetch new data
         data, multi_data, quote_data, auxdata = self.Stream.refresh(timestamp=timestamp)
