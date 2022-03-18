@@ -606,7 +606,7 @@ class AutoTrader:
             if not self._backtest_mode and self._broker_name == 'virtual':
                 raise Exception("Live-trade mode requires setting the "+\
                                 "broker. Please do so using the "+\
-                                "AutoTrade configure method.")
+                                "AutoTrader configure method.")
                 
             self._main()
     
