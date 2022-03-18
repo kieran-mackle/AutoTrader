@@ -25,6 +25,7 @@ jobs:
         python -m pip install --upgrade pip
         pip install pytest
         pip install pytest-cov
+        pip install ./
     - name: Test with pytest
       run: |
         pytest --cov=autotrader --cov-report=xml tests
