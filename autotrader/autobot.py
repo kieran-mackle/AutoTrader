@@ -599,6 +599,8 @@ class AutoTraderBot:
                 past_data = ohlc_data[ohlc_data.index <= timestamp]
             else:
                 raise Exception(f"Unrecognised indexing type '{indexing}'.")
+        else:
+            past_data = ohlc_data
         
         if tail_bars is not None:
             past_data = past_data.tail(tail_bars)

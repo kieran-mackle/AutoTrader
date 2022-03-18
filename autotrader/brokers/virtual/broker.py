@@ -22,6 +22,7 @@ class Broker:
         self.spread = 0 # TODO - pips or price units? Add docs
         self.margin_available = 0
         self.portfolio_balance = 0
+        self.hedging = False # TODO - implement
         
         self.profitable_trades = 0
         self.peak_value = 0
