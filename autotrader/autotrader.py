@@ -1244,7 +1244,8 @@ class AutoTrader:
                 while True:
                     for bot in self._bots_deployed:
                         bot._update(timestamp=datetime.now(timezone.utc))
-                    time.sleep(self._timestep - ((time.time() - deploy_time) % self._timestep))
+                    time.sleep(self._timestep.seconds - ((time.time() - \
+                                deploy_time) % self._timestep.seconds))
                     
         elif self._run_mode.lower() == 'periodic':
             # Trading in periodic update mode
