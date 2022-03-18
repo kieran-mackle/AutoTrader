@@ -483,8 +483,6 @@ class DataStream:
         for item in kwargs:
             setattr(self, item, kwargs[item])
         
-        # TODO - assign outputs of method below as attributes?
-        
     
     def refresh(self, timestamp: datetime = None):
         """Returns up-to-date trading data.
