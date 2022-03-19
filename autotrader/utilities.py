@@ -221,7 +221,7 @@ def get_watchlist(index, feed):
     return watchlist
 
 
-class ManageBot:
+class BotManager:
     """Detaches from AutoTrader run script to allow for a single deployment.
     
     Attributes
@@ -257,22 +257,32 @@ class ManageBot:
           (perhaps in a bots_deployed directory), allowing killing of bots by
           deleting their specific file.
     
+    Things to think about
+    ---------------------
+    - This class will become detached from the initial AutoTrader instance,
+      so any shutdown routines will need to be actioned from here. Is this
+      a task for the strategy itself to handle?
+    - This class will not be accessible from the user, it will just run in the
+      backgroud, and listen in for termination signals
+    - Still not sure if threading is the best approach...
+    - Really, many very different strategies should not be deployed from the 
+      same AT instance, so this might be redundant. 
     """
     
-    def __init__(self, bot, home_dir, bot_name_string, use_stream):
-        
+    def __init__(self, bot, home_dir, bot_ID_string):
+        """Bot Manager constructor.
+        """
         self.bot = bot
         self.home_dir = home_dir
         self.managing = True
-        self.use_stream = use_stream
         
         self.active_bots_dir = os.path.join(home_dir, 'active_bots')
-        self.active_bot_path = os.path.join(self.active_bots_dir, bot_name_string)
+        self.active_bot_path = os.path.join(self.active_bots_dir, bot_ID_string)
         self.killfile = os.path.join(self.home_dir, 'killbots')
         self.suspendfile = os.path.join(self.home_dir, 'suspendbots')
         
         # Create name string
-        self.bot_name_string = bot_name_string
+        self.bot_name_string = bot_ID_string
         
         # Check if active_bots directory exists
         if not os.path.isdir(self.active_bots_dir):
@@ -286,7 +296,7 @@ class ManageBot:
             # Spawn new thread for bot manager
             thread = threading.Thread(target=self.manage_bot, args=(), 
                                       daemon=False)
-            print("Bot recieved. Now managing bot '{}'.".format(bot_name_string))
+            print(f"Bot recieved. Now managing bot '{bot_ID_string}'.")
             print("To kill bot, delete from bots_deployed directory.")
             print("Alternatively create file named 'killbots' in the home_dir" \
                   + " to kill all bots.\n")
@@ -298,36 +308,27 @@ class ManageBot:
         
         
     def manage_bot(self):
-        '''
-        Manages bot until terminal condition is met.
-        '''
-        
+        """Manages bot until a termination signal is recieved.
+        """
         # Add bot to log
         self.write_bot_to_log()
-        
-        # Signal that bot is ready to recieve data from stream
-        if self.use_stream:
-            self.bot._recieve_stream_data()
         
         # Manage
         while self.managing:
             
-            # First check for any termination signals
-            if self.bot.strategy.terminate:
+            # First check for any strategy termination signals
+            # TODO - allow termination signal from strategy
+            if self.bot._strategy.terminate:
                 print("\nBot will be terminated.")
                 self.remove_bot_from_log()
                 
                 # End management
                 self.managing = False
             
-            elif not os.path.exists(self.active_bot_path):
+            if not os.path.exists(self.active_bot_path):
                 print("\nBot file deleted. Bot will be terminated.")
                 
-                if self.use_stream:
-                    # Sleep for 5 seconds to allow for any residual stream actions 
-                    time.sleep(5)
-                    
-                self.bot.strategy.exit_strategy(-1)
+                self.bot._strategy.exit_strategy(-1)
                 
                 # End management
                 self.managing = False
@@ -339,7 +340,7 @@ class ManageBot:
                     # Sleep for 5 seconds to allow for any residual stream actions 
                     time.sleep(5)
                     
-                self.bot.strategy.exit_strategy(-1)
+                self.bot._strategy.exit_strategy(-1)
                 
                 # Remove bot from log
                 self.remove_bot_from_log()
@@ -354,52 +355,50 @@ class ManageBot:
                 
             else:
                 # No termination signal detected, proceed to manage
-                
-                if not self.use_stream:
-                    # Periodic update mode
-                    for atempt in range(3):
-                        try:
-                            # Refresh strategy with latest data
-                            self.bot._update_strategy_data()
-                            
-                            # Call bot update to act on latest data
-                            self.bot._update(-1)
+                # Periodic update mode
+                for atempt in range(3):
+                    try:
+                        # Refresh strategy with latest data
+                        self.bot._update_strategy_data()
                         
-                        except BaseException as ex:
-                            # Get current system exception
-                            ex_type, ex_value, ex_traceback = sys.exc_info()
-                        
-                            # Extract unformatter stack traces as tuples
-                            trace_back = traceback.extract_tb(ex_traceback)
-                        
-                            # Format stacktrace
-                            stack_trace = list()
-                        
-                            for trace in trace_back:
-                                trade_string = "File : %s , Line : %d, " % (trace[0], trace[1]) + \
-                                               "Func.Name : %s, Message : %s" % (trace[2], trace[3])
-                                stack_trace.append(trade_string)
-                            
-                            print("WARNING FROM BOT MANAGER: The following exception was caught " +\
-                                  "when updating {}.".format(self.bot_name_string))
-                            print("Exception type : %s " % ex_type.__name__)
-                            print("Exception message : %s" %ex_value)
-                            print("Stack trace : %s" %stack_trace)
-                            print("  Trying again.")
-                        
-                        else:
-                            break
-                        
-                    else:
-                        print("FATAL: All attempts have failed. Going to sleep.")
+                        # Call bot update to act on latest data
+                        self.bot._update(-1)
                     
-                    # Pause an amount, depending on granularity
-                    base_granularity = self.bot.strategy_params['granularity'].split(',')[0]
-                    if base_granularity == 'tick':
-                        time.sleep(3)
+                    except BaseException as ex:
+                        # Get current system exception
+                        ex_type, ex_value, ex_traceback = sys.exc_info()
+                    
+                        # Extract unformatter stack traces as tuples
+                        trace_back = traceback.extract_tb(ex_traceback)
+                    
+                        # Format stacktrace
+                        stack_trace = list()
+                    
+                        for trace in trace_back:
+                            trade_string = "File : %s , Line : %d, " % (trace[0], trace[1]) + \
+                                           "Func.Name : %s, Message : %s" % (trace[2], trace[3])
+                            stack_trace.append(trade_string)
+                        
+                        print("WARNING FROM BOT MANAGER: The following exception was caught " +\
+                              "when updating {}.".format(self.bot_name_string))
+                        print("Exception type : %s " % ex_type.__name__)
+                        print("Exception message : %s" %ex_value)
+                        print("Stack trace : %s" %stack_trace)
+                        print("  Trying again.")
+                    
                     else:
-                        sleep_time = 0.25*self.granularity_to_seconds(base_granularity)
-                        time.sleep(sleep_time)
+                        break
+                    
+                else:
+                    print("FATAL: All attempts have failed. Going to sleep.")
+                
+                # Pause an amount, depending on granularity
+                base_granularity = self.bot._strategy_params['granularity'].split(',')[0]
+                if base_granularity == 'tick':
+                    time.sleep(3)
+                else:
+                    sleep_time = 0.25*self.granularity_to_seconds(base_granularity)
+                    time.sleep(sleep_time)
 
 
     def suspend(self):
@@ -408,27 +407,21 @@ class ManageBot:
             
         
     def write_bot_to_log(self):
-        '''
-        Adds the bot being managed to the bots_deployed logfile.
-        '''
-        
+        """Adds the bot being managed to the bots_deployed logfile.
+        """
         with open(self.active_bot_path, 'w') as f:
             pass
     
     
     def remove_bot_from_log(self):
-        '''
-        Removes the bot being managed from the bots_deployed logfile.
-        '''
-        
+        """Removes the bot being managed from the bots_deployed logfile.
+        """
         os.remove(self.active_bot_path)
         
     
     def check_bots_deployed(self):
-        '''
-        Checks the bots currently deployed to prevent a re-deployment.
-        '''
-        
+        """Checks the bots currently deployed to prevent a re-deployment.
+        """
         if os.path.exists(self.active_bot_path):
             return True
         else:
@@ -436,22 +429,15 @@ class ManageBot:
         
 
     def granularity_to_seconds(self, granularity):
-        '''Converts the interval to time in seconds'''
+        """Converts the interval to time in seconds.
+        """
         letter = granularity[0]
-        
         if len(granularity) > 1:
             number = float(granularity[1:])
         else:
             number = 1
-        
-        conversions = {'S': 1,
-                       'M': 60,
-                       'H': 60*60,
-                       'D': 60*60*24
-                       }
-        
+        conversions = {'S': 1, 'M': 60, 'H': 60*60, 'D': 60*60*24}
         seconds = conversions[letter] * number
-        
         return seconds
     
 

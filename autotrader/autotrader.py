@@ -1203,17 +1203,6 @@ class AutoTrader:
                                     quote_data_path, auxdata, self)
                 self._bots_deployed.append(bot)
                 
-                # if self._detach_bot is True and self._backtest_mode is False:
-                #     # Send bot to bot manager to monitor stream
-                #     print("Passing bot to bot manager...")
-                #     bot_name_string = "{}_{}_{}".format(strategy.replace(' ',''),
-                #            self._strategy_configs[strategy]['INTERVAL'].split(',')[0],
-                #                                         instrument)
-                #     ManageBot(bot, self._home_dir, bot_name_string, self._use_stream)
-                # else:
-                #     self._bots_deployed.append(bot)
-                    
-                
         if int(self._verbosity) > 0 and self._backtest_mode:
             print("\nTrading...\n")
             backtest_start_time = timeit.default_timer()
@@ -1241,14 +1230,17 @@ class AutoTrader:
         
             else:
                 # Live trading
-                # TODO - re-visit BotManager (see commented code above) to add 
-                # monitoring and management to live strategies
+                # TODO - improve management capabilities
+                instance_id = self._get_instance_id()
+                instance_str = f"autotrader_instance_{instance_id}"
+                instance_file_exists = self._check_instance_file(instance_str, True)
                 deploy_time = time.time()
-                while True:
+                while instance_file_exists:
                     for bot in self._bots_deployed:
                         bot._update(timestamp=datetime.now(timezone.utc))
                     time.sleep(self._timestep.seconds - ((time.time() - \
                                 deploy_time) % self._timestep.seconds))
+                    instance_file_exists = self._check_instance_file(instance_str)
                     
         elif self._run_mode.lower() == 'periodic':
             # Trading in periodic update mode
@@ -1274,12 +1266,8 @@ class AutoTrader:
         if int(self._verbosity) > 0 and self._backtest_mode:
             backtest_end_time = timeit.default_timer()
         
-        
-        # TODO - option to pickle bot instances when they finish
-        
-        # Backtest Post-Processing
-        # Data iteration complete - proceed to post-processing
-        if self._backtest_mode is True:
+        # Run shut-down routine
+        if self._backtest_mode:
             # Create backtest summary for each bot 
             for bot in self._bots_deployed:
                 bot._create_backtest_summary(balance, NAV, margin, tradetimes)            
@@ -1316,7 +1304,14 @@ class AutoTrader:
                 ap.plot(indicators = bot.strategy.indicators, 
                         instrument = bot.instrument)
                 time.sleep(0.3)
-
+        
+        else:
+            # Live trade complete, run shutdown
+            # TODO - option to pickle bot instances when they finish, or have 
+            # other upon-completion routines (eg broker disconnects)
+            if self._broker_name.lower() == 'ib':
+                self._broker._disconnect()
+            
 
     def _clear_strategies(self) -> None:
         """Removes all strategies saved in autotrader instance.
@@ -1348,8 +1343,6 @@ class AutoTrader:
         AutoPlot
             An instance of AutoPlot.
         """
-        # TODO - check length of data to prevent plotting over some length...
-        # TODO - implement plot type feature
         if self._chart_timeframe == 'default':
             ap = AutoPlot(data)
         else:
@@ -1419,13 +1412,9 @@ class AutoTrader:
     def _configure_emailing(self, global_config: dict) -> None:
         """Configure email settings.
         """
-        # TODO - allow setting email in this method
-        
         if int(self._notify) > 0:
-            host_email      = None
-            mailing_list    = None
-            
-            # TODO - what if no email provided?
+            host_email = None
+            mailing_list = None
             
             if "EMAILING" in global_config:
                 # Look for host email and mailing list in strategy config, if it
@@ -1594,4 +1583,47 @@ class AutoTrader:
             
             # Re-assign bot data
             self._bots_deployed[i]._replace_data(adj_data)
+    
+    
+    def _get_instance_id(self):
+        """Returns an ID for the active AutoTrader instance.
+        """
+        dirpath = os.path.join(self._home_dir, 'active_bots')
+        
+        # Check if active_bots directory exists
+        if not os.path.isdir(dirpath):
+            # Directory does not exist, create it
+            os.mkdir(dirpath)
+            instance_id = 1
+            
+        else:
+            # Directory exists, find highest instance
+            instances = [f for f in os.listdir(dirpath) if \
+                         os.path.isfile(os.path.join(dirpath, f))]
+            
+            for instance in instances:
+                last_id = int(instance.split('_')[-1])
+            
+            instance_id = last_id + 1
+        
+        return instance_id
+    
+    
+    def _check_instance_file(self, instance_str, initialisation=False):
+        """Checks if the AutoTrader instance exists.
+        """
+        
+        if initialisation:
+            # Create the file
+            filepath = os.path.join(self._home_dir, 'active_bots', instance_str)
+            with open(filepath, mode='a'): pass
+            instance_file_exists = True
+        
+        else:
+            dirpath = os.path.join(self._home_dir, 'active_bots')
+            instances = [f for f in os.listdir(dirpath) if \
+                         os.path.isfile(os.path.join('active_bots', f))]
+            instance_file_exists = instance_str in instances
+        
+        return instance_file_exists
         
