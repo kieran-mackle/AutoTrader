@@ -63,7 +63,7 @@ class AutoPlot:
         self._bottom_fig_height = 150
         self._jupyter_notebook = False
         self._show_cancelled = True
-        self._hide_candles = False
+        self._use_strat_plot_data = False
         
         # Modify data index
         self._data = self._reindex_data(data)
@@ -100,7 +100,7 @@ class AutoPlot:
                   ohlc_width: int = None, top_fig_height: int = None, 
                   bottom_fig_height: int = None, jupyter_notebook: bool = None, 
                   show_cancelled: bool = None, chart_theme: str = None,
-                  hide_candles: bool = False) -> None:
+                  use_strat_plot_data: bool = False) -> None:
         """Configures the plot settings.
 
         Parameters
@@ -149,7 +149,7 @@ class AutoPlot:
         self._jupyter_notebook = jupyter_notebook if jupyter_notebook is not None else jupyter_notebook
         self._show_cancelled = show_cancelled if show_cancelled is not None else self._show_cancelled
         self._chart_theme = chart_theme if chart_theme is not None else self._chart_theme
-        self._hide_candles = hide_candles if hide_candles is not None else self._hide_candles
+        self._use_strat_plot_data = use_strat_plot_data if use_strat_plot_data is not None else self._use_strat_plot_data
         
     
     def plot(self, instrument: str = None, indicators: dict = None, 
@@ -248,7 +248,7 @@ class AutoPlot:
         source = ColumnDataSource(self._data)
         
         # Main plot
-        if self._hide_candles:
+        if self._use_strat_plot_data:
             source.add(np.ones(len(self._data))*max(self._data.plot_data), 'High')
             source.add(np.ones(len(self._data))*min(self._data.plot_data), 'Low')
             main_plot = self._create_main_plot(source)
@@ -279,7 +279,7 @@ class AutoPlot:
                             hover_name='P/L', line_colour='blue')
             top_figs.append(top_fig)
             
-            if not self._hide_candles:
+            if not self._use_strat_plot_data:
                 # Overlay trades
                 # TODO - add way to visualise trades without candles
                 self._plot_trade_history(trade_summary, main_plot)
@@ -688,7 +688,7 @@ class AutoPlot:
                 # The indicator plot type is recognised
                 if plot_type[indi_type] == 'over' and \
                     indis_over < self._max_indis_over and \
-                        not self._hide_candles:
+                        not self._use_strat_plot_data:
                     if indi_type == 'Supertrend':
                         self._plot_supertrend(indicators[indicator]['data'], 
                                               linked_fig)

@@ -134,7 +134,7 @@ class AutoTrader:
         self._show_cancelled = True
         self._chart_timeframe = 'default'
         self._chart_theme = 'caliber'
-        self._hide_candles = False
+        self._use_strat_plot_data = False
         
     
     def __repr__(self):
@@ -618,7 +618,7 @@ class AutoTrader:
                       top_fig_height: int = 150, bottom_fig_height: int = 150, 
                       jupyter_notebook: bool = False, show_cancelled: bool = True,
                       chart_timeframe: str = 'default', chart_theme: str = 'caliber',
-                      hide_candles: bool = False) -> None:
+                      use_strat_plot_data: bool = False) -> None:
         """Configure the plot settings.
 
         Parameters
@@ -668,7 +668,7 @@ class AutoTrader:
         self._show_cancelled    = show_cancelled
         self._chart_timefram    = chart_timeframe
         self._chart_theme       = chart_theme
-        self._hide_candles      = hide_candles
+        self._use_strat_plot_data = use_strat_plot_data
     
     
     def get_bots_deployed(self, instrument: str = None) -> dict:
@@ -731,7 +731,7 @@ class AutoTrader:
                 self.plot_multibot_backtest()
                 return
         
-        data = bot._check_strategy_for_plot_data()
+        data = bot._check_strategy_for_plot_data(self._use_strat_plot_data)
         ap = self._instantiate_autoplot(data)
         profit_df = pd.merge(bot.data, 
                              bot.backtest_summary['trade_summary']['profit'], 
@@ -1376,7 +1376,7 @@ class AutoTrader:
                      jupyter_notebook = self._jupyter_notebook,
                      show_cancelled = self._show_cancelled,
                      chart_theme = self._chart_theme,
-                     hide_candles = self._hide_candles,)
+                     use_strat_plot_data = self._use_strat_plot_data,)
         
         return ap
     
