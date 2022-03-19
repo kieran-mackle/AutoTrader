@@ -122,7 +122,7 @@ class BrokerUtils:
         return my_int
     
     
-    def write_to_order_summary(self, order_details: dict, filepath: str):
+    def write_to_order_summary(self, order, filepath: str):
         """Writes order details to summary file.
         """
         # Check if file exists already, if not, create
@@ -132,22 +132,20 @@ class BrokerUtils:
             f.write("trigger_price, stop_loss, take_profit\n")
             f.close()
         
-        order_time          = order_details["order_time"]
-        strategy            = order_details["strategy"]
-        order_type          = order_details["order_type"]
-        instrument          = order_details["instrument"]
-        size                = order_details["size"]
-        trigger_price       = order_details["order_price"]
-        stop_loss           = order_details["stop_loss"]
-        take_profit         = order_details["take_profit"]
-        granularity         = order_details["granularity"]
+        order_time = order.order_time 
+        strategy = order.strategy
+        order_type = order.order_type
+        instrument = order.instrument
+        size = order.size
+        trigger_price = order.order_price
+        stop_loss = order.stop_loss
+        take_profit = order.take_profit
+        granularity = order.granularity
         
-        f                   = open(filepath, "a")
+        f = open(filepath, "a")
         f.write("{}, {}, {}, {}, {}, {}, {}, {}, {}\n".format(order_time, strategy, 
-                                                              granularity, order_type, 
-                                                              instrument, size, 
-                                                              trigger_price, stop_loss, 
-                                                              take_profit))
+              granularity, order_type, instrument, size, trigger_price, stop_loss, 
+              take_profit))
         f.close()
         
     

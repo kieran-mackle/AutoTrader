@@ -162,6 +162,8 @@ class AutoTraderBot:
         # Assign strategy to local attributes
         self._last_bars = None
         self._strategy = my_strat
+        self._strategy_name = strategy_config['NAME'] if 'NAME' in \
+            strategy_config else '(unnamed strategy)'
         
         # Assign strategy attributes for tick-based strategy development
         if self._backtest_mode:
@@ -267,26 +269,25 @@ class AutoTraderBot:
                         print(f"{current_time}: No signal detected ({self.instrument}).")
             
             # Check for orders placed and/or scan hits
-            # TODO - reimplement code below (update for new order objects)
-            # if int(self._notify) > 0 and not self._backtest_mode:
+            if int(self._notify) > 0 and not self._backtest_mode:
                 
-            #     for order in orders:
-            #         self._broker_utils.write_to_order_summary(order, 
-            #                                                  self._order_summary_fp)
+                for order in orders:
+                    self._broker_utils.write_to_order_summary(order, 
+                                                              self._order_summary_fp)
                 
-            #     if int(self._notify) > 1 and \
-            #         self._email_params['mailing_list'] is not None and \
-            #         self._email_params['host_email'] is not None:
-            #             if int(self._verbosity) > 0 and len(self._latest_orders) > 0:
-            #                     print("Sending emails ...")
+                if int(self._notify) > 1 and \
+                    self._email_params['mailing_list'] is not None and \
+                    self._email_params['host_email'] is not None:
+                        if int(self._verbosity) > 0 and len(self._latest_orders) > 0:
+                                print("Sending emails ...")
                                 
-            #             for order_details in self._latest_orders:
-            #                 emailing.send_order(order_details,
-            #                                     self._email_params['mailing_list'],
-            #                                     self._email_params['host_email'])
+                        for order in orders:
+                            emailing.send_order(order,
+                                                self._email_params['mailing_list'],
+                                                self._email_params['host_email'])
                             
-            #             if int(self._verbosity) > 0 and len(self._latest_orders) > 0:
-            #                     print("  Done.\n")
+                        if int(self._verbosity) > 0 and len(orders) > 0:
+                            print("  Done.\n")
             
             # Check scan results
             if self._scan_mode:
@@ -450,7 +451,8 @@ class AutoTraderBot:
             # Append strategy parameters to each order
             for order in orders:
                 order.instrument = self.instrument if not order.instrument else order.instrument
-                order.strategy = self._strategy.name if 'name' in self._strategy.__dict__ else None
+                order.strategy = self._strategy.name if 'name' in \
+                    self._strategy.__dict__ else self._strategy_name
                 order.granularity = self._strategy_params['granularity']
                 order._sizing = self._strategy_params['sizing']
                 order._risk_pc = self._strategy_params['risk_pc']
@@ -793,5 +795,3 @@ class AutoTraderBot:
             
         return plot_data
             
-        
-        

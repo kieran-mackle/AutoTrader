@@ -3,25 +3,25 @@ import pandas as pd
 import smtplib, ssl
 from datetime import datetime
 from email.mime.text import MIMEText
+from autotrader.brokers.trading import Order
 from email.mime.multipart import MIMEMultipart
 
 
-def send_order(order_details: dict, mailing_list: dict, host_email: dict) -> None:
+def send_order(order: Order, mailing_list: dict, host_email: dict) -> None:
     """Send order summary from oanda.
     """
-    
-    instrument      = order_details['instrument']
-    order_type      = order_details['order_type']
-    size            = order_details['size']
-    price           = order_details['order_price']
-    stop_loss       = order_details['stop_loss']
-    take_profit     = order_details['take_profit']
-    strategy_name   = order_details['strategy']
+    instrument = order.instrument
+    order_type = order.order_type
+    size = order.size
+    price = order.order_price
+    stop_loss = order.stop_loss
+    take_profit = order.take_profit
+    strategy_name = order.strategy
     
     if instrument[-3:] == "JPY":
-        val         = 2
+        val = 2
     else:
-        val         = 4
+        val = 4
     
     if stop_loss is not None:
         stop_pips = round(abs(price - stop_loss)*10**val, 1)
@@ -36,36 +36,34 @@ def send_order(order_details: dict, mailing_list: dict, host_email: dict) -> Non
         take_pips = None
         
     # Email configuration settings
-    sender_email    = host_email['email']
-    password        = host_email['password']
+    sender_email = host_email['email']
+    password = host_email['password']
     
     for person in mailing_list:
         
-        last_name       = person.split('_')[1]
-        title           = mailing_list[person]['title']
-        receiver_email  = mailing_list[person]['email']
+        last_name = person.split('_')[1]
+        title = mailing_list[person]['title']
+        receiver_email = mailing_list[person]['email']
         
         # Constuct message details
-        time        = datetime.now().strftime("%H:%M:%S")
-        message     = MIMEMultipart("alternative")
+        time = datetime.now().strftime("%H:%M:%S")
+        message = MIMEMultipart("alternative")
         message["Subject"] = "{0} market order placed at {1}".format(instrument, 
                                                                      time)
         message["From"] = sender_email
         
         # Create the plain-text version of email
-        plaintext       = ""
+        plaintext = ""
         
         # Load HTML version of email
-        file_dir            = os.path.dirname(os.path.abspath(__file__))
-        filename            = "{}_{}_{}.html".format(instrument, 
-                                                    size,
-                                                    datetime.now().timestamp())
-        email_message_path  = os.path.join(file_dir, filename)
+        file_dir = os.path.dirname(os.path.abspath(__file__))
+        filename = "{}_{}_{}.html".format(instrument, size,
+                                          datetime.now().timestamp())
+        email_message_path = os.path.join(file_dir, filename)
         
         # Write email in html
         with open(email_message_path, 'w+') as f:
-            f.write('<p>Dear {} {},</p>\n'.format(title,
-                                                  last_name))
+            f.write('<p>Dear {} {},</p>\n'.format(title, last_name))
             f.write('<p>A {} order has been placed for {} '.format(order_type, size))
             f.write('units of {} following an entry signal '.format(instrument))
             f.write('recieved by {}.</p>\n'.format(strategy_name))
@@ -103,9 +101,8 @@ def send_order(order_details: dict, mailing_list: dict, host_email: dict) -> Non
             
             f.write('<hr />\n')
         
-
-        email_body  = open(email_message_path, 'r').read()
-        html        = email_body
+        email_body = open(email_message_path, 'r').read()
+        html = email_body
         
         # Convert messages into plain/html MIMEText objects
         part1 = MIMEText(plaintext, "plain")
@@ -120,10 +117,7 @@ def send_order(order_details: dict, mailing_list: dict, host_email: dict) -> Non
         with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=context) as server:
             server.login(sender_email, password)
             
-            server.sendmail(sender_email, 
-                            receiver_email, 
-                            message.as_string()
-                            )
+            server.sendmail(sender_email, receiver_email, message.as_string())
             
         # Delete html file
         os.remove(email_message_path)
