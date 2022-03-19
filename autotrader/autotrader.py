@@ -134,6 +134,7 @@ class AutoTrader:
         self._show_cancelled = True
         self._chart_timeframe = 'default'
         self._chart_theme = 'caliber'
+        self._hide_candles = False
         
     
     def __repr__(self):
@@ -616,7 +617,8 @@ class AutoTrader:
                       ohlc_height: int = 400, ohlc_width: int = 800, 
                       top_fig_height: int = 150, bottom_fig_height: int = 150, 
                       jupyter_notebook: bool = False, show_cancelled: bool = True,
-                      chart_timeframe: str = 'default', chart_theme: str = 'caliber') -> None:
+                      chart_timeframe: str = 'default', chart_theme: str = 'caliber',
+                      hide_candles: bool = False) -> None:
         """Configure the plot settings.
 
         Parameters
@@ -655,17 +657,18 @@ class AutoTrader:
         """
         
         # Assign attributes
-        self._max_indis_over     = max_indis_over
-        self._max_indis_below    = max_indis_below
-        self._fig_tools          = fig_tools
-        self._ohlc_height        = ohlc_height
-        self._ohlc_width         = ohlc_width
-        self._top_fig_height     = top_fig_height
-        self._bottom_fig_height  = bottom_fig_height
-        self._jupyter_notebook   = jupyter_notebook
-        self._show_cancelled     = show_cancelled
-        self._chart_timeframe    = chart_timeframe
-        self._chart_theme        = chart_theme
+        self._max_indis_over    = max_indis_over
+        self._max_indis_below   = max_indis_below
+        self._fig_tools         = fig_tools
+        self._ohlc_height       = ohlc_height
+        self._ohlc_width        = ohlc_width
+        self._top_fig_heigh     = top_fig_height
+        self._bottom_fig_height = bottom_fig_height
+        self._jupyter_notebook  = jupyter_notebook
+        self._show_cancelled    = show_cancelled
+        self._chart_timefram    = chart_timeframe
+        self._chart_theme       = chart_theme
+        self._hide_candles      = hide_candles
     
     
     def get_bots_deployed(self, instrument: str = None) -> dict:
@@ -728,8 +731,8 @@ class AutoTrader:
                 self.plot_multibot_backtest()
                 return
         
-        data, plot_type = bot._check_strategy_for_plot_data()
-        ap = self._instantiate_autoplot(data, plot_type)
+        data = bot._check_strategy_for_plot_data()
+        ap = self._instantiate_autoplot(data)
         profit_df = pd.merge(bot.data, 
                              bot.backtest_summary['trade_summary']['profit'], 
                              left_index=True, right_index=True).profit.cumsum()
@@ -1327,16 +1330,13 @@ class AutoTrader:
         self._bots_deployed = []
     
     
-    def _instantiate_autoplot(self, data: pd.DataFrame, 
-                              plot_type: str = 'candle') -> AutoPlot:
+    def _instantiate_autoplot(self, data: pd.DataFrame) -> AutoPlot:
         """Creates instance of AutoPlot.
 
         Parameters
         ----------
         data : pd.DataFrame
             The data to instantiate AutoPlot with.
-        plot_type : str, optional
-            (Not yet implemented) The main plot type. The default is 'candle'.
 
         Raises
         ------
@@ -1375,7 +1375,8 @@ class AutoTrader:
                      bottom_fig_height = self._bottom_fig_height,
                      jupyter_notebook = self._jupyter_notebook,
                      show_cancelled = self._show_cancelled,
-                     chart_theme = self._chart_theme)
+                     chart_theme = self._chart_theme,
+                     hide_candles = self._hide_candles,)
         
         return ap
     

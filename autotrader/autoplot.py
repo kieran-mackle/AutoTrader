@@ -4,7 +4,7 @@ import pandas as pd
 from math import pi
 
 from bokeh.models.annotations import Title
-from bokeh.plotting import figure, output_file, show, save
+from bokeh.plotting import figure, output_file, show
 from bokeh.io import output_notebook, curdoc
 from bokeh.models import (CustomJS,
                           ColumnDataSource,
@@ -63,6 +63,7 @@ class AutoPlot:
         self._bottom_fig_height = 150
         self._jupyter_notebook = False
         self._show_cancelled = True
+        self._hide_candles = False
         
         # Modify data index
         self._data = self._reindex_data(data)
@@ -98,7 +99,8 @@ class AutoPlot:
                   fig_tools: str = None, ohlc_height: int = None, 
                   ohlc_width: int = None, top_fig_height: int = None, 
                   bottom_fig_height: int = None, jupyter_notebook: bool = None, 
-                  show_cancelled: bool = None, chart_theme: str = None):
+                  show_cancelled: bool = None, chart_theme: str = None,
+                  hide_candles: bool = False) -> None:
         """Configures the plot settings.
 
         Parameters
@@ -148,7 +150,8 @@ class AutoPlot:
         self._jupyter_notebook = jupyter_notebook if jupyter_notebook is not None else jupyter_notebook
         self._show_cancelled = show_cancelled if show_cancelled is not None else self._show_cancelled
         self._chart_theme = chart_theme if chart_theme is not None else self._chart_theme
-    
+        self._hide_candles = hide_candles if hide_candles is not None else self._hide_candles
+        
     
     def plot(self, instrument: str = None, indicators: dict = None, 
              backtest_dict: dict = None, cumulative_PL: list = None,
@@ -227,23 +230,25 @@ class AutoPlot:
         
         # Preparation
         if backtest_dict is None:
+            # Using Indiview
             if instrument is not None:
                 title_string = "AutoTrader IndiView - {}".format(instrument)
             else:
                 title_string = "AutoTrader IndiView"
             
-            output_file("indiview-chart.html",
-                        title = title_string)
+            output_file("indiview-chart.html", title = title_string)
             
         else:
+            # Plotting backtest results
             if instrument is None:
                 instrument = backtest_dict['instrument']
             
-            title_string = "Backtest chart for {} ({} candles)".format(instrument, 
-                                                                       backtest_dict['interval'])
-            output_file("{}-backtest-chart.html".format(instrument),
-                        title = "AutoTrader Backtest Results - {}".format(instrument))
+            title_string = f"Backtest chart for {instrument} ({backtest_dict['interval']} candles)"
+            
+            output_file(f"{instrument}-backtest-chart.html",
+                        title=f"AutoTrader Backtest Results - {instrument}")
         
+        # Add base data
         source = ColumnDataSource(self._data)
         source.add((self._data.Close >= self._data.Open).values.astype(np.uint8).astype(str),
                    'change')
@@ -258,11 +263,11 @@ class AutoPlot:
             account_hist = backtest_dict['account_history']
             if len(account_hist) != len(self._data):
                 account_hist = self._interpolate_and_merge(account_hist)
-            NAV             = account_hist['NAV']
-            balance         = account_hist['balance']
-            trade_summary   = backtest_dict['trade_summary']
-            indicators      = backtest_dict['indicators']
-            open_trades     = backtest_dict['open_trades']
+            NAV = account_hist['NAV']
+            balance = account_hist['balance']
+            trade_summary = backtest_dict['trade_summary']
+            indicators = backtest_dict['indicators']
+            open_trades = backtest_dict['open_trades']
             cancelled_trades = backtest_dict['cancelled_trades']
             
             # Top plots
@@ -286,68 +291,60 @@ class AutoPlot:
         
         # Compile plots for final figure
         # Auto-scale y-axis of candlestick chart # TODO - improve
-        autoscale_args      = dict(y_range  = candle_plot.y_range, 
-                                   source   = source)
+        autoscale_args = dict(y_range = candle_plot.y_range, source = source)
         candle_plot.x_range.js_on_change('end', CustomJS(args = autoscale_args, 
-                                                         code = self._autoscale_code))
+                                         code = self._autoscale_code))
         
-        plots               = top_figs + [candle_plot] + bottom_figs
-        linked_crosshair    = CrosshairTool(dimensions='both')
+        plots = top_figs + [candle_plot] + bottom_figs
+        linked_crosshair = CrosshairTool(dimensions='both')
         
-        titled  = 0
-        t       = Title()
-        t.text  = title_string
+        titled = 0
+        t = Title()
+        t.text = title_string
         for plot in plots:
             if plot is not None:
                 plot.xaxis.major_label_overrides = {
                     i: date.strftime('%b %d %Y') for i, date in enumerate(pd.to_datetime(self._data["date"]))
                 }
-                plot.xaxis.bounds   = (0, self._data.index[-1])
-                plot.sizing_mode    = 'stretch_width'
+                plot.xaxis.bounds = (0, self._data.index[-1])
+                plot.sizing_mode = 'stretch_width'
                 
                 if titled == 0:
                     plot.title = t
                     titled = 1
                 
                 if plot.legend:
-                    plot.legend.visible             = True
-                    plot.legend.location            = 'top_left'
-                    plot.legend.border_line_width   = 1
-                    plot.legend.border_line_color   = '#333333'
-                    plot.legend.padding             = 5
-                    plot.legend.spacing             = 0
-                    plot.legend.margin              = 0
+                    plot.legend.visible = True
+                    plot.legend.location = 'top_left'
+                    plot.legend.border_line_width = 1
+                    plot.legend.border_line_color = '#333333'
+                    plot.legend.padding = 5
+                    plot.legend.spacing = 0
+                    plot.legend.margin = 0
                     plot.legend.label_text_font_size = '8pt'
-                    plot.legend.click_policy        = "hide"
+                    plot.legend.click_policy = "hide"
                 
                 plot.add_tools(linked_crosshair)
-                plot.min_border_left    = 0
-                plot.min_border_top     = 3
-                plot.min_border_bottom  = 6
-                plot.min_border_right   = 10
+                plot.min_border_left = 0
+                plot.min_border_top = 3
+                plot.min_border_bottom = 6
+                plot.min_border_right = 10
                 plot.outline_line_color = 'black'
     
         # Construct final figure
-        fig                 = gridplot(plots, 
-                                       ncols            = 1, 
-                                       toolbar_location = 'right',
-                                       toolbar_options  = dict(logo = None), 
-                                       merge_tools      = True
-                                       )
-        fig.sizing_mode     = 'stretch_width'
+        fig = gridplot(plots, ncols = 1, toolbar_location = 'right',
+                       toolbar_options = dict(logo = None), 
+                       merge_tools = True)
+        fig.sizing_mode = 'stretch_width'
         
         # Set theme - # TODO - adapt line colours based on theme
         curdoc().theme = self._chart_theme
         
-        # TODO - improve writing to file / showing
         if show_fig:
             if self._jupyter_notebook:
                 output_notebook()
-                
             show(fig)
-        else:
-            save(fig)
-    
+        
     
     def _reindex_data(self, data: pd.DataFrame) -> pd.DataFrame:
         """Resets index of data to obtain integer indexing.

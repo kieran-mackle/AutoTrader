@@ -772,15 +772,12 @@ class AutoTraderBot:
         
     
     def _check_strategy_for_plot_data(self):
-        """Checks the bot's strategy to see if it has plot_data and
-        plot_type attributes.
+        """Checks the bot's strategy to see if it has the plot_data attribute.
 
         Returns
         -------
         plot_data : pd.DataFrame
             The data to plot.
-        plot_type : str
-            The type of plot to create.
             
         Notes
         -----
@@ -794,11 +791,7 @@ class AutoTraderBot:
         else:
             plot_data = self.data
             
-        if 'plot_type' in strat_params:
-            plot_type = strat_params['plot_type']
-        else:
-            plot_type = 'candle'
-        return plot_data, plot_type
+        return plot_data
             
         
         
