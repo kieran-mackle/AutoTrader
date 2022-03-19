@@ -249,6 +249,8 @@ class AutoPlot:
         
         # Main plot
         if self._hide_candles:
+            source.add(np.ones(len(self._data))*max(self._data.plot_data), 'High')
+            source.add(np.ones(len(self._data))*min(self._data.plot_data), 'Low')
             main_plot = self._create_main_plot(source)
         else:
             source.add((self._data.Close >= self._data.Open).values.astype(np.uint8).astype(str),
