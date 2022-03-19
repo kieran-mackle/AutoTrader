@@ -63,7 +63,7 @@ class AutoPlot:
         self._bottom_fig_height = 150
         self._jupyter_notebook = False
         self._show_cancelled = True
-        self._hide_candles = False
+        self._use_strat_plot_data = False
         
         # Modify data index
         self._data = self._reindex_data(data)
@@ -100,7 +100,7 @@ class AutoPlot:
                   ohlc_width: int = None, top_fig_height: int = None, 
                   bottom_fig_height: int = None, jupyter_notebook: bool = None, 
                   show_cancelled: bool = None, chart_theme: str = None,
-                  hide_candles: bool = False) -> None:
+                  use_strat_plot_data: bool = False) -> None:
         """Configures the plot settings.
 
         Parameters
@@ -139,7 +139,6 @@ class AutoPlot:
         https://docs.bokeh.org/en/latest/docs/first_steps/first_steps_4.html#using-themes
         
         """
-        
         self._max_indis_over = max_indis_over if max_indis_over is not None else self._max_indis_over
         self._max_indis_below = max_indis_below if max_indis_below is not None else self._max_indis_below
         self._fig_tools = fig_tools if fig_tools is not None else self._fig_tools
@@ -150,7 +149,7 @@ class AutoPlot:
         self._jupyter_notebook = jupyter_notebook if jupyter_notebook is not None else jupyter_notebook
         self._show_cancelled = show_cancelled if show_cancelled is not None else self._show_cancelled
         self._chart_theme = chart_theme if chart_theme is not None else self._chart_theme
-        self._hide_candles = hide_candles if hide_candles is not None else self._hide_candles
+        self._use_strat_plot_data = use_strat_plot_data if use_strat_plot_data is not None else self._use_strat_plot_data
         
     
     def plot(self, instrument: str = None, indicators: dict = None, 
@@ -235,26 +234,28 @@ class AutoPlot:
                 title_string = "AutoTrader IndiView - {}".format(instrument)
             else:
                 title_string = "AutoTrader IndiView"
-            
             output_file("indiview-chart.html", title = title_string)
             
         else:
             # Plotting backtest results
             if instrument is None:
                 instrument = backtest_dict['instrument']
-            
             title_string = f"Backtest chart for {instrument} ({backtest_dict['interval']} candles)"
-            
             output_file(f"{instrument}-backtest-chart.html",
                         title=f"AutoTrader Backtest Results - {instrument}")
         
         # Add base data
         source = ColumnDataSource(self._data)
-        source.add((self._data.Close >= self._data.Open).values.astype(np.uint8).astype(str),
-                   'change')
         
-        # OHLC candlestick plot
-        candle_plot = self._plot_candles(source)
+        # Main plot
+        if self._use_strat_plot_data:
+            source.add(np.ones(len(self._data))*max(self._data.plot_data), 'High')
+            source.add(np.ones(len(self._data))*min(self._data.plot_data), 'Low')
+            main_plot = self._create_main_plot(source)
+        else:
+            source.add((self._data.Close >= self._data.Open).values.astype(np.uint8).astype(str),
+                       'change')
+            main_plot = self._plot_candles(source)
         
         top_figs = []
         bottom_figs = []
@@ -271,31 +272,34 @@ class AutoPlot:
             cancelled_trades = backtest_dict['cancelled_trades']
             
             # Top plots
-            top_fig = self._plot_line(NAV, candle_plot, new_fig=True, 
+            top_fig = self._plot_line(NAV, main_plot, new_fig=True, 
                                       legend_label='Net Asset Value', 
                                       hover_name='NAV')
             self._plot_line(balance, top_fig, legend_label='Account Balance', 
                             hover_name='P/L', line_colour='blue')
             top_figs.append(top_fig)
             
-            # Overlay trades 
-            self._plot_trade_history(trade_summary, candle_plot)
-            if len(cancelled_trades) > 0 and self._show_cancelled:
-                self._plot_trade_history(cancelled_trades, candle_plot, cancelled_summary=True)
-            if len(open_trades) > 0:
-                self._plot_trade_history(open_trades, candle_plot, open_summary=True)
+            if not self._use_strat_plot_data:
+                # Overlay trades
+                # TODO - add way to visualise trades without candles
+                self._plot_trade_history(trade_summary, main_plot)
+                if len(cancelled_trades) > 0 and self._show_cancelled:
+                    self._plot_trade_history(cancelled_trades, main_plot, cancelled_summary=True)
+                if len(open_trades) > 0:
+                    self._plot_trade_history(open_trades, main_plot, open_summary=True)
         
         # Indicators
         if indicators is not None:
-            bottom_figs = self._plot_indicators(indicators, candle_plot)
+            bottom_figs = self._plot_indicators(indicators, main_plot)
+        
+        # Auto-scale y-axis of candlestick chart
+        # TODO - also autoscale indicators
+        autoscale_args = dict(y_range = main_plot.y_range, source = source)
+        main_plot.x_range.js_on_change('end', CustomJS(args = autoscale_args, 
+                                       code = self._autoscale_code))
         
         # Compile plots for final figure
-        # Auto-scale y-axis of candlestick chart # TODO - improve
-        autoscale_args = dict(y_range = candle_plot.y_range, source = source)
-        candle_plot.x_range.js_on_change('end', CustomJS(args = autoscale_args, 
-                                         code = self._autoscale_code))
-        
-        plots = top_figs + [candle_plot] + bottom_figs
+        plots = top_figs + [main_plot] + bottom_figs
         linked_crosshair = CrosshairTool(dimensions='both')
         
         titled = 0
@@ -349,12 +353,13 @@ class AutoPlot:
     def _reindex_data(self, data: pd.DataFrame) -> pd.DataFrame:
         """Resets index of data to obtain integer indexing.
         """
-        
-        modified_data           = data.copy()
-        modified_data['date']   = modified_data.index
-        modified_data           = modified_data.reset_index(drop = True)
+        if isinstance(data, pd.Series):
+            modified_data = data.to_frame(name='plot_data')
+        else:
+             modified_data = data.copy()
+        modified_data['date'] = modified_data.index
+        modified_data = modified_data.reset_index(drop = True)
         modified_data['data_index'] = modified_data.index
-        
         return modified_data
     
     
@@ -490,11 +495,11 @@ class AutoPlot:
         pie.grid.grid_line_color = None
         pie.sizing_mode = 'stretch_width'
         pie.legend.location = "top_left"
-        pie.legend.border_line_width   = 1
-        pie.legend.border_line_color   = '#333333'
-        pie.legend.padding             = 5
-        pie.legend.spacing             = 0
-        pie.legend.margin              = 0
+        pie.legend.border_line_width = 1
+        pie.legend.border_line_color = '#333333'
+        pie.legend.padding = 5
+        pie.legend.spacing = 0
+        pie.legend.margin = 0
         pie.legend.label_text_font_size = '8pt'
         
         # Bar plot for avg/max win/loss
@@ -557,7 +562,6 @@ class AutoPlot:
         plbars.outline_line_color = None
         plbars.sizing_mode = 'stretch_width'
     
-    
         # Cumulative PL
         cplfig = figure(plot_width = navfig.plot_width,
                         plot_height = self._top_fig_height,
@@ -573,11 +577,10 @@ class AutoPlot:
         else:
             colors = Category20c[len(multibot_backtest_results)]
         
-        
         for ix, instrument in enumerate(cpl_dict):
             cpldata = cpl_dict[instrument].copy().to_frame()
             cpldata['date'] = cpldata.index
-            cpldata         = cpldata.reset_index(drop = True)
+            cpldata = cpldata.reset_index(drop = True)
             
             cpldata = pd.merge(self._data, cpldata, left_on='date', right_on='date')
             
@@ -587,11 +590,11 @@ class AutoPlot:
                         line_color = colors[ix])
         
         cplfig.legend.location = 'top_left'
-        cplfig.legend.border_line_width   = 1
-        cplfig.legend.border_line_color   = '#333333'
-        cplfig.legend.padding             = 5
-        cplfig.legend.spacing             = 0
-        cplfig.legend.margin              = 0
+        cplfig.legend.border_line_width = 1
+        cplfig.legend.border_line_color = '#333333'
+        cplfig.legend.padding = 5
+        cplfig.legend.spacing = 0
+        cplfig.legend.margin = 0
         cplfig.legend.label_text_font_size = '8pt'
         cplfig.sizing_mode = 'stretch_width'
         cplfig.add_tools(linked_crosshair)
@@ -599,7 +602,7 @@ class AutoPlot:
         cplfig.xaxis.major_label_overrides = {
                     i: date.strftime('%b %d %Y') for i, date in enumerate(pd.to_datetime(self._data["date"]))
                 }
-        cplfig.xaxis.bounds   = (0, self._data.index[-1])
+        cplfig.xaxis.bounds = (0, self._data.index[-1])
         
         # Margin Available 
         marfig = figure(plot_width = self._ohlc_width,
@@ -621,14 +624,13 @@ class AutoPlot:
         marfig.xaxis.bounds = (0, self._data.index[-1])
         marfig.sizing_mode = 'stretch_width'
         marfig.legend.location = 'top_left'
-        marfig.legend.border_line_width   = 1
-        marfig.legend.border_line_color   = '#333333'
-        marfig.legend.padding             = 5
-        marfig.legend.spacing             = 0
-        marfig.legend.margin              = 0
+        marfig.legend.border_line_width = 1
+        marfig.legend.border_line_color = '#333333'
+        marfig.legend.padding = 5
+        marfig.legend.spacing = 0
+        marfig.legend.margin = 0
         marfig.legend.label_text_font_size = '8pt'
         marfig.add_tools(linked_crosshair)
-        
         
         # Construct final figure     
         final_fig = layout([  
@@ -636,7 +638,7 @@ class AutoPlot:
                             [winrate, pie, plbars],
                                    [cplfig],
                                    [marfig]
-                        ])
+                            ])
         final_fig.sizing_mode = 'scale_width'
         
         # Set theme - # TODO - adapt line colours based on theme
@@ -652,9 +654,10 @@ class AutoPlot:
         "over", it will be plotted on top of linked_fig. If indicator type is 
         "below", it will be plotted on a new figure below the OHLC chart.
         """
+        # TODO - convert all data to a ColumnDataSource, to allow indicator
+        # autoscaling and proper index matching. Create helper method for this
         
         x_range   = self._data.index
-        
         plot_type = {'MACD'        : 'below',
                      'MA'          : 'over',
                      'RSI'         : 'below',
@@ -676,18 +679,19 @@ class AutoPlot:
                      'trading-session': 'over'}
         
         # Plot indicators
-        indis_over              = 0
-        indis_below             = 0
-        bottom_figs             = []
-        colours                 = ['red', 'blue', 'orange', 'green', 'black',
-                                   'yellow']
+        indis_over = 0
+        indis_below = 0
+        bottom_figs = []
+        colours = ['red', 'blue', 'orange', 'green', 'black', 'yellow']
         
         for indicator in indicators:
             indi_type = indicators[indicator]['type']
             
             if indi_type in plot_type:
                 # The indicator plot type is recognised
-                if plot_type[indi_type] == 'over' and indis_over < self._max_indis_over:
+                if plot_type[indi_type] == 'over' and \
+                    indis_over < self._max_indis_over and \
+                        not self._use_strat_plot_data:
                     if indi_type == 'Supertrend':
                         self._plot_supertrend(indicators[indicator]['data'], 
                                               linked_fig)
@@ -733,31 +737,28 @@ class AutoPlot:
                             x_vals = x_range
                             y_vals = indicators[indicator]['data']
                         
-                        linked_fig.line(x_vals, 
-                                        y_vals, 
-                                        line_width = 1.5, 
+                        linked_fig.line(x_vals, y_vals, line_width = 1.5, 
                                         legend_label = indicator,
                                         line_color = indicators[indicator]['color'] if 'color' in indicators[indicator] else colours[indis_over])
-                    indis_over     += 1
+                    indis_over += 1
                     
                 elif plot_type[indi_type] == 'below' and indis_below < self._max_indis_below:
                     if indi_type == 'MACD':
-                        new_fig     = self._plot_macd(x_range,
-                                                      indicators[indicator], 
-                                                      linked_fig)
+                        new_fig = self._plot_macd(x_range, indicators[indicator], 
+                                                  linked_fig)
                         new_fig.title = indicator
                     
                     elif indi_type == 'Heikin-Ashi':
                         
-                        HA_data     = self._reindex_data(indicators[indicator]['data'])
-                        source      = ColumnDataSource(HA_data)
+                        HA_data = self._reindex_data(indicators[indicator]['data'])
+                        source = ColumnDataSource(HA_data)
                         source.add((HA_data.Close >= HA_data.Open).values.astype(np.uint8).astype(str),
                                    'change')
-                        new_fig     = self._plot_candles(source)
+                        new_fig = self._plot_candles(source)
                         new_fig.x_range = linked_fig.x_range
                         new_fig.y_range = linked_fig.y_range
                         new_fig.title = indicator
-                        indis_below   += self._max_indis_below # To block any other new plots below.
+                        indis_below += self._max_indis_below # To block any other new plots below.
                     
                     elif indi_type == 'RSI':
                         new_fig = self._plot_line(indicators[indicator]['data'], linked_fig,
@@ -768,13 +769,13 @@ class AutoPlot:
                             
                     elif indi_type == 'multi':
                         # Plot multiple lines on the same figure
-                        new_fig = figure(plot_width     = linked_fig.plot_width,
-                                         plot_height    = 130,
-                                         title          = indicator,
-                                         tools          = linked_fig.tools,
-                                         active_drag    = linked_fig.tools[0],
-                                         active_scroll  = linked_fig.tools[1],
-                                         x_range        = linked_fig.x_range)
+                        new_fig = figure(plot_width = linked_fig.plot_width,
+                                         plot_height = 130,
+                                         title = indicator,
+                                         tools = linked_fig.tools,
+                                         active_drag = linked_fig.tools[0],
+                                         active_scroll = linked_fig.tools[1],
+                                         x_range = linked_fig.x_range)
                         
                         for dataset in list(indicators[indicator].keys())[1:]:
                             if type(indicators[indicator][dataset]['data']) == pd.Series:
@@ -791,7 +792,8 @@ class AutoPlot:
                                 y_vals = indicators[indicator][dataset]['data']
                             
                             new_fig.line(x_vals, y_vals,
-                                         line_color = indicators[indicator][dataset]['color'] if 'color' in indicators[indicator][dataset] else 'black', 
+                                         line_color = indicators[indicator][dataset]['color'] if \
+                                             'color' in indicators[indicator][dataset] else 'black', 
                                          legend_label = dataset)
                     
                     elif indi_type == 'threshold':
@@ -813,21 +815,21 @@ class AutoPlot:
                             x_vals = x_range
                             y_vals = indicators[indicator]['data']
                             
-                        new_fig = figure(plot_width     = linked_fig.plot_width,
-                                         plot_height    = 130,
-                                         title          = None,
-                                         tools          = linked_fig.tools,
-                                         active_drag    = linked_fig.tools[0],
-                                         active_scroll  = linked_fig.tools[1],
-                                         x_range        = linked_fig.x_range)
+                        new_fig = figure(plot_width = linked_fig.plot_width,
+                                         plot_height = 130,
+                                         title = None,
+                                         tools = linked_fig.tools,
+                                         active_drag = linked_fig.tools[0],
+                                         active_scroll = linked_fig.tools[1],
+                                         x_range = linked_fig.x_range)
                         
                         # Add glyphs
-                        new_fig.line(x_vals, 
-                                     y_vals,
-                                     line_color = indicators[indicator]['color'] if 'color' in indicators[indicator] else 'black', 
-                                     legend_label       = indicator)
+                        new_fig.line(x_vals, y_vals,
+                                     line_color = indicators[indicator]['color'] if \
+                                         'color' in indicators[indicator] else 'black', 
+                                     legend_label = indicator)
                         
-                    indis_below    += 1
+                    indis_below += 1
                     bottom_figs.append(new_fig)
             else:
                 # The indicator plot type is not recognised - plotting on new fig
@@ -838,10 +840,27 @@ class AutoPlot:
                                               legend_label=indicator, 
                                               hover_name=indicator)
                     
-                    indis_below    += 1
+                    indis_below += 1
                     bottom_figs.append(new_fig)
                 
         return bottom_figs
+    
+    
+    def _create_main_plot(self, source, line_colour: str = 'black',
+                          legend_label: str = 'Data'):
+        fig = figure(plot_width = self._ohlc_width,
+                     plot_height = 150,
+                     title = "Custom Plot Data",
+                     tools = self._fig_tools,
+                     active_drag = 'pan',
+                     active_scroll = 'wheel_zoom',)
+        
+        fig.line('data_index', 'plot_data', 
+                 line_color = line_colour,
+                 # legend_label = legend_label,
+                 source = source)
+        
+        return fig
     
     
     def _plot_line(self, plot_data, linked_fig, new_fig=False, fig_height=150,
@@ -852,13 +871,13 @@ class AutoPlot:
         
         # Initiate figure
         if new_fig:
-            fig = figure(plot_width     = linked_fig.plot_width,
-                         plot_height    = fig_height,
-                         title          = fig_title,
-                         tools          = self._fig_tools,
-                         active_drag    = 'pan',
-                         active_scroll  = 'wheel_zoom',
-                         x_range        = linked_fig.x_range)
+            fig = figure(plot_width = linked_fig.plot_width,
+                         plot_height = fig_height,
+                         title = fig_title,
+                         tools = self._fig_tools,
+                         active_drag = 'pan',
+                         active_scroll = 'wheel_zoom',
+                         x_range = linked_fig.x_range)
         else:
             fig = linked_fig
         
@@ -872,9 +891,9 @@ class AutoPlot:
             source.add(plot_data, 'plot_data')
         
         fig.line('data_index', 'plot_data', 
-                 line_color         = line_colour,
-                 legend_label       = legend_label,
-                 source             = source)
+                 line_color = line_colour,
+                 legend_label = legend_label,
+                 source = source)
         
         if hover_name is not None:
             fig_hovertool = HoverTool(tooltips = [("Date", "@date{%b %d %H:%M}"),
@@ -1260,17 +1279,25 @@ class AutoPlot:
         """Plots MACD indicator.
         """
         # Initialise figure
-        fig = figure(plot_width     = linked_fig.plot_width,
-                     plot_height    = self._bottom_fig_height,
-                     title          = None,
-                     tools          = linked_fig.tools,
-                     active_drag    = linked_fig.tools[0],
-                     active_scroll  = linked_fig.tools[1],
-                     x_range        = linked_fig.x_range)
+        fig = figure(plot_width = linked_fig.plot_width,
+                     plot_height = self._bottom_fig_height,
+                     title = None,
+                     tools = linked_fig.tools,
+                     active_drag = linked_fig.tools[0],
+                     active_scroll = linked_fig.tools[1],
+                     x_range = linked_fig.x_range)
         
         # Add glyphs
-        fig.line(x_range, macd_data['macd'], line_color = 'blue')
-        fig.line(x_range, macd_data['signal'], line_color = 'red')
+        source = ColumnDataSource(self._data)
+        for key, item in macd_data.items():
+            if key == 'type':
+                pass
+            else:
+                merged_data = self._merge_data(item)[item.name]
+                source.add(merged_data, key)
+            
+        fig.line('data_index', 'macd', source=source, line_color = 'blue')
+        fig.line('data_index', 'signal', source=source, line_color = 'red')
         if 'histogram' in macd_data:
             histcolour = []
             for i in range(len(macd_data['histogram'])):

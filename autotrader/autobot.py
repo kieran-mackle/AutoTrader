@@ -771,7 +771,7 @@ class AutoTraderBot:
         return new_data
         
     
-    def _check_strategy_for_plot_data(self):
+    def _check_strategy_for_plot_data(self, use_strat_plot_data: bool = False):
         """Checks the bot's strategy to see if it has the plot_data attribute.
 
         Returns
@@ -786,7 +786,7 @@ class AutoTraderBot:
         attributes from within a strategy.
         """
         strat_params = self._strategy.__dict__
-        if 'plot_data' in strat_params:
+        if 'plot_data' in strat_params and use_strat_plot_data:
             plot_data = strat_params['plot_data']
         else:
             plot_data = self.data
