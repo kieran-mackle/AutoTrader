@@ -654,6 +654,9 @@ class AutoPlot:
         "over", it will be plotted on top of linked_fig. If indicator type is 
         "below", it will be plotted on a new figure below the OHLC chart.
         """
+        # TODO - convert all data to a ColumnDataSource, to allow indicator
+        # autoscaling and proper index matching. Create helper method for this
+        
         x_range   = self._data.index
         plot_type = {'MACD'        : 'below',
                      'MA'          : 'over',
