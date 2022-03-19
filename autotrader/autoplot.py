@@ -292,12 +292,13 @@ class AutoPlot:
         if indicators is not None:
             bottom_figs = self._plot_indicators(indicators, main_plot)
         
-        # Compile plots for final figure
         # Auto-scale y-axis of candlestick chart
+        # TODO - also autoscale indicators
         autoscale_args = dict(y_range = main_plot.y_range, source = source)
         main_plot.x_range.js_on_change('end', CustomJS(args = autoscale_args, 
                                        code = self._autoscale_code))
         
+        # Compile plots for final figure
         plots = top_figs + [main_plot] + bottom_figs
         linked_crosshair = CrosshairTool(dimensions='both')
         
@@ -887,9 +888,9 @@ class AutoPlot:
             source.add(plot_data, 'plot_data')
         
         fig.line('data_index', 'plot_data', 
-                 line_color         = line_colour,
-                 legend_label       = legend_label,
-                 source             = source)
+                 line_color = line_colour,
+                 legend_label = legend_label,
+                 source = source)
         
         if hover_name is not None:
             fig_hovertool = HoverTool(tooltips = [("Date", "@date{%b %d %H:%M}"),
@@ -1275,17 +1276,25 @@ class AutoPlot:
         """Plots MACD indicator.
         """
         # Initialise figure
-        fig = figure(plot_width     = linked_fig.plot_width,
-                     plot_height    = self._bottom_fig_height,
-                     title          = None,
-                     tools          = linked_fig.tools,
-                     active_drag    = linked_fig.tools[0],
-                     active_scroll  = linked_fig.tools[1],
-                     x_range        = linked_fig.x_range)
+        fig = figure(plot_width = linked_fig.plot_width,
+                     plot_height = self._bottom_fig_height,
+                     title = None,
+                     tools = linked_fig.tools,
+                     active_drag = linked_fig.tools[0],
+                     active_scroll = linked_fig.tools[1],
+                     x_range = linked_fig.x_range)
         
         # Add glyphs
-        fig.line(x_range, macd_data['macd'], line_color = 'blue')
-        fig.line(x_range, macd_data['signal'], line_color = 'red')
+        source = ColumnDataSource(self._data)
+        for key, item in macd_data.items():
+            if key == 'type':
+                pass
+            else:
+                merged_data = self._merge_data(item)[item.name]
+                source.add(merged_data, key)
+            
+        fig.line('data_index', 'macd', source=source, line_color = 'blue')
+        fig.line('data_index', 'signal', source=source, line_color = 'red')
         if 'histogram' in macd_data:
             histcolour = []
             for i in range(len(macd_data['histogram'])):
