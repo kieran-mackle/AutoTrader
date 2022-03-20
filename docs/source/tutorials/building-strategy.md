@@ -1,5 +1,13 @@
 # Building a Strategy
 
+```{important}
+As of AutoTrader `v0.6.0`, *continuous* update mode was introduced, which has some advantages over 
+*periodic* update mode. The following tutorial was written for periodic update mode, so readers
+are encouraged to understand the different [modes](autotrader-run-modes) before embarking on
+the journey of building their strategy. Don't worry, however, it is quite easy to convert your
+strategy across each mode.
+```
+
 A simple yet effective MACD crossover strategy will be developed in this section. An important note 
 here is that this strategy assumes that the trading instrument is a *contract for difference*, and 
 hence, can be shorted. 
