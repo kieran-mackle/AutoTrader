@@ -28,6 +28,7 @@ be accessible in the [strategy](strategies), via the `params` dictionary.
 |`RISK_PC`| The percentage of the account balance to risk when determining position risk-based size.|
 |`PARAMETERS`| A dictionary containing custom strategy parameters (see below).|
 |`WATCHLIST`| A list of strings containing the instruments to be traded in the strategy, in the [format required](autodata) by the [data feed](autotrader#run-configuration). |
+|`INCLUDE_POSITIONS`| A boolean flag to indicate if current possitions should be passed to the strategy's `generate_signal` method.|
 
 Some things to note:
 - `SIZING` can be either 'risk' or an integer value corresponding to the number of units to trade. If using the 'risk' option,
@@ -40,6 +41,12 @@ uses lagging indicators, the value of `PERIOD` should be *at least* as much as t
 the `INTERVAL` key. For example, to have access to 15-minute and 4-hour data, you would specify something like `INTERVAL: 'M15,H1'`.
 In this case, the `data` object passed into the strategy will be a dictionary, with keys defined by each granularity specified
 in `INTERVAL` and the associated data.
+
+Include positions:
+This means that your strategy can take into account the positions you currently hold. The most obvious use of this
+is when trading instruments which cannot be shorted. In this case, you would only place a sell order when you 
+currently have an open position. You might also wan't to avoid entering a trade if it contradicts the position 
+you currently hold.
 
 
 ### Strategy Parameters

@@ -369,3 +369,15 @@ at.run()
 
 (autotrader-bots-deployed)=
 ### Get Bots Deployed
+
+
+(autotrader-run-modes)=
+## Run Modes
+
+
+(autotrader-periodic-mode)=
+### Periodic Update Mode
+
+
+(autotrader-continuous-mode)=
+### Continuous Update Mode

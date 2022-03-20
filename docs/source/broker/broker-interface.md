@@ -96,8 +96,13 @@ Note that AutoTrader is intelligent when it comes to order handling. For example
 to include it in the signal dictionary. The same goes for all other optional keys described above.
 
 
-
+(order-types)=
 ### Order Types
+
+
+AutoTrader is intelligent when it comes to order types. If your strategy has no stop loss, you do not need to include it in the 
+signal dictionary. If you prefer to set a stop loss in terms of distance in pips, you can do that instead. Same goes for take 
+profit levels, specify price or distance in pips. The choice is yours.
 
 The following tables provides accepted values for the `order_type` specification of an order.
 

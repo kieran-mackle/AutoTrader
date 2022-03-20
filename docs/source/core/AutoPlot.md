@@ -243,6 +243,36 @@ specified in the table below.
 |Trade signals|`signals`| `data` |
 
 
+
+##### Example Indicator Dictionary
+In this dictionary, each key is used to create a legend entry corresponding to the indicator. The sub-dictionary
+assigned to each key contains the specific information and associated data. The `type` key is a string corresponding
+to the type of indicator, for example:
+- `'type': 'MA'` for an exponential moving average (or any type of moving average)
+- `'type': 'STOCH'` for stochastics
+Finally, the data associated with the indicator must also be provided. For indicators with one set of data, such as a moving average,
+simply provide the data with the `data` key. For indicators with multiple sets of data, such as MACD, provide a key for each set named
+according to the [indicator specification](autoplot-indi-spec).
+See the example below for a strategy with MACD, two RSI's and two EMA's.
+
+```py
+self.indicators = {'MACD (12/26/9)': {'type': 'MACD',
+                                      'macd': self.MACD,
+                                      'signal': self.MACDsignal,
+                                      'histogram': self.MACDhist},
+                   'EMA (200)': {'type': 'MA',
+                                 'data': self.ema200},
+                   'RSI (14)': {'type': 'RSI',
+                                'data': self.rsi14},
+                   'RSI (7)': {'type': 'RSI',
+                               'data': self.rsi7},
+                   'EMA (21)': {'type': 'MA',
+                                'data': self.ema21}
+                  }
+```
+
+
+
 ##### Multiple line plot
 To plot multiple lines on the same figure, the `multi` indicator type can be used. In the example below, a figure with
 title 'Figure title' will be created below the OHLC chart. On this figure, two lines will be plotted, with legend names
