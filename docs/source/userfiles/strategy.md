@@ -9,8 +9,7 @@ and take a look at the sample strategies in the [demo repository](https://github
 
 Some other general guidelines are as follows:
 - It is *recommended* that you keep your trading directory organised according to the suggested 
-  [directory structure](rec-dir-struc). More specifically, that you have a 'strategies'
-  directory, to keep your strategy modules. Note that as of AutoTrader `v0.6.0`, you can also directly pass your
+  [directory structure](rec-dir-struc). Note that as of AutoTrader `v0.6.0`, you can also directly pass your
   strategy classes to AutoTrader.
 - If you wish to use [AutoPlot](autoplot-docs) to automatically generate charts for your strategy, you must include
   an `indicators` attribute in your strategy. This is explained further below.
