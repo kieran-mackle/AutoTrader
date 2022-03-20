@@ -152,15 +152,16 @@ def get_config(environment: str, global_config: dict, feed: str) -> dict:
 def get_watchlist(index, feed):
     """Returns a watchlist of instruments. 
     
-    Objectives: 
-        - return specific list of instruments based on input
-          For example; 
-              - forex:major -> major forex pairs
-              - stocks:asx200
-              - custom
-    
+    Notes
+    ------
     The current implementation only support forex indices, with Oanda 
     formatting.
+    
+    Examples
+    --------
+    - forex:major -> major forex pairs
+    - stocks:asx200
+    - custom
     """
     
     if len(index) == 0:

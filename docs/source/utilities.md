@@ -29,12 +29,7 @@
 .. autofunction:: autotrader.utilities.get_watchlist
 ```
 
-
-(bot-manager-docs)=
-## Bot Manager
-
+## DataStream Class
 ```{eval-rst}
-.. autoclass:: autotrader.utilities.ManageBot
-    :members:
+.. autoclass:: autotrader.utilities.DataStream
 ```
-

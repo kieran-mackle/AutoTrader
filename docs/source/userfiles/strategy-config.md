@@ -2,11 +2,15 @@
 # Strategy Configuration
 
 
-`./config/*.yaml`
-
 The strategy configuration file contains information related specifically to a strategy. Each [strategy](strategies) requires
 its own configuration file to be able to run. It is written as a [.yaml](https://www.redhat.com/en/topics/automation/what-is-yaml) 
 file. Note that spacing is important in .yaml files, with each level defined by two subsequent spaces.
+
+```{note}
+As of AutoTrader `v0.6.0`, users can directly provide the strategy configuration as a dictionary object, via the 
+[add_strategy](autotrader-add-strategy) method.
+```
+
 
 (strategy-config-options)=
 ## Overview of Options

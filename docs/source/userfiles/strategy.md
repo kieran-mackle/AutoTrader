@@ -1,26 +1,32 @@
 (trading-strategy)=
 # Trading Strategy
 
-Trading strategies are built as classes and must be stored in a strategies/ directory of your 
-[project](/AutoTrader/docs#project-directory-structure). This is so that AutoTrader can locate your strategy when running. Each
-strategy is required to have two methods. The first is the `__init__` method, which initialises the strategy by 
-pre-computing indicators used in the strategy logic. The second is the `generate_signal` method, which contains the 
-strategy logic and ouputs a dictionary named `signal_dict`. Read more about these methods below and take a look at the sample
-strategies in the [demo repository](https://github.com/kieran-mackle/autotrader-demo).
+Trading strategies are built as class objects, and must follow a few simple guidelines to function properly with 
+AutoTrader. At a minimum, a strategy is required to have two methods. The first is the `__init__` method, which
+creates an active instance of the strategy. The second is the `generate_signal` method, which contains the 
+strategy logic and ouputs any trading signals which may present themselves. Read more about these methods below 
+and take a look at the sample strategies in the [demo repository](https://github.com/kieran-mackle/autotrader-demo).
+
+Some other general guidelines are as follows:
+- It is *recommended* that you keep your trading directory organised according to the suggested 
+  [directory structure](rec-dir-struc). More specifically, that you have a 'strategies'
+  directory, to keep your strategy modules. Note that as of AutoTrader `v0.6.0`, you can also directly pass your
+  strategy classes to AutoTrader.
+- If you wish to use [AutoPlot](autoplot-docs) to automatically generate charts for your strategy, you must include
+  an `indicators` attribute in your strategy. This is explained further below.
 
 
-## Methods
-A summary of the methods used in a strategy class is shown in the table below. Details of these methods are also provided. 
+```{important}
+As of AutoTrader `v0.6.0`, there is a new run mode (continuous mode) which requires a different format to the strategy.
+```
 
-|           Method           | Function                                                                                           |
-| :------------------------: | -------------------------------------------------------------------------------------------------- |
-|         `__init__`         | Initiates strategy by pre-computing indicators.                                                    |
-|     `generate_signal`      | Generates a trade signal based on the strategy logic and current time index.                       |
-|   `generate_exit_levels`   | (Optional) Helper function to calculate exit levels.                                               |
+(strategy-template)=
+## Strategy Template
+
 
 
 (strategy-init)=
-### Initialisation
+## Initialisation
 The `__init__` method of a strategy initialises it with the following objects:
   1. `params`: a dictionary containing the strategy parameters from your strategy configuration file
   2. `data`: a dataframe of the instrument's price data 
@@ -43,7 +49,7 @@ def __init__(self, params, data, pair):
     self.home_dir   = os.path.join(strat_dir, '..')
 ```
 
-#### Initialisation with access to the Broker
+### Initialisation with access to the Broker
 In some cases, you may like to directly connect with the broker from your strategy module. In this case, you would
 include `INCLUDE_BROKER: True` in your [strategy configuration file](configuration-strategy). This will signal to 
 AutoTrader to instantiate your strategy with the broker API and broker utilities. You will therefore need to include
@@ -61,7 +67,7 @@ def __init__(self, params, data, pair, broker, broker_utilities):
 ```
 
 (strategy-indicator-dict)=
-#### Indicators Dictionary
+### Indicators Dictionary
 If you wish to visualise any of the results from your strategy, you must also include information about which
 indicators you would like to plot. This information is stored in `self.indicators', a dictionary as defined 
 below. This dictionary is passed to [AutoPlot](autoplot). 
@@ -104,7 +110,7 @@ self.indicators = {'MACD (12/26/9)': {'type': 'MACD',
 
 
 (strategy-signal-gen)=
-### Signal Generation
+## Signal Generation
 Signals are generated using the `generate_signal` method. This method contains the logic behind your strategy 
 and returns a dictionary with details of the signal. The contents of the signal dictionary will largely depend 
 on the order type, but at a minimum must contain the order type and trade direction. Read more about this
@@ -151,32 +157,6 @@ you would like to place, and they will be submitted one by one!
 
 
 
-### Exit Signals
-It is often useful to include a separate function for generating exit levels. In the code snippet above, a method
-`self.generate_exit_levels` is called to generate an exit level dictionary, `exit_dict`. Although this is completely 
-optional, it allows for complex exit strategies to be programmed. A template for this method is provided below.
-
-```python
-def generate_exit_levels(self, signal, i):
-    ''' Function to determine stop loss and take profit levels '''
-
-    # Put exit strategy here
-    stop = None
-    take = None
-    stop_type = 'limit'
-
-    exit_dict = {'stop_loss'    : stop, 
-                 'stop_type'    : stop_type,
-                 'take_profit'  : take}
-
-    return exit_dict
-```
-
-If you are building a strategy with no stop loss or take profit levels, you can simply leave them out of the `signal_dict`
-dictionary. This has the same effect as provide `None` to the stop loss and/or take profit keys.
-
-
-
 
 
 
@@ -189,32 +169,4 @@ AutoTrader is intelligent when it comes to order types. If your strategy has no 
 signal dictionary. If you prefer to set a stop loss in terms of distance in pips, you can do that instead. Same goes for take 
 profit levels, specify price or distance in pips. The choice is yours.
 
-
-### Trade Order Types
-
-| Order | Behaviour |
-|:---------:| --------- |
-| `market` | Order will be filled at the market price. |
-| `limit` | Order will be filled at the limit price or better. |
-| `stop-limit` | Order will only be placed when the limit price is hit. |
-
-
-### Stop Loss Types
-
-| Stop loss | Behaviour |
-|:---------:| --------- |
-| `limit`   | Regular stop loss - position will close when hit. |
-|  `trailing` | Trailing stop loss. |
-
-
-## Deployed Live-trade Strategies
-If you will be deploying your strategy to livetrade using data from the price stream,
-you will need to add the following attributes and methods to your strategy.
-
-## Attributes
-`self.terminate`
-
-
-## Methods
-`exit_strategy`
 

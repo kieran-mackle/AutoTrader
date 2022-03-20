@@ -1,12 +1,15 @@
 (global-config)=
 # Account Configuration
 
-`./config/GLOBAL.yaml`
-
 The global configuration file is read by AutoTrader when runnning the code. Depending on your 
 [strategy config](strategy-configuration) file, some of the contents in the global configuration may be ignored. For example,
 mailing lists or trading sub-accounts. Nonetheless, you may specify all your account details in this file once when getting started, 
 and easily switch between brokers when required by specifying them in the strategy configuration file.
+
+```{note}
+As of AutoTrader `v0.6.0`, users can directly provide the global configuration as a dictionary object, via the 
+[configure](autotrader-configure) method.
+```
 
 
 ## Contents

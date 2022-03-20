@@ -352,12 +352,17 @@ at.run()
 ## Configuration Methods
 
 
+
+(autotrader-configure)=
 ### Run Configure
 
 ```{eval-rst}
 .. automethod:: autotrader.autotrader.AutoTrader.configure
 ```
 
+
+(autotrader-add-strategy)=
+### Add New Strategy
 
 
 

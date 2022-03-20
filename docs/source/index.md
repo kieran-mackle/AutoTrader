@@ -4,7 +4,7 @@ hide-toc: true
 
 # Welcome to AutoTrader's Documentation
 
-AutoTrader is an event-driven platform designed to help in the development, optimisation and live 
+AutoTrader is a cross-exchange trading platform designed to help in the development, optimisation and live 
 deployment of automated trading systems. Here you will find everything you need to start 
 algotrading with AutoTrader.
 
@@ -26,6 +26,11 @@ check out the [changelog](changelog) for more details. Major changes include:
 - Greater flexibility in deploying trading bots (ability to add strategy class object, add DataStream object
   for custom data pipelines)
 - Tests and templates added
+
+
+## Contact
+If you have any other queries or suggestions, please [raise an issue](https://github.com/kieran-mackle/AutoTrader/issues)
+on GitHub or send me and [email](mailto:kemackle98@gmail.com).
 
 
 ## Index

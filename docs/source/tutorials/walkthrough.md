@@ -19,11 +19,12 @@ If you plan to take your strategy [live](going-live), you will also need a [glob
 file to connect to your broker, but we will get to that later. For now, the files above are enough to get started backtesting, so
 this tutorial will go over setting them up.
 
-Back to your directory structure: you must have a `config/` directory - containing your configuration files - and a 
-`strategies/` directory - containing (you guessed it) your [trading strategies](../userfiles/strategy). When you 
-run AutoTrader, it will look for the appropriate files under these directories. If you cloned the demo repository, you will
-see these directories set up already. Think of this directory structure as your 'bag' of algo-trading bots. Sticking to 
-this will make path management super easy.
+Back to the recommended directory structure: you should have a `config/` directory - containing your configuration 
+files - and a `strategies/` directory - containing your [trading strategies](../userfiles/strategy). When you 
+run AutoTrader, it will look for the appropriate files under these directories. If you cloned the demo repository, 
+you will see these directories set up already. Think of this directory structure as your 'bag' of algo-trading bots. 
+Sticking to this will make path management super easy. Note, however, that you can also just directly provide the 
+contents of each file to AutoTrader directly if preferred.
 
 ```
 your_trading_project/
@@ -54,5 +55,4 @@ Getting Price Data <getting-data>
 Backtesting <backtesting>
 Optimisation <optimisation>
 Going Live <going-live>
-Getting Help <getting-help>
 ```
