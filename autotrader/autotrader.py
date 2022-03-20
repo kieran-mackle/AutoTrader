@@ -68,7 +68,7 @@ class AutoTrader:
         
         self._home_dir = None
         self._order_summary_fp = None
-        
+        self._global_config_dict = None
         self._verbosity = 1
         self._run_mode = 'periodic'
         self._timestep = pd.Timedelta('10s').to_pytimedelta()
@@ -151,7 +151,8 @@ class AutoTrader:
                   allow_dancing_bears: bool = False, account_id: str = None, 
                   environment: str = 'demo', show_plot: bool = False,
                   jupyter_notebook: bool = False, mode: str = 'periodic',
-                  update_interval: str = '10s', data_index_time: str = 'open') -> None:
+                  update_interval: str = '10s', data_index_time: str = 'open',
+                  global_config: dict = None) -> None:
         """Configures run settings for AutoTrader.
 
         Parameters
@@ -193,6 +194,10 @@ class AutoTrader:
             The time by which the data is indexed. Either 'open', if the data
             is indexed by the bar open time, or 'close', if the data is indexed
             by the bar close time. The default is 'open'.
+        global_config : dict, optional
+            Optionally provide your global configuration directly as a 
+            dictionary, rather than it being read in from a yaml file. The
+            default is None. 
         
         Returns
         -------
@@ -214,6 +219,7 @@ class AutoTrader:
         self._run_mode = mode
         self._timestep = pd.Timedelta(update_interval).to_pytimedelta()
         self._data_indexing = data_index_time
+        self._global_config_dict = global_config
         
         
     def add_strategy(self, config_filename: str = None, 
@@ -1139,18 +1145,23 @@ class AutoTrader:
     def _main(self) -> None:
         """Run AutoTrader with configured settings.
         """
-        
         # Load configuration
-        # Construct broker config
-        global_config_fp = os.path.join(self._home_dir, 'config', 'GLOBAL.yaml')
-        if os.path.isfile(global_config_fp):
-            global_config = read_yaml(global_config_fp)
+        if self._global_config_dict is not None:
+            # Use global config dict provided
+            global_config = self._global_config_dict
         else:
-            global_config = None
-            if not global_config and self._feed.lower() != 'yahoo':
-                raise Exception(f'Data feed "{self._feed}" requires a global '+\
-                                'configuration file. If one exists, make sure '+\
-                                'to specify the home_dir.')
+            # Try load from file
+            global_config_fp = os.path.join(self._home_dir, 'config', 'GLOBAL.yaml')
+            if os.path.isfile(global_config_fp):
+                global_config = read_yaml(global_config_fp)
+            else:
+                global_config = None
+        
+        # Check feed
+        if global_config is None and self._feed.lower() in ['oanda', 'ib']:
+            raise Exception(f'Data feed "{self._feed}" requires a global '+\
+                            'configuration file. If one exists, make sure '+\
+                            'to specify the home_dir.')
             
         broker_config = get_config(self._environment, global_config, self._feed)
         
