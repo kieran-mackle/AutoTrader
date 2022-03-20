@@ -11,7 +11,7 @@ The contents of the global configuration are provided in the templates below. As
 are integrated into AutoTrader, account details will be added in this file.
 
 ````{tab} YAML File
-```
+```yaml
 OANDA:
   LIVE_API: "api-fxtrade.oanda.com"
   PRACTICE_API: "api-fxpractice.oanda.com"
@@ -57,13 +57,3 @@ for AutoTrader to send emails from. The details of this host account are stored 
 field, as shown below. Next, you can provide a mailing list of people to send emails to. You can also provide a mailing list in the
 strategy config file, in case you would like a different mailing list for different strategies.
 
-```
-EMAILING:
-  HOST_ACCOUNT:
-    email: “ ”
-    password: “ ”
-  MAILING_LIST:
-    Full_name
-      title
-      email: “ ”
-```

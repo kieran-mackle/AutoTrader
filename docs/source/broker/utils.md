@@ -1,3 +1,4 @@
+(broker-utils)=
 # Broker Utilities
 
 *This page is currently in development. Check back soon!*
@@ -23,7 +24,7 @@ A summary of the methods contained with the `BrokerUtils` class is provided in t
 |`reconstruct_portfolio`|Reconstructs portfolio balance from trades taken.|
 |`get_streaks`|Calculates longest winning and losing streaks.|
 
-
+(position-sizing)=
 ### Position Sizing
 The position sizing utility `get_size` is automatically used whenever the 'risk' option is used for the 
 `SIZING` method in the [strategy configuration](strategy-config-options). This method

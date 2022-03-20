@@ -100,7 +100,7 @@ It is often convenient to warm-start your strategy by pre-computing indicators a
 instantiation of the strategy. You may also want to unpack some of your strategy parameters here too, but
 the flexibility is yours.
 
-
+(strategy-broker-access)=
 ### Broker Access
 In some cases, you may like to directly connect with the broker from your strategy module. In this case, 
 you must include `INCLUDE_BROKER: True` in your [strategy configuration](strategy-config). This will tell 
@@ -156,6 +156,7 @@ You can fire multiple orders at once from the `generate_signal` method! Simply r
 you would like to place, and they will be submitted one by one!
 ```
 
+(generate-signal-boilerplate)=
 ### Boilerplate
 
 Some boilerplate code for this method is provided below.
