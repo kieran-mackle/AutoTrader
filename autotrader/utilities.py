@@ -159,9 +159,8 @@ def get_watchlist(index, feed):
     
     Examples
     --------
-    - forex:major -> major forex pairs
-    - stocks:asx200
-    - custom
+    >>> get_warchlist('forex:major')
+        [Out]: list of major forex pairs
     """
     
     if len(index) == 0:
