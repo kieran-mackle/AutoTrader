@@ -1,23 +1,14 @@
 (autotrader-docs)=
 # AutoTrader
 
-AutoTrader is the main module where you will run things from.
-
-
-`autotrader.autotrader`
-
-
-This page documents the methods of autotrader.py, the main executable in the software. It coordinates all workflows and 
-processes from the [configuration options](autotrader-run-config) and configuration files. A 
-[strategy configuration](strategy-config) file is always required to run AutoTrader, as it dictates the technical 
-analysis to be performed on the price data. The way the strategy is used will depend on the 
-[mode of operation](autotrader-modes-of-operation) being used. After configuring the run settings of AutoTrader, the `run` method 
-is used to proceed with the code.
+AutoTrader is the main module where you will run things from. It is a class object, so you begin by creating an 
+instance of AutoTrader. You can then configure the settings, add a strategy, add data, and finally, run it to 
+begin trading.
 
 
 (autotrader-modes-of-operation)=
 ## Modes of Operation
-AutoTrader has three modes of operation:
+Although the strategies and trading bots are not aware of it, AutoTrader has three modes of operation:
   1. Livetrade mode
   2. Backtest mode
   3. Scan mode
@@ -25,6 +16,7 @@ AutoTrader has three modes of operation:
 By default, AutoTrader will run in livetrade mode. The run modes can be controlled by using the appropriate 
 [configuration methods](autotrader-config-methods). Each of these methods allow the user to modify the default
 attributes of AutoTrader.
+
 
 (autotrader-livetrade-mode)=
 ### Livetrade Mode
@@ -112,6 +104,8 @@ set the feed to match your broker and provide your trading account number. Addit
 local data file(s), you should always call the `configure` method prior to specifying the local data via the 
 `add_data` [method](autotrader-local-data), to ensure that file paths are correctly configured. 
 
+
+
 ```py
 def configure(feed='yahoo', verbosity=1, notify=0, home_dir=None,
               include_broker=False, use_stream=False, detach_bot=False,
@@ -147,6 +141,11 @@ to add multiple strategies to the same run. Note that this method accepts both `
 The first of these is used to provide the prefix of a [strategy configuration](strategy-config) file, while
 the second can be used to directly pass in a strategy configuration dictionary.
 
+
+```{eval-rst}
+.. automethod:: autotrader.autotrader.AutoTrader.add_strategy
+```
+
 ```py
 def add_strategy(strategy_filename=None, 
                  strategy_dict=None)
@@ -158,6 +157,10 @@ To backtest a strategy using locally stored price data, the `add_data` method sh
 is. Note that the `configure` [method](autotrader-run-config) should be called before calling `add_data`, as it will set the 
 `home_dir` parameter for your project. This method can be used to provide data for both single-timeframe strategies and 
 multiplie-timeframe strategies. 
+
+```{eval-rst}
+.. automethod:: autotrader.autotrader.AutoTrader.add_data
+```
 
 ```py
 def add_data(self, data_dict, data_directory='price_data', abs_dir_path=None):
@@ -204,6 +207,10 @@ at.add_data(data_dict={'EURUSD=X': {'1h': 'my_hourly_data.csv',
 ### Backtest Configuration
 To configure the backtest settings, use the `backtest` method. 
 
+```{eval-rst}
+.. automethod:: autotrader.autotrader.AutoTrader.backtest
+```
+
 ```py
 def backtest(start=None, end=None, initial_balance=1000, spread=0, 
              commission=0, leverage=1, base_currency='AUD', start_dt=None, 
@@ -230,13 +237,7 @@ Note that start and end times must be specified as the same type. For example, b
 and end arguments must be provided together, or alternatively, start_dt and end_dt must 
 both be provided.
 
-#### Optimisation Configuration
-The optimisation capability of AutoTrader is a sub-function of the backtest mode, since a backtest must be run each iteration
-of the optimisation. To configure the optimisation settings, use the `optimise` method.
 
-```py
-optimise(opt_params, bounds, Ns=4)
-```
 
 ##### Parameters
 
@@ -249,6 +250,11 @@ optimise(opt_params, bounds, Ns=4)
 
 (autotrader-scan-config)=
 ### Scan Configuration
+
+```{eval-rst}
+.. automethod:: autotrader.autotrader.AutoTrader.scan
+```
+
 ```py
 def scan(strategy_filename=None, scan_index=None)
 ```
@@ -261,29 +267,6 @@ def scan(strategy_filename=None, scan_index=None)
 | scan_index (str) | index to scan |
 
 
-## Help Methods
-The following methods are used to get help on the options and attributes of AutoTrader.
-See the [Getting Help](../tutorials/getting-help) tutorial guide for an example of getting option-specific
-help from the code itself.
-
-### Usage
-```py
-def usage(self):
-  '''
-  Prints usage instructions for AutoTrader.
-  '''
-```
-
-### Option Help
-```py
-def option_help(self, option):
-  '''
-  Prints help for a user option of AutoTrader.
-  
-      Parameters:
-          option (str): user option to request help for.
-  '''
-```
 
 
 
@@ -321,49 +304,47 @@ at.add_strategy('macd_crossover')
 at.run()
 ```
 
-### Backtest Mode
-```
-from autotrader.autotrader import AutoTrader
-
-at = AutoTrader()
-at.configure(feed = 'Oanda', verbosity = 1)
-at.add_strategy('macd_crossover')
-at.backtest(start   = '1/5/2021',
-            end     = '30/5/2021',
-            leverage = 30e6,
-            commission = 0.005,
-            spread = 0.5)
-at.run()
-```
-
-### Scan Mode
-```
-from autotrader.autotrader import AutoTrader
-
-at = AutoTrader()
-at.scan('MACDscanner')
-at.run()
-```
 
 
 
 
 
 ## Configuration Methods
-
+The following methods are used to configure the active instance of AutoTrader.
 
 
 (autotrader-configure)=
-### Run Configure
+### Run Configuration
 
 ```{eval-rst}
 .. automethod:: autotrader.autotrader.AutoTrader.configure
+```
+
+### Backtest Configuration
+
+```{eval-rst}
+.. automethod:: autotrader.autotrader.AutoTrader.backtest
+```
+
+### Optimisation Configuration
+The optimisation capability of AutoTrader is a sub-function of the backtest mode, since a backtest must be run each iteration
+of the optimisation. To configure the optimisation settings, use the `optimise` method.
+
+```{eval-rst}
+.. automethod:: autotrader.autotrader.AutoTrader.optimise
+```
+
+```py
+optimise(opt_params, bounds, Ns=4)
 ```
 
 
 (autotrader-add-strategy)=
 ### Add New Strategy
 
+```{eval-rst}
+.. automethod:: autotrader.autotrader.AutoTrader.add_strategy
+```
 
 
 
@@ -381,3 +362,4 @@ at.run()
 
 (autotrader-continuous-mode)=
 ### Continuous Update Mode
+
