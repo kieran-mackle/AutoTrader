@@ -11,9 +11,6 @@ they can be accessed from the `bots_deployed` attribute of the AutoTrader instan
 
 
 
-
-
-
 ## Order Processing
 
 show methods to check orders

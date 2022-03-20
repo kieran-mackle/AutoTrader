@@ -7,9 +7,9 @@
 :hidden:
    
 AutoTrader <AutoTrader>
+AutoBot <AutoBot>
 AutoData <AutoData>
 AutoPlot <AutoPlot>
-AutoBot <AutoBot>
 ```
 
 
@@ -40,9 +40,9 @@ you would like.
 To run AutoTrader, a [strategy module](trading-strategy), containing the trading strategy, is required. Each strategy module
 requires it's own [strategy configuration](strategy-config) file, containing the strategy parameters and strategy
 watchlist. There is a second configuration file, the [global configuration](global-config) file, which is used 
-conditionally. If you are [live-trading](autotrader-livetrade-mode), you will need to create a global configuration 
+conditionally. If you are [live-trading](autotrader-mediums), you will need to create a global configuration 
 file to provide brokerage account details. You will also need to do this if you wish to use a broker to obtain price data. 
-If you will only be [backtesting](autotrader-backtest-mode) or [scanning](autotrader-scan-mode), you do not need 
+If you will only be [backtesting](autotrader-mediums) or [scanning](autotrader-mediums), you do not need 
 to provide a global configuration file. In this case, [AutoData](autodata-docs) will revert to using the Yahoo Finance 
 API for price data.
 
@@ -85,15 +85,3 @@ home_dir/
   |    |- your_strategy.py
   |- run_script.py
 ```
-
-
-## Useful Links
-You can navigate the documentation using the sidebar, or start by following one of the links below.
-
-[AutoTrader](autotrader-docs): Details of the main code.
-
-[User Input Files](userfiles): Details of the user-provided files used to run AutoTrader.
-
-[Broker Interface](broker-interface): Details of the brokers used in AutoTrader.
-
-[Utilities](utilities-module): Details of the utility functions used in AutoTrader.

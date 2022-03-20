@@ -1,7 +1,6 @@
 (broker-interface)=
 # AutoTrader Broker Interface
 
-
 ```{toctree}
 :maxdepth: 3
 :hidden:
@@ -13,14 +12,12 @@ Interactive Brokers <ib>
 Broker Utilities <utils>
 ```
 
-
-
-
 To make the transition from backtesting to live-trading seamless, each broker integrated into AutoTrader 
 interfaces with a strategy using a set of common methods. This means that the same strategy can be run with the 
 virtual broker or any other broker in live trading without changing a single line of code in your strategy. This 
 page provides a general overview of the methods contained within each broker interface module. Of course, the mechanics
 behind each method will change depending on the broker, however each method will behave in the same way.
+
 
 
 ## Module Structure
@@ -53,9 +50,9 @@ The shared methods of the brokers are described below.
 |       `open_position`     | Opens a position and moves it into `open_positions` dictionary.                                          |
 |     `update_positions`    | Iterates through `pending_positions` and `open_positions` dictionaries and updates them based on order details and current price. |
 |    `close_position`       | Closes a position and moves it into `closed_positions` dictionary.                                    |
-|     `add_funds`           | Adds funds to account.                                                                                |
-|    `calculate_margin`     | Calculates margin required to take a position.                                                        |
-|        `update_MDD`       | Updates the maximum drawdown of the account.                                                          |
+
+
+
 
 
 
@@ -214,10 +211,11 @@ Read more about trailing stop loss orders [here](https://www.investopedia.com/te
 
 
 
-## Supported Brokers
+## Integrated Brokers
 
 ### Virtual Broker
-At the heart of AutoTrader's backtesting algorithm is the virtual broker, a Python class intended to replicate the functionality of a real broker. 
+At the heart of AutoTrader's backtesting algorithm is the virtual broker, a Python class intended to replicate the 
+functionality of a real broker. 
 
 See the documentation of the [Virtual Broker](virtual-broker) for more information.
 
@@ -228,10 +226,7 @@ AutoTrader supports Oanda's v20 REST API. This API is best suited for Foreign Ex
 See the documentation of the [Oanda Broker](oanda-module-docs) module for more information.
 
 
-## Coming Soon
-Support for the following API's is in development:
-  - [Binance](https://www.binance.com/en/)
-  - [Interactive Brokers](https://www.interactivebrokers.com.au/en/index.php?f=5041)
+### Interactive Brokers
 
-Would you like to see a broker supported in AutoTrader? Feel free to raise a feature request 
-[here](https://github.com/kieran-mackle/AutoTrader/issues/new/choose).
+
+

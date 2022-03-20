@@ -1,175 +1,44 @@
 (autoplot-docs)=
 # AutoPlot
 
-
-`autotrader.autoplot`
-
 AutoPlot is the automated plotting module of AutoTrader. It is automatically used when visualising backtest results
 or running a [scan](/AutoTrader/2021/09/27/developing-scanner.html). However, it can also be manually imported to 
 easily visualise price data and indicators of candlestick data when developing strategies, as exemplified in this 
 [blog post](/AutoTrader/2021/09/17/using-indiview.html).
 
 
-## AutoPlot Module
-The attributes of AutoPlot control the appearance of the charts generated. They are listed in the table below.
-
-### Attributes
-
-| Attribute     | Description  (default)  |
-| :----------- | :----------------------------------- |
-| `data` | OHLC DataFrame (`none`) |
-| `max_indis_over` | Maximum number of indicators overlayed on OHLC chart (`3`) |
-|`max_indis_below`| Maximum number of indicators plotted below OHLC chart (`2`) |
-|`_modified_data`| *Internal attribute* |
-|`fig_tools`| Figure tools to plot with (see [Bokeh docs](https://docs.bokeh.org/en/latest/docs/user_guide/tools.html)) (`"pan,wheel_zoom,box_zoom,undo,redo,reset,save"`)|
-|`ohlc_height`| Height of OHLC chart in px (`400`) |
-|`ohlc_width`| Width of OHLC chart in px (`800`) |
-|`top_fig_height`|Height of figure above OHLC chart (`150`) |
-|`bottom_fig_height`|Height of figure below OHLC chart (`150`) |
+```{eval-rst}
+.. autoclass:: autotrader.autoplot.AutoPlot
+```
 
 
+## Methods
 
-### Methods
-#### Add Plot Tools
+### Configure
+
+```{eval-rst}
+.. automethod:: autotrader.autoplot.AutoPlot.configure
+```
+
+
+### Add Plot Tools
 To customise the tools of the figures produced with AutoPlot, the `add_tool`
 should be used. This method simply appends the `tool_name` to the `fig_tools`
 attribute of the class instance. Refer to the 
 [Bokeh documentation](https://docs.bokeh.org/en/latest/docs/user_guide/tools.html) for details on the tools available.
 
-```py
-def add_tool(self, tool_name)
-    '''
-    Adds a tool to the plot. 
-    
-        Parameters:
-            tool_name (str): name of tool to add (see Bokeh documentation).
-    '''
+```{eval-rst}
+.. automethod:: autotrader.autoplot.AutoPlot.add_tool
 ```
 
 
-#### Create Plot
+### Create Plot
 
 The `plot` method is used to generate a chart. It is used in both backtest plotting and indicator viewing. 
 
-```py
-def plot(self, backtest_dict=None, cumulative_PL=None, indicators=None, 
-         instrument=None, show_fig=True):
-    ''' 
-    Creates a chart of price data and indicators.
-    '''
+```{eval-rst}
+.. automethod:: autotrader.autoplot.AutoPlot.plot
 ```
-
-The inputs of this method are summarised in the table below. Note the the specification of the `indicators` dictionary 
-is detailed in the [next section](#indicator-specification).
-
-|Input|Type|Description|
-|:----|:----|:----------|
-|`backtest_dict`| `dict` | A dictionary containing a backtest trade history. |
-|`indicators`| `dict` | A dictionary of indicators to plot. |
-|`instrument`| `str` | The name of the instrument being plotted. | 
-|`show_fig`| `bool` | Boolean flag to show or hide plot.|
-
-
-### Internal Methods
-
-```py
-def _reindex_data(self, data):
-    '''
-    Resets index of data to obtain integer indexing.
-    '''
-```
-
-```py
-def _plot_multibot_backtest(self, multibot_backtest_results, NAV, cpl_dict):
-    ''' 
-    Creates multi-bot backtest figure. 
-    
-        Parameters:
-            multibot_backtest_results (df): dataframe of bot backtest results.
-            
-            NAV (list): Net asset value.
-            
-            cpl_dict (dict): cumulative PL of each bot.
-    '''
-```
-
-```py
-def _plot_indicators(self, indicators, linked_fig):
-    ''' 
-    Plots indicators based on indicator type. If inidcator type is 
-    "over", it will be plotted on top of linked_fig. If indicator type is 
-    "below", it will be plotted on a new figure below the OHLC chart.
-    '''
-```
-
-```py
-def _plot_line(self, plot_data, linked_fig, new_fig=False, fig_height=150,
-                fig_title=None, legend_label=None, hover_name=None,
-                line_colour='black'):
-    '''
-    Generic method to plot data as a line.
-    '''
-```
-
-```py
-def _plot_candles(self, source):
-    ''' Plots OHLC data onto new figure. '''
-```
-
-```py
-def _plot_swings(self, swings, linked_fig):
-    '''
-    Plots swing detection indicator.
-    '''
-```
-
-
-```py
-def _plot_supertrend(self, st_data, linked_fig):
-    ''' Plots supertrend indicator. '''
-```
-
-
-```py
-def _plot_grid(self, grid_levels, linked_fig, linewidth=0.5):
-    ''' Plots grid '''
-```
-
-
-```py
-def _plot_trade(self, x_data, y_data, marker_type, marker_colour, 
-                label, linked_fig, scatter_size=15):
-    '''
-    Plots individual trade.
-    '''
-```
-
-
-```py
-def _plot_trade_history(self, trade_summary, linked_fig, 
-                        cancelled_summary=False, open_summary=False):
-    ''' Plots trades taken over ohlc chart. '''
-```
-
-
-```py
-def _plot_macd(self, x_range, macd_data, linked_fig):
-    ''' Plots MACD indicator. '''
-```
-
-```py
-def _plot_bars(self, x_vals, data_name, source, linked_fig=None,   
-               fig_height=250, fig_title=None, hover_name=None):
-    ''' Plots bar chart. '''
-```
-
-```py
-def _plot_pie(self, source, fig_title=None, fig_height=250):
-    ''' Plots pie chart. '''
-```
-
-
-
 
 
 
@@ -181,7 +50,7 @@ def _plot_pie(self, source, fig_title=None, fig_height=250):
 ### Minimum Working Example
 As a plotting class, each instance of AutoPlot must be provided with price data in the form of OHLC data. A minimal 
 working example is provided below to visualise the price data of Apple from the Yahoo finance feed of 
-[AutoData](autodata). 
+[AutoData](autodata-docs). 
 
 ```py
 from autotrader.autoplot import AutoPlot
@@ -197,12 +66,13 @@ ap = AutoPlot(data)
 ap.plot(instrument=instrument)
 ```
 
+
 (autoplot-indi-spec)=
 ### Indicator Specification
 To plot indicators with AutoPlot, you must provide a dictionary containing each indicator. This dictionary must be structured
 according to the example provided below. 
 
-```py
+```python
 self.indicators = {'indicator name': {'type': 'indicator type',
                                       'data': self.indicator_data},
                    'indicator name': {'type': 'indicator type',
@@ -244,7 +114,7 @@ specified in the table below.
 
 
 
-##### Example Indicator Dictionary
+#### Example Indicator Dictionary
 In this dictionary, each key is used to create a legend entry corresponding to the indicator. The sub-dictionary
 assigned to each key contains the specific information and associated data. The `type` key is a string corresponding
 to the type of indicator, for example:
@@ -255,7 +125,7 @@ simply provide the data with the `data` key. For indicators with multiple sets o
 according to the [indicator specification](autoplot-indi-spec).
 See the example below for a strategy with MACD, two RSI's and two EMA's.
 
-```py
+```python
 self.indicators = {'MACD (12/26/9)': {'type': 'MACD',
                                       'macd': self.MACD,
                                       'signal': self.MACDsignal,
@@ -273,12 +143,12 @@ self.indicators = {'MACD (12/26/9)': {'type': 'MACD',
 
 
 
-##### Multiple line plot
+#### Multiple line plot
 To plot multiple lines on the same figure, the `multi` indicator type can be used. In the example below, a figure with
 title 'Figure title' will be created below the OHLC chart. On this figure, two lines will be plotted, with legend names
 of 'Line 1 name' and 'Line 2 name'. Line 1 will be blue and line 2 will be red, as set using the 'color' key specifier.
 
-```py
+```python
 indicator_dict = {'Figure title': {'type': 'multi',
                                    'Line 1 name': {'data': line1_data,
                                                    'color': 'blue'},
@@ -288,11 +158,11 @@ indicator_dict = {'Figure title': {'type': 'multi',
                   }
 ```
 
-##### Shaded bands plot
+#### Shaded bands plot
 To plot shaded bands, such as Bollinger Bands&reg;, the `bands` indicator type can be used. An example of using this indicator
 type is provided below. 
 
-```py
+```python
 indicator_dict = {'Bollinger Bands': {'type': 'bands',
                                       'lower': bb.lower,
                                       'upper': bb.upper,
@@ -312,13 +182,13 @@ The full list of keys which can be provided with the indicator type is shown in 
 |`line_color`|Optional |line color for mid line|'black'|
 
 
-##### Shaded threshold plot
+#### Shaded threshold plot
 The `threshold` plot indicator type is the standalone-figure version of the `bands` indicator type. That is, instead of 
 overlaying shaded bands on the OHLC chart, a new figure is created below. The same keys apply to this method as the  
 keys of the `bands` indicator type, as documented in the table above. An example of using this indicator is provided
 below.
 
-```py
+```python
 'RSI threshold': {'type': 'threshold',
                   'lower': 30,
                   'upper': 70,
@@ -326,7 +196,7 @@ below.
                   'mid_name': 'RSI'},
 ```
 
-##### Trade signals plot
+#### Trade signals plot
 The `signals` plot indicator type can be used to overlay buy and sell signals onto the OHLC chart. To do so,
 pass a DataFrame with columns named "buy" and "sell" with the `data` key. Note that the values in these coloumns 
 are the prices at which the signal occurs. This means that if you have a DataFrame with Booleans corresponding to 
@@ -336,7 +206,7 @@ the buy and sell points, you will need to multiply them by the price data to shi
 
 #### Unrecognised indicator type
 
-If an indicator type isn't recognised, AutoPlot will attempt to plot it as a line plot on a new chart below the OHLC chart using the `data` key
-of the indicator. A warning message stating that the indicator is not recognised will also be printed.
-Also note that a `type` key can be used for an indicator that isn't specified above if it has similar plotting behaviour.
-See [indicators](indicators) for details on the indicators listed above.
+If an indicator type isn't recognised, AutoPlot will attempt to plot it as a line plot on a new chart below the OHLC 
+chart using the `data` key of the indicator. A warning message stating that the indicator is not recognised will 
+also be printed. Also note that a `type` key can be used for an indicator that isn't specified above if it has 
+similar plotting behaviour. See the [indicators](autoplot-indi-spec) for details on the indicators listed above.
