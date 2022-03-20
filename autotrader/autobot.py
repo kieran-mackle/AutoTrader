@@ -208,18 +208,17 @@ class AutoTraderBot:
         if self._run_mode == 'continuous':
             # Running in continuous update mode
             strat_data, current_bars, quote_bars, sufficient_data = self._check_data(timestamp, self._data_indexing)
+            strat_object = strat_data
             
         else:
             # Running in periodic update mode
-            if self._strategy_params['INCLUDE_POSITIONS']:
-                current_position = self._broker.get_positions(self.instrument)
-            else:
-                current_position = None
-            
-            # Assign current bars
             current_bars = {self.instrument: self.data.iloc[i]}
             quote_bars = {self.instrument: self.quote_data.iloc[i]}
             sufficient_data = True
+            strat_object = i
+        
+        if self._strategy_params['INCLUDE_POSITIONS']:
+            current_position = self._broker.get_positions(self.instrument)
         
         # Check for new data
         new_data = self._check_last_bar(current_bars) 
@@ -230,10 +229,10 @@ class AutoTraderBot:
                 self._update_backtest(current_bars)
             
             # Get strategy orders
-            if self._run_mode == 'continuous':
-                strategy_orders = self._strategy.generate_signal(strat_data)
+            if self._strategy_params['INCLUDE_POSITIONS']:
+                strategy_orders = self._strategy.generate_signal(strat_object, current_position=current_position)
             else:
-                strategy_orders = self._strategy.generate_signal(i, current_position=current_position)
+                strategy_orders = self._strategy.generate_signal(strat_object)
             
             # Check and qualify orders
             orders = self._check_orders(strategy_orders)
