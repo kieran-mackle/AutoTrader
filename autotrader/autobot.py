@@ -174,9 +174,8 @@ class AutoTraderBot:
             self._strategy._tick_data = True
         
         if int(self._verbosity) > 0:
-                print("\nAutoTraderBot assigned to trade {}".format(instrument),
-                      "on {} timeframe using {}.".format(self._strategy_params['granularity'],
-                                                         strategy_config['NAME']))
+                print(f"\nAutoTraderBot assigned to trade {instrument}",
+                      f"with {self._broker_name}  using {strategy_config['NAME']}.")
     
     
     def __repr__(self):
