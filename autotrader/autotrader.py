@@ -1613,6 +1613,7 @@ class AutoTrader:
             instances = [f for f in os.listdir(dirpath) if \
                          os.path.isfile(os.path.join(dirpath, f))]
             
+            last_id = 0
             for instance in instances:
                 last_id = int(instance.split('_')[-1])
             

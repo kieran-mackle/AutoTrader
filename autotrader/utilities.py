@@ -464,6 +464,7 @@ class DataStream:
         self.get_data  = None
         self.data_start = None
         self.data_end = None
+        # TODO - include backtesting bool to allow speedup in backtest
         
         # Unpack kwargs
         for item in kwargs:
