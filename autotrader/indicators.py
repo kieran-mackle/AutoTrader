@@ -95,7 +95,7 @@ def supertrend(data: pd.DataFrame, period: int = 10, ATR_multiplier: float = 3.0
     return supertrend_df
 
 
-def half_trend(data: pd.DataFrame, amplitude: int = 2, 
+def halftrend(data: pd.DataFrame, amplitude: int = 2, 
                channel_deviation: float = 2) -> pd.DataFrame:
     """HalfTrend indicator, ported from the HalfTrend indicator by 
     Alex Orekhov (everget) on TradingView.
@@ -607,34 +607,25 @@ def autodetect_divergence(ohlc: pd.DataFrame, indicator_data: pd.DataFrame,
     indicator_data : pd.DataFrame
         dataframe of indicator data.
     tolerance : int, optional
-        A parameter to control the lookback when detecting divergence. The default is 1.
+        A parameter to control the lookback when detecting divergence. 
+        The default is 1.
     method : int, optional
-        The divergence detection method. The default is 0.
+        The divergence detection method. Set to 0 to use both price and 
+        indicator swings to detect divergence. Set to 1 to use only indicator 
+        swings to detect divergence. The default is 0.
 
     Returns
     -------
     divergence : pd.DataFrame
         A DataFrame containing columns 'regularBull', 'regularBear',
         'hiddenBull' and 'hiddenBear'.
-    
-    Notes
-    -----
-    This method calls:
-        find_swings()
-        
-        classify_swings()
-        
-        detect_divergence()
-    
-    The 'method' parameter has options:        
-        0: use both price and indicator swings to detect divergence (default)
-        
-        1: use only indicator swings to detect divergence
-    
+
     See Also
     --------
-    This indicator was featured on the AutoTrader Blog:
-    https://kieran-mackle.github.io/AutoTrader/2021/11/08/detecting-divergence.html
+    autotrader.indicators.find_swings
+    autotrader.indicators.classify_swings
+    autotrader.indicators.detect_divergence
+    
     """
     
     # Price swings

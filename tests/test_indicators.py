@@ -12,7 +12,7 @@ class TestIndicators:
     
     def test_halftrend(self):
         testdata = self._get_test_data()
-        ht = indicators.half_trend(testdata)
+        ht = indicators.halftrend(testdata)
         assert round(ht['halftrend'][-1], 5) == 1.12344, "Halftrend indicator failed"
         assert round(ht['atrHigh'][-1], 5) == 1.12593, "Halftrend indicator failed"
         assert round(ht['atrLow'][-1], 5) == 1.12095, "Halftrend indicator failed"
