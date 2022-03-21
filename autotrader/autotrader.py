@@ -205,6 +205,7 @@ class AutoTrader:
             Calling this method configures the internal settings of 
             the active AutoTrader instance.
         """
+        # TODO - option to specify using a custom DataStream? or auto detect it to overwrite feed
         self._verbosity = verbosity
         self._feed = feed
         self._req_liveprice = req_liveprice
@@ -1629,6 +1630,9 @@ class AutoTrader:
             filepath = os.path.join(self._home_dir, 'active_bots', instance_str)
             with open(filepath, mode='a'): pass
             instance_file_exists = True
+            
+            if int(self._verbosity) > 0:
+                print(f"Active AutoTrader instance file: active_bots/{instance_str}")
         
         else:
             dirpath = os.path.join(self._home_dir, 'active_bots')
