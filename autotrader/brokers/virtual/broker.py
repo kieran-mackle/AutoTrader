@@ -129,7 +129,7 @@ class Broker:
     
     
     def cancel_order(self, order_id: int, reason: str = None) -> None:
-        """Changes the status of an order to cancelled.
+        """Cancels the order.
         """
         self.orders[order_id].reason = reason
         self.orders[order_id].status = 'cancelled'
@@ -499,8 +499,7 @@ class Broker:
         to reduce long units, or to reduce short units. For example, the
         order details below will reduce long units of the position being 
         held.
-            order_type: 'reduce' # reduction order
-            direction: -1 # reduce long units by selling
+        
         """
         # Consired long vs. short units to be reduced
         instrument = order.instrument

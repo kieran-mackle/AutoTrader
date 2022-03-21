@@ -64,6 +64,10 @@ class BrokerUtils:
                  stop_price: float, HCF: float, 
                  stop_distance: float = None) -> float:
         """Calculate position size based on account balance and risk profile.
+        
+        References
+        ----------
+        https://www.babypips.com/tools/position-size-calculator
         """
         if stop_price is None and stop_distance is None:
             # No stop loss being used, instead risk portion of account
