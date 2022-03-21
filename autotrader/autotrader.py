@@ -1640,5 +1640,9 @@ class AutoTrader:
                          os.path.isfile(os.path.join('active_bots', f))]
             instance_file_exists = instance_str in instances
         
+        if int(self._verbosity) > 0 and not instance_file_exists:
+            print(f"Instance file '{instance_str}' deleted. AutoTrader",
+                  "will now shut down.")
+        
         return instance_file_exists
         
