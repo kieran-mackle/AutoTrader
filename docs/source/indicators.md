@@ -29,15 +29,13 @@ how to plot the indicator with [AutoPlot](core/AutoPlot).
 (indi-supertrend)=
 ### Supertrend Indicator
 
-A supertrend indicator, based on the indicator by user KivancOzbilgic on TradingView, is included in the AutoTrader
-indicator library.
-
-```python
-def supertrend(data, period = 10, ATR_multiplier = 3.0)
+```{eval-rst}
+.. autofunction:: autotrader.indicators.supertrend
 ```
 
+
 ```python
-st_df          = indicators.supertrend(data, ATR_multiplier=2)
+st_df = indicators.supertrend(data, ATR_multiplier=2)
 
 indicator_dict = {'Supertrend': {'type': 'Supertrend',
                                   'data': st_df}
@@ -55,24 +53,15 @@ Note that the supertrend dataframe also contains a trend column, indicating the 
 ![SuperTrend Indicator](assets/indicators/supertrend.jpg "SuperTrend Indicator")
 
 
+
 (indi-halftrend)=
 ### HalfTrend Indicator
 The HalfTrend indicator is based on the 
 [indicator by *everget*](https://www.tradingview.com/script/U1SJ8ubc-HalfTrend/) on
 TradingView.
 
-```py
-def half_trend(data, amplitude=2, channel_deviation=2):
-    '''
-    HalfTrend indicator, originally by Alex Orekhov (everget) on TradingView.
-    
-    Parameters:
-        data (dataframe): OHLC price data
-        
-        amplitude (int): lookback window
-            
-        channel_deviation (int): ATR channel deviation factor
-    '''
+```{eval-rst}
+.. autofunction:: autotrader.indicators.halftrend
 ```
 
 
@@ -89,8 +78,9 @@ indicator_dict = {'HalfTrend': {'type': 'HalfTrend',
 ### Bearish Engulfing Pattern
 Returns a list with values of `1` when the bearish engulfing pattern appears and a value of `0` elsewhere.
 
-```py
-def bearish_engulfing(data, detection = None)
+
+```{eval-rst}
+.. autofunction:: autotrader.indicators.bearish_engulfing
 ```
 
 ```py
@@ -108,9 +98,10 @@ indicator_dict = {'Bearish Engulfing Signal': {'type': 'Engulfing',
 ### Bullish Engulfing Pattern
 Returns a list with values of `1` when the bullish engulfing pattern appears and a value of `0` elsewhere.
 
-```py
-def bullish_engulfing(data, detection = None)
+```{eval-rst}
+.. autofunction:: autotrader.indicators.bullish_engulfing
 ```
+
 
 
 ```py
@@ -127,12 +118,13 @@ indicator_dict = {'Bullish Engulfing Signal': {'type': 'Engulfing',
 ### Heikin-Ashi Candlesticks
 Returns a dataframe of [Heikin-Ashi](https://www.investopedia.com/trading/heikin-ashi-better-candlestick/) candlesticks.
 
-```py
-def heikin_ashi(data)
+
+```{eval-rst}
+.. autofunction:: autotrader.indicators.heikin_ashi
 ```
 
 ```py
-ha_data        = indicators.heikin_ashi(data.copy())
+ha_data = indicators.heikin_ashi(OHLC_data)
 
 indicator_dict = {'Heikin-Ashi Candles': {'type': 'Heikin-Ashi',
                                           'data': ha_data}
@@ -150,27 +142,10 @@ for more information.
 ### Divergence
 The `autodetect_divergence` indicator can be used to detect divergence between price movements and and an indicator.
 
-```py
-def autodetect_divergence(ohlc, indicator_data, method=0):
-    '''
-    Wrapper method to automatically detect divergence from inputted OHLC price 
-    data and indicator data.
-    
-    This method calls:
-        find_swings()
-        classify_swings()
-        detect_divergence()
-    
-    Parameters:
-        ohlc: dataframe of OHLC data
-        
-        indicator data: array of indicator data
-
-        method: the method to use when detecting divergence. Options include:
-            0: use both price and indicator swings to detect divergence (default)
-            1: use only indicator swings to detect divergence
-    '''
+```{eval-rst}
+.. autofunction:: autotrader.indicators.autodetect_divergence
 ```
+
 
 ```py
 rsi_divergence = indicators.autodetect_divergence(data, rsi)
