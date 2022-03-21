@@ -45,11 +45,10 @@ class Broker:
         self.port = config['port'] if 'port' in config else 7497
         self.client_id = config['clientID'] if 'clientID' in config else 1
         self.read_only = config['read_only'] if 'read_only' in config else False
-        account = config['account'] if 'account' in config else ''
+        self.account = config['account'] if 'account' in config else ''
         
         self._connect()
         self._check_connection()
-        self.account = account if account != '' else self._get_account()
         
         
     def __repr__(self):
