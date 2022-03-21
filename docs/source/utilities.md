@@ -35,4 +35,5 @@
 ## DataStream Class
 ```{eval-rst}
 .. autoclass:: autotrader.utilities.DataStream
+   :members:
 ```
