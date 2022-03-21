@@ -1158,10 +1158,10 @@ class AutoTrader:
                 global_config = None
         
         # Check feed
-        if global_config is None and self._feed.lower() in ['oanda', 'ib']:
-            raise Exception(f'Data feed "{self._feed}" requires a global '+\
-                            'configuration file. If one exists, make sure '+\
-                            'to specify the home_dir.')
+        if global_config is None and self._feed.lower() in ['oanda']:
+            raise Exception(f'Data feed "{self._feed}" requires global '+ \
+                            'configuration. If a config file already '+ \
+                            'exists, make sure to specify the home_dir.')
             
         broker_config = get_config(self._environment, global_config, self._feed)
         
