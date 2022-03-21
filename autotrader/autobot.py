@@ -96,7 +96,7 @@ class AutoTraderBot:
         strategy_params['period'] = strategy_params['period'] \
             if 'period' in strategy_params else period
         strategy_params['INCLUDE_POSITIONS'] = strategy_config['INCLUDE_POSITIONS'] \
-            if 'INCLUDE_POSITIONS' in strategy_config else True
+            if 'INCLUDE_POSITIONS' in strategy_config else False
         self._strategy_params = strategy_params
         
         # Import Strategy
@@ -150,8 +150,9 @@ class AutoTraderBot:
         # Instantiate Strategy
         # TODO - document changes: instead of include broker, just include all,
         # or similar. Then use kwargs in init to handle
+        # TODO - move the below to the other params
         include_broker = strategy_config['INCLUDE_BROKER'] \
-            if 'INCLUDE_BROKER' in strategy_config else False
+            if 'INCLUDE_BROKER' in strategy_config else False 
         if include_broker:
             my_strat = strategy(params, self._strat_data, instrument, 
                                 self._broker, self._broker_utils, 
