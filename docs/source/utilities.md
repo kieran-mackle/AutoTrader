@@ -2,6 +2,7 @@
 # AutoTrader Utilities Module
 
 
+(utils-get-config)=
 ## Configuration Utilities
 ```{eval-rst}
 .. autofunction:: autotrader.utilities.get_config

@@ -22,11 +22,11 @@ class GetData:
     Methods
     -------
     oanda()
-        Retrieves historical price data of a instrument from Oanda v20 API.
+        Retrieves historical price data of a instrument from Oanda.
     yahoo()
-        Retrieves historical price data from yahoo finance.
+        Retrieves historical price data from Yahoo Finance via yfinance.
     local()
-        Read local price data.
+        Reads local price data.
     """
     
     def __init__(self, broker_config: dict = None, 
@@ -364,12 +364,10 @@ class GetData:
 
         Notes
         -----
-        - If you are encountering a JSON error when using the yahoo finance API,
-        try updating by running
-        
-        >>> pip install yfinance --upgrade --no-cache-dir
-        
-        - Intraday data cannot exceed 60 days.
+        If you are encountering a JSON error when using the yahoo finance API,
+        try updating by running: pip install yfinance --upgrade --no-cache-dir
+
+        Intraday data cannot exceed 60 days.
         """
         
         if count is not None and start_time is None and end_time is None:
