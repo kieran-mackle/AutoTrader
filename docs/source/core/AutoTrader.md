@@ -204,7 +204,7 @@ multiplie-timeframe strategies.
 ```
 
 
-
+(autotrader-plot-backtest)=
 ### Plot Backtest
 
 ```{eval-rst}

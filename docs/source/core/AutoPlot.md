@@ -2,13 +2,14 @@
 # AutoPlot
 
 AutoPlot is the automated plotting module of AutoTrader. It is automatically used when visualising backtest results
-or running a [scan](/AutoTrader/2021/09/27/developing-scanner.html). However, it can also be manually imported to 
-easily visualise price data and indicators of candlestick data when developing strategies, as exemplified in this 
-[blog post](/AutoTrader/2021/09/17/using-indiview.html).
+or running a [scan](https://kieran-mackle.github.io/AutoTrader/2021/09/27/developing-scanner.html). However, it 
+can also be imported to easily visualise price data and indicators of candlestick data when developing strategies 
+or indicators, as exemplified in this [blog post](https://kieran-mackle.github.io/AutoTrader/2021/09/17/using-indiview.html).
 
 
 ```{eval-rst}
 .. autoclass:: autotrader.autoplot.AutoPlot
+   :noindex: configure
 ```
 
 
@@ -18,6 +19,11 @@ easily visualise price data and indicators of candlestick data when developing s
 
 ```{eval-rst}
 .. automethod:: autotrader.autoplot.AutoPlot.configure
+```
+
+```{seealso}
+Refer to the [Bokeh documentation](https://docs.bokeh.org/en/latest/docs/first_steps/first_steps_4.html#using-themes) 
+for more details of the different themes.
 ```
 
 
@@ -47,39 +53,18 @@ The `plot` method is used to generate a chart. It is used in both backtest plott
 
 ## Usage
 
-### Minimum Working Example
-As a plotting class, each instance of AutoPlot must be provided with price data in the form of OHLC data. A minimal 
-working example is provided below to visualise the price data of Apple from the Yahoo finance feed of 
-[AutoData](autodata-docs). 
-
-```py
-from autotrader.autoplot import AutoPlot
-from autotrader.lib.autodata import GetData
-
-instrument = 'AAPL'
-get_data = GetData()
-data = get_data.yahoo(instrument, '1d', 
-                      start_time='2020-01-01', 
-                      end_time='2021-01-01')
-
-ap = AutoPlot(data)
-ap.plot(instrument=instrument)
-```
-
-
 (autoplot-indi-spec)=
 ### Indicator Specification
-To plot indicators with AutoPlot, you must provide a dictionary containing each indicator. This dictionary must be structured
-according to the example provided below. 
+To plot indicators with AutoPlot, you must provide a dictionary containing each indicator. This dictionary must be 
+structured according to the example provided below. 
 
 ```python
-self.indicators = {'indicator name': {'type': 'indicator type',
-                                      'data': self.indicator_data},
-                   'indicator name': {'type': 'indicator type',
-                                      'data': self.indicator_data},
+self.indicators = {'indicator 1 name': {'type': 'indicator 2 type',
+                                        'data': self.indicator_data},
+                   'indicator 2 name': {'type': 'indicator 1 type',
+                                        'data': self.indicator_data},
 		  ...
                   }
-
 ```
 
 In this dictionary, each key 'indicator name' is used to create the legend entry corresponding to the 
@@ -210,3 +195,23 @@ If an indicator type isn't recognised, AutoPlot will attempt to plot it as a lin
 chart using the `data` key of the indicator. A warning message stating that the indicator is not recognised will 
 also be printed. Also note that a `type` key can be used for an indicator that isn't specified above if it has 
 similar plotting behaviour. See the [indicators](autoplot-indi-spec) for details on the indicators listed above.
+
+
+### Minimum Working Example
+As a plotting class, each instance of AutoPlot must be provided with price data in the form of OHLC data. A minimal 
+working example is provided below to visualise the price data of Apple from the Yahoo finance feed of 
+[AutoData](autodata-docs). 
+
+```py
+from autotrader.autoplot import AutoPlot
+from autotrader.lib.autodata import GetData
+
+instrument = 'AAPL'
+get_data = GetData()
+data = get_data.yahoo(instrument, '1d', 
+                      start_time='2020-01-01', 
+                      end_time='2021-01-01')
+
+ap = AutoPlot(data)
+ap.plot(instrument=instrument)
+```

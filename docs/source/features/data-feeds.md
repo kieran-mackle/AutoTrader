@@ -5,6 +5,6 @@
 
 
 
-Custom data pipelines with DataStream
+Custom data pipelines with [DataStream](utils-datastream)
 
 

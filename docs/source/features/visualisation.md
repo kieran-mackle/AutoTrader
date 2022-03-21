@@ -4,7 +4,7 @@
 *This page is currently in development. Check back again soon!*
 
 
-
+[AutoPlot](autoplot-docs)
 
 
 Focus on autoplot, automated plotting software

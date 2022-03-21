@@ -65,23 +65,3 @@ Each bot will also be connected to a [broker API](broker-interface). When they r
 they will place an order with the broker. This modular structure allows for a seamless transition from backtesting to 
 livetrading. 
 
-### Post-Processing
-When [AutoTrader](autotrader-docs) has finished running its core processes, the relevant data will be passed on for 
-post-processing. This includes, but is not limited to, visualisation of results, emailing order details, and logging
-information where appropriate.
-
-
-## Project Directory Structure
-To ensure that AutoTrader finds your strategy and configuration files, your project's working 
-directory must be structured according to the layout shown below. See the 
-[demo repository](https://github.com/kieran-mackle/autotrader-demo/) for an example of this structure.
-
-```
-home_dir/
-  |- config/
-  |    |- GLOBAL.yaml
-  |    |- your_strategy_config.yaml
-  |- strategies/
-  |    |- your_strategy.py
-  |- run_script.py
-```

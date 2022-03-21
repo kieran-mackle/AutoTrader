@@ -30,6 +30,8 @@
 .. autofunction:: autotrader.utilities.get_watchlist
 ```
 
+
+(utils-datastream)=
 ## DataStream Class
 ```{eval-rst}
 .. autoclass:: autotrader.utilities.DataStream

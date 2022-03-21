@@ -1,3 +1,4 @@
+(indicator-library)=
 # AutoTrader Custom Indicators
 
 

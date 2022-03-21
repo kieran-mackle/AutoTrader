@@ -176,3 +176,5 @@ at.plot_validation_balance = False
 ```
 
 
+## Parameter Optimisation
+Optimisation of parameters over backtest

@@ -1,16 +1,17 @@
 (autobot-docs)=
 # AutoBot
 
-
-`autotrader.autobot`
-
-When you run a strategy in AutoTrader, a trading bot, or `AutoBot`, will be deployed for each instrument in your strategies 
-watchlist. From that point on, each trading bot will continue to monitor its designated instrument with the rules of your 
-strategy until it is terminated. A user of AutoTrader will not often need to interact with the trading bots, but if required,
-they can be accessed from the `bots_deployed` attribute of the AutoTrader instance used to deploy them. 
-
+Every time you run a strategy in AutoTrader, a trading bot (from the class `AutoTraderBot`), will be deployed for each 
+instrument in your strategy's watchlist. Each trading bot is therefore responsible for trading a single instrument 
+using the rules of a single strategy, until it is terminated. All methods of the `AutoTraderBot` class are private,
+as it is unlikely you will ever need to call them as a user. However, you may want to use the bot instance for other
+things, such as [backtest plotting](autotrader-plot-backtest). For this purpose, you can use the 
+[`get_bots_deployed`](autotrader-bots-deployed) method of AutoTrader.
 
 
-## Order Processing
 
-show methods to check orders
+```{eval-rst}
+.. autoclass:: autotrader.autobot.AutoTraderBot
+   :members:
+   :private-members:
+```

@@ -5,6 +5,6 @@
 
 
 
-
+See AutoTrader's [custom indicators library](indicator-library)
 
 

@@ -86,10 +86,6 @@ class AutoPlot:
         None
             The tool will be added to the chart produced.
         
-        References
-        ----------
-        Documentation for Bokeh plot tools can be found at:
-        https://docs.bokeh.org/en/latest/docs/user_guide/tools.html
         """
         
         self._fig_tools = self._fig_tools + "," + tool_name
@@ -134,10 +130,6 @@ class AutoPlot:
         None
             The plot settings will be saved to the active AutoTrader instance.
         
-        References
-        ----------
-        https://docs.bokeh.org/en/latest/docs/first_steps/first_steps_4.html#using-themes
-        
         """
         self._max_indis_over = max_indis_over if max_indis_over is not None else self._max_indis_over
         self._max_indis_below = max_indis_below if max_indis_below is not None else self._max_indis_below
@@ -157,26 +149,8 @@ class AutoPlot:
              show_fig: bool = True) -> None:
         """Creates a trading chart of OHLC price data and indicators.
 
-        Parameters
-        ----------
-        instrument : str, optional
-            The traded instrument name. The default is None.
-        backtest_dict : dict, optional
-            The backtest results dictionary. The default is None.
-        indicators : dict, optional
-            Indicators dictionary. The default is None.
-        cumulative_PL : list, optional
-            Cumulative PL history. The default is None.
-        show_fig : bool, optional
-            Flag to show the chart. The default is True.
-
-        Returns
-        -------
-        None
-            Calling this method will automatically generate and open a chart.
-        
-        Indicator Keys
-        --------------
+        Extended Summary
+        ----------------
         The following lists the keys corresponding to various indicators,
         which can be included in the chart using the indicators argument.
         
@@ -209,22 +183,37 @@ class AutoPlot:
         HalfTrend : over
             Halftrend indicator with key: data
         multi : below
-            Multiple indicator type (https://kieran-mackle.github.io/AutoTrader/docs/autoplot#multiple-line-plot)
+            Multiple indicator type 
         signals : over
-            Trading signals plot with key: data (https://kieran-mackle.github.io/AutoTrader/docs/autoplot#trade-signals-plot)
+            Trading signals plot with key: data 
         bands : over
-            Shaded bands indicator type (https://kieran-mackle.github.io/AutoTrader/docs/autoplot#shaded-bands-plot)
+            Shaded bands indicator type 
         threshold : below
-            Threshold indicator type (https://kieran-mackle.github.io/AutoTrader/docs/autoplot#shaded-threshold-plot)
+            Threshold indicator type 
         trading-session : over
             Highlighted trading session times with key: data
         
+        Parameters
+        ----------
+        instrument : str, optional
+            The traded instrument name. The default is None.
+        backtest_dict : dict, optional
+            The backtest results dictionary. The default is None.
+        indicators : dict, optional
+            Indicators dictionary. The default is None.
+        cumulative_PL : list, optional
+            Cumulative PL history. The default is None.
+        show_fig : bool, optional
+            Flag to show the chart. The default is True.
+
+        Returns
+        -------
+        None
+            Calling this method will automatically generate and open a chart.
+        
         See Also
         --------
-        - To generate the backtest_dict, use the analyse_backtest method of 
-          AutoTrader after running a backtest. 
-        - See the following link for more information: 
-            https://kieran-mackle.github.io/AutoTrader/docs/autoplot
+        autotrader.autotrader.AutoTrader.analyse_backtest
         """
         
         # Preparation
