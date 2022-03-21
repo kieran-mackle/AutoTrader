@@ -6,6 +6,42 @@ from autotrader.brokers.broker_utils import BrokerUtils
 
 class Order:
     """AutoTrader Order object.
+
+    Attributes
+    ----------
+    instrument : str
+        The trading instrument of the order.
+    direction : int
+        The direction of the order (1 for long, -1 for short).
+    order_type : str
+        The type of order. The default is 'market'.
+    size : float
+        The number of units.
+    stop_loss : float
+        The price to set the stop-loss at.
+    stop_distance : float
+        The pip distance between the order price and the stop-loss.
+    stop_type : str
+        The type of stop-loss (limit or trailing). The default is 'limit'.
+    take_profit : float
+        The price to set the take-profit at.
+    take_distance : float
+        The pip distance between the order price and the take-profit.
+    related_orders : list
+        A list of related order/trade ID's.
+    id : int
+        The order ID.
+    currency : str
+        The base currency of the order (IB only).
+    secType : str
+        The security type (IB only).
+    exchange : str
+        The exchange on which the instrument is listed (IB only).
+    contract_month : str
+        The contract month string (IB only).
+    localSymbol : str
+        The exchange-specific instrument symbol (IB only).
+
     """
     def __init__(self, instrument: str = None, direction: int = None,
                  order_type: str = 'market', **kwargs) -> Order:
@@ -18,7 +54,7 @@ class Order:
         self.order_price = None
         self.order_time = None
         self.order_limit_price = None
-        self.order_limit_price = None
+        self.order_stop_price = None
         
         self.HCF = None
         
@@ -254,6 +290,35 @@ class Order:
 class Trade(Order):
     """AutoTrader Trade.
     
+    Attributes
+    ----------
+    unrealised_PL : float
+        The floating PnL of the trade.
+    margin_required : float
+        The margin required to maintain the trade.
+    time_filled : datetime
+        The time at which the trade was filled.
+    fill_price : float
+        The price at which the trade was filled.
+    last_price : float
+        The last price observed for the instrument associated with the trade.
+    last_time : datetime
+        The last time observed for the instrument associated with the trade.
+    exit_price : float
+        The price at which the trade was closed.
+    exit_time : datetime
+        The time at which the trade was closed.
+    fees : float
+        The fees associated with the trade.
+    parent_id : int 
+        The ID of the order which spawned the trade.
+    id : int
+        The trade ID.
+    status : str
+        The status of the trade (open or closed).
+    split : bool
+        If the trade has been split.
+
     Notes
     -----
     When a trade is created from an Order, the Order will be marked as filled.
@@ -327,6 +392,35 @@ class Trade(Order):
 
 class Position:
     """AutoTrader Position object.
+
+    Attributes
+    ----------
+    instrument : str
+        The trade instrument of the position.
+    long_units : float
+        The number of long units in the position.
+    long_PL : float
+        The PnL of the long units in the position.
+    long_margin : float 
+        The margin required to maintain the long units in the position.
+    short_units : float 
+        The number of short units in the position.
+    short_PL : float 
+        The PnL of the short units in the position.
+    short_margin : float
+        The margin required to maintain the short units in the position.
+    total_margin : float 
+        The total margin required to maintain the position.
+    trade_IDs : list[int]
+        The trade ID's associated with the position.
+    net_position : float
+        The total number of units in the position (IB only).
+    PL : float
+        The floating PnL (IB only).
+    contracts : list
+        The contracts associated with the position (IB only).
+    portfolio_items : list
+        The portfolio items associated with the position (IB only).
     """
     def __init__(self, **kwargs):
         self.instrument = None
