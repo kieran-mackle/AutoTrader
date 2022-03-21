@@ -2,8 +2,6 @@
 # AutoTrader Custom Indicators
 
 
-`autotrader.lib.indicators`
-
 This page showcases the indicators available in AutoTraders' indicator library. All images shown here were created with 
 [AutoPlot](core/AutoPlot), using the `view_indicators` function. This function can be called using the code snipped provided 
 below, where `indicator_dict` is constructed for the indicator being plotted. This dictionary is shown for each indicator 
@@ -11,17 +9,17 @@ below. Note that the [indicators dictionary](strategy-indicator-dict) passed to 
 be formatted according to the correct [specification](autoplot-indi-spec).
 
 ```python
-from autotrader import autoplot
-from autotrader.lib import indicators
+from autotrader import indicators
+from autotrader.autoplot import AutoPlot
 
-indicator_dict = indicators.{indicator_name}
+indicator_dict = {}
 
 ap = autoplot.AutoPlot()
 ap.data = data
 ap.view_indicators(indicator_dict)
 ```
 
-For each indicator below, the function definition in `lib/indicators.py` is provided, along with a sample code snippet of
+For each indicator below, the function definition is provided, along with a sample code snippet of
 how to plot the indicator with [AutoPlot](core/AutoPlot).
 
 ## Indicators
@@ -182,21 +180,10 @@ A common challenge of algo-trading is the ability to accurately pick recent swin
 This indicator attempts to solve that problem by locating the recent swings in price. This indicator returns a dataframe 
 with three columns: Highs, Lows and Last, described below. 
 
-```py
-def find_swings(data, data_type='ohlc', n = 2):
-    '''
-    Locates swings in the inputted data and returns a dataframe.
-    
-    Parameters:
-        data: an OHLC dataframe of price, or an array/list of data from an 
-        indicator.
-        
-        data_type: specify 'ohlc' when data is OHLC, or 'other' when inputting
-        an indicator.
-
-        n: period of EMA
-    '''
+```{eval-rst}
+.. autofunction:: autotrader.indicators.find_swings
 ```
+
 
 |   Column    | Description |
 |:-----------:|-------------|
@@ -235,18 +222,11 @@ It returns a dataframe with the following columns appended to the swing datafram
 | `LL` | Lower Low | `True` or `False` |
 | `LH` | Lower High | `True` or `False` |
 
-```py
-def classify_swings(swing_df, tol=0):
-    ''' 
-    Classify a dataframe of swings (from find_swings) into higher-high, 
-    lower-high, higher-low and lower-low.
-    
-    Parameters:
-        swing_df: the dataframe outputted from find_swings.
-        
-        tol: parameter to control strength of levels detected.
-    '''
+
+```{eval-rst}
+.. autofunction:: autotrader.indicators.classify_swings
 ```
+
 
 
 ```py
@@ -275,21 +255,10 @@ To detect divergence between price and an indicator, the `detect_divergence` ind
 relies on both `find_swings` and `classify_swings`. It detects regular and hidden divergence.
 
 
-```py
-def detect_divergence(classified_price_swings, classified_indicator_swings, tol=2, method=0):
-    '''
-    Detects divergence between price swings and swings in an indicator.
-    
-    Parameters:
-        classified_price_swings: output from classify_swings using OHLC data.
-        
-        classified_indicator_swings: output from classify_swings using indicator data.
-
-        method: the method to use when detecting divergence. Options include:
-            0: use both price and indicator swings to detect divergence (default)
-            1: use only indicator swings to detect divergence
-    '''
+```{eval-rst}
+.. autofunction:: autotrader.indicators.detect_divergence
 ```
+
 
 The example below shows the indicator detecting regular bullish divergence in price using the RSI as the indicator.
 
@@ -304,14 +273,15 @@ The example below shows the indicator detecting regular bullish divergence in pr
 
 
 
-(crossover)=
+(crossover-indi)=
 ### Crossover
 Returns a list with values of `1` when input `list_1` crosses **above** input `list_2`, values of `-1` when input 
 `list_1` crosses **below** input `list_2`, and values of `0` elsewhere.
 
-```py
-def crossover(list_1, list_2)
+```{eval-rst}
+.. autofunction:: autotrader.indicators.crossover
 ```
+
 
 The example below illustrates the functionality of this indicator with the 
 [MACD indicator](https://www.investopedia.com/terms/m/macd.asp). Note that the MACD line is passed into 
@@ -341,11 +311,12 @@ indicator_dict = {'MACD': {'type': 'MACD',
 Returns the value at which a crossover occurs using linear interpolation. Requires three inputs: two lists and a third
 list corresponding to the points in time which the two lists crossover. Consider the example described below.
 
-```py
-def cross_values(a, b, ab_crossover)
+```{eval-rst}
+.. autofunction:: autotrader.indicators.cross_values
 ```
 
-The example provided below builds upon the example described for the [crossover](crossover) indicator. Again, the MACD
+
+The example provided below builds upon the example described for the [crossover](crossover-indi) indicator. Again, the MACD
 indicator is used, and MACD/signal line crossovers are found using `indicators.crossover`. The specific values at which 
 this crossover occurs can then be calculated using `indicators.cross_values(macd, macd_signal, macd_crossover)`. This will
 return a list containing the values (in MACD y-axis units) where the crossover occured. This is shown in the image below,
@@ -376,9 +347,11 @@ indicator_dict = {'MACD': {'type': 'MACD',
 Returns a list with a count of how many candles have passed since the last crossover (that is, how many elements in
 a list since the last non-zero value).
 
-```py
-def candles_between_crosses(cross_list)
+```{eval-rst}
+.. autofunction:: autotrader.indicators.candles_between_crosses
 ```
+
+
 
 The example provided below demonstrates this indicator with EMA crossovers. 
 
@@ -406,9 +379,10 @@ indicator_dict = {'EMA (10)': {'type': 'MA',
 
 (heikin-ashi-run)=
 ### Heikin-Ashi Candlestick Run
-```python
-def ha_candle_run(ha_data)
+```{eval-rst}
+.. autofunction:: autotrader.indicators.ha_candle_run
 ```
+
 This indicator returns two lists; one each for the number of consecutive green and red Heikin-Ashi candles. Since
 Heikin-Ashi trends usually last for approximately 5-8 candles, it is useful to know how many consecutive red or
 green candles there have been so far, to avoid getting into a trend too late. This indicator allows you to prevent
@@ -420,9 +394,10 @@ that by telling you how many candles into a trend the price action is.
 ### Merge signals
 Returns a single signal list which has merged two signal lists. 
 
-```python
-def merge_signals(signal_1, signal_2)
+```{eval-rst}
+.. autofunction:: autotrader.indicators.merge_signals
 ```
+
 
 
 (rolling-signal)=
@@ -431,29 +406,20 @@ def merge_signals(signal_1, signal_2)
 Returns a list which maintains the previous signal, until a new 
 signal is given.
 
-```py
-def rolling_signal_list(signals):
-    ''' 
-    Returns a list which maintains the previous signal, until a new 
-    signal is given.
-    
-    [0,1,0,0,0,-1,0,0,1,0,0] ->  [0,1,1,1,1,-1,-1,-1,1,1,1]
-    '''
+```{eval-rst}
+.. autofunction:: autotrader.indicators.rolling_signal_list
 ```
+
 
 (unroll-signals)=
 ### Unroll Signal List
 
 Performs the reverse function of [`rolling`](rolling-signal).
 
-```py
-def unroll_signal_list(signals):
-    ''' 
-    Unrolls a signal list. 
-
-    [0,1,1,1,1,-1,-1,-1,1,1,1] -> [0,1,0,0,0,-1,0,0,1,0,0]
-    '''
+```{eval-rst}
+.. autofunction:: autotrader.indicators.unroll_signal_list
 ```
+
 
 
 ## Requesting an Indicator
