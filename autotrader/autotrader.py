@@ -571,7 +571,6 @@ class AutoTrader:
     def run(self) -> None:
         """Performs essential checks and runs AutoTrader.
         """
-        
         # TODO - add check of feed and broker requests (even when backtesting)
         
         # Define home_dir if undefined
@@ -1242,7 +1241,8 @@ class AutoTrader:
         
             else:
                 # Live trading
-                # TODO - improve management capabilities
+                # TODO - improve management capabilities (update params, 
+                # kill specific bots, make instance files more identifying)
                 instance_id = self._get_instance_id()
                 instance_str = f"autotrader_instance_{instance_id}"
                 instance_file_exists = self._check_instance_file(instance_str, True)
