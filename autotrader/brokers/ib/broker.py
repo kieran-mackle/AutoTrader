@@ -49,6 +49,7 @@ class Broker:
         
         self._connect()
         self._check_connection()
+        self.account = self._get_account() if self.account == '' else self.account
         
         
     def __repr__(self):
@@ -412,7 +413,7 @@ class Broker:
     
     
     def _get_account(self,):
-        """Gets first managed account.
+        """Returns the first managed account.
         """
         self._check_connection()
         accounts = self.ib.managedAccounts()
