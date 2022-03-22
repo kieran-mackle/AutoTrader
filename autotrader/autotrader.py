@@ -1625,7 +1625,7 @@ class AutoTrader:
     def _check_instance_file(self, instance_str, initialisation=False):
         """Checks if the AutoTrader instance exists.
         """
-        
+        # TODO - allow user specification of instance str
         if initialisation:
             # Create the file
             filepath = os.path.join(self._home_dir, 'active_bots', instance_str)
