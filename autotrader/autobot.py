@@ -175,7 +175,7 @@ class AutoTraderBot:
         
         if int(self._verbosity) > 0:
                 print(f"\nAutoTraderBot assigned to trade {instrument}",
-                      f"with {self._broker_name}  using {strategy_config['NAME']}.")
+                      f"with {self._broker_name} using {strategy_config['NAME']}.")
     
     
     def __repr__(self):
