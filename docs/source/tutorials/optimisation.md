@@ -51,7 +51,6 @@ see from the output, the optimal parameter values for the strategy configuration
 10 and 33. This means that the fast MACD period should be 10, and the slow MACD period should be 33.
 
 ```
-[*********************100%***********************]  1 of 1 completed
 Parameters/objective: [ 5. 20.] / -966.904
                     .
                     .

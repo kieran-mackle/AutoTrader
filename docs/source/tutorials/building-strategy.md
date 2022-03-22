@@ -80,13 +80,13 @@ and the risk-to-reward ratio is by the `RR` key.
 
 
 ```yaml
-NAME: 'Simple_macd_strategy'
-MODULE: 'macd'
-CLASS: 'SimpleMACD'
-INTERVAL: '1h'
-SIZING: 'risk'
-RISK_PC: 1.5
-PARAMETERS:
+NAME: 'Simple Macd Strategy'    # strategy name
+MODULE: 'macd'                  # strategy module
+CLASS: 'SimpleMACD'             # strategy class
+INTERVAL: '1h'                  # stategy timeframe
+SIZING: 'risk'                  # sizing method
+RISK_PC: 1.5                    # risk per trade (%)
+PARAMETERS:                     # strategy parameters
   ema_period: 200
   MACD_fast: 12
   MACD_slow: 26
@@ -95,7 +95,7 @@ PARAMETERS:
   # Exit level parameters
   RR: 1.5
 
-WATCHLIST: ['EURUSD=X']
+WATCHLIST: ['EURUSD=X']         # strategy watchlist
 ```
 
 This file is read by AutoTrader and passed into your strategy when it is instantiated. We will start by 
@@ -156,7 +156,7 @@ class SimpleMACD:
         ''' Initialise the strategy here '''
         ...
 
-    def generate_signal(self, i, current_position):
+    def generate_signal(self, i):
         ''' Define the trading strategy to determine entry signals '''
         ...
         return signal_dict
@@ -263,10 +263,12 @@ Now with the inidicators calculated, we have everything we need to define the lo
 #### Strategy Signals
 
 The next step is to define the signal generation function, `generate_signal`. Make sure to use this name for all your strategies, as
-AutoTrader will call it when you run it. This method is where the logic of the strategy sits. The named inputs to this function are 
-`i` - an indexing variable - and `current_position` - a dictionary containing current positions held. We will not need 
-the `current_position` dictionary in this strategy, but it is useful in others (such as [portfolio rebalancing](https://github.com/kieran-mackle/autotrader-demo/blob/main/strategies/portfolio_rebalance.py)). As such, we can use the 
-[`**kwargs`](https://stackoverflow.com/a/36908) argument to ignore it.
+AutoTrader will call it when you run it. This method is where the logic of the strategy sits. The primary input to this function is 
+`i`, an indexing variable. You can also include `INCLUDE_POSITIONS: True` in your strategy configuration to tell AutoTrader to 
+pass in `current_position`, a dictionary containing current positions held. We will not need the `current_position` dictionary in 
+this strategy, but it is useful in others 
+(such as [portfolio rebalancing](https://github.com/kieran-mackle/autotrader-demo/blob/main/strategies/portfolio_rebalance.py)). 
+
 
 ```{important}
 Strategies must contain a `generate_signal` method!
@@ -276,11 +278,11 @@ Since price data and all of your indicators are pre-loaded when your strategy is
 variable `i` is required to generate a signal at the correct timestamp. When backtesting with AutoTrader, the value 
 of `i` will vary from `0` to `len(data)`, as AutoTrader steps through each bar in your data. If you are running
 AutoTrader in live-trade mode, `i` will simply index the last candle in the data, corresponding to the most recent 
-market conditions. Read more about the indexing system [here](autotrader-data-indexing).
+market conditions. Read more about the indexing system for periodic update mode [here](autotrader-run-modes).
 
 
 As the name implies, the `generate_signal` method must return a trading signal - to either go long, short or do nothing.
-AutoTrader supports multiple [order types](order-handling), multiple [stop loss types](broker-stop-loss-types) and 
+AutoTrader supports multiple [order types](order-types), multiple [stop loss types](broker-stop-loss-types) and 
 anything else you might encounter with your live-trade broker. To create a new order, we can use the 
 [`Order`](order-object) object, imported from the [`autotrader.trading`](../broker/trading) module. For this strategy, 
 we will only be placing market orders when we get the entry signal, which are the default order type. 
@@ -301,7 +303,7 @@ the code tabs below to observe the changes.
 
 ````{tab} AutoTrader >= v0.6.0
 ```python
-    def generate_signal(self, i, **kwargs):
+    def generate_signal(self, i):
         """Define strategy to determine entry signals.
         """
         
@@ -329,7 +331,7 @@ the code tabs below to observe the changes.
 ````
 ````{tab} AutoTrader < v0.6.0
 ```python
-    def generate_signal(self, i, **kwargs):
+    def generate_signal(self, i):
         """Define strategy to determine entry signals.
         """
 
