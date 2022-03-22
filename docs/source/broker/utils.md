@@ -1,7 +1,7 @@
 (broker-utils)=
 # Broker Utilities
 
-The `broker_utils` module contains the `BrokerUtils` class, containing general utility methods 
+The `broker_utils.py` module contains the `BrokerUtils` class, containing general utility methods 
 for the broker API's.
 
 

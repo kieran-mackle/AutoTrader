@@ -1,19 +1,31 @@
 # Optimising a Strategy with AutoTrader
 
-If you have successfully [set up a strategy](building-strategy) and run a [backtest](backtesting) on it, then you can optimise
-the strategy paramaters with ease. All you need to do is specify which parameters to optimise and what bounds 
-should be placed on them and that's it!
+If you have successfully [set up a strategy](building-strategy) and run a [backtest](backtesting) on it, 
+then you can optimise the strategy paramaters with ease. All you need to do is specify which parameters 
+to optimise and what bounds should be placed on them and that's it!
 
 ## MACD Optimisation
 We will modify our runfile to optimise the `MACD_fast` and `MACD_slow` parameters of our MACD strategy by using
-the `optimise` method of AutoTrader. This method requires two inputs: 
+the [`optimise`](autotrader-optimise-config) method of AutoTrader. This method requires two inputs: 
 - `opt_params`: the names of the parameters we wish to optimise, as they appear in the `PARAMETERS` section of our 
-strategy configuration file.
+strategy configuration.
 - `bounds`: the upper and lower bounds on the optimisation parameters, specified as tuples.
 
 We must also include the `backtest` method, which is used to specify the backtest parameters to be used in the optimisation.
 In the code snippet below, we will optimise the strategy over the time period specified by the start and end dates provided.
 Note that the objective of the optimiser is to maximise profit. 
+
+Before we run the optimiser, lets download the price data used in our backtest, so that we do not have to download it 
+for each iteration of the optimisation. This can be acheived with the code snippet below. Note that since we only
+ran the backtest on a single isntrument, we do not have to provide any arguments to the 
+[`get_bots_deployed`](autotrader-bots-deployed) method. Note that we save the data to a the `price_data` directory,
+as that is where AutoTrader will look for price data by default.
+
+```python
+bot = at.get_bots_deployed()
+bot.data.to_csv('price_data/EUdata.csv')
+```
+Now we can use this data in our optimiser by providing it via the [`add_data`](autotrader-add-data) method, as shown below.
 
 ```python
 from autotrader.autotrader import AutoTrader
@@ -25,35 +37,33 @@ at.backtest(start = '1/1/2020',
             end = '1/1/2021',
             initial_balance=1000,
             leverage = 30)
+at.add_data(data_dict={'EURUSD=X': 'EUdata.csv'})
 at.optimise(opt_params=['MACD_fast', 'MACD_slow'],
             bounds=[(5, 20), (20, 40)])
 at.run()
 ```
 
-You might notice that your project directory now has a 'price_data' directory. When you optimise a strategy in AutoTrader, it will
-write the price data to a csv file to speed up the time to optimise, by preventing re-download of the data every iteration. The 'price_data' directory is therefore created to store this data.
-
 
 ### Optimised Parameters
-Now, running the run file above will result in the following output. After a little over 100 seconds, the parameters of our MACD 
-strategy have been optimised to maximise profit over the one-year backtest period. As you can see from the output, the optimal 
-parameter values for the strategy configuration parameters specified are approximately 5 and 19. This means that the fast MACD 
-period should be 5, and the slow MACD period should be 19.
+Running the file above will result in the following output. After a few minutes on a mid-range laptop, the 
+parameters of our MACD strategy have been optimised to maximise profit over the one-year backtest period. As you can 
+see from the output, the optimal parameter values for the strategy configuration parameters specified are approximately 
+10 and 33. This means that the fast MACD period should be 10, and the slow MACD period should be 33.
 
 ```
 [*********************100%***********************]  1 of 1 completed
-Parameters/objective: [ 5. 20.] / -437.4069911837578
+Parameters/objective: [ 5. 20.] / -966.904
                     .
                     .
                     .
-Parameters/objective: [ 5.24997711 19.00006104] / -449.7053394317683
+Parameters/objective: [ 9.79685545 33.30738306] / -1246.284
 
 Optimisation complete.
-Time to run: 108.632s
+Time to run: 555.793s
 Optimal parameters:
-[ 5.25 19.  ]
+[ 9.796875   33.30729167]
 Objective:
--449.7053394317683
+-1246.2841641533123
 ```
 
 ### Comparison to Baseline Strategy
@@ -69,65 +79,67 @@ the optimised parameters (you will need to update the strategy configuration fil
                                                               
 
 Beginning new backtest.
-  From:  01/01/2020 00:00
-  To:    01/01/2021 00:00
 [*********************100%***********************]  1 of 1 completed
-AutoTraderBot assigned to analyse EURUSD=X on 1h timeframe using Simple 
-MACD Trend Strategy.
+
+AutoTraderBot assigned to trade EURUSD=X with virtual broker using MACD Trend Strategy.
 
 Trading...
 
-Backtest complete.
+Backtest complete (runtime 2.884 s).
 
--------------------------------------------
-            Backtest Results
--------------------------------------------
-Backtest win rate:       47.8%
-Total no. trades:        147
-Profit:                  $449.705 (45.0%)
-Maximum drawdown:        -11.4%
-Max win:                 $34.55
-Average win:             $25.6
-Max loss:                -$28.66
-Average loss:            -$17.1
-Longest win streak:      6 trades
+----------------------------------------------
+               Backtest Results
+----------------------------------------------
+Start date:              Jan 20 2021 05:00:00
+End date:                Dec 31 2021 13:00:00
+Starting balance:        $1000.0
+Ending balance:          $1261.72
+Ending NAV:              $1276.52
+Total return:            $261.72 (26.2%)
+Total no. trades:        92
+Total fees:              $0.0
+Backtest win rate:       46.7%
+Maximum drawdown:        -13.53%
+Max win:                 $37.47
+Average win:             $25.65
+Max loss:                -$22.3
+Average loss:            -$17.16
+Longest win streak:      4 trades
 Longest losing streak:   6 trades
-Average trade duration   22:34:24
-Cancelled orders:        11
+Average trade duration:  1 day, 0:52:49
+Orders still open:       1
+Cancelled orders:        1
 
-         Summary of long trades
--------------------------------------------
-Number of long trades:   79
-Long win rate:           57.0%
-Max win:                 $34.55
-Average win:             $26.46
-Max loss:                -$28.66
-Average loss:            -$17.78
+            Summary of long trades
+----------------------------------------------
+Number of long trades:   37
+Long win rate:           43.2%
+Max win:                 $37.47
+Average win:             $26.37
+Max loss:                -$22.27
+Average loss:            -$17.11
 
-          Summary of short trades
--------------------------------------------
-Number of short trades:  57
-short win rate:          35.1%
-Max win:                 $30.89
-Average win:             $23.66
-Max loss:                -$23.14
-Average loss:            -$16.47
+             Summary of short trades
+----------------------------------------------
+Number of short trades:  58
+short win rate:          46.6%
+Max win:                 $32.44
+Average win:             $25.22
+Max loss:                -$22.3
+Average loss:            -$17.2
 ```
 
 Let's take a look at the profit [before](backtesting) and after:
 >
 >Profit before optimisation:
->$118.352 (11.8%)
+>$255.11 (25.5%)
 >
 >Profit after optimisation:
->$449.705 (45.0%)
- 
-
-#### Optimised Chart
-<iframe data-src="../_static/charts/optimised_macd.html" id="iframe" loading="lazy" style="width:100%; margin-top:1em; height:720px; overflow:hidden;" data-ga-on="wheel" data-ga-event-category="iframe" data-ga-event-action="wheel" src="../_static/charts/optimised_macd.html"></iframe>
-
+>$261.72 (26.2%)
 
 
 
 ## A Word of Caution
-This strategy is now likely highly overfit.
+This tutorial was intended to illustrate how to use AutoTrader's parameter optimisation functionality. In the example above,
+the strategy is now likely highly overfit to the backtest dataset. You will have to use your discretion when chosing parameters 
+to optimise.

@@ -1546,19 +1546,18 @@ class AutoTrader:
         ''' ------------------------------------------------------------------ '''
         self._clear_strategies()
         self._clear_bots()
-        self.add_strategy(strategy_dict = config_dict)
+        self.add_strategy(config_dict = config_dict)
         self._main()
         
         bot = self._bots_deployed[0]
             
-        backtest_results    = self.analyse_backtest(bot)
-        
         try:
-            objective           = -backtest_results['all_trades']['net_pl']
+            backtest_results = self.analyse_backtest(bot)
+            objective = -backtest_results['all_trades']['ending_NAV']
         except:
-            objective           = 1000
+            objective = 1000
                               
-        print("Parameters/objective:", params, "/", objective)
+        print("Parameters/objective:", params, "/", round(objective,3))
         
         return objective
     
