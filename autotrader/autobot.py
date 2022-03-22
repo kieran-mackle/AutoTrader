@@ -251,7 +251,12 @@ class AutoTraderBot:
                     
                 else:
                     # Bot is trading
-                    self._broker.place_order(order, order_time=current_bars[order.instrument].name)
+                    try:
+                        order_time = current_bars[order.instrument].name
+                    except:
+                        order_time = current_bars[order.data_name].name
+                        
+                    self._broker.place_order(order, order_time=order_time)
             
             if int(self._verbosity) > 1:
                 if len(orders) > 0:
