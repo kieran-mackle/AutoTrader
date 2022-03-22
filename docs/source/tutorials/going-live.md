@@ -1,6 +1,5 @@
 # Going Live with AutoTrader
 
-
 Live trading is the [default trading medium](autotrader-mediums) of AutoTrader. As such, you are only 
 required to specify the strategy configuration file along with any run 
 [configuration](autotrader-config-methods) parameters to take a strategy live. 

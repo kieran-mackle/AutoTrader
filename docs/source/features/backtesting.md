@@ -97,7 +97,8 @@ Average loss:            -$23.4
 ```
 
 
-<iframe data-src="/AutoTrader/assets/charts/simple-macd-bt.html" id="iframe" loading="lazy" style="width:100%; margin-top:1em; height:720px; overflow:hidden;" data-ga-on="wheel" data-ga-event-category="iframe" data-ga-event-action="wheel" src="/AutoTrader/assets/charts/simple-macd-bt.html"></iframe>
+
+<iframe data-src="../_static/charts/simple-macd-bt.html" id="iframe" loading="lazy" style="width:100%; margin-top:1em; height:720px; overflow:hidden;" data-ga-on="wheel" data-ga-event-category="iframe" data-ga-event-action="wheel" src="../_static/charts/simple-macd-bt.html"></iframe>
 
 
 
@@ -138,7 +139,7 @@ at.run()
 
 Running with parameters set during backtesting
 
-<iframe data-src="/AutoTrader/assets/charts/bt-validation1.html" id="iframe" loading="lazy" style="width:100%; margin-top:1em; height:900px; overflow:hidden;" data-ga-on="wheel" data-ga-event-category="iframe" data-ga-event-action="wheel" src="/AutoTrader/assets/charts/bt-validation1.html"></iframe>
+<iframe data-src="../_static/charts/bt-validation1.html" id="iframe" loading="lazy" style="width:100%; margin-top:1em; height:900px; overflow:hidden;" data-ga-on="wheel" data-ga-event-category="iframe" data-ga-event-action="wheel" src="../_static/charts/bt-validation1.html"></iframe>
 
 
 ```
@@ -153,7 +154,7 @@ Number of live trades: 36 trades.
 
 After refining the parameters
 
-<iframe data-src="/AutoTrader/assets/charts/bt-validation2.html" id="iframe" loading="lazy" style="width:100%; margin-top:1em; height:900px; overflow:hidden;" data-ga-on="wheel" data-ga-event-category="iframe" data-ga-event-action="wheel" src="/AutoTrader/assets/charts/bt-validation2.html"></iframe>
+<iframe data-src="../_static/charts/bt-validation2.html" id="iframe" loading="lazy" style="width:100%; margin-top:1em; height:900px; overflow:hidden;" data-ga-on="wheel" data-ga-event-category="iframe" data-ga-event-action="wheel" src="../_static/charts/bt-validation2.html"></iframe>
 
 
 ```

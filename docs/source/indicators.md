@@ -64,7 +64,7 @@ TradingView.
 
 
 ```py
-halftrend_df = indicators.half_trend(data)
+halftrend_df = indicators.halftrend(data)
 indicator_dict = {'HalfTrend': {'type': 'HalfTrend',
                                 'data': halftrend_df}}
 ```

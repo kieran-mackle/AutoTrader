@@ -1,7 +1,11 @@
 # Live Trading With AutoTrader
 
+What use would backtesting be if you can't take the same strategy live? This is no concern when you use 
+AutoTrader, which features a seamless transition from backtesting to livetrading.
 
-*This page is currently in development. Check back again soon!*
+
+
+
 
 
 

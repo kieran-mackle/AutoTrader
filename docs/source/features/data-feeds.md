@@ -1,10 +1,9 @@
-# Data Feeds in AutoTrader
+# Data Pipelines in AutoTrader
+
+AutoTrader supports custom data pipelines with the [DataStream](utils-datastream) class utility. 
 
 
-*This page is currently in development. Check back again soon!*
 
 
-
-Custom data pipelines with [DataStream](utils-datastream)
 
 

@@ -15,7 +15,7 @@ Backtesting <backtesting>
 Visualisation <visualisation>
 Scanning <scanning>
 Live Trading <live-trading>
-Data Feeds <data-feeds>
+Data Pipelines <data-feeds>
 Custom Indicators <indicators>
 ```
 
