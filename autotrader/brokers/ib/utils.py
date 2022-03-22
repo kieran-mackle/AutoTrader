@@ -97,7 +97,7 @@ class Utils(BrokerUtils):
             exchange = order.exchange if order.exchange else 'GLOBEX'
             currency = order.currency if order.currency else 'USD'
             contract_month = order.contract_month
-            local_symbol = order.local_symbol if order.local_symbol else '' 
+            local_symbol = order.localSymbol if order.localSymbol else '' 
             contract = contract_object(symbol=instrument, 
                                        exchange=exchange, 
                                        currency=currency,
