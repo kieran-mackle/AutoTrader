@@ -77,14 +77,13 @@ class AutoTraderBot:
         self._broker = broker
         
         # Unpack strategy parameters and assign to strategy_params
-        # TODO - clean this up
         strategy_config = strategy_dict['config']
         interval = strategy_config["INTERVAL"]
         period = strategy_config["PERIOD"]
-        risk_pc = strategy_config["RISK_PC"] if 'RISK_PC' in strategy_config \
-            else None
-        sizing = strategy_config["SIZING"] if 'SIZING' in strategy_config \
-            else None
+        risk_pc = strategy_config["RISK_PC"] if 'RISK_PC' \
+            in strategy_config else None
+        sizing = strategy_config["SIZING"] if 'SIZING' \
+            in strategy_config else None
         params = strategy_config["PARAMETERS"]
         strategy_params = params
         strategy_params['granularity'] = strategy_params['granularity'] \
@@ -97,6 +96,8 @@ class AutoTraderBot:
             if 'period' in strategy_params else period
         strategy_params['INCLUDE_POSITIONS'] = strategy_config['INCLUDE_POSITIONS'] \
             if 'INCLUDE_POSITIONS' in strategy_config else False
+        strategy_config['INCLUDE_BROKER'] = strategy_config['INCLUDE_BROKER'] \
+            if 'INCLUDE_BROKER' in strategy_config else False
         self._strategy_params = strategy_params
         
         # Import Strategy
@@ -148,12 +149,7 @@ class AutoTraderBot:
         self._refresh_data(deploy_dt)
         
         # Instantiate Strategy
-        # TODO - document changes: instead of include broker, just include all,
-        # or similar. Then use kwargs in init to handle
-        # TODO - move the below to the other params
-        include_broker = strategy_config['INCLUDE_BROKER'] \
-            if 'INCLUDE_BROKER' in strategy_config else False 
-        if include_broker:
+        if strategy_config['INCLUDE_BROKER']:
             my_strat = strategy(params, self._strat_data, instrument, 
                                 self._broker, self._broker_utils, 
                                 data_stream=self.Stream)
