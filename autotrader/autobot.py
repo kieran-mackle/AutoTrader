@@ -480,8 +480,12 @@ class AutoTraderBot:
                 liveprice_func = getattr(self._get_data, f'{self._feed.lower()}_liveprice')
                 last_price = liveprice_func(order)
             else:
-                last_price = self._get_data._pseduo_liveprice(last=current_bars[order.instrument].Close,
-                                                              quote_price=quote_bars[order.instrument].Close)
+                try:
+                    last_price = self._get_data._pseduo_liveprice(last=current_bars[order.instrument].Close,
+                                                                  quote_price=quote_bars[order.instrument].Close)
+                except:
+                    last_price = self._get_data._pseduo_liveprice(last=current_bars[order.data_name].Close,
+                                                                  quote_price=quote_bars[order.data_name].Close)
             
             if order.direction < 0:
                 order_price = last_price['bid']

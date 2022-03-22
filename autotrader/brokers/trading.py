@@ -67,6 +67,8 @@ class Order:
         
         self.related_orders = None
         
+        self.data_name = None # When using custom DataStream
+        
         # IB properties
         self.currency = None
         self.secType = None
