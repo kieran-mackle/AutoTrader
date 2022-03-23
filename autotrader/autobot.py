@@ -220,9 +220,9 @@ class AutoTraderBot:
         new_data = self._check_last_bar(current_bars) 
         
         if sufficient_data and new_data:
-            if self._backtest_mode:
-                # Update backtest with bar
-                self._update_backtest(current_bars)
+            if self._backtest_mode or self._virtual_livetrading:
+                # Update virtual broker with latest price bars
+                self._update_virtual_broker(current_bars)
             
             # Get strategy orders
             if self._strategy_params['INCLUDE_POSITIONS']:
@@ -270,7 +270,6 @@ class AutoTraderBot:
             
             # Check for orders placed and/or scan hits
             if int(self._notify) > 0 and not self._backtest_mode:
-                
                 for order in orders:
                     self._broker_utils.write_to_order_summary(order, 
                                                               self._order_summary_fp)
@@ -499,8 +498,8 @@ class AutoTraderBot:
             order(broker=self._broker, order_price=order_price, HCF=HCF)
     
     
-    def _update_backtest(self, current_bars: dict) -> None:
-        """Updates virtual broker with latest price data for backtesting.
+    def _update_virtual_broker(self, current_bars: dict) -> None:
+        """Updates virtual broker with latest price data.
         """
         for product, bar in current_bars.items():
             self._broker._update_positions(bar, product)
