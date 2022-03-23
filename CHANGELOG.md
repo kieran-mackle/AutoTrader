@@ -42,6 +42,7 @@
   (within `autotrader.utilities` module) to allow custom data pipelines
 - Ability to trade multiple contracts on an underlying asset (continuous 
   mode only)
+- Ability to use virtual broker in livetrade mode
 
 
 ## Version 0.5.0
