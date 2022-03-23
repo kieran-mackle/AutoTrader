@@ -1,3 +1,4 @@
+import random
 import ib_insync
 import numpy as np
 from autotrader.brokers.trading import Order, Trade, Position
@@ -397,10 +398,10 @@ class Broker:
             except:
                 print("Connection to IB failed... trying to reconnect.")
                 # Connection failed, increment client ID
-                self.client_id += 1
+                self.client_id = random.randint(0, 9999)
                 
                 # Sleep for a little while
-                self.ib.sleep(30)
+                self.ib.sleep(10)
             
             # Update connection status
             connected = self.ib.isConnected()
