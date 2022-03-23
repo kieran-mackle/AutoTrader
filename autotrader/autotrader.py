@@ -100,18 +100,15 @@ class AutoTrader:
         self._backtest_mode = False
         self._data_start = None
         self._data_end = None
+        
+        # Local Data Parameters
         self._data_file = None
         self._MTF_data_files = None
         self._local_data = None
         self._local_quote_data = None
         self._auxdata = None
-        self._backtest_initial_balance = None
-        self._backtest_spread = None
-        self._backtest_commission = None
-        self._backtest_leverage = None
-        self._base_currency = None
         
-        # Virtual Livetrade Parameters
+        # Virtual Broker Parameters
         self._virtual_livetrading = False
         self._virtual_initial_balance = None
         self._virtual_spread = None
@@ -359,10 +356,10 @@ class AutoTrader:
         self._backtest_mode = True
         self._data_start = start_dt
         self._data_end = end_dt
-        self._backtest_initial_balance = initial_balance
-        self._backtest_spread = spread
-        self._backtest_commission = commission
-        self._backtest_leverage = leverage
+        self._virtual_initial_balance = initial_balance
+        self._virtual_spread = spread
+        self._virtual_commission = commission
+        self._virtual_leverage = leverage
         self._base_currency = base_currency
         
         # Enforce virtual broker
@@ -428,7 +425,7 @@ class AutoTrader:
     def add_data(self, data_dict: dict = None, quote_data: dict = None, 
                  data_directory: str = 'price_data', abs_dir_path: str = None, 
                  auxdata: dict = None, stream_object = None) -> None:
-        """Specify local data to run a backtest on.
+        """Specify local data to run AutoTrader on.
 
         Parameters
         ----------
@@ -1448,21 +1445,11 @@ class AutoTrader:
         utils = utils_module.Utils()
         broker = broker_module.Broker(broker_config, utils)
         
-        if self._backtest_mode:
-            # Backtesting; use virtual broker
-            if int(self._verbosity) > 0:
+        if self._backtest_mode or self._virtual_livetrading:
+            # Using virtual broker, initialise account
+            if int(self._verbosity) > 0 and self._backtest_mode:
                 banner = pyfiglet.figlet_format("AutoBacktest")
                 print(banner)
-                
-            broker._make_deposit(self._backtest_initial_balance)
-            broker.fee = self._backtest_spread
-            broker.leverage = self._backtest_leverage
-            broker.commission = self._backtest_commission
-            broker.spread = self._backtest_spread
-            broker.base_currency = self._base_currency
-        
-        elif self._virtual_livetrading:
-            # Using virtual broker, initialise account
             broker._make_deposit(self._virtual_initial_balance)
             broker.fee = self._virtual_spread
             broker.leverage = self._virtual_leverage
