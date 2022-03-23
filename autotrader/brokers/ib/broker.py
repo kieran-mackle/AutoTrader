@@ -47,7 +47,7 @@ class Broker:
         self.read_only = config['read_only'] if 'read_only' in config else False
         self.account = config['account'] if 'account' in config else ''
         
-        self._connect()
+        self.ib = ib_insync.IB()
         self._check_connection()
         self.account = self._get_account() if self.account == '' else self.account
         
@@ -372,7 +372,6 @@ class Broker:
     def _connect(self):
         """Connects from IB application.
         """
-        self.ib = ib_insync.IB()
         self.ib.connect(host=self.host, port=self.port, clientId=self.client_id, 
                         readonly=self.read_only, account=self.account)
 
@@ -393,6 +392,7 @@ class Broker:
         while not connected:
             try:
                 # Try to connect
+                self.ib = ib_insync.IB()
                 self._connect()
             except:
                 print("Connection to IB failed... trying to reconnect.")
