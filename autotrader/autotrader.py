@@ -235,14 +235,22 @@ class AutoTrader:
                                   spread: float = 0, commission: float = 0, 
                                   leverage: int = 1, 
                                   base_currency: str = 'AUD') -> None:
-        """Configures the virtual brokers initial state to allow livetrading
+        """Configures the virtual broker's initial state to allow livetrading
         on the virtual broker.
         
-        This method has not been implemented yet. Doing so would require the 
-        bot's to update the broker with data during livetrading, which is 
-        currently only a feature of backtesting.
+        Parameters
+        ----------
+        initial_balance : float, optional
+            The initial balance of the account. The default is 1000.
+        spread : float, optional
+            The bid/ask spread to use. The default is 0.
+        commission : float, optional
+            Trading commission as percentage per trade. The default is 0.
+        leverage : int, optional
+            Account leverage. The default is 1.
+        base_currency : str, optional
+            The base currency of the account. The default is 'AUD'.
         """
-        # TODO - docstrings
         # TODO - write broker log to file
         # Assign attributes
         self._virtual_livetrading = True
@@ -325,7 +333,7 @@ class AutoTrader:
         end_dt : datetime, optional
             Datetime object corresponding to end time. The default is None.
         initial_balance : float, optional
-            DESCRIPTION. The default is 1000.
+            The initial balance of the account. The default is 1000.
         spread : float, optional
             The bid/ask spread to use in backtest. The default is 0.
         commission : float, optional
