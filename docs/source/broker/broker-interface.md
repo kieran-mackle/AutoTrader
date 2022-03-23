@@ -66,7 +66,7 @@ autotrader.brokers
 
 ### Virtual Broker
 At the heart of AutoTrader's backtesting algorithm is the virtual broker, a Python class intended to replicate the 
-functionality of a real broker. See the documentation of the [Virtual Broker](virtual-broker) for more information.
+functionality of a real broker. See the documentation of the [Virtual Broker](virtual-broker-docs) for more information.
 
 
 ### Oanda v20 REST API

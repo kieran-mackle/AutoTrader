@@ -1,18 +1,14 @@
 (features-landing)=
 # AutoTrader Features
 
-
-Landing page style for features of AutoTrader, with links to specific deatiled showcase
-
-Dont forget to add showcase to collections to appear in search results
-
+AutoTrader is feature rich, with everything you need to go from concept to livetrading. Use the links 
+below to see some of the features AutoTrader has to show for.
 
 ```{toctree}
-:maxdepth: 2
-:hidden:
+:maxdepth: 1
 
 Backtesting <backtesting>
-Visualisation <visualisation>
+Interactive Visualisations <visualisation>
 Scanning <scanning>
 Live Trading <live-trading>
 Data Pipelines <data-feeds>
