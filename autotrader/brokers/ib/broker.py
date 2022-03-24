@@ -44,7 +44,7 @@ class Broker:
         
         self.host = config['host'] if 'host' in config else '127.0.0.1'
         self.port = config['port'] if 'port' in config else 7497
-        self.client_id = config['clientID'] if 'clientID' in config else 1
+        self.client_id = config['clientID'] if 'clientID' in config else random.randint(0, 9999)
         self.read_only = config['read_only'] if 'read_only' in config else False
         self.account = config['account'] if 'account' in config else ''
         
