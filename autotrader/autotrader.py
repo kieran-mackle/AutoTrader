@@ -257,7 +257,6 @@ class AutoTrader:
         base_currency : str, optional
             The base currency of the account. The default is 'AUD'.
         """
-        # TODO - write broker log to file
         # Assign attributes
         self._virtual_livetrading = True
         self._virtual_initial_balance = initial_balance
@@ -532,8 +531,8 @@ class AutoTrader:
         """
         # TODO - add option to specify strategy, in case multiple strategies
         # (requiring different data) are added to the instance
-        
-        dir_path = abs_dir_path if abs_dir_path is not None else os.path.join(self._home_dir, data_directory)
+        dir_path = abs_dir_path if abs_dir_path is not None \
+            else os.path.join(self._home_dir, data_directory)
         
         # Trading data
         if data_dict is not None:
@@ -1306,9 +1305,6 @@ class AutoTrader:
         
             else:
                 # Live trading
-                # TODO - improve management capabilities (update params, 
-                # kill specific bots, make instance files more identifying)
-                # perhaps even write output to the instance file?
                 instance_id = self._get_instance_id()
                 instance_str = f"autotrader_instance_{instance_id}" if \
                     self._instance_str is None else self._instance_str
@@ -1388,6 +1384,10 @@ class AutoTrader:
             # Live trade complete, run livetrade specific shutdown routines
             if self._broker_name.lower() == 'ib':
                 self._broker._disconnect()
+            
+            elif self._virtual_livetrading:
+                # TODO - write broker stats to file (trade summary and so on)
+                pass
         
         # Run strategy shutdown routines
         for bot in self._bots_deployed:
@@ -1682,7 +1682,9 @@ class AutoTrader:
             
             last_id = 0
             for instance in instances:
-                last_id = int(instance.split('_')[-1])
+                if 'autotrader_instance_' in instance:
+                    # Ignore custom instance strings
+                    last_id = int(instance.split('_')[-1])
             
             instance_id = last_id + 1
         
@@ -1695,7 +1697,10 @@ class AutoTrader:
         if initialisation:
             # Create the file
             filepath = os.path.join(self._home_dir, 'active_bots', instance_str)
-            with open(filepath, mode='a'): pass
+            with open(filepath, mode='w') as f:
+                f.write("This instance of AutoTrader contains the following bots:\n")
+                for bot in self._bots_deployed:
+                    f.write(bot._strategy_name + "\n")
             instance_file_exists = True
             
             if int(self._verbosity) > 0:
