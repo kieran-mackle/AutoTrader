@@ -116,7 +116,7 @@ class AutoTraderBot:
             strategy = getattr(strategy_module, strat_name)
         
         # Strategy shutdown routine
-        self.strategy_shutdown_method = strategy_dict['shutdown_method']
+        self._strategy_shutdown_method = strategy_dict['shutdown_method']
         
         # Get broker configuration 
         global_config_fp = os.path.join(self._home_dir, 'config', 
@@ -805,10 +805,10 @@ class AutoTraderBot:
     
     
     def _strategy_shutdown(self,):
-        if self.strategy_shutdown_method is not None:
+        if self._strategy_shutdown_method is not None:
             try:
-                shutdown_method = getattr(self._strategy, self.strategy_shutdown_method)
+                shutdown_method = getattr(self._strategy, self._strategy_shutdown_method)
                 shutdown_method()
             except AttributeError:
-                print(f"\nShutdown method '{self.strategy_shutdown_method}' not found!")
+                print(f"\nShutdown method '{self._strategy_shutdown_method}' not found!")
             
