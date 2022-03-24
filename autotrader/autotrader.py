@@ -67,16 +67,18 @@ class AutoTrader:
         """
         
         self._home_dir = None
-        self._order_summary_fp = None
-        self._global_config_dict = None
         self._verbosity = 1
+        
+        self._global_config_dict = None
+        self._instance_str = None
         self._run_mode = 'periodic'
         self._timestep = pd.Timedelta('10s').to_pytimedelta()
-        self._data_indexing = 'open'
-        self._data_stream_object = DataStream
-        self._broker_verbosity = 0
+        self._feed = 'yahoo'
+        self._req_liveprice = False
+        
         self._notify = 0
         self._email_params = None
+        self._order_summary_fp = None
         self._show_plot = False
         
         # Livetrade Parameters
@@ -85,6 +87,7 @@ class AutoTrader:
         
         self._broker = None
         self._broker_utils = None
+        self._broker_verbosity = 0
         self._environment = 'demo'
         self._account_id = None
         
@@ -92,8 +95,6 @@ class AutoTrader:
         self._strategy_classes = {}
         self._uninitiated_strat_files = []
         self._uninitiated_strat_dicts = []
-        self._feed = 'yahoo'
-        self._req_liveprice = False
         self._bots_deployed = []
         
         # Backtesting Parameters
@@ -102,6 +103,8 @@ class AutoTrader:
         self._data_end = None
         
         # Local Data Parameters
+        self._data_indexing = 'open'
+        self._data_stream_object = DataStream
         self._data_file = None
         self._MTF_data_files = None
         self._local_data = None
@@ -157,7 +160,7 @@ class AutoTrader:
                   environment: str = 'demo', show_plot: bool = False,
                   jupyter_notebook: bool = False, mode: str = 'periodic',
                   update_interval: str = '10s', data_index_time: str = 'open',
-                  global_config: dict = None) -> None:
+                  global_config: dict = None, instance_str: str = None) -> None:
         """Configures run settings for AutoTrader.
 
         Parameters
@@ -203,6 +206,11 @@ class AutoTrader:
             Optionally provide your global configuration directly as a 
             dictionary, rather than it being read in from a yaml file. The
             default is None. 
+        instance_str : str, optional
+            The name of the active AutoTrader instance, used to control bots
+            deployed when livetrading in continuous mode. When not specified,
+            the instance string will be of the form 'autotrader_instance_n'.
+            The default is None.
         
         Returns
         -------
@@ -210,7 +218,6 @@ class AutoTrader:
             Calling this method configures the internal settings of 
             the active AutoTrader instance.
         """
-        # TODO - option to specify using a custom DataStream? or auto detect it to overwrite feed
         self._verbosity = verbosity
         self._feed = feed
         self._req_liveprice = req_liveprice
@@ -226,6 +233,7 @@ class AutoTrader:
         self._timestep = pd.Timedelta(update_interval).to_pytimedelta()
         self._data_indexing = data_index_time
         self._global_config_dict = global_config
+        self._instance_str = instance_str
         
         
     def virtual_livetrade_config(self, initial_balance: float = 1000, 
@@ -1284,8 +1292,10 @@ class AutoTrader:
                 # Live trading
                 # TODO - improve management capabilities (update params, 
                 # kill specific bots, make instance files more identifying)
+                # perhaps even write output to the instance file?
                 instance_id = self._get_instance_id()
-                instance_str = f"autotrader_instance_{instance_id}"
+                instance_str = f"autotrader_instance_{instance_id}" if \
+                    self._instance_str is None else self._instance_str
                 instance_file_exists = self._check_instance_file(instance_str, True)
                 deploy_time = time.time()
                 while instance_file_exists:
@@ -1664,7 +1674,6 @@ class AutoTrader:
     def _check_instance_file(self, instance_str, initialisation=False):
         """Checks if the AutoTrader instance exists.
         """
-        # TODO - allow user specification of instance str
         if initialisation:
             # Create the file
             filepath = os.path.join(self._home_dir, 'active_bots', instance_str)
