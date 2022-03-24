@@ -260,9 +260,11 @@ class AutoTraderBot:
             if int(self._verbosity) > 1:
                 if len(orders) > 0:
                     for order in orders:
-                        order_string = "{}: {} {}".format(order.order_time.strftime("%b %d %Y %H:%M:%S"), 
-                                                          order.instrument, 
-                                                          order.order_type) + \
+                        direction = 'long' if order.direction > 1 else 'short'
+                        order_string = "{}: {} {} {}".format(order.order_time.strftime("%b %d %Y %H:%M:%S"), 
+                                                             order.instrument, 
+                                                             direction,
+                                                             order.order_type) + \
                             " order of {} units placed at {}.".format(order.size,
                                                                       order.order_price)
                         print(order_string)
