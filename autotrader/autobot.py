@@ -803,10 +803,12 @@ class AutoTraderBot:
             
         return plot_data
     
+    
     def _strategy_shutdown(self,):
-        try:
-            shutdown_method = getattr(self._strategy, self.strategy_shutdown_method)
-            shutdown_method()
-        except AttributeError:
-            print(f"\nShutdown method '{self.strategy_shutdown_method}' not found!")
+        if self.strategy_shutdown_method is not None:
+            try:
+                shutdown_method = getattr(self._strategy, self.strategy_shutdown_method)
+                shutdown_method()
+            except AttributeError:
+                print(f"\nShutdown method '{self.strategy_shutdown_method}' not found!")
             
