@@ -1339,7 +1339,11 @@ class AutoTrader:
         if int(self._verbosity) > 0 and self._backtest_mode:
             backtest_end_time = timeit.default_timer()
         
-        # Run shut-down routine
+        # Run strategy-specific shutdown routines
+        for bot in self._bots_deployed:
+            bot._strategy_shutdown()
+            
+        # Run instance shut-down routine
         if self._backtest_mode:
             # Create backtest summary for each bot 
             for bot in self._bots_deployed:
@@ -1388,10 +1392,6 @@ class AutoTrader:
                 # look to AutoTraderBot._create_backtest_summary for process
                 pass
         
-        # Run strategy shutdown routines
-        for bot in self._bots_deployed:
-            bot._strategy_shutdown()
-            
 
     def _clear_strategies(self) -> None:
         """Removes all strategies saved in autotrader instance.
