@@ -376,6 +376,7 @@ class AutoPlot:
             name: the desired column name of the merged data
         """
         # TODO - need to add handling of different data types, ie. list vs. series vs. df
+        # Mainly check if the series has a name or not
         merged_data = pd.merge(self._data, data, left_on='date', 
                                right_index=True).fillna('')
         

@@ -1699,7 +1699,7 @@ class AutoTrader:
             with open(filepath, mode='w') as f:
                 f.write("This instance of AutoTrader contains the following bots:\n")
                 for bot in self._bots_deployed:
-                    f.write(bot._strategy_name + "\n")
+                    f.write(bot._strategy_name + f" ({bot.instrument})\n")
             instance_file_exists = True
             
             if int(self._verbosity) > 0:

@@ -258,19 +258,16 @@ class AutoTraderBot:
                     self._broker.place_order(order, order_time=order_time)
             
             if int(self._verbosity) > 1:
+                current_time = current_bars[list(current_bars.keys())[0]].name.strftime('%b %d %Y %H:%M:%S')
                 if len(orders) > 0:
                     for order in orders:
                         direction = 'long' if order.direction > 1 else 'short'
-                        order_string = "{}: {} {} {}".format(order.order_time.strftime("%b %d %Y %H:%M:%S"), 
-                                                             order.instrument, 
-                                                             direction,
-                                                             order.order_type) + \
-                            " order of {} units placed at {}.".format(order.size,
-                                                                      order.order_price)
+                        order_string = f"{current_time}: {order.instrument} "+\
+                            f"{direction} {order.order_type} order of " + \
+                            f"{order.size} units placed at {order.order_price}."
                         print(order_string)
                 else:
                     if int(self._verbosity) > 2:
-                        current_time = current_bars[list(current_bars.keys())[0]].name.strftime('%b %d %Y %H:%M:%S')
                         print(f"{current_time}: No signal detected ({self.instrument}).")
             
             # Check for orders placed and/or scan hits
