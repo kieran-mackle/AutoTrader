@@ -1367,7 +1367,7 @@ class AutoTrader:
             
             if self._show_plot:
                 if len(self._bots_deployed) == 1:
-                    if len(self._bots_deployed[0].backtest_summary['trade_summary']) > 0:
+                    if len(self._broker.trades) > 0:
                         self.plot_backtest(bot=self._bots_deployed[0])
                 
                 else:
