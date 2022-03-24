@@ -93,6 +93,7 @@ class AutoTrader:
         
         self._strategy_configs = {}
         self._strategy_classes = {}
+        self._shutdown_methods = {}
         self._uninitiated_strat_files = []
         self._uninitiated_strat_dicts = []
         self._bots_deployed = []
@@ -270,7 +271,8 @@ class AutoTrader:
         
 
     def add_strategy(self, config_filename: str = None, 
-                     config_dict: dict = None, strategy = None) -> None:
+                     config_dict: dict = None, strategy = None,
+                     shutdown_method: str = None) -> None:
         """Adds a strategy to AutoTrader.
 
         Parameters
@@ -283,6 +285,11 @@ class AutoTrader:
             dictionary can be passed directly. The default is None.
         strategy : AutoTrader Strategy, optional
             The strategy class object. The default is None.
+        shutdown_method : str, optional
+            The name of the shutdown method in the strategy (if any). This
+            method will be called when AutoTrader is livetrading in continuous
+            mode, and the instance has recieved the shutdown signal. The 
+            default is None.
 
         Returns
         -------
@@ -296,6 +303,12 @@ class AutoTrader:
                 self._uninitiated_strat_dicts.append(config_dict)
             else:
                 self._uninitiated_strat_files.append(config_filename)
+            
+            if shutdown_method is not None:
+                raise Exception("Providing the shutdown method requires "+\
+                                "the home directory to have been configured. "+\
+                                "please either specify it, or simply call "+\
+                                "the configure method before adding a strategy.")
             
         else:
             # Home directory has been set
@@ -315,6 +328,8 @@ class AutoTrader:
                 print("Conflicting name:", name)
             
             self._strategy_configs[name] = new_strategy
+            
+            self._shutdown_methods[name] = shutdown_method
             
         if strategy is not None:
             self._strategy_classes[strategy.__name__] = strategy
@@ -1257,7 +1272,8 @@ class AutoTrader:
                 strategy_class = self._strategy_configs[strategy]['CLASS']
                 strategy_dict = {'config': self._strategy_configs[strategy],
                                  'class': self._strategy_classes[strategy_class] \
-                                     if strategy_class in self._strategy_classes else None}
+                                     if strategy_class in self._strategy_classes else None,
+                                 'shutdown_method': self._shutdown_methods[strategy]}
                 bot = AutoTraderBot(instrument, strategy_dict,
                                     self._broker, self._data_start, data_dict, 
                                     quote_data_path, auxdata, self)
@@ -1369,11 +1385,13 @@ class AutoTrader:
                 time.sleep(0.3)
         
         else:
-            # Live trade complete, run shutdown
-            # TODO - option to pickle bot instances when they finish, or have 
-            # other upon-completion routines (eg broker disconnects)
+            # Live trade complete, run livetrade specific shutdown routines
             if self._broker_name.lower() == 'ib':
                 self._broker._disconnect()
+        
+        # Run strategy shutdown routines
+        for bot in self._bots_deployed:
+            bot._strategy_shutdown()
             
 
     def _clear_strategies(self) -> None:
