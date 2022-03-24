@@ -529,8 +529,6 @@ class AutoTrader:
                            }
             
         """
-        # TODO - add option to specify strategy, in case multiple strategies
-        # (requiring different data) are added to the instance
         dir_path = abs_dir_path if abs_dir_path is not None \
             else os.path.join(self._home_dir, data_directory)
         
@@ -1387,6 +1385,7 @@ class AutoTrader:
             
             elif self._virtual_livetrading:
                 # TODO - write broker stats to file (trade summary and so on)
+                # look to AutoTraderBot._create_backtest_summary for process
                 pass
         
         # Run strategy shutdown routines
