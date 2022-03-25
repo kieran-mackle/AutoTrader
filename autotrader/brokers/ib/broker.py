@@ -318,25 +318,24 @@ class Broker:
                         'portfolio_items': [item],
                         'instrument': pos_symbol}
             
-            symbol_match = instrument == pos_symbol
-            localSymbol_match = instrument == item.contract.localSymbol
+            symbol_match = instrument == pos_symbol # Product symbol match
+            localSymbol_match = instrument == item.contract.localSymbol # localSymbol match
             unique_match = symbol_match or localSymbol_match
             
             if instrument is not None and unique_match:
-                
+                # The current item matches the request, append it
                 key_symbol = item.contract.localSymbol if \
                     localSymbol_match else item.contract.symbol
                 
                 pos_dict['instrument'] = key_symbol
                 
-                # Only add positions in requested symbol
                 if pos_symbol in open_positions:
-                    # Position item already exists, append portfolio item
+                    # Portfolio item already exists, append portfolio item
                     existing_pos = open_positions[pos_symbol]
                     adjust_position(existing_pos, item, pos_dict)
                 else:
                     # New position
-                    open_positions[pos_symbol] = Position(**pos_dict)
+                    open_positions[key_symbol] = Position(**pos_dict)
                 
             elif instrument is None:
                 # Append all positions
