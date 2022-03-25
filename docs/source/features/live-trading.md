@@ -4,6 +4,9 @@ What use would backtesting be if you can't take the same strategy live? This is 
 AutoTrader, which features a seamless transition from backtesting to livetrading.
 
 
+## Supported Brokers
+AutoTrader currently supports Oanda and Interactive Brokers for livetrading.
+
 
 ## Backtest Validation
 Another important feature of AutoTrader is its backtest validation functionality. 
