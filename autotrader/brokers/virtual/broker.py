@@ -580,7 +580,7 @@ class Broker:
                     if units_to_reduce >= trade.size:
                         # Entire trade must be closed
                         last_price = trade.last_price
-                        self._close_trade(order_id=trade_id, exit_price=last_price)
+                        self._close_trade(trade_id=trade_id, exit_price=last_price)
                         
                         # Update units_to_reduce
                         units_to_reduce -= abs(trade.size)
