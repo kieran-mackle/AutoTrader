@@ -573,7 +573,7 @@ class Broker:
         # Modify existing trades until there are no more units to reduce
         units_to_reduce = reduction_size
         while units_to_reduce > 0:
-            for trade_id, trade in open_trades:
+            for trade_id, trade in open_trades.items():
                 if trade.direction != reduction_direction:
                     # Only reduce long trades when reduction direction is -1
                     # Only reduce short trades when reduction direction is 1
