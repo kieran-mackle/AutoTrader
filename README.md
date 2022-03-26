@@ -20,7 +20,7 @@
   </a>
   
   <a>
-    <img src="https://github.com/kieran-mackle/AutoTrader-Private/actions/workflows/ci.yml/badge.svg" alt="Build Status" >
+    <img src="https://github.com/kieran-mackle/AutoTrader-Private/actions/workflows/tests.yml/badge.svg" alt="Build Status" >
   </a>
 
 </p>
