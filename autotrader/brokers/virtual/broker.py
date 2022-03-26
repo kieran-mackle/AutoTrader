@@ -1,4 +1,5 @@
 from __future__ import annotations
+import numpy as np
 import pandas as pd
 from autotrader.brokers.trading import Order, Trade, Position
 from autotrader.brokers.broker_utils import BrokerUtils
@@ -22,7 +23,7 @@ class Broker:
         self.spread = 0 # TODO - pips or price units? Add docs
         self.margin_available = 0
         self.portfolio_balance = 0
-        self.hedging = False # TODO - implement
+        self.hedging = False
         
         self.profitable_trades = 0
         self.peak_value = 0
@@ -220,7 +221,8 @@ class Broker:
                                        'short_margin': short_margin,
                                        'total_margin': total_margin,
                                        'trade_IDs': trade_IDs,
-                                       'instrument': instrument,}
+                                       'instrument': instrument,
+                                       'net_position': long_units-short_units}
                 
                 instrument_position = Position(**instrument_position)
                 
@@ -239,33 +241,61 @@ class Broker:
     def _fill_order(self, order_id: int, candle: pd.core.series.Series, 
                     limit_price: float = None) -> None:
         """Fills an open order.
+        
+        Notes
+        -----
+        If hedging is not enabled, any orders which are contrary to an open
+        position will first reduce (or close) the open position before 
+        being filled. If the units remaining of the order after reducing the 
+        open position exceed margin requirements, the entire order will be 
+        cancelled, and the original position will not be impacted.
         """
+        
         order = self.orders[order_id]
         
+        close_existing_position = False
+        if not self.hedging:
+            current_position = self.get_positions(order.instrument)
+            net_position = current_position[order.instrument].net_position \
+                if current_position else order.direction
+            if order.direction != np.sign(net_position):
+                if order.size > abs(net_position):
+                    # Modify order size to remaining units
+                    order.size -= abs(net_position)
+                    close_existing_position = True
+                    # What happens to this when the margin req prevents it?
+                    
+                else:
+                    # Reduce the current position
+                    self._reduce_position(order)
+                    order.status = 'closed'
+                    return
+            
         # Calculate margin requirements
         current_price = candle.Open
         pip_value = self.utils.get_pip_ratio(order.instrument) # TODO - implications on non FX?
-        size = self.orders[order_id].size
-        HCF = self.orders[order_id].HCF
-        position_value = abs(size) * current_price * HCF
+        position_value = order.size * current_price * order.HCF
         margin_required = self._calculate_margin(position_value)
-        
-        spread_cost = abs(size) * self.spread * pip_value
+        spread_cost = order.size * self.spread * pip_value
         spread_shift = 0.5 * order.direction * self.spread * pip_value
         
         if margin_required < self.margin_available:
-            # Fill order
-            trade = Trade(order)
-            
-            # Trade id
-            trade_id = self._get_new_trade_id()
-            trade.id = trade_id
-            trade.time_filled = candle.name
-            
+            # Determine working price
             if limit_price is None:
-                trade.fill_price = candle.Open + spread_shift
+                working_price = candle.Open + spread_shift
             else:
-                trade.fill_price = limit_price + spread_shift
+                working_price = limit_price + spread_shift
+                
+            if close_existing_position:
+                # Close the open position before proceeding
+                self._close_position(order.instrument, candle, working_price)
+            
+            # Fill order
+            trade_id = self._get_new_trade_id()
+            trade = Trade(order)
+            trade.id = trade_id
+            trade.fill_price = working_price
+            trade.time_filled = candle.name
             self.trades[trade_id] = trade
             
             # Subtract spread cost from account NAV
