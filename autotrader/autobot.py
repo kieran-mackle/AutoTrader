@@ -119,12 +119,15 @@ class AutoTraderBot:
         self._strategy_shutdown_method = strategy_dict['shutdown_method']
         
         # Get broker configuration 
-        global_config_fp = os.path.join(self._home_dir, 'config', 
-                                        'GLOBAL.yaml')
-        if os.path.isfile(global_config_fp):
-            global_config = read_yaml(global_config_fp)
+        if self._global_config_dict is not None:
+            # Use global config dict provided
+            global_config = self._global_config_dict
         else:
-            global_config = None
+            global_config_fp = os.path.join(self._home_dir, 'config', 'GLOBAL.yaml')
+            if os.path.isfile(global_config_fp):
+                global_config = read_yaml(global_config_fp)
+            else:
+                global_config = None
         broker_config = get_config(self._environment, global_config, self._feed)
    
         # Data retrieval
@@ -152,6 +155,7 @@ class AutoTraderBot:
         self._refresh_data(deploy_dt)
         
         # Instantiate Strategy
+        # TODO - data stream is passed in here...
         if strategy_config['INCLUDE_BROKER']:
             my_strat = strategy(params, self._strat_data, instrument, 
                                 self._broker, self._broker_utils, 
