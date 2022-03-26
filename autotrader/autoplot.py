@@ -793,8 +793,10 @@ class AutoPlot:
                     
                     else:
                         # Generic indicator - plot as line
-                        if type(indicators[indicator]['data']) == pd.Series:
+                        if isinstance(indicators[indicator]['data'], pd.Series):
                             # Merge indexes
+                            if indicators[indicator]['data'].name is None:
+                                indicators[indicator]['data'].name = 'data'
                             merged_indicator_data = pd.merge(self._data, 
                                                              indicators[indicator]['data'], 
                                                              left_on='date', 
