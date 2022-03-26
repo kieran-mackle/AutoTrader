@@ -24,12 +24,9 @@ def test_macd_backtest():
     at.plot_settings(show_cancelled=False)
     at.add_data({'EUR_USD': 'EUR_USD_H4.csv'}, 
                 data_directory=os.path.join(home_dir, 'data'))
-    at.backtest(start = '1/1/2015',
-                end = '1/3/2022',
-                initial_balance=1000,
-                leverage=30,
-                spread=0.5,
-                commission=0.005)
+    at.backtest(start = '1/1/2015', end = '1/3/2022',
+                initial_balance=1000, leverage=30,
+                spread=0.5, commission=0.005, hedging=True)
     at.run()
     bot = at.get_bots_deployed()
     bt_results = at.analyse_backtest(bot)
@@ -64,16 +61,12 @@ def test_multibot_macd_backtest():
     at.add_data({'EUR_USD': 'EUR_USD_H4.csv',
                   'EUR_USD2': 'EUR_USD_H4.csv'}, 
                 data_directory=os.path.join(home_dir, 'data'))
-    at.backtest(start = '1/1/2015',
-                end = '1/3/2022',
-                initial_balance=1000,
-                leverage=30,
-                spread=0.5,
-                commission=0.005)
+    at.backtest(start = '1/1/2015', end = '1/3/2022',
+                initial_balance=1000, leverage=30,
+                spread=0.5, commission=0.005, hedging=True)
     at.run()
     bots = at.get_bots_deployed()
     EU1bot = bots['EUR_USD']
-    EU2bot = bots['EUR_USD2']
     bt_results = at.multibot_backtest_results
     
     assert round(bt_results['win_rate'][0],5) == 38.59649
