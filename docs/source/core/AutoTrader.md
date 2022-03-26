@@ -96,8 +96,19 @@ The charts below illustrate this mode.
 :class: only-dark
 ```
 
+(autotrader-instance-file)=
 #### Livetrading Bot Management
-Kill files.
+When bots are deployed for livetrading in continuous mode, a directory named 'active_bots' will be created in the working 
+directory. In this directory, an 'instance file' will be created for each active instance of AutoTrader. The contents of 
+the instance file includes the trading bots deployed in that instance, and the instruments they are trading. This provides
+a reference as to which AutoTrader instance contains which trading bots. To kill an active instance of AutoTrader, simply
+delete (or rename) the instance file. This will safely terminate the active bots, and proceed with the 
+[shutdown routines](strategy-shutdown-routine).
+
+```{seealso}
+The name of the instance file can be customised using the `instance_str` argument of the 
+[configure](autotrader-configure) method.
+```
 
 
 
@@ -128,6 +139,13 @@ local data file(s), you should always call the `configure` method prior to speci
 
 ```{eval-rst}
 .. automethod:: autotrader.autotrader.AutoTrader.backtest
+```
+
+(autotrader-virtual-livetrade-config)=
+### Virtual Livetrade Configuration
+
+```{eval-rst}
+.. automethod:: autotrader.autotrader.AutoTrader.virtual_livetrade_config
 ```
 
 

@@ -6,7 +6,37 @@ from autotrader.brokers.broker_utils import BrokerUtils
 
 
 class Broker:
-    """Autotrader virtual broker to simulate trading.
+    """Autotrader virtual broker to simulate trading in backtest.
+
+    Attributes
+    ----------
+    orders : dict
+        A dictionary containing Orders submitted.
+    trades : dict
+        A dictionary containing all trades.
+    leverage : int
+        The account leverage.
+    spread : float
+        The average spread to use when opening and closing trades.
+    margin_available : float
+        The margin available on the account.
+    portfolio_balance : float
+        The account balance.
+    hedging : bool
+        Flag whethere hedging is enabled on the account. The default is False.
+    home_currency : str
+        The default is 'AUD'.
+    NAV : float
+        The net asset value of the account.
+    unrealised_PL : float
+        The unrealised (floating) PnL.
+    verbosity : int
+        The verbosity of the broker.
+    commission_scheme : str
+        The default is 'percentage'.
+    commission : float
+        The commission value.
+
     """
     
     def __init__(self, broker_config: dict, utils: BrokerUtils) -> None:

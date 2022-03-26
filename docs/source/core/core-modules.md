@@ -65,3 +65,10 @@ Each bot will also be connected to a [broker API](broker-interface). When they r
 they will place an order with the broker. This modular structure allows for a seamless transition from backtesting to 
 livetrading. 
 
+
+(shutdown-routines-overview)=
+### Shutdown Routines
+AutoTrader also supports the inclusion of strategy-specific shutdown routines. This includes any processes you would like 
+to run *after* your strategy is finished trading. This may include writing data to file, pickling the strategy instance,
+or sending termination emails. Read more about this functionality [here](strategy-shutdown-routine).
+

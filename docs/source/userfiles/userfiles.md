@@ -18,6 +18,6 @@ details.
 :hidden:
 
 Trading Strategy <strategy>
-Strategy Configuration <strategy-config>
-Account Configuration <global-config>
+Strategy Configuration <strategy-configuration>
+Account Configuration <global-configuration>
 ```

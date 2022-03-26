@@ -197,3 +197,34 @@ def generate_signal(self, data, current_positions):
     return order
 ```
 ````
+
+
+(strategy-shutdown-routine)=
+## Shutdown Routine
+If you have a process you would like to exectue *after* your strategy has finished running, you may use the
+shutdown routine functionality to do so. This involves creating a method involving your shutdown routine and
+specifying it to AutoTrader via the [`add_strategy`](autotrader-add-strategy) method.
+
+To explain this functionality, consider you are livetrading with a strategy which maintains many open trades 
+at once. If you have this bot deployed in [continuous update mode](autotrader-continuous-mode) and would like 
+to terminate it by deleting its [instance file](autotrader-instance-file), you likely would like it to safely
+close all open trades before terminating. Else, you may have unmanaged trades left open on your account. To
+prevent this, you may create a shutdown routine as shown below, which cancels any pending orders and closes 
+all remaining open trades.
+
+
+```python
+def safe_exit_strategy(self):
+    # Cancel all pending orders
+    pending_orders = self.broker.get_orders(self.instrument, 'pending')
+    for order_id in pending_orders:
+        self.broker.cancel_order(order_id)
+    
+    # Close all open trades
+    close_order = Order(instrument=self.instrument, order_type='close')
+    self.broker.place_order(close_order)
+```
+
+If you provide the name of your shutdown routine - in the example above this is 'safe_exit_strategy' - to 
+AutoTrader via the `shutdown_method` argument of the [`add_strategy`](autotrader-add-strategy) method, it 
+will be called when the bot is terminated.
