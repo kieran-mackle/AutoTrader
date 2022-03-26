@@ -328,8 +328,8 @@ class Trade(Order):
     def __init__(self, order: Order = None) -> Trade:
         
         # Trade data
-        self.unrealised_PL = None
-        self.margin_required = None
+        self.unrealised_PL = 0
+        self.margin_required = 0
         self.time_filled = None
         self.fill_price = None
         
