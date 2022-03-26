@@ -434,9 +434,9 @@ class Position:
         self.short_margin = None
         self.total_margin = None
         self.trade_IDs = None
+        self.net_position = None
         
         # IB Attributes
-        self.net_position = None
         self.PL = None
         self.contracts = None
         self.portfolio_items = None

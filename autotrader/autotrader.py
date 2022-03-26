@@ -118,6 +118,7 @@ class AutoTrader:
         self._virtual_spread = None
         self._virtual_commission = None
         self._virtual_leverage = None
+        self._virtual_broker_hedging = False
         self._base_currency = None
         
         # Optimisation Parameters
@@ -239,8 +240,8 @@ class AutoTrader:
         
     def virtual_livetrade_config(self, initial_balance: float = 1000, 
                                   spread: float = 0, commission: float = 0, 
-                                  leverage: int = 1, 
-                                  base_currency: str = 'AUD') -> None:
+                                  leverage: int = 1, base_currency: str = 'AUD', 
+                                  hedging: bool = False) -> None:
         """Configures the virtual broker's initial state to allow livetrading
         on the virtual broker.
         
@@ -256,6 +257,10 @@ class AutoTrader:
             Account leverage. The default is 1.
         base_currency : str, optional
             The base currency of the account. The default is 'AUD'.
+        hedging : bool, optional
+            Allow hedging in the virtual broker (opening simultaneous 
+            trades in oposing directions). The default is False.
+            
         """
         # Assign attributes
         self._virtual_livetrading = True
@@ -263,6 +268,7 @@ class AutoTrader:
         self._virtual_spread = spread
         self._virtual_commission = commission
         self._virtual_leverage = leverage
+        self._virtual_broker_hedging = hedging
         self._base_currency = base_currency
         
         # Enforce virtual broker
@@ -338,7 +344,7 @@ class AutoTrader:
                  initial_balance: float = 1000, spread: float = 0, 
                  commission: float = 0, leverage: int = 1,
                  base_currency: str = 'AUD', start_dt: datetime = None, 
-                 end_dt: datetime = None) -> None:
+                 end_dt: datetime = None, hedging: bool = False) -> None:
         """Configures settings for backtesting.
 
         Parameters
@@ -361,6 +367,9 @@ class AutoTrader:
             Account leverage. The default is 1.
         base_currency : str, optional
             The base currency of the account. The default is 'AUD'.
+        hedging : bool, optional
+            Allow hedging in the virtual broker (opening simultaneous 
+            trades in oposing directions). The default is False.
             
         Notes
         ------
@@ -382,6 +391,7 @@ class AutoTrader:
         self._virtual_spread = spread
         self._virtual_commission = commission
         self._virtual_leverage = leverage
+        self._virtual_broker_hedging = hedging
         self._base_currency = base_currency
         
         # Enforce virtual broker
@@ -1483,6 +1493,7 @@ class AutoTrader:
             broker.commission = self._virtual_commission
             broker.spread = self._virtual_spread
             broker.base_currency = self._base_currency
+            broker.hedging = self._virtual_broker_hedging
         
         self._broker = broker
         self._broker_utils = utils
