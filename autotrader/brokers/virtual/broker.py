@@ -577,7 +577,7 @@ class Broker:
                 if trade.direction != reduction_direction:
                     # Only reduce long trades when reduction direction is -1
                     # Only reduce short trades when reduction direction is 1
-                    if units_to_reduce > trade.size:
+                    if units_to_reduce >= trade.size:
                         # Entire trade must be closed
                         last_price = trade.last_price
                         self._close_trade(order_id=trade_id, exit_price=last_price)

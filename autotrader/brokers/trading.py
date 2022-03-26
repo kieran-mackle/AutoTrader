@@ -379,7 +379,7 @@ class Trade(Order):
             setattr(split_trade, attribute, value)
         
         # Reset ID
-        split_trade.parent_id = trade.order_id
+        split_trade.parent_id = trade.parent_id
         split_trade.order_id = None
         
         # Transfer units
