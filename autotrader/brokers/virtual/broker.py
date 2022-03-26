@@ -293,7 +293,6 @@ class Broker:
                     # Modify order size to remaining units
                     order.size -= abs(net_position)
                     close_existing_position = True
-                    # What happens to this when the margin req prevents it?
                     
                 else:
                     # Reduce the current position
