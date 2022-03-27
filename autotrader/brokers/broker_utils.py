@@ -204,7 +204,7 @@ class BrokerUtils:
                       instrument: str = None) -> pd.DataFrame:
         """Creates backtest trade summary dataframe.
         """
-        if trades:
+        if trades is not None:
             iter_dict = trades
         else:
             iter_dict = orders
@@ -221,7 +221,7 @@ class BrokerUtils:
         stop_price = []
         take_price = []
         
-        if trades:
+        if trades is not None:
             entry_time = []
             fill_price = []
             profit = []
@@ -242,7 +242,7 @@ class BrokerUtils:
             stop_price.append(item.stop_loss)
             take_price.append(item.take_profit)
         
-        if trades:
+        if trades is not None:
             for trade_id, trade in iter_dict.items():
                 entry_time.append(trade.time_filled)
                 fill_price.append(trade.fill_price)
