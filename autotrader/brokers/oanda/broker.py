@@ -529,7 +529,7 @@ class Broker:
         price = self._check_precision(order.instrument, 
                                      order.order_stop_price)
         
-        trigger_condition = order.trigger_price if "trigger_price" in order else "DEFAULT"
+        trigger_condition = order.trigger_price
         
         # Need to test cases when no stop/take is provided (as None type)
         response = self.api.order.market_if_touched(accountID = self.ACCOUNT_ID,

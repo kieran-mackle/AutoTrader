@@ -69,12 +69,15 @@ class Order:
         
         self.data_name = None # When using custom DataStream
         
-        # IB properties
+        # IB attributes
         self.currency = None
         self.secType = None
         self.exchange = None
         self.contract_month = None
         self.localSymbol = None
+        
+        # Oanda attributes
+        self.trigger_price = "DEFAULT"
         
         self.reason = None
         

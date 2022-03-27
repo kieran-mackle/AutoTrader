@@ -1234,7 +1234,7 @@ class AutoTrader:
                             'configuration. If a config file already '+ \
                             'exists, make sure to specify the home_dir.')
             
-        broker_config = get_config(self._environment, global_config, self._feed)
+        broker_config = get_config(self._environment, global_config, self._broker_name)
         
         if self._account_id is not None:
             # Overwrite default account in global config
