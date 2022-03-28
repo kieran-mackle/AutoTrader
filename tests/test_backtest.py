@@ -75,5 +75,5 @@ def test_multibot_macd_backtest():
     assert bt_results['no_long'][1] == 93, "Incorrect number of long trades"
     assert bt_results['no_short'][0] == 133, "Incorrect number of short trades"
     assert bt_results['no_short'][1] == 131, "Incorrect number of short trades"
-    assert round(EU1bot.backtest_summary['account_history']['balance'][-1], 5) == 565.81498, "Incorrect ending balance"
+    assert round(EU1bot.backtest_summary['account_history']['balance'][-1], 5) == 586.76734, "Incorrect ending balance"
 
