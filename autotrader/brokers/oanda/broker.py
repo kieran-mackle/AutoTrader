@@ -536,11 +536,12 @@ class Broker:
         
         # Check and correct order stop price
         price = self._check_precision(order.instrument, 
-                                     order.order_stop_price)
+                                      order.order_stop_price)
         
         trigger_condition = order.trigger_price
         
         # Need to test cases when no stop/take is provided (as None type)
+        # TODO - support other order types (see link above, market is default)
         response = self.api.order.market_if_touched(accountID = self.ACCOUNT_ID,
                                                     instrument = order.instrument,
                                                     units = order.direction * order.size,
