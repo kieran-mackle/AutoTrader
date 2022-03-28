@@ -99,15 +99,18 @@ class Broker:
                 new_order['direction'] = np.sign(order.units)
                 new_order['order_time'] = order.createTime
                 new_order['instrument'] = order.instrument
-                new_order['size'] = order.units
+                new_order['size'] = abs(order.units)
                 new_order['order_price'] = order.price
-                new_order['take_profit'] = order.takeProfitOnFill.price if order.takeProfitOnFill is not None else None
-                new_order['take_distance'] = None
-                new_order['stop_loss'] = None # TODO - include
-                new_order['stop_type'] = None
-                new_order['stop_distance'] = None
-                new_order['related_orders'] = None
                 
+                # Check for take profit
+                if order.takeProfitOnFill is not None:
+                    new_order['take_profit'] = order.takeProfitOnFill.price
+                
+                # Check for stop loss
+                if order.stopLossOnFill is not None:
+                    new_order['stop_loss'] = order.stopLossOnFill.price
+                    new_order['stop_type'] = 'limit'
+                    
                 if instrument is not None and order.instrument == instrument:
                     orders[order.id] = Order._from_dict(new_order)
                 elif instrument is None:
@@ -126,8 +129,6 @@ class Broker:
     
     def get_trades(self, instruments=None, **kwargs) -> dict:
         """Returns the open trades held by the account. 
-        
-        (incomplete implementation)
         """
         self._check_connection()
         response = self.api.trade.list_open(accountID=self.ACCOUNT_ID)
@@ -136,29 +137,35 @@ class Broker:
         open_trades = {}
         for trade in oanda_open_trades:
             new_trade = {}
+            related_orders = []
             new_trade['order_ID']           = trade.id
             new_trade['order_stop_price']   = trade.price
             new_trade['order_limit_price']  = trade.price
             new_trade['direction']          = np.sign(trade.currentUnits)
             new_trade['order_time']         = trade.openTime
             new_trade['instrument']         = trade.instrument
-            new_trade['size']               = trade.currentUnits
+            new_trade['size']               = abs(trade.currentUnits)
             new_trade['order_price']        = trade.price
             new_trade['entry_price']        = trade.price
-            new_trade['order_type']         = None
-            new_trade['strategy']           = None
-            new_trade['granularity']        = None
-            new_trade['take_profit']        = None
-            new_trade['take_distance']      = None
-            new_trade['stop_type']          = None
-            new_trade['stop_distance']      = None
-            new_trade['stop_loss']          = None
-            new_trade['related_orders']     = None
+            
+            # Check for take profit
+            if trade.takeProfitOrder is not None:
+                new_trade['take_profit']    = trade.takeProfitOrder.price
+                related_orders.append(trade.takeProfitOrder.id)
+            
+            # Check for stop loss
+            if trade.stopLossOrder is not None:
+                new_trade['stop_loss']    = trade.stopLossOrder.price
+                new_trade['stop_type']    = 'limit'
+                related_orders.append(trade.stopLossOrder.id)
+            
+            if related_orders is not None:
+                new_trade['related_orders'] = related_orders
             
             if instruments is not None and trade.instrument in instruments:
-                open_trades[trade.id] = Trade(new_trade)
+                open_trades[trade.id] = Trade(**new_trade)
             elif instruments is None:
-                open_trades[trade.id] = Trade(new_trade)
+                open_trades[trade.id] = Trade(**new_trade)
         
         return open_trades
     
@@ -166,6 +173,7 @@ class Broker:
     def get_trade_details(self, trade_ID: int):
         """Returns the details of the trade specified by trade_ID.
         """
+        
         response = self.api.trade.list(accountID=self.ACCOUNT_ID, ids=int(trade_ID))
         trade = response.body['trades'][0]
         
@@ -196,6 +204,7 @@ class Broker:
             pass
         details['related_orders'] = related
         
+        # TODO - veryify functionality of below...
         return Trade(trade)
     
     
@@ -462,7 +471,7 @@ class Broker:
                 # Attempt basic task to check connection
                 self.api.account.get(accountID=self.ACCOUNT_ID)
             
-            except BaseException as ex:
+            except BaseException:
                 # Error has occurred
                 ex_type, ex_value, ex_traceback = sys.exc_info()
             
