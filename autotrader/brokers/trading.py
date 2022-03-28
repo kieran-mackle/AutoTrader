@@ -325,7 +325,7 @@ class Trade(Order):
     -----
     When a trade is created from an Order, the Order will be marked as filled.
     """
-    def __init__(self, order: Order = None) -> Trade:
+    def __init__(self, order: Order = None, **kwargs) -> Trade:
         
         # Trade data
         self.unrealised_PL = 0
@@ -348,6 +348,10 @@ class Trade(Order):
         self.status = None # options: open -> closed
         self.split = False
         
+        # Unpack kwargs
+        for item in kwargs:
+            setattr(self, item, kwargs[item])
+            
         # Inherit order attributes
         if order:
             self._inheret_order(order)
