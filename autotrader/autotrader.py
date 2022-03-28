@@ -119,6 +119,7 @@ class AutoTrader:
         self._virtual_commission = None
         self._virtual_leverage = None
         self._virtual_broker_hedging = False
+        self._virtual_margin_call = 0
         self._base_currency = None
         
         # Optimisation Parameters
@@ -162,7 +163,8 @@ class AutoTrader:
                   environment: str = 'demo', show_plot: bool = False,
                   jupyter_notebook: bool = False, mode: str = 'periodic',
                   update_interval: str = '10s', data_index_time: str = 'open',
-                  global_config: dict = None, instance_str: str = None) -> None:
+                  global_config: dict = None, instance_str: str = None,
+                  broker_verbosity: int = 0) -> None:
         """Configures run settings for AutoTrader.
 
         Parameters
@@ -170,7 +172,7 @@ class AutoTrader:
         verbosity : int, optional
             The verbosity of AutoTrader (0, 1, 2). The default is 1.
         broker : str, optional
-            DESCRIPTION. The default is 'virtual'.
+            The broker to connect to. The default is 'virtual'.
         feed : str, optional
             The data feed to be used ('yahoo', 'oanda', 'ib'). The default is 'yahoo'.
         req_liveprice : bool, optional
@@ -213,6 +215,8 @@ class AutoTrader:
             deployed when livetrading in continuous mode. When not specified,
             the instance string will be of the form 'autotrader_instance_n'.
             The default is None.
+        broker_verbosity : int, optional
+            The verbosity of the broker. The default is 0.
         
         Returns
         -------
@@ -236,12 +240,14 @@ class AutoTrader:
         self._data_indexing = data_index_time
         self._global_config_dict = global_config
         self._instance_str = instance_str
+        self._broker_verbosity = broker_verbosity
         
         
     def virtual_livetrade_config(self, initial_balance: float = 1000, 
                                   spread: float = 0, commission: float = 0, 
                                   leverage: int = 1, base_currency: str = 'AUD', 
-                                  hedging: bool = False) -> None:
+                                  hedging: bool = False, 
+                                  margin_call_fraction: float = 0) -> None:
         """Configures the virtual broker's initial state to allow livetrading
         on the virtual broker.
         
@@ -260,6 +266,9 @@ class AutoTrader:
         hedging : bool, optional
             Allow hedging in the virtual broker (opening simultaneous 
             trades in oposing directions). The default is False.
+        margin_call_fraction : float, optional
+            The fraction of margin usage at which a margin call will occur.
+            The default is 0.
             
         """
         # Assign attributes
@@ -269,6 +278,7 @@ class AutoTrader:
         self._virtual_commission = commission
         self._virtual_leverage = leverage
         self._virtual_broker_hedging = hedging
+        self._virtual_margin_call = margin_call_fraction
         self._base_currency = base_currency
         
         # Enforce virtual broker
@@ -344,7 +354,8 @@ class AutoTrader:
                  initial_balance: float = 1000, spread: float = 0, 
                  commission: float = 0, leverage: int = 1,
                  base_currency: str = 'AUD', start_dt: datetime = None, 
-                 end_dt: datetime = None, hedging: bool = False) -> None:
+                 end_dt: datetime = None, hedging: bool = False,
+                 margin_call_fraction: float = 0) -> None:
         """Configures settings for backtesting.
 
         Parameters
@@ -370,6 +381,9 @@ class AutoTrader:
         hedging : bool, optional
             Allow hedging in the virtual broker (opening simultaneous 
             trades in oposing directions). The default is False.
+        margin_call_fraction : float, optional
+            The fraction of margin usage at which a margin call will occur.
+            The default is 0.
             
         Notes
         ------
@@ -392,6 +406,7 @@ class AutoTrader:
         self._virtual_commission = commission
         self._virtual_leverage = leverage
         self._virtual_broker_hedging = hedging
+        self._virtual_margin_call = margin_call_fraction
         self._base_currency = base_currency
         
         # Enforce virtual broker
@@ -1494,6 +1509,7 @@ class AutoTrader:
             broker.spread = self._virtual_spread
             broker.base_currency = self._base_currency
             broker.hedging = self._virtual_broker_hedging
+            broker.margin_closeout = self._virtual_margin_call
         
         self._broker = broker
         self._broker_utils = utils

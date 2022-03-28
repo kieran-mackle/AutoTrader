@@ -54,6 +54,7 @@ class Broker:
         self.margin_available = 0
         self.portfolio_balance = 0
         self.hedging = False
+        self.margin_closeout = 0.0 # Fraction at margin call
         
         self.profitable_trades = 0
         self.peak_value = 0
@@ -476,7 +477,7 @@ class Broker:
                         trade.unrealised_PL = trade_PL
         
         # Update margin available
-        self._update_margin()
+        self._update_margin(instrument, candle)
         
         # Update unrealised P/L
         self.unrealised_PL = unrealised_PL
@@ -657,7 +658,8 @@ class Broker:
         return margin
     
     
-    def _update_margin(self) -> None:
+    def _update_margin(self, instrument: str = None, 
+                       candle: pd.core.series.Series = None) -> None:
         """Updates margin available in account.
         """        
         margin_used = 0
@@ -673,7 +675,14 @@ class Broker:
                 # Update margin required in trade dict
                 trade.margin_required = margin_required
         
-        self.margin_available = self.portfolio_balance - margin_used
+        self.margin_available = self.NAV - margin_used
+        
+        # Check for margin call
+        if self.margin_available/self.NAV < self.margin_closeout:
+            # Margin call
+            if self.verbosity > 0:
+                print("MARGIN CALL: closing all positions.")
+            self._margin_call(instrument, candle)
 
 
     def _update_MDD(self) -> None:
@@ -734,6 +743,9 @@ class Broker:
         return len(self.trades) + 1
     
     
-    def _margin_call(self):
-        # TODO - implement margin calls
-        pass
+    def _margin_call(self, instrument: str, candle: pd.core.series.Series):
+        """Closes open positions.
+        """
+        self._close_position(instrument, candle, candle.Close)
+    
+    
