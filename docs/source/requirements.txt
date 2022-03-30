@@ -1,6 +1,6 @@
-sphinx==3.4.3
+sphinx
 furo
-sphinx_copybutton==0.5.0
-myst_parser==0.17.0
-sphinx_inline_tabs==2022.1.2b11
+sphinx_copybutton
+myst_parser
+sphinx_inline_tabs
 Jinja2<3.1
