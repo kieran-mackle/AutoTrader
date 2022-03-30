@@ -22,7 +22,11 @@
   <a>
     <img src="https://github.com/kieran-mackle/AutoTrader-Private/actions/workflows/tests.yml/badge.svg" alt="Build Status" >
   </a>
-
+  
+  <a href='https://py-autotrader.readthedocs.io/en/latest/?badge=latest'>
+    <img src='https://readthedocs.org/projects/py-autotrader/badge/?version=latest' alt='Documentation Status' />
+  </a>
+  
 </p>
 
 
@@ -30,19 +34,18 @@
 AutoTrader is Python-based platform intended to help in the development, optimisation and deployment of automated trading systems. 
 From simple indicator-based strategies, to complex non-directional hedging strategies, AutoTrader can do it all. If you prefer a more hands-on 
 approach to trading, AutoTrader can also assist you by notifying you of price behaviour, ensuring you never miss a signal again.
-A basic level of experience with Python is recommended for using AutoTrader, but the [website](https://kieran-mackle.github.io/AutoTrader) 
-aims to make using it as easy as possible with detailed tutorials.
+A basic level of experience with Python is recommended for using AutoTrader, but the [docs](https://py-autotrader.readthedocs.io/en/latest/) 
+aim to make using it as easy as possible with detailed tutorials and documentation.
 
 ## Features
-- [Backtesting](https://kieran-mackle.github.io/AutoTrader/tutorials/backtesting), featuring multiple order types (market, limit, stop-limit, trailing stops, etc.) and the ability to **trade multiple instruments, multiple timeframes, and multiple strategies in the same backtest, against the same broker**
+- [Backtesting](https://py-autotrader.readthedocs.io/en/latest/features/backtesting.html), featuring multiple 
+[order types](https://py-autotrader.readthedocs.io/en/latest/broker/trading.html)
+(market, limit, stop-limit, trailing stops, etc.) and the ability to **trade multiple instruments, multiple timeframes, and multiple strategies in the same backtest, against the same broker**
 - [Integrated data feeds](https://kieran-mackle.github.io/AutoTrader/tutorials/price-data), such as Yahoo Finance (via [yfinance](https://pypi.org/project/yfinance/)) and Oanda v20 REST API
-- [Automated interactive visualisation](https://kieran-mackle.github.io/AutoTrader/interactive-visualisation) using [Bokeh](https://bokeh.org/)
-- [Built-in parameter optimisation](https://kieran-mackle.github.io/AutoTrader/tutorials/optimisation) using [scipy](https://docs.scipy.org/doc/scipy/reference/optimize.html)
-- [Library of custom indicators](https://kieran-mackle.github.io/AutoTrader/docs/indicators)
-- [Price streaming](https://kieran-mackle.github.io/AutoTrader/docs/autostream) through [Oanda v20 REST API](https://developer.oanda.com/rest-live-v20/introduction/)
-- [Live trading](https://kieran-mackle.github.io/AutoTrader/supported-api) through [Oanda v20 REST API](https://developer.oanda.com/rest-live-v20/introduction/) (with support for more brokers coming soon!)
-- [Email notification system](https://kieran-mackle.github.io/AutoTrader/docs/emailing)
-- [Detailed documenation and tutorials](https://kieran-mackle.github.io/AutoTrader/tutorials/getting-autotrader)
+- [Automated interactive visualisation](https://py-autotrader.readthedocs.io/en/latest/features/visualisation.html) using [Bokeh](https://bokeh.org/)
+- [Library of custom indicators](https://py-autotrader.readthedocs.io/en/latest/indicators.html)
+- [Live trading](https://py-autotrader.readthedocs.io/en/latest/features/live-trading.html) supported for [Oanda](https://www.oanda.com/) and [Interactive Brokers](https://www.interactivebrokers.com)
+- [Detailed documenation and tutorials](https://py-autotrader.readthedocs.io/en/latest/index.html)
 - [Repository](https://github.com/kieran-mackle/autotrader-demo) of example strategies
 
 ## Installation
@@ -57,17 +60,19 @@ pip install autotrader --upgrade
 ```
 
 ## Documentation
-AutoTrader is well documented on the [project website](https://kieran-mackle.github.io/AutoTrader/docs). There is also a detailed [Quick Start Guide](https://kieran-mackle.github.io/AutoTrader/tutorials/getting-autotrader).
+AutoTrader is very well documented in-code and on [Read the Docs](https://py-autotrader.readthedocs.io/en/latest/). There is also a [detailed walthrough](https://py-autotrader.readthedocs.io/en/latest/tutorials/walkthrough.html), covering everything from strategy concept to livetrading.
 
 ### Example Strategies
 Example strategies can be found in the [demo repository](https://github.com/kieran-mackle/autotrader-demo). You can also request your own strategy to be built [here](https://github.com/kieran-mackle/autotrader-demo/issues/new?assignees=&labels=&template=strategy-request.md&title=%5BSTRATEGY+REQUEST%5D).
 
 
 ## Backtest Demo
-The chart below is produced by a backtest of the MACD trend strategy documented in the [tutorials](https://kieran-mackle.github.io/AutoTrader/tutorials/strategy) 
-(and available in the [demo repository](https://github.com/kieran-mackle/autotrader-demo)). Entry signals are defined by MACD crossovers, with exit targets defined
-by a 1.5 risk-to-reward ratio. Stop-losses are automatically placed using the custom [swing detection](https://kieran-mackle.github.io/AutoTrader/docs/indicators#swing-detection) indicator, and position sizes are dynamically calculated based 
-on risk percentages defined in the [strategy configuration file](https://kieran-mackle.github.io/AutoTrader/tutorials/strategy#strategy-configuration).
+The chart below is produced by a backtest of the MACD trend strategy documented in the 
+[tutorials](https://py-autotrader.readthedocs.io/en/latest/tutorials/building-strategy.html) (and available in the 
+[demo repository](https://github.com/kieran-mackle/autotrader-demo)). Entry signals are defined by MACD crossovers, with exit targets defined
+by a 1.5 risk-to-reward ratio. Stop-losses are automatically placed using the custom
+[swing detection](https://py-autotrader.readthedocs.io/en/latest/indicators.html#swing-detection) indicator, and position sizes are dynamically calculated based 
+on risk percentages defined in the strategy configuration.
 
 Running this strategy with AutoTrader in backtest mode will produce the following interactive chart. 
 
