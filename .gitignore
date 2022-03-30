@@ -144,7 +144,7 @@ dmypy.json
 testing.py
 Notes.txt
 *_log_*
-*.txt
+#*.txt
 *.out
 #*.csv
 #*.html
