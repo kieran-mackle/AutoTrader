@@ -1,5 +1,49 @@
 # AutoTrader Changelog
 
+## Version 0.6.0
+- Interactive Brokers is now supported.
+- Improvements to public broker methods for clarity.
+- Comprehensive docstrings and type hints added.
+- Distinction of broker and feed, allowing specification of broker and feed 
+  separately.
+- New broker template directory added.
+- All AutoTrader attributes have been made private to avoid confusion - the 
+  configuration methods should be used exclusively to set the attributes.
+  This also clarifies and promotes visibility of public methods.
+- New method `get_bots_deployed` added to AutoTrader.
+- Project heirarchy: note changes in location of `autodata`, `indicators` and
+  other modules previously in the `lib/` directory.
+- Deprecated `help` and `usage` methods of AutoTrader (replaced by in-code
+  docstrings).
+- AutoTrader method `add_strategy` now accepts strategy classes as input 
+  argument, to directly provide strategy class objects.
+- Broker public method name changes: `cancel_pending_order` to `cancel_order`,
+  `get_pending_orders` to `get_orders`, `get_open_trades` to `get_trades`,
+  `get_open_positions` to `get_positions`.
+- Broker public method deleted: `get_cancelled_orders` - functionality 
+  available using `get_orders` method with `order_status = 'cancelled'`.
+- To facilitate strategies built with prior autotrader versions, the previous 
+  format of signal dictionaries from strategy modules is still supported. 
+  Support for this format will be phased out in favour of the new `Order` and
+  `Trade` objects (found in `autotrader.brokers.trading` module). 
+- For new Order, Trade and Position objects, support for legacy code is 
+  included via `as_dict` methods, to convert class objects to dictionaries.
+- AutoTrader demo repository has been updated to reflect the changes above.
+- Option to include/exclude positions from broker when updating strategy.
+- Distinction of order/trade size and direction; size is now an absolute value
+  representing the number of units to be traded, while direction specifies
+  if the trade is long or short.
+- Strategy module: method `generate_signal` is passed named arguments 
+  `i` and `current_position`.
+- Continuous mode: single instantiation, iteration by timestamp
+- AutoStream deprecated: if using streamed data, local data file paths should
+  be provided using the `add_data` method.
+- Abstracted data update method into `DataStream` class 
+  (within `autotrader.utilities` module) to allow custom data pipelines
+- Ability to trade multiple contracts on an underlying asset (continuous 
+  mode only)
+- Ability to use virtual broker in livetrade mode
+
 
 ## Version 0.5.0
 Breaking change:
@@ -32,6 +76,7 @@ Features:
 - feat: new indicator: halftrend
 - feat: improved robustness of generic indicator line plotting
 - feat: added capability to plot multiple indicator lines on same figure
+  
 
 ### 0.5.32
 - fix: trailing stops bug in virtual broker

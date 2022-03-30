@@ -18,6 +18,10 @@
   <a href="https://pepy.tech/project/autotrader">
     <img src="https://pepy.tech/badge/autotrader/week" alt="Monthly downloads" >
   </a>
+  
+  <a>
+    <img src="https://github.com/kieran-mackle/AutoTrader-Private/actions/workflows/tests.yml/badge.svg" alt="Build Status" >
+  </a>
 
 </p>
 

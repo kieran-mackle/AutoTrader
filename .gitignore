@@ -119,6 +119,10 @@ _site/
 .jekyll-cache/
 Gemfile.lock
 
+# Sphinx docs
+docs/build/
+docs/source/_templates
+
 # Rope project settings
 .ropeproject
 
@@ -134,7 +138,7 @@ dmypy.json
 .pyre/
 
 # Miscellaneous
-*.png
+#*.png
 #*.jpg
 *.pyc
 testing.py
@@ -142,6 +146,7 @@ Notes.txt
 *_log_*
 *.txt
 *.out
-*.csv
-*.html
-
+#*.csv
+#*.html
+*backtest-chart.html
+*candlestick.html
