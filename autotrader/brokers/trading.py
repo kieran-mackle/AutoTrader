@@ -339,7 +339,7 @@ class Trade(Order):
         self.last_price = None
         self.last_time = None
         
-        self.profit = None
+        self.profit = 0
         self.balance = None
         self.exit_price = None
         self.exit_time = None

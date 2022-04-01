@@ -279,6 +279,10 @@ class BrokerUtils:
                                       "trade_duration": trade_duration,
                                       "fees": fees},
                                      index = pd.to_datetime(entry_time))
+            
+            # Fill missing values for balance
+            dataframe.balance.fillna(method='ffill', inplace=True)
+            
         else:
             dataframe = pd.DataFrame({"instrument": product,
                                       "status": status,

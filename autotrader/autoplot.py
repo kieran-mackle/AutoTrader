@@ -392,6 +392,7 @@ class AutoPlot:
         concat_data.index = pd.to_datetime(concat_data.index, utc=True)
         interp_data = concat_data.interpolate(method='nearest').fillna(method='bfill')
         merged_data = self._merge_data(interp_data).drop_duplicates()
+        merged_data = merged_data.replace('', np.nan).fillna(method='ffill')
         return merged_data[list(df.columns) + ['date']].set_index('date')
     
     
