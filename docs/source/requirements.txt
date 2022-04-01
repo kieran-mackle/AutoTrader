@@ -4,3 +4,4 @@ sphinx_copybutton
 myst_parser
 sphinx_inline_tabs
 Jinja2<3.1
+autotrader>=0.6.0

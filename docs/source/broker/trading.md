@@ -84,7 +84,7 @@ All trade ID's can be obtained using the `get_trades` broker method.
 ```
 
 ```python
-close_order = Order(order_type='close', related_orders=224)
+closing_order = Order(order_type='close', related_orders=224)
 ```
 
 ### Reduce Order
@@ -97,7 +97,7 @@ When reducing a position, the *first in, first out* method is applied. To avoid 
 manually with the `close_trade` and/or `partial_trade_close` methods.
 
 ```py
-_order = Order(order_type='reduce', direction=-1, size=15)
+reduction_order = Order(order_type='reduce', direction=-1, size=15)
 ```
 
 
