@@ -795,7 +795,7 @@ class AutoPlot:
                     else:
                         # Generic indicator - plot as line
                         if isinstance(indicators[indicator]['data'], pd.Series):
-                            # Merge indexes
+                            # Timeseries provided, merge indexes
                             if indicators[indicator]['data'].name is None:
                                 indicators[indicator]['data'].name = 'data'
                             merged_indicator_data = pd.merge(self._data, 
@@ -806,8 +806,10 @@ class AutoPlot:
                             x_vals = line_data.index
                             y_vals = line_data.values
                         else:
+                            # List provided
                             x_vals = x_range
-                            y_vals = indicators[indicator]['data']
+                            y_vals = np.zeros(len(x_range))
+                            y_vals[:len(indicators[indicator]['data'])] = indicators[indicator]['data']
                             
                         new_fig = figure(plot_width = linked_fig.plot_width,
                                          plot_height = 130,
