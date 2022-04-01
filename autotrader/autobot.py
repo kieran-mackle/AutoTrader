@@ -493,10 +493,15 @@ class AutoTraderBot:
                     last_price = self._get_data._pseduo_liveprice(last=current_bars[order.data_name].Close,
                                                                   quote_price=quote_bars[order.data_name].Close)
             
-            if order.direction < 0:
-                order_price = last_price['bid']
-                HCF = last_price['negativeHCF']
+            if order.order_type not in ['close', 'reduce']:
+                if order.direction < 0:
+                    order_price = last_price['bid']
+                    HCF = last_price['negativeHCF']
+                else:
+                    order_price = last_price['ask']
+                    HCF = last_price['positiveHCF']
             else:
+                # Close or reduce order type, provide dummy inputs
                 order_price = last_price['ask']
                 HCF = last_price['positiveHCF']
             
