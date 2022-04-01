@@ -56,7 +56,7 @@ class Order:
         self.order_limit_price = None
         self.order_stop_price = None
         
-        self.HCF = None
+        self.HCF = 1
         
         self.stop_type = None
         self.stop_loss = None
@@ -117,7 +117,7 @@ class Order:
     
     def __call__(self, broker = None, order_price: float = None, 
                  order_time: datetime = datetime.now(), 
-                 HCF: float = 1) -> None:
+                 HCF: float = None) -> None:
         """Order object, called to initialise prior to submission to broker.
 
         Parameters
@@ -138,7 +138,7 @@ class Order:
         """
         self.order_price = order_price if order_price else self.order_price
         self.order_time = order_time if order_time else self.order_time
-        self.HCF = HCF if HCF else self.HCF
+        self.HCF = HCF if HCF is not None else self.HCF
         
         if self.order_type not in ['close']:
             self._set_working_price()

@@ -81,15 +81,15 @@ class GetData:
         Parameters
         ----------
         instrument : str
-            the instrument to fetch data for.
+            The instrument to fetch data for.
         granularity : str
-            candlestick granularity (eg. "M15", "H4", "D").
+            The candlestick granularity (eg. "M15", "H4", "D").
         count : int, optional
-            number of candles to fetch (maximum 5000). The default is None.
+            The number of candles to fetch (maximum 5000). The default is None.
         start_time : datetime, optional
-            data start time. The default is None.
+            The data start time. The default is None.
         end_time : datetime, optional
-            data end time. The default is None.
+            The data end time. The default is None.
 
         Returns
         -------
@@ -241,19 +241,34 @@ class GetData:
                          start_time: datetime, end_time: datetime):
         """Function to retrieve price conversion data.
         """
+        base_currency = pair[:3]
         quote_currency = pair[-3:]
         
         if self.home_currency is None or quote_currency == self.home_currency:
+            # Use data as quote data
             quote_data = data
+            
         else:
-            try:
-                conversion_pair = self.home_currency + "_" + quote_currency
-                quote_data = self.oanda(instrument  = conversion_pair,
-                                        granularity = granularity,
-                                        start_time  = start_time,
-                                        end_time    = end_time)
-            except:
-                quote_data = data
+            if self.home_currency == base_currency:
+                # Invert data to get quote data
+                quote_data = 1/data
+                
+            else:
+                # Try download quote data
+                try:
+                    conversion_pair = self.home_currency + "_" + quote_currency
+                    if conversion_pair != pair:
+                        # Do not re-download the same data
+                        quote_data = self.oanda(instrument  = conversion_pair,
+                                                granularity = granularity,
+                                                start_time  = start_time,
+                                                end_time    = end_time)
+                    else:
+                        quote_data = data
+                        
+                except:
+                    # Download failed, revert to original data
+                    quote_data = data
         
         return quote_data
     
@@ -349,7 +364,7 @@ class GetData:
         granularity : str, optional
             The candlestick granularity. The default is None.
         count : int, optional
-            DESCRIPTION. The default is None.
+            The number of bars to fetch. The default is None.
         start_time : str, optional
             The start time as YYYY-MM-DD string or datetime object. The default 
             is None.
@@ -412,19 +427,17 @@ class GetData:
         Parameters
         ----------
         instrument : str
-            DESCRIPTION.
+            The product being traded.
         granularity : str
-            DESCRIPTION.
+            The granularity of the price bars.
         count : int
-            DESCRIPTION.
+            The number of bars to fetch.
         start_time : datetime, optional
-            DESCRIPTION. The default is None.
+            The data start time. The default is None.
         end_time : datetime, optional
-            DESCRIPTION. The default is None.
+            The data end time. The default is None.
         order : Order, optional
-            DESCRIPTION. The default is None.
-        **kwargs : TYPE
-            DESCRIPTION.
+            The order object. The default is None.
 
         Raises
         ------
@@ -501,15 +514,37 @@ class GetData:
     
     @staticmethod
     def _pseduo_liveprice(last: float, quote_price: float = None) -> dict:
+        """Returns an artificial live bid and ask price, plus conversion 
+        factors.
+
+        Parameters
+        ----------
+        last : float
+            The last price of the product being traded.
+        quote_price : float, optional
+            The quote price of the product being traded against the account
+            home currency. The default is None.
+
+        Returns
+        -------
+        dict
+            DESCRIPTION.
+
+        """
+        # TODO - build bid/ask spread into here, review virtual broker
         if quote_price is not None:
+            # Use quote price to determine HCF
             if last == quote_price:
+                # Quote currency matches account home currency
                 negativeHCF = 1
                 positiveHCF = 1
             else:
-                negativeHCF = 1/quote_price
-                positiveHCF = 1/quote_price
+                # Quote data
+                negativeHCF = quote_price
+                positiveHCF = quote_price
                 
         else:
+            # No quote price provided
             negativeHCF = 1
             positiveHCF = 1
         

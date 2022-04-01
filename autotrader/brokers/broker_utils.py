@@ -52,6 +52,7 @@ class BrokerUtils:
     def get_pip_ratio(self, pair):
         """Function to return pip value ($/pip) of a given forex pair.
         """
+        # TODO - implications on non FX?
         if 'JPY' in pair:
             pip_value = 1e-2
         else:
