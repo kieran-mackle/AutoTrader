@@ -34,7 +34,7 @@ setuptools.setup(
         "numpy >= 1.20.3",
         "pandas >= 1.3.4",
         "pyfiglet >= 0.8.post1",
-        "PyYAML >= 6.0",
+        "PyYAML",
         "bokeh >= 2.3.1",
         "scipy >= 1.7.1",
         "yfinance >= 0.1.67",

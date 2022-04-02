@@ -1,5 +1,14 @@
 # AutoTrader Changelog
 
+## Version 0.6.1
+### Features
+- Simpler imports: `AutoTrader` can be imported using `from autotrader import AutoTrader`,
+  instead of `from autotrader.autotrader import AutoTrader`
+
+### Fixes
+- Handling of close and reduce order types in `autobot`
+
+
 ## Version 0.6.0
 - Interactive Brokers is now supported.
 - Improvements to public broker methods for clarity.
