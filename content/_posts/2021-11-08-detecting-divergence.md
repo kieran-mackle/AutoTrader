@@ -47,7 +47,7 @@ this indicator only detects the divergence of price from the RSI. Seeing this ga
 
 
 By the end of this post, I hope to have achieved the goals above. As a side note, throughout the rest of the post, 
-the charts you see have been generated using using [AutoPlot](../../../docs/autoplot).
+the charts you see have been generated using using [AutoPlot](https://py-autotrader.readthedocs.io/en/latest/core/AutoPlot.html).
 
 
 ## Detecting price reversals
@@ -59,7 +59,7 @@ TradingView indicator) is [pivot points](https://www.investopedia.com/terms/p/pi
 
 My approach to solving this problem is more mechanical, and is as follows: by fitting a short-period moving
 average to the dataset, I can use the slope to detect local highs and local lows. This is exactly the approach
-I have implemented in the [`find_swings`](../../../docs/indicators#swing-detection) utility indicator. This indicator
+I have implemented in the [`find_swings`](https://py-autotrader.readthedocs.io/en/latest/indicators.html#swing-detection) utility indicator. This indicator
 is illustrated on the chart below by the dashed lines. The second plot below the price chart shows the implied 
 trend, yielding a value of `1` when a swing low is detected (implying an uptrend) and a value of `-1` when a 
 swing high is detected (implying a downtrend).
@@ -96,7 +96,7 @@ swing_df['Resistance'] = (swing_df.CSLS > 0) & (swing_df.Trend == -1)
 
 First, we determine when a new level is detected, `new_level`. This is simply where the most recently detected level does 
 not equal the previous level. Next, we count the number of candles since the last swing level was first detected. To do 
-this, I make use of the [`candles_between_crosses`](../../../docs/indicators#candles-between-crosses) indicator. Finally, we can
+this, I make use of the [`candles_between_crosses`](https://py-autotrader.readthedocs.io/en/latest/indicators.html#candles-between-crosses) indicator. Finally, we can
 determine support and resistance levels by filtering out the swing levels which do not last more than 1 candle. 
 These support and resistance levels have been added to the chart below. Here you can clearly see that when a swing level
 reaches the specified length of 1 candle, it becomes a support or resistance level.
@@ -126,7 +126,7 @@ first occurance of strong high or low levels
 
 Since we want to detect divergence as quick as possible, we are most interested in the first occurence of a strong high or
 strong low level being detected. For this purpose, I have used another custom indicator, 
-[`unroll_signal_list`](../../../docs/indicators#unroll-signal-list). This can be used to take our 'Strong_lows' and 
+[`unroll_signal_list`](https://py-autotrader.readthedocs.io/en/latest/indicators.html#unroll-signal-list). This can be used to take our 'Strong_lows' and 
 'Strong_highs' and return a single value for each time a new stong low or high is detected. See the chart below for a visual
 representation of this.
 
@@ -236,13 +236,13 @@ divergence signal comes 2 candles earlier! This is equivalent to an extra 35 pip
 
 ## What Now?
 The tools developed above have been packaged conveniently into indicators and added to the AutoTrader 
-[indicator library](../../../docs/indicators). You can find them under the following names:
-- [`find_swings`](../../../docs/indicators#swing-detection)
-- [`classify_swings`](../../../docs/indicators#classifying-swings) 
-- [`detect_divergence`](../../../docs/indicators#detecting-divergence)
+[indicator library](https://py-autotrader.readthedocs.io/en/latest/indicators.html). You can find them under the following names:
+- [`find_swings`](https://py-autotrader.readthedocs.io/en/latest/indicators.html#swing-detection)
+- [`classify_swings`](https://py-autotrader.readthedocs.io/en/latest/indicators.html#classifying-swings) 
+- [`detect_divergence`](https://py-autotrader.readthedocs.io/en/latest/indicators.html#detecting-divergence)
 
 If you do not care about the intermediate steps, you can use the 
-[`autodetect_divergence`](../../../docs/indicators#divergence) indicator, which is a wrapper for the indicators above.
+[`autodetect_divergence`](https://py-autotrader.readthedocs.io/en/latest/indicators.html#divergence) indicator, which is a wrapper for the indicators above.
 This means that you can go straight from price data and indicator data to detecting divergence with a single line of code.
 
 The next steps I plan to take with this indicator involve fine tuning the tolerance parameters and running some backtests.

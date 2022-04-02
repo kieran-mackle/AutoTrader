@@ -6,7 +6,7 @@ tags: indiview features
 
 When developing a strategy or your own custom indicator, you need a quick and easy way to see what is going on, whether to debug 
 your code or just make sure everything is running as expected. This is what AutoTrader IndiView is for - viewing price data 
-against indicators. This post will go over how to call [AutoPlot](../../../docs/autoplot) to quickly and easily visualise indicators.
+against indicators. This post will go over how to call [AutoPlot](https://py-autotrader.readthedocs.io/en/latest/core/AutoPlot.html) to quickly and easily visualise indicators.
 
 
 *Note: a sample script for using IndiView is provided in the*
@@ -14,13 +14,13 @@ against indicators. This post will go over how to call [AutoPlot](../../../docs/
 
 # Creating the Script
 Let's start with a quick overview of the example script provided in the [demo repository](https://github.com/kieran-mackle/autotrader-demo/blob/main/indiview.py). This example plots the MACD indicator for hourly EUR/USD data, alongside the crossover 
-utility indicators from the AutoTrader [indicator library](../../../docs/indicators). This will tell us both *when* and MACD 
+utility indicators from the AutoTrader [indicator library](https://py-autotrader.readthedocs.io/en/latest/indicators.html). This will tell us both *when* and MACD 
 crossover occurs, and *where* the crossover occurs, in terms of MACD values.
 
 ### Imports
-Start by importing the appropriate packages and modules. First, we import [AutoPlot](../../../docs/autoplot), the automated plotting
+Start by importing the appropriate packages and modules. First, we import [AutoPlot](https://py-autotrader.readthedocs.io/en/latest/core/AutoPlot.html), the automated plotting
 class. Next, we import GetData, to make getting price data convenient. Finally, we import our technical analysis packages - namely,
-the custom AutoTrader indicators ([crossover](../../../docs/indicators#crossover), [cross_values](../../../docs/indicators#cross-value)) and the technical analysis module of [finta](https://github.com/peerchemist/finta).
+the custom AutoTrader indicators ([crossover](https://py-autotrader.readthedocs.io/en/latest/indicators.html#crossover), [cross_values](https://py-autotrader.readthedocs.io/en/latest/indicators.html#cross-value)) and the technical analysis module of [finta](https://github.com/peerchemist/finta).
 
 ```py
 from autotrader.autoplot import AutoPlot
@@ -32,7 +32,7 @@ from finta import TA
 ### Data Retrieval
 Next, GetData is instantiated so that we can download some price data. Note that GetData uses the Yahoo Finance data feed by
 default, so we do not need to pass any configuration into GetData to instantiate it. However, if you want to use data from
-one of the [supported brokers](../../../docs/brokers), you would need to pass in the appropriate configuration file. 
+one of the [supported brokers](https://py-autotrader.readthedocs.io/en/latest/broker/broker-interface.html#integrated-brokers), you would need to pass in the appropriate configuration file. 
 
 ```py
 # Instantiate GetData class
@@ -61,7 +61,7 @@ MACD_CO_vals   = cross_values(MACD_df.MACD, MACD_df.SIGNAL, MACD_CO)
 
 ### Plotting
 Next, we need to construct a dictionary containing the indicators we wish to plot. This is a nested dictionary to provide 
-AutoPlot with the indicator names, types and data. Take a look at the [AutoPlot documentation](../../../docs/autoplot#indicator-specification) for more information. Finally, we instantiate AutoPlot with the main OHLC data to be plotted,
+AutoPlot with the indicator names, types and data. Take a look at the [AutoPlot documentation](https://py-autotrader.readthedocs.io/en/latest/core/AutoPlot.html#indicator-specification) for more information. Finally, we instantiate AutoPlot with the main OHLC data to be plotted,
 then use the `plot` method to pass in the indicators dictionary and indicator name. 
 
 ```py

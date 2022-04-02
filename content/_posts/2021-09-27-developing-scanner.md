@@ -16,7 +16,7 @@ will be used throughout to develop the code, but the scanner will eventaully be 
 all major forex pairs. The technical analysis
 will be performed on daily candlestick data. The Yahoo Finance API will be used
 so that you can run this code straight out of the box, but if you plan to use this
-scanner for trading with one of AutoTrader's [supported brokers](../../../docs/brokers),
+scanner for trading with one of AutoTrader's [supported brokers](https://py-autotrader.readthedocs.io/en/latest/broker/broker-interface.html#integrated-brokers),
 you can easily (and should) switch the data feed.
 
 As with many of the code presented on this website, the code can be found in the 
@@ -32,7 +32,7 @@ of `1` when the market begins an uptrend, and `-1` when it begins a downtrend.
 
 
 ## The Underlying Strategy
-To build our trend notification indicator, we will rely on the [supertrend indicator](../../../docs/indicators#supertrend)
+To build our trend notification indicator, we will rely on the [supertrend indicator](https://py-autotrader.readthedocs.io/en/latest/indicators.html#supertrend)
 and a 200 period exponential moving average for confluence. A uptrend will be signalled as beginning when the supertrend 
 indicator changes from a downtrend to an uptrend, while price is above the 200 EMA. The opposite is true for a downtrend 
 signal. Enough words! Let's use IndiView to visualise this strategy (check out a previous blog post to learn more about 
@@ -122,7 +122,7 @@ being detected correctly.
 # Building the Scanner
 To use this indicator to recieve scan notifications, we need to build it into an AutoTrader strategy. Since we have already 
 built the indicator, building the strategy will be easy - it is the exact same logic. This is provided in the code below.
-Head over to the [tutorials](../../../tutorials/strategy) or [strategy documentation](../../../docs/strategies) if you need 
+Head over to the [tutorials](https://py-autotrader.readthedocs.io/en/latest/tutorials/building-strategy.html) or [strategy documentation](https://py-autotrader.readthedocs.io/en/latest/userfiles/strategy.html) if you need 
 a little more explanation.
 
 ```py
@@ -204,8 +204,8 @@ WATCHLIST: ['EURUSD=X',
 
 ### Global configuration
 To recieve emails each time the scan gets a hit, we also need to provide an email address (you will also need to set
-up a [host email account](../../../tutorials/host-email)). The most convenient way to do this is by creating a 
-[global configuration](../../../docs/configuration-global) file. That way, you can use the same email address for 
+up a [host email account](https://py-autotrader.readthedocs.io/en/latest/tutorials/misc/host-email.html)). The most convenient way to do this is by creating a 
+[global configuration](https://py-autotrader.readthedocs.io/en/latest/userfiles/global-configuration.html) file. That way, you can use the same email address for 
 future strategies. The global configuration file will look something like this:
 
 ```yaml
@@ -328,7 +328,7 @@ PARAMETERS:
 
 In the code above, our tolerance is set to 3, meaning that we will get the signal up to 3 candles 
 after it first occurs. Now let's add the logic to the strategy module. We will use two custom
-indicators from the [AutoTrader library](../../../docs/indicators): candles_since_signal
+indicators from the [AutoTrader library](https://py-autotrader.readthedocs.io/en/latest/indicators.html): candles_since_signal
 and rolling_signal. The first of these will count how many candles have passed since the last
 signal, and the second returns a list which maintains the previous signal received.
 
