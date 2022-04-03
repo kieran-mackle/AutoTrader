@@ -140,6 +140,9 @@ class Order:
         self.order_time = order_time if order_time else self.order_time
         self.HCF = HCF if HCF is not None else self.HCF
         
+        # Enfore size scalar
+        self.size = abs(self.size) if self.size is not None else self.size
+        
         if self.order_type not in ['close']:
             self._set_working_price()
             self._calculate_exit_prices(broker)
