@@ -76,7 +76,7 @@ on risk percentages defined in the strategy configuration.
 
 Running this strategy with AutoTrader in backtest mode will produce the following interactive chart. 
 
-[![MACD-backtest-demo](https://user-images.githubusercontent.com/60687606/128127659-bf81fdd2-c246-4cd1-b86d-ef624cac50a7.png)](https://kieran-mackle.github.io/AutoTrader/interactive-visualisation)
+[![MACD-backtest-demo](https://user-images.githubusercontent.com/60687606/128127659-bf81fdd2-c246-4cd1-b86d-ef624cac50a7.png)](https://py-autotrader.readthedocs.io/en/latest/tutorials/backtesting.html#interactive-chart)
 
 Note that stop loss and take profit levels are shown for each trade taken. This allows you to see how effective your exit strategy is - are you being stopped out too 
 early by placing your stop losses too tight? Are you missing out on otherwise profitable trades becuase your take profits are too far away? AutoTrader helps you 
