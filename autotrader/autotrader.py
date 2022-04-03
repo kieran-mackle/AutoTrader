@@ -915,8 +915,8 @@ class AutoTrader:
             win_rate    = 100*len(wins)/no_trades
             longest_win_streak, longest_lose_streak  = self._broker_utils.get_streaks(trade_summary)
             avg_trade_duration = np.nanmean(trade_summary.trade_duration.values)
-            min_trade_duration = min(trade_summary.trade_duration.values)
-            max_trade_duration = max(trade_summary.trade_duration.values)
+            min_trade_duration = np.nanmin(trade_summary.trade_duration.values)
+            max_trade_duration = np.nanmax(trade_summary.trade_duration.values)
             max_drawdown = min(account_history.drawdown)
             total_fees = trade_summary.fees.sum()
             
