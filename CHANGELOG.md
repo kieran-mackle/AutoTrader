@@ -2,11 +2,15 @@
 
 ## Version 0.6.1
 ### Features
-- Simpler imports: `AutoTrader` can be imported using `from autotrader import AutoTrader`,
-  instead of `from autotrader.autotrader import AutoTrader`
+- Simpler imports: for example, `AutoTrader` can be imported 
+  using `from autotrader import AutoTrader`, instead of
+  `from autotrader.autotrader import AutoTrader`. Likewise for `AutoPlot`,
+  `GetData`, and trade objects (`Order`, `Trade`, `Position`).
+  
 
 ### Fixes
 - Handling of close and reduce order types in `autobot`
+- Assign UTC timezone to data after downloading from yfinance
 
 
 ## Version 0.6.0
