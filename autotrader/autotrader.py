@@ -741,7 +741,11 @@ class AutoTrader:
             provided must be a part of the strategy dataset. The default is 'default'.
         chart_theme : bool, optional
             The theme of the Bokeh chart generated. The default is "caliber".
-
+        use_strat_plot_data : bool, optional
+            Boolean flag to use data from the strategy instead of candlestick
+            data for the chart. If True, ensure your strategy has a timeseries
+            data attribute named 'plot_data'. The default is False.
+        
         Returns
         -------
         None
