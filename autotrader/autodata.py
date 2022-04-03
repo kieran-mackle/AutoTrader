@@ -3,8 +3,8 @@ import ib_insync
 import pandas as pd
 import yfinance as yf
 from typing import Union
-from datetime import datetime, timedelta
 from autotrader.brokers.trading import Order
+from datetime import datetime, timedelta, timezone
 from autotrader.brokers.ib.utils import Utils as IB_Utils
 
 
@@ -394,6 +394,9 @@ class GetData:
                            start    = start_time, 
                            end      = end_time,
                            interval = granularity)
+        
+        # Add UTC timezone
+        data.index = data.index.tz_localize(timezone.utc)
         
         return data
     
