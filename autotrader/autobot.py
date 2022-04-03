@@ -220,9 +220,6 @@ class AutoTraderBot:
             sufficient_data = True
             strat_object = i
         
-        if self._strategy_params['INCLUDE_POSITIONS']:
-            current_position = self._broker.get_positions(self.instrument)
-        
         # Check for new data
         new_data = self._check_last_bar(current_bars) 
         
@@ -233,7 +230,9 @@ class AutoTraderBot:
             
             # Get strategy orders
             if self._strategy_params['INCLUDE_POSITIONS']:
-                strategy_orders = self._strategy.generate_signal(strat_object, current_position=current_position)
+                current_position = self._broker.get_positions(self.instrument)
+                strategy_orders = self._strategy.generate_signal(strat_object, 
+                                            current_position=current_position)
             else:
                 strategy_orders = self._strategy.generate_signal(strat_object)
             

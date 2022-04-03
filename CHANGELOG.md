@@ -11,6 +11,8 @@
 ### Fixes
 - Handling of close and reduce order types in `autobot`
 - Assign UTC timezone to data after downloading from yfinance
+- Fetch current positions from virtual broker after updating with latest
+  data.
 
 
 ## Version 0.6.0
