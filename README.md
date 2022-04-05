@@ -20,7 +20,7 @@
   </a>
   
   <a>
-    <img src="https://github.com/kieran-mackle/AutoTrader-Private/actions/workflows/tests.yml/badge.svg" alt="Build Status" >
+    <img src="https://github.com/kieran-mackle/AutoTrader/actions/workflows/tests.yml/badge.svg" alt="Build Status" >
   </a>
   
   <a href='https://py-autotrader.readthedocs.io/en/latest/?badge=latest'>
