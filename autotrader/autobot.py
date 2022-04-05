@@ -674,6 +674,8 @@ class AutoTraderBot:
             Boolean flag whether sufficient data is available.
 
         """
+        # TODO - add check of data frequency against update frequency
+        
         def get_current_bars(data: pd.DataFrame, quote_data: bool = False,
                              processed_strategy_data: dict = None) -> dict:
             """Returns the current bars of data. If the inputted data is for
@@ -764,7 +766,7 @@ class AutoTraderBot:
         try:
             duplicated_bars = []
             for product, bar in current_bars.items():
-                if (bar == self._last_bar[product]).all():
+                if (bar == self._last_bars[product]).all():
                     duplicated_bars.append(True)
                 else:
                     duplicated_bars.append(False)
