@@ -13,6 +13,7 @@
 - Assign UTC timezone to data after downloading from yfinance
 - Fetch current positions from virtual broker after updating with latest
   data.
+- Duplicate bar checking method in `autobot`
 
 
 ## Version 0.6.0
