@@ -208,6 +208,7 @@ class AutoTraderBot:
             Trade signals generated will be submitted to the broker.
 
         """
+        
         if self._run_mode == 'continuous':
             # Running in continuous update mode
             strat_data, current_bars, quote_bars, sufficient_data = self._check_data(timestamp, self._data_indexing)
@@ -333,7 +334,7 @@ class AutoTraderBot:
                                                    scan_details, 
                                                    self._email_params['mailing_list'],
                                                    self._email_params['host_email'])
-                    
+        
     
     def _refresh_data(self, timestamp: datetime = None, **kwargs):
         """Refreshes the active Bot's data attributes for trading.
@@ -744,13 +745,15 @@ class AutoTraderBot:
         
         if self._backtest_mode:
             check_for_future_data = True
+            if self._dynamic_data:
+                self._refresh_data(timestamp)
         else:
-            # Livetrading; refresh all data
+            # Livetrading
             self._refresh_data(timestamp)
             check_for_future_data = False
-
+            
         strat_data, current_bars, sufficient_data = process_strat_data(self._strat_data, 
-                                                                      check_for_future_data)
+                                                                       check_for_future_data)
 
         # Process quote data
         quote_data = self._check_ohlc_data(self.quote_data, timestamp, 

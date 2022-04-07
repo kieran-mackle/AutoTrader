@@ -111,6 +111,7 @@ class AutoTrader:
         self._local_data = None
         self._local_quote_data = None
         self._auxdata = None
+        self._dynamic_data = False
         
         # Virtual Broker Parameters
         self._virtual_livetrading = False
@@ -471,7 +472,8 @@ class AutoTrader:
         
     def add_data(self, data_dict: dict = None, quote_data: dict = None, 
                  data_directory: str = 'price_data', abs_dir_path: str = None, 
-                 auxdata: dict = None, stream_object = None) -> None:
+                 auxdata: dict = None, stream_object = None,
+                 dynamic_data: bool = False) -> None:
         """Specify local data to run AutoTrader on.
 
         Parameters
@@ -499,6 +501,9 @@ class AutoTrader:
         stream_object : DataStream, optional
             A custom data stream object, allowing custom data pipelines. The 
             default is DataStream (from autotrader.utilities).
+        dynamic_data : bool, optional
+            A boolean flag to signal that the stream object provided should 
+            be refreshed each timestep of a backtest.
         
         Raises
         ------
@@ -610,6 +615,8 @@ class AutoTrader:
         # Assign data stream object
         if stream_object is not None:
             self._data_stream_object = stream_object
+        
+        self._dynamic_data = dynamic_data
     
     
     def scan(self, strategy_filename: str = None, 
