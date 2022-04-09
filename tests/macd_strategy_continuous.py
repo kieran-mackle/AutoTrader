@@ -15,12 +15,12 @@ class SimpleMACD:
     4. Target 1.5 take profit.
     """
     
-    def __init__(self, params, data, instrument):
+    def __init__(self, parameters, data, instrument):
         """Define all indicators used in the strategy.
         """
         
         self.name = "MACD Trend Strategy"
-        self.params = params
+        self.params = parameters
         self.instrument = instrument
         
         # Initial feature calculation
