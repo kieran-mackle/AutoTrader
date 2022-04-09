@@ -772,6 +772,8 @@ class AutoPlot:
                         for dataset in list(indicators[indicator].keys())[1:]:
                             if type(indicators[indicator][dataset]['data']) == pd.Series:
                                 # Merge indexes
+                                if indicators[indicator][dataset]['data'].name is None:
+                                    indicators[indicator][dataset]['data'].name = 'name'
                                 merged_indicator_data = pd.merge(self._data, 
                                                                  indicators[indicator][dataset]['data'], 
                                                                  left_on='date', 
