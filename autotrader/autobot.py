@@ -98,6 +98,8 @@ class AutoTraderBot:
             if 'INCLUDE_POSITIONS' in strategy_config else False
         strategy_config['INCLUDE_BROKER'] = strategy_config['INCLUDE_BROKER'] \
             if 'INCLUDE_BROKER' in strategy_config else False
+        strategy_config['INCLUDE_STREAM'] = strategy_config['INCLUDE_STREAM'] \
+            if 'INCLUDE_STREAM' in strategy_config else False
         self._strategy_params = strategy_params
         
         # Import Strategy
@@ -155,14 +157,17 @@ class AutoTraderBot:
         self._refresh_data(deploy_dt)
         
         # Instantiate Strategy
-        # params, data, instrument + broker, utils, stream object
-        # TODO - data stream is passed in here...
+        strategy_inputs = {'parameters': params, 'data': self._strat_data,
+                           'instrument': instrument}
+        
         if strategy_config['INCLUDE_BROKER']:
-            my_strat = strategy(params, self._strat_data, instrument, 
-                                self._broker, self._broker_utils, 
-                                data_stream=self.Stream)
-        else:
-            my_strat = strategy(params, self._strat_data, instrument)
+            strategy_inputs['broker'] = self._broker
+            strategy_inputs['broker_utils'] = self._broker_utils
+        
+        if strategy_config['INCLUDE_STREAM']:
+            strategy_inputs['data_stream'] = self.Stream
+            
+        my_strat = strategy(**strategy_inputs)
             
         # Assign strategy to local attributes
         self._last_bars = None

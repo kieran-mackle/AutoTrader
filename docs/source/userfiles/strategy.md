@@ -36,7 +36,7 @@ The code block below provides some boilerplate for a strategy. Note the differen
 from autotrader.brokers.trading import Order
 
 class Strategy:
-    def __init__(self, params, data, instrument, **kwargs):
+    def __init__(self, parameters, data, instrument, **kwargs):
         """Define all indicators used in the strategy.
         """
         self.name = "Template Strategy"
@@ -64,7 +64,7 @@ class Strategy:
 from autotrader.brokers.trading import Order
 
 class Strategy:
-    def __init__(self, params, data, instrument, **kwargs):
+    def __init__(self, parameters, data, instrument, **kwargs):
         """Define all attributes of the strategy.
         """
         self.name = "Template Strategy"
@@ -91,33 +91,53 @@ class Strategy:
 
 (strategy-init)=
 ## Initialisation
-The `__init__` method always initialises a strategy with the following objects:
-  1. `params`: a dictionary containing the strategy parameters from your strategy configuration file
+The `__init__` method always initialises a strategy with the following named arguments:
+  1. `parameters`: a dictionary containing the strategy parameters from your strategy configuration file
   2. `data`: the strategy data, which may be a DataFrame, or a dictionary of different datasets
-  3. `instrument`: a string with the instruments name
+  3. `instrument`: a string with the trading instruments name (as it appears in the [watchlist](strategy-config-options))
 
 It is often convenient to warm-start your strategy by pre-computing indicators and signals during the 
 instantiation of the strategy. You may also want to unpack some of your strategy parameters here too, but
 the flexibility is yours.
+
 
 (strategy-broker-access)=
 ### Broker Access
 In some cases, you may like to directly connect with the broker from your strategy module. In this case, 
 you must include `INCLUDE_BROKER: True` in your [strategy configuration](strategy-config). This will tell 
 AutoTrader to instantiate your strategy with the broker API and broker utilities. You will therefore need 
-to include these as arguments to your `__init__` method, as shown below. Now you can access the methods of 
-the [broker](broker-interface) directly from your strategy!
+to include these as named arguments to your `__init__` method, as shown below. Now you can access the methods 
+of the [broker](broker-interface) directly from your strategy!
 
 ```python
-def __init__(self, params, data, instrument, broker, broker_utilities):
+def __init__(self, parameters, data, instrument, broker, broker_utils):
     """Define all attributes of the strategy.
     """
     self.data = data
-    self.params = params
+    self.parameters = parameters
     self.instrument = instrument
     self.broker = broker
-    self.utils = broker_utilities
+    self.utils = broker_utils
 ```
+
+
+(strategy-stream-access)=
+### Data Stream Access
+It may also be of interest to include the [data stream](utils-datastream) object when your strategy 
+is instantiated, particularly if you are using a custom data stream. As above, this can be achieved 
+by specifying `INCLUDE_STREAM: True` in your [strategy configuration](strategy-config). 
+
+```python
+def __init__(self, parameters, data, instrument, data_stream):
+    """Define all attributes of the strategy.
+    """
+    self.data = data
+    self.parameters = parameters
+    self.instrument = instrument
+    self.data_stream = data_stream
+```
+
+
 
 (strategy-indicator-dict)=
 ### Indicators Dictionary

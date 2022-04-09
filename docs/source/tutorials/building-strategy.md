@@ -124,16 +124,15 @@ Follow along in the demo repository:
 strategies/<a href="https://github.com/kieran-mackle/autotrader-demo/blob/main/strategies/macd.py" target="_blank">macd.py</a>
 ```
 
-
 Now we can write the [strategy class](trading-strategy) `SimpleMACD` in a module called `macd.py`
  (hence `MODULE: 'macd'` and `CLASS: 'SimpleMACD'` in our strategy configuration).
 Although strategy construction is extremely flexible, the class must contain at a minimum an `__init__` method, and a 
 method named `generate_signal`. The first of these methods is called whenever the strategy is instantiated. By default,
-strategies in AutoTrader are instantiated with three things:
+strategies in AutoTrader are instantiated with three named arguments:
 
-1. The strategy parameters (`PARAMETERS`)
-2. The trading instruments data
-3. The name of the instrument being traded in this specific instance.
+1. The strategy parameters (`parameters`)
+2. The trading instruments data (`data`)
+3. The name of the instrument being traded in this specific instance (`instrument`).
 
 By providing the data to the strategy upfront, strategies have a warm-up period before running, calculating all indicators 
 when instantiated. The name of the instrument being traded is also passed in to allow for more complex, 
@@ -152,7 +151,7 @@ shown below, and finish with the strategy configuration file.
 # Import packages
 
 class SimpleMACD:
-    def __init__(self, params, data, instrument):
+    def __init__(self, parameters, data, instrument):
         ''' Initialise the strategy here '''
         ...
 
@@ -192,19 +191,19 @@ from autotrader.brokers.trading import Order # New in v0.6.0
 
 class SimpleMACD:
 
-    def __init__(self, params, data, pair):
+    def __init__(self, parameters, data, instrument):
         """Define all indicators used in the strategy.
         """
         self.name   = "Simple MACD Trend Strategy"
         self.data   = data
-        self.params = params
+        self.parameters = parameters
         
         # 200EMA
         self.ema = TA.EMA(data, params['ema_period'])
         
         # MACD
-        self.MACD = TA.MACD(data, self.params['MACD_fast'], 
-                            self.params['MACD_slow'], self.params['MACD_smoothing'])
+        self.MACD = TA.MACD(data, self.parameters['MACD_fast'], 
+                            self.parameters['MACD_slow'], self.parameters['MACD_smoothing'])
         self.MACD_CO = indicators.crossover(self.MACD.MACD, self.MACD.SIGNAL)
         self.MACD_CO_vals = indicators.cross_values(self.MACD.MACD, 
                                                       self.MACD.SIGNAL,
@@ -228,18 +227,18 @@ from autotrader.lib import indicators
 
 class SimpleMACD:
 
-    def __init__(self, params, data, pair):
+    def __init__(self, parameters, data, instrument):
         ''' Define all indicators used in the strategy '''
         self.name   = "Simple MACD Trend Strategy"
         self.data   = data
-        self.params = params
+        self.parameters = parameters
         
         # 200EMA
-        self.ema    = TA.EMA(data, params['ema_period'])
+        self.ema    = TA.EMA(data, parameters['ema_period'])
         
         # MACD
-        self.MACD = TA.MACD(data, self.params['MACD_fast'], 
-                            self.params['MACD_slow'], self.params['MACD_smoothing'])
+        self.MACD = TA.MACD(data, self.parameters['MACD_fast'], 
+                            self.parameters['MACD_slow'], self.parameters['MACD_smoothing'])
         self.MACD_CO        = indicators.crossover(self.MACD.MACD, self.MACD.SIGNAL)
         self.MACD_CO_vals   = indicators.cross_values(self.MACD.MACD, 
                                                       self.MACD.SIGNAL,
@@ -384,7 +383,7 @@ signal generation method in the section above.
         """Function to determine stop loss and take profit levels.
         """
         stop_type = 'limit'
-        RR = self.params['RR']
+        RR = self.parameters['RR']
         
         if signal == 0:
             stop = None

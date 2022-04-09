@@ -70,11 +70,11 @@ As of AutoTrader version `0.6.0`, you can now directly pass your strategy config
 ### Code
 Although strategy construction is extremely flexible, the class must contain at a minimum an `__init__` method, and a 
 method named `generate_signal`. The first of these methods is called whenever the strategy is instantiated. By default,
-strategies in AutoTrader are instantiated with three things:
+strategies in AutoTrader are instantiated with three named arguments:
 
-1. The strategy parameters (`PARAMETERS`)
-2. The trading instruments data
-3. The name of the instrument being traded in this specific instance.
+1. The strategy parameters (`parameters`)
+2. The trading instruments data (`data`)
+3. The name of the instrument being traded in this specific instance (`instrument`).
 
 The signal generation function, `generate_signal`, is where the logic of the strategy sits. The inputs to this function 
 are `i`, an indexing variable which is used when iterating over the data. When livetrading, `i` will simply index the
@@ -90,19 +90,19 @@ from autotrader.brokers.trading import Order
 
 class SimpleMACD:
 
-    def __init__(self, params, data, pair):
+    def __init__(self, parameters, data, instrument):
         """Define all indicators used in the strategy.
         """
         self.name   = "Simple MACD Trend Strategy"
         self.data   = data
-        self.params = params
+        self.parameters = parameters
         
         # 200EMA
-        self.ema = TA.EMA(data, params['ema_period'])
+        self.ema = TA.EMA(data, parameters['ema_period'])
         
         # MACD
-        self.MACD = TA.MACD(data, self.params['MACD_fast'], 
-                            self.params['MACD_slow'], self.params['MACD_smoothing'])
+        self.MACD = TA.MACD(data, self.parameters['MACD_fast'], 
+                            self.parameters['MACD_slow'], self.parameters['MACD_smoothing'])
         self.MACD_CO = indicators.crossover(self.MACD.MACD, self.MACD.SIGNAL)
         self.MACD_CO_vals = indicators.cross_values(self.MACD.MACD, 
                                                       self.MACD.SIGNAL,
@@ -148,7 +148,7 @@ class SimpleMACD:
         """Function to determine stop loss and take profit levels.
         """
         stop_type = 'limit'
-        RR = self.params['RR']
+        RR = self.parameters['RR']
         
         if signal == 0:
             stop = None

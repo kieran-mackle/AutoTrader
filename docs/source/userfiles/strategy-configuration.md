@@ -4,28 +4,31 @@
 
 The strategy configuration contains information related specifically to a strategy. Each [strategy](trading-strategy) requires
 its own configuration file to be able to run. It is written either as a 
-[.yaml](https://www.redhat.com/en/topics/automation/what-is-yaml) file, or passed directly to AutoTrader as a dictionary. 
+[.yaml](https://www.redhat.com/en/topics/automation/what-is-yaml) file, or passed directly to AutoTrader as a dictionary via the
+[`add_strategy`](autotrader-add-strategy) method. 
 Note that spacing is important in .yaml files, with each level defined by two subsequent spaces.
 
 
 (strategy-config-options)=
 ## Configuration Options
 The keys of the strategy configuration file are described in the table below. Note that all parameters defined here will 
-also be accessible in the [strategy](trading-strategy), via the `params` dictionary. 
+also be accessible in the [strategy](trading-strategy), via the `params` dictionary. Note that keys with no
+default value are required to be specified.
 
-| Key | Description |
-|:---:|-------------|
-|`NAME`| A string defining the strategy name. |
-|`MODULE`| A string containing the prefix name of the strategy module, without the *.py* suffix. |
-|`CLASS`| A string containing the class name within the strategy module. |
-|`INTERVAL`| The granularity of the strategy, in the [format required](autodata-docs) by the [data feed](autotrader-configure). |
-|`PERIOD`| The number of candles to fetch when live trading (eg. a value of 300 will fetch the latest 300 candles). |
-|`SIZING`| The method to use when calculating position size. Can be either 'risk' or an integer value corresponding to the number of units to trade. If using the 'risk' option, position size will be calculated based on trading account balance and the value assigned to `RISK_PC`.|
-|`RISK_PC`| The percentage of the account balance to risk when determining position risk-based size.|
-|`PARAMETERS`| A dictionary containing custom strategy parameters (see below).|
-|`WATCHLIST`| A list of strings containing the instruments to be traded in the strategy, in the [format required](autodata-docs) by the [data feed](autotrader-configure). |
-|`INCLUDE_POSITIONS`| A boolean flag to indicate if current possitions should be passed to the strategy's `generate_signal` method. Read more [here](generate-signal-boilerplate). |
-|`INCLUDE_BROKER`| A boolean flag to indicate if the broker interface and broker utilities should be passed to the strategy's `__init__` method. Read more [here](strategy-broker-access). |
+| Key | Description | Default value |
+|:---:|-------------| ------------- |
+|`NAME`| A string defining the strategy name. | None |
+|`MODULE`| A string containing the prefix name of the strategy module, without the *.py* suffix. | | 
+|`CLASS`| A string containing the class name within the strategy module. | | 
+|`INTERVAL`| The granularity of the strategy, in the [format required](autodata-docs) by the [data feed](autotrader-configure). | | 
+|`PERIOD`| The number of candles to fetch when live trading (eg. a value of 300 will fetch the latest 300 candles). | | 
+|`SIZING`| The method to use when calculating position size. Can be either 'risk' or an integer value corresponding to the number of units to trade. If using the 'risk' option, position size will be calculated based on trading account balance and the value assigned to `RISK_PC`.| | 
+|`RISK_PC`| The percentage of the account balance to risk when determining position risk-based size.| |
+|`PARAMETERS`| A dictionary containing custom strategy parameters (see below).| |
+|`WATCHLIST`| A list of strings containing the instruments to be traded in the strategy, in the [format required](autodata-docs) by the [data feed](autotrader-configure). | | 
+|`INCLUDE_POSITIONS`| A boolean flag to indicate if current possitions should be passed to the strategy's `generate_signal` method. Read more [here](generate-signal-boilerplate). | False | 
+|`INCLUDE_BROKER`| A boolean flag to indicate if the broker interface and broker utilities should be passed to the strategy's `__init__` method. Read more [here](strategy-broker-access). | False |
+|`INCLUDE_STREAM`| A boolean flag to indicate if the [data stream](utils-datastream) object should be passed to the strategy's `__init__` method. | False |
 
 Some things to note:
 - The `PERIOD` key is used to specify how many candles to retrieve when live trading. For example, if period takes the value of 300, the 
