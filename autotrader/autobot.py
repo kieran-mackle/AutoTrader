@@ -155,6 +155,7 @@ class AutoTraderBot:
         self._refresh_data(deploy_dt)
         
         # Instantiate Strategy
+        # params, data, instrument + broker, utils, stream object
         # TODO - data stream is passed in here...
         if strategy_config['INCLUDE_BROKER']:
             my_strat = strategy(params, self._strat_data, instrument, 

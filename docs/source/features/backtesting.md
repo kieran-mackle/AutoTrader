@@ -1,6 +1,6 @@
 # Backtesting With AutoTrader
 
-Thanks to the powerful [virtual broker](virtual-broker), AutoTrader features a highly capable backtesting
+Thanks to the powerful [virtual broker](virtual-broker-docs), AutoTrader features a highly capable backtesting
 environment. In addition to supporting mulitple [order types](order-types), AutoTrader supports backtesting
 mutliple strategies with multiple instruments on multiple timeframes - all against the same broker at the 
 same time. 

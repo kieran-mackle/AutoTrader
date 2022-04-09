@@ -2,7 +2,7 @@
 # Strategy Configuration
 
 
-The strategy configuration contains information related specifically to a strategy. Each [strategy](strategies) requires
+The strategy configuration contains information related specifically to a strategy. Each [strategy](trading-strategy) requires
 its own configuration file to be able to run. It is written either as a 
 [.yaml](https://www.redhat.com/en/topics/automation/what-is-yaml) file, or passed directly to AutoTrader as a dictionary. 
 Note that spacing is important in .yaml files, with each level defined by two subsequent spaces.
@@ -11,19 +11,19 @@ Note that spacing is important in .yaml files, with each level defined by two su
 (strategy-config-options)=
 ## Configuration Options
 The keys of the strategy configuration file are described in the table below. Note that all parameters defined here will 
-also be accessible in the [strategy](strategies), via the `params` dictionary. 
+also be accessible in the [strategy](trading-strategy), via the `params` dictionary. 
 
 | Key | Description |
 |:---:|-------------|
 |`NAME`| A string defining the strategy name. |
 |`MODULE`| A string containing the prefix name of the strategy module, without the *.py* suffix. |
 |`CLASS`| A string containing the class name within the strategy module. |
-|`INTERVAL`| The granularity of the strategy, in the [format required](autodata) by the [data feed](autotrader#run-configuration). |
+|`INTERVAL`| The granularity of the strategy, in the [format required](autodata-docs) by the [data feed](autotrader-configure). |
 |`PERIOD`| The number of candles to fetch when live trading (eg. a value of 300 will fetch the latest 300 candles). |
-|`SIZING`| The method to use when calculating position size. Can be either 'risk' or an integer value corresponding to the number of units to trade. If using the 'risk' option, position size will be calculated based on trading account balance and the value assigned to `RISK_PC`. Read more [here](position-sizing).|
+|`SIZING`| The method to use when calculating position size. Can be either 'risk' or an integer value corresponding to the number of units to trade. If using the 'risk' option, position size will be calculated based on trading account balance and the value assigned to `RISK_PC`.|
 |`RISK_PC`| The percentage of the account balance to risk when determining position risk-based size.|
 |`PARAMETERS`| A dictionary containing custom strategy parameters (see below).|
-|`WATCHLIST`| A list of strings containing the instruments to be traded in the strategy, in the [format required](autodata) by the [data feed](autotrader#run-configuration). |
+|`WATCHLIST`| A list of strings containing the instruments to be traded in the strategy, in the [format required](autodata-docs) by the [data feed](autotrader-configure). |
 |`INCLUDE_POSITIONS`| A boolean flag to indicate if current possitions should be passed to the strategy's `generate_signal` method. Read more [here](generate-signal-boilerplate). |
 |`INCLUDE_BROKER`| A boolean flag to indicate if the broker interface and broker utilities should be passed to the strategy's `__init__` method. Read more [here](strategy-broker-access). |
 
@@ -38,7 +38,7 @@ in `INTERVAL` and the associated data.
 
 
 ### Strategy Parameters
-The parameters key contains any information you would like to be able to access from your [strategy](strategies) module. 
+The parameters key contains any information you would like to be able to access from your [strategy](trading-strategy) module. 
 Typically, this will include indicator configuration parameters, such as periods, and exit parameters, such as a risk-to-reward 
 ratio.
 

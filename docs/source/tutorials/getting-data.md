@@ -4,7 +4,7 @@
 AuotTrader is compatible with all kinds of price data, regardless of the nature of the instrument being traded. This means that
 it can be used for stocks, cryptocurrencies, foreign exchange, futures, options, commodities and even Mars bars - provided that 
 you can get historical price data for them. Luckily for you, AutoTrader is ready to fetch data for various
-[supported instruments](supported-data-feeds) automatically using [AutoData](autodata-docs). All you have 
+[instruments](supported-brokers) automatically using [AutoData](autodata-docs). All you have 
 to do is provide a few details in the [user configuration files](userfiles), and AutoTrader will take care of 
 the rest. Of course, if you would prefer to provide your own data, you can do this too.
 
