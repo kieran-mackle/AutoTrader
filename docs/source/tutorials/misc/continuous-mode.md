@@ -11,15 +11,15 @@ differences in the `generate_signal` method of the [strategy](trading-strategy) 
 
 ````{tab} Periodic Mode
 ```python
-    def __init__(self, params, data, instrument):
+    def __init__(self, parameters, data, instrument):
         self.data = data
         
         # 200EMA
-        self.ema = TA.EMA(data, self.params['ema_period'])
+        self.ema = TA.EMA(data, parameters['ema_period'])
         
         # MACD
-        self.MACD = TA.MACD(data, self.params['MACD_fast'], 
-                            self.params['MACD_slow'], self.params['MACD_smoothing'])
+        self.MACD = TA.MACD(data, parameters['MACD_fast'], 
+                            parameters['MACD_slow'], parameters['MACD_smoothing'])
         self.MACD_CO = indicators.crossover(self.MACD.MACD, self.MACD.SIGNAL)
         self.MACD_CO_vals = indicators.cross_values(self.MACD.MACD, 
                                                     self.MACD.SIGNAL,
@@ -55,11 +55,11 @@ differences in the `generate_signal` method of the [strategy](trading-strategy) 
         self.data = data
         
         # 200EMA
-        self.ema = TA.EMA(data, self.params['ema_period'])
+        self.ema = TA.EMA(data, self.parameters['ema_period'])
         
         # MACD
-        self.MACD = TA.MACD(data, self.params['MACD_fast'], 
-                            self.params['MACD_slow'], self.params['MACD_smoothing'])
+        self.MACD = TA.MACD(data, self.parameters['MACD_fast'], 
+                            self.parameters['MACD_slow'], self.parameters['MACD_smoothing'])
         self.MACD_CO = indicators.crossover(self.MACD.MACD, self.MACD.SIGNAL)
         self.MACD_CO_vals = indicators.cross_values(self.MACD.MACD, 
                                                     self.MACD.SIGNAL,
