@@ -485,7 +485,55 @@ class AutoPlot:
         navfig.add_tools(linked_crosshair)
         
         
-        # Bar chart of return per instrument 
+        # Cumultive returns plot
+        returns_per_instrument = [trade_history.profit[trade_history.instrument == i].cumsum() for i in instruments]
+        cplfig = figure(plot_width = navfig.plot_width,
+                        plot_height = self._top_fig_height,
+                        title = "Cumulative returns per instrument",
+                        active_drag = 'pan',
+                        active_scroll = 'wheel_zoom',
+                        x_range = navfig.x_range)
+        
+        if no_instruments < 3:
+            colors = Category20c[3][0:no_instruments]
+        else:
+            colors = Category20c[no_instruments]
+        
+        for i in range(len(instruments)):
+            cpldata = returns_per_instrument[i].to_frame()
+            cpldata['date'] = cpldata.index
+            cpldata = cpldata.reset_index(drop = True)
+            
+            cpldata = pd.merge(reindexed_acc_hist, cpldata, left_on='date', right_on='date')
+            concatted = pd.concat([reindexed_acc_hist, cpldata])
+            non_duplicated = concatted[~concatted.data_index.duplicated(keep='last')][['data_index','profit']]
+            sorted_data = non_duplicated.sort_values('data_index').fillna(method='ffill').fillna(0)
+            
+            cplsource = ColumnDataSource(sorted_data)
+            cplfig.line('data_index',
+                        'profit',
+                        legend_label = f"{instruments[i]}",
+                        line_color = colors[i],
+                        source=cplsource)
+        
+        cplfig.legend.location = 'top_left'
+        cplfig.legend.border_line_width = 1
+        cplfig.legend.border_line_color = '#333333'
+        cplfig.legend.padding = 5
+        cplfig.legend.spacing = 0
+        cplfig.legend.margin = 0
+        cplfig.legend.label_text_font_size = '8pt'
+        cplfig.sizing_mode = 'stretch_width'
+        cplfig.add_tools(linked_crosshair)
+        
+        cplfig.xaxis.major_label_overrides = {
+                    i: date.strftime('%b %d %Y') for i, date in enumerate(pd.to_datetime(reindexed_acc_hist["date"]))
+                }
+        cplfig.xaxis.bounds = (0, reindexed_acc_hist.index[-1])
+        
+        
+        
+        # Portoflio distribution
         
         
         # Pie chart of trades per instrument
@@ -517,6 +565,7 @@ class AutoPlot:
         # Construct final figure     
         final_fig = layout([  
                                    [navfig],
+                                   [cplfig],
                                    [pie],
                             ])
         final_fig.sizing_mode = 'scale_width'
