@@ -835,24 +835,15 @@ class AutoPlot:
                             # Timeseries provided, merge indexes
                             if indicators[indicator]['data'].name is None:
                                 indicators[indicator]['data'].name = 'data'
-                            merged_indicator_data = pd.merge(self._data, 
-                                                             indicators[indicator]['data'], 
-                                                             left_on='date', 
-                                                             right_index=True)
-                            
-                            merged_indicator_data.fillna(method='bfill', inplace=True)
-                            data_name = indicators[indicator]['data'].name
-                            line_source = ColumnDataSource(merged_indicator_data[[data_name,
-                                                                    'data_index']])
+                            line_source = self._create_line_source(indicators[indicator]['data'])
                         else:
                             raise Exception("Plot data must be a timeseries.")
                             
-                        line_source.add(merged_indicator_data[data_name].values, 'High')
-                        line_source.add(merged_indicator_data[data_name].values, 'Low')
                         new_fig = self._plot_lineV2(line_source, linked_fig,
-                                                    data_name, new_fig=True,
-                                                    legend_label=data_name,
-                                                    fig_height=130)
+                                                indicators[indicator]['data'].name, 
+                                                new_fig=True,
+                                                legend_label=indicators[indicator]['data'].name,
+                                                fig_height=130)
                         self._add_to_autoscale_args(line_source, new_fig.y_range)
                         
                     indis_below += 1
@@ -861,15 +852,33 @@ class AutoPlot:
                 # The indicator plot type is not recognised - plotting on new fig
                 if indis_below < self._max_indis_below:
                     print("Indicator type '{}' not recognised in AutoPlot.".format(indi_type))
-                    new_fig = self._plot_line(indicators[indicator]['data'], 
-                                              linked_fig, new_fig=True, 
-                                              legend_label=indicator, 
-                                              hover_name=indicator)
+                    line_source = self._create_line_source(indicators[indicator]['data'])
+                    new_fig = self._plot_lineV2(line_source, linked_fig,
+                                                indicators[indicator]['data'].name, 
+                                                new_fig=True,
+                                                legend_label=indicators[indicator]['data'].name,
+                                                fig_height=130)
+                    self._add_to_autoscale_args(line_source, new_fig.y_range)
                     
                     indis_below += 1
                     bottom_figs.append(new_fig)
                 
         return bottom_figs
+    
+    
+    def _create_line_source(self, indicator_data):
+        """Create ColumndDataSource from indicator line data."""
+        merged_indicator_data = pd.merge(self._data, 
+                                         indicator_data, 
+                                         left_on='date', 
+                                         right_index=True)
+        merged_indicator_data.fillna(method='bfill', inplace=True)
+        data_name = indicator_data.name
+        line_source = ColumnDataSource(merged_indicator_data[[data_name,
+                                                'data_index']])
+        line_source.add(merged_indicator_data[data_name].values, 'High')
+        line_source.add(merged_indicator_data[data_name].values, 'Low')
+        return line_source
     
     
     def _create_main_plot(self, source, line_colour: str = 'black',
