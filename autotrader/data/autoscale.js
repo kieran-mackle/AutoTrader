@@ -26,5 +26,29 @@ window.autoscale_timeout = setTimeout(function () {
             min = Math.min.apply(null, top_source.data['Low'].slice(i, j));
         autoscale_range(top_range, min, max, true);
     }
+    
+    if (bot_range_1) {
+        let max = Math.max.apply(null, bot_source_1.data['High'].slice(i, j)),
+            min = Math.min.apply(null, bot_source_1.data['Low'].slice(i, j));
+        autoscale_range(bot_range_1, min, max, true);
+    }
+    
+    if (bot_range_2) {
+        let max = Math.max.apply(null, bot_source_2.data['High'].slice(i, j)),
+            min = Math.min.apply(null, bot_source_2.data['Low'].slice(i, j));
+        autoscale_range(bot_range_2, min, max, true);
+    }
+    
+    if (bot_range_3) {
+        let max = Math.max.apply(null, bot_source_3.data['High'].slice(i, j)),
+            min = Math.min.apply(null, bot_source_3.data['Low'].slice(i, j));
+        autoscale_range(bot_range_3, min, max, true);
+    }
+    
+    if (bot_range_4) {
+        let max = Math.max.apply(null, bot_source_4.data['High'].slice(i, j)),
+            min = Math.min.apply(null, bot_source_4.data['Low'].slice(i, j));
+        autoscale_range(bot_range_4, min, max, true);
+    }
 
 }, 50);

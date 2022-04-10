@@ -70,6 +70,7 @@ class AutoPlot:
         self._backtest_data = None
         
         # Load JavaScript code for auto-scaling 
+        self.autoscale_args = {}
         self._autoscale_code = pkg_resources.read_text(pkgdata, 'autoscale.js')
         
         
@@ -248,7 +249,7 @@ class AutoPlot:
             main_plot = self._plot_candles(source)
         
         # Initialise autoscale arguments
-        autoscale_args = {'y_range': main_plot.y_range, 'source': source}
+        self.autoscale_args = {'y_range': main_plot.y_range, 'source': source}
         
         top_figs = []
         bottom_figs = []
@@ -275,8 +276,8 @@ class AutoPlot:
                             hover_name='P/L', line_colour='blue')
             
             # Append autoscale args
-            autoscale_args['top_range'] = top_fig.y_range
-            autoscale_args['top_source'] = topsource
+            self.autoscale_args['top_range'] = top_fig.y_range
+            self.autoscale_args['top_source'] = topsource
             
             top_figs.append(top_fig)
             
@@ -294,9 +295,8 @@ class AutoPlot:
             bottom_figs = self._plot_indicators(indicators, main_plot)
         
         # Auto-scale y-axis of candlestick chart
-        # TODO - also autoscale indicators
-        main_plot.x_range.js_on_change('end', CustomJS(args = autoscale_args, 
-                                       code = self._autoscale_code))
+        main_plot.x_range.js_on_change('end', CustomJS(args=self.autoscale_args, 
+                                       code=self._autoscale_code))
         
         # Compile plots for final figure
         plots = top_figs + [main_plot] + bottom_figs
@@ -407,6 +407,32 @@ class AutoPlot:
         merged_data['data_index'] = merged_data.index
         return merged_data[list(df.columns) + ['date', 'data_index']].set_index('date')
     
+    
+    def _add_to_autoscale_args(self, source, y_range):
+        """
+
+        Parameters
+        ----------
+        source : ColumnDataSource
+            The column data source.
+        y_range : Bokeh Range
+            The y_range attribute of the chart.
+
+        """
+        added = False
+        range_key = 'bot_range_1'
+        source_key = 'bot_source_1'
+        while not added:
+            if range_key not in self.autoscale_args:
+                # Keys can be added
+                self.autoscale_args[range_key] = y_range
+                self.autoscale_args[source_key] = source
+                added = True
+            else:
+                # Increment key
+                range_key = range_key[:-1] + str(int(range_key[-1])+1)
+                source_key = source_key[:-1] + str(int(source_key[-1])+1)
+        
     
     def _add_backtest_price_data(self, backtest_price_data: pd.DataFrame) -> None:
         """Processes backtest price data to included integer index of base 
@@ -658,9 +684,6 @@ class AutoPlot:
         "over", it will be plotted on top of linked_fig. If indicator type is 
         "below", it will be plotted on a new figure below the OHLC chart.
         """
-        # TODO - convert all data to a ColumnDataSource, to allow indicator
-        # autoscaling and proper index matching. Create helper method for this
-        
         x_range   = self._data.index
         plot_type = {'MACD'        : 'below',
                      'MA'          : 'over',
@@ -699,11 +722,11 @@ class AutoPlot:
                     if indi_type == 'Supertrend':
                         self._plot_supertrend(indicators[indicator]['data'], 
                                               linked_fig)
-                        indis_over     += 1 # Count as 2 indicators
+                        indis_over += 1 # Count as 2 indicators
                     elif indi_type == 'HalfTrend':
                         self._plot_halftrend(indicators[indicator]['data'], 
                                              linked_fig)
-                        indis_over     += 1 # Count as 2 indicators
+                        indis_over += 1 # Count as 2 indicators
                     elif indi_type == 'Swings':
                         self._plot_swings(indicators[indicator]['data'], 
                                           linked_fig)
@@ -1368,7 +1391,12 @@ class AutoPlot:
                         size = 15,
                         fill_color = 'black',
                         legend_label = 'Last Crossover Value')
-    
+        
+        # Define autoscale arguments
+        source.add(np.maximum(macd_data['macd'], macd_data['signal']), 'High')
+        source.add(np.minimum(macd_data['macd'], macd_data['signal']), 'Low')
+        self._add_to_autoscale_args(source, fig.y_range)
+        
         return fig
     
     
