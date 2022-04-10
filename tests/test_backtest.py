@@ -29,7 +29,7 @@ def test_macd_backtest():
                 spread=0.5, commission=0.005, hedging=True)
     at.run()
     bot = at.get_bots_deployed()
-    bt_results = at.analyse_backtest(bot)
+    bt_results = at.analyse_backtest()
     
     # Test backtest results
     assert bt_results['no_trades'] == 36, "Incorrect number of trades"
@@ -75,5 +75,5 @@ def test_multibot_macd_backtest():
     assert bt_results['no_long'][1] == 8, "Incorrect number of long trades"
     assert bt_results['no_short'][0] == 25, "Incorrect number of short trades"
     assert bt_results['no_short'][1] == 25, "Incorrect number of short trades"
-    assert round(EU1bot.backtest_summary['account_history']['equity'][-1], 5) == 839.43366, "Incorrect ending balance"
+    assert round(EU1bot.backtest_results.account_history['equity'][-1], 5) == 839.43366, "Incorrect ending balance"
 
