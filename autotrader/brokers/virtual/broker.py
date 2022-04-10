@@ -49,25 +49,32 @@ class Broker:
         self.trades = {}
         
         # Account 
+        self.NAV = 0 # Net asset value
+        self.portfolio_balance = 0 # TODO - equity
+        self.margin_available = 0 
+        
         self.leverage = 1
         self.spread = 0 # TODO - pips or price units? Add docs
-        self.margin_available = 0
-        self.portfolio_balance = 0
         self.hedging = False
         self.margin_closeout = 0.0 # Fraction at margin call
         
-        self.profitable_trades = 0
-        self.peak_value = 0
-        self.low_value = 0
-        self.max_drawdown = 0
         self.home_currency = 'AUD'
-        self.NAV = 0
-        self.unrealised_PL = 0
+        self.unrealised_PL = 0 # TODO - floating pnl
+        
         self.verbosity = broker_config['verbosity']
         
         # Commissions
         self.commission_scheme = 'percentage'
         self.commission = 0
+        
+        # History
+        self.profitable_trades = 0
+        self.peak_value = 0
+        self.low_value = 0
+        self.max_drawdown = 0
+        
+        self._account_history = pd.DataFrame()
+        
         
     
     def __repr__(self):
@@ -484,6 +491,16 @@ class Broker:
         
         # Update open position value
         self.NAV = self.portfolio_balance + self.unrealised_PL
+        
+        
+        # Update account history
+        account_snapshot = pd.DataFrame(data={'NAV': self.NAV, 
+                                              'equity': self.portfolio_balance, 
+                                              'margin': self.margin_available}, 
+                                        index=[candle.name])
+        self._account_history = pd.concat([self._account_history,
+                                           account_snapshot])
+        
     
     
     def _close_position(self, instrument: str, candle: pd.core.series.Series, 
