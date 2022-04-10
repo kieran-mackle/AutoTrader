@@ -68,13 +68,7 @@ class Broker:
         self.commission = 0
         
         # History
-        self.profitable_trades = 0
-        self.peak_value = 0
-        self.low_value = 0
-        self.max_drawdown = 0
-        
         self.account_history = pd.DataFrame()
-        
         
     
     def __repr__(self):
@@ -549,9 +543,6 @@ class Broker:
         commission = self._calculate_commissions(trade_id, exit_price, size)
         net_profit = gross_PL - commission
         
-        if net_profit > 0:
-            self.profitable_trades += 1
-        
         # Add trade to closed positions
         trade.profit = net_profit
         trade.balance = self.equity
@@ -565,7 +556,6 @@ class Broker:
         
         # Update account
         self._add_funds(net_profit)
-        self._update_MDD()
     
     
     def _reduce_position(self, order: Order) -> None:
@@ -656,11 +646,6 @@ class Broker:
     def _make_deposit(self, deposit: float) -> None:
         """Adds deposit to account balance and NAV.
         """
-        if self.equity == 0:
-            # If this is the initial deposit, set peak and low values for MDD
-            self.peak_value = deposit
-            self.low_value = deposit
-            
         self.equity += deposit
         self.NAV += deposit
         self._update_margin()
@@ -699,26 +684,6 @@ class Broker:
                 print("MARGIN CALL: closing all positions.")
             self._margin_call(instrument, candle)
 
-
-    def _update_MDD(self) -> None:
-        """Function to calculate maximum portfolio drawdown.
-        """
-        balance     = self.equity
-        peak_value  = self.peak_value
-        low_value   = self.low_value
-        
-        if balance > peak_value:
-            self.peak_value = balance
-            self.low_value = balance
-            
-        elif balance < low_value:
-            self.low_value = balance
-        
-        MDD = 100*(low_value - peak_value)/peak_value
-        
-        if MDD < self.max_drawdown:
-            self.max_drawdown = MDD
-    
     
     def _modify_order(self, order: Order) -> None:
         """Modify order with updated parameters. Called when order_type = 'modify', 
