@@ -150,7 +150,6 @@ class AutoPlot:
              show_fig: bool = True) -> None:
         """Creates a trading chart of OHLC price data and indicators.
 
-        TODO - clean up info below
         Extended Summary
         ----------------
         The following lists the keys corresponding to various indicators,
@@ -386,8 +385,6 @@ class AutoPlot:
             data: the data to be merged
             name: the desired column name of the merged data
         """
-        # TODO - need to add handling of different data types, ie. list vs. series vs. df
-        # Mainly check if the series has a name or not
         merged_data = pd.merge(self._data, data, left_on='date', 
                                right_index=True).fillna('')
         
