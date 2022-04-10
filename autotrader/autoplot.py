@@ -254,7 +254,7 @@ class AutoPlot:
             if len(account_hist) != len(self._data):
                 account_hist = self._interpolate_and_merge(account_hist)
             NAV = account_hist['NAV']
-            balance = account_hist['balance']
+            balance = account_hist['equity']
             trade_summary = backtest_dict['trade_summary']
             indicators = backtest_dict['indicators']
             open_trades = backtest_dict['open_trades']

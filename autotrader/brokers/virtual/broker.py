@@ -73,7 +73,7 @@ class Broker:
         self.low_value = 0
         self.max_drawdown = 0
         
-        self._account_history = pd.DataFrame()
+        self.account_history = pd.DataFrame()
         
         
     
@@ -498,8 +498,8 @@ class Broker:
                                               'equity': self.portfolio_balance, 
                                               'margin': self.margin_available}, 
                                         index=[candle.name])
-        self._account_history = pd.concat([self._account_history,
-                                           account_snapshot])
+        self.account_history = pd.concat([self.account_history,
+                                          account_snapshot])
         
     
     

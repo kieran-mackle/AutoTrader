@@ -522,8 +522,7 @@ class AutoTraderBot:
             self._broker._update_positions(bar, product)
     
     
-    def _create_backtest_summary(self, balance: pd.Series, NAV: pd.Series, 
-                                margin: pd.Series, trade_times = None) -> dict:
+    def _create_backtest_summary(self) -> dict:
         """Constructs backtest summary dictionary for further processing.
         """
         trade_summary = self._broker_utils.trade_summary(trades=self._broker.trades,
@@ -531,20 +530,17 @@ class AutoTraderBot:
         order_summary = self._broker_utils.trade_summary(orders=self._broker.orders,
                                                          instrument=self.instrument)
         
-        if trade_times is None:
-            trade_times = self.data.index
-        
-        # closed_trades = trade_summary[trade_summary.status == 'closed']
         open_trade_summary = trade_summary[trade_summary.status == 'open']
         cancelled_summary = order_summary[order_summary.status == 'cancelled']
         
+        account_history = self._broker.account_history
+        account_history = account_history[~account_history.index.duplicated(keep='last')]
+        account_history['drawdown'] = np.array(account_history.NAV) / \
+                          np.maximum.accumulate(account_history.NAV) - 1
+        
         backtest_dict = {}
         backtest_dict['data'] = self.data
-        backtest_dict['account_history'] = pd.DataFrame(data={'balance': balance, 
-                                                              'NAV': NAV, 
-                                                              'margin': margin,
-                                                              'drawdown': np.array(NAV)/np.maximum.accumulate(NAV) - 1}, 
-                                                        index=trade_times)
+        backtest_dict['account_history'] = account_history
         backtest_dict['trade_summary'] = trade_summary
         backtest_dict['indicators'] = self._strategy.indicators if hasattr(self._strategy, 'indicators') else None
         backtest_dict['instrument'] = self.instrument

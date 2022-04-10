@@ -927,8 +927,8 @@ class AutoTrader:
             max_drawdown = min(account_history.drawdown)
             total_fees = trade_summary.fees.sum()
             
-            starting_balance = account_history.balance[0]
-            ending_balance = account_history.balance[-1]
+            starting_balance = account_history.equity[0]
+            ending_balance = account_history.equity[-1]
             ending_NAV = account_history.NAV[-1]
             abs_return = ending_balance - starting_balance
             pc_return = 100 * abs_return / starting_balance
@@ -1092,8 +1092,8 @@ class AutoTrader:
         start_date = account_history.index[0]
         end_date = account_history.index[-1]
         
-        starting_balance = account_history.balance[0]
-        ending_balance = account_history.balance[-1]
+        starting_balance = account_history.equity[0]
+        ending_balance = account_history.equity[-1]
         ending_NAV = account_history.NAV[-1]
         abs_return = ending_balance - starting_balance
         pc_return = 100 * abs_return / starting_balance
@@ -1272,12 +1272,6 @@ class AutoTrader:
         self._assign_broker(broker_config)
         self._configure_emailing(global_config)
         
-        if self._backtest_mode:
-            NAV     = []
-            balance = []
-            margin  = []
-            tradetimes = []
-        
         if int(self._verbosity) > 0:
             if self._backtest_mode:
                 print("Beginning new backtest.")
@@ -1328,12 +1322,6 @@ class AutoTrader:
                     for bot in self._bots_deployed:
                         bot._update(timestamp=timestamp)
                         
-                    # Update backtest tracking stats
-                    NAV.append(self._broker.NAV)
-                    balance.append(self._broker.portfolio_balance)
-                    margin.append(self._broker.margin_available)
-                    tradetimes.append(timestamp)
-                    
                     # Iterate through time
                     timestamp += self._timestep
         
@@ -1362,12 +1350,6 @@ class AutoTrader:
                     for bot in self._bots_deployed:
                         bot._update(i=i)
                         
-                    # Update backtest tracking
-                    NAV.append(self._broker.NAV)
-                    balance.append(self._broker.portfolio_balance)
-                    margin.append(self._broker.margin_available)
-                    tradetimes.append(self._bots_deployed[0].data.index[i])
-        
             else:
                 # Live trading
                 bot._update(i=-1) # Process most recent signal
@@ -1383,7 +1365,7 @@ class AutoTrader:
         if self._backtest_mode:
             # Create backtest summary for each bot 
             for bot in self._bots_deployed:
-                bot._create_backtest_summary(balance, NAV, margin, tradetimes)            
+                bot._create_backtest_summary()            
             
             if int(self._verbosity) > 0:
                 print(f"Backtest complete (runtime {round((backtest_end_time - backtest_start_time), 3)} s).")
