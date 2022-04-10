@@ -236,17 +236,19 @@ class AutoPlot:
         
         # Add base data
         source = ColumnDataSource(self._data)
-        # TODO - only use column data sources throughout
         
         # Main plot
         if self._use_strat_plot_data:
-            source.add(np.ones(len(self._data))*max(self._data.plot_data), 'High')
-            source.add(np.ones(len(self._data))*min(self._data.plot_data), 'Low')
+            source.add(self._data.plot_data, 'High')
+            source.add(self._data.plot_data, 'Low')
             main_plot = self._create_main_plot(source)
         else:
             source.add((self._data.Close >= self._data.Open).values.astype(np.uint8).astype(str),
                        'change')
             main_plot = self._plot_candles(source)
+        
+        # Initialise autoscale arguments
+        autoscale_args = {'y_range': main_plot.y_range, 'source': source}
         
         top_figs = []
         bottom_figs = []
@@ -255,19 +257,27 @@ class AutoPlot:
             account_hist = backtest_dict.account_history
             if len(account_hist) != len(self._data):
                 account_hist = self._interpolate_and_merge(account_hist)
-            NAV = account_hist['NAV']
-            balance = account_hist['equity']
+            
+            topsource = ColumnDataSource(account_hist)
+            topsource.add(account_hist[['NAV', 'equity']].min(1), 'Low')
+            topsource.add(account_hist[['NAV', 'equity']].max(1), 'High')
+            
             trade_summary = backtest_dict.trade_history
             indicators = backtest_dict.indicators
             open_trades = backtest_dict.open_trades
             cancelled_trades = backtest_dict.cancelled_orders
             
-            # Top plots
-            top_fig = self._plot_line(NAV, main_plot, new_fig=True, 
+            top_fig = self._plot_lineV2(topsource, main_plot, "NAV", new_fig=True, 
                                       legend_label='Net Asset Value', 
                                       hover_name='NAV')
-            self._plot_line(balance, top_fig, legend_label='Account Balance', 
+            # Add equity balance
+            self._plot_lineV2(topsource, top_fig, "equity", legend_label='Account Balance', 
                             hover_name='P/L', line_colour='blue')
+            
+            # Append autoscale args
+            autoscale_args['top_range'] = top_fig.y_range
+            autoscale_args['top_source'] = topsource
+            
             top_figs.append(top_fig)
             
             if not self._use_strat_plot_data:
@@ -285,7 +295,6 @@ class AutoPlot:
         
         # Auto-scale y-axis of candlestick chart
         # TODO - also autoscale indicators
-        autoscale_args = dict(y_range = main_plot.y_range, source = source)
         main_plot.x_range.js_on_change('end', CustomJS(args = autoscale_args, 
                                        code = self._autoscale_code))
         
@@ -395,7 +404,8 @@ class AutoPlot:
         interp_data = concat_data.interpolate(method='nearest').fillna(method='bfill')
         merged_data = self._merge_data(interp_data).drop_duplicates()
         merged_data = merged_data.replace('', np.nan).fillna(method='ffill')
-        return merged_data[list(df.columns) + ['date']].set_index('date')
+        merged_data['data_index'] = merged_data.index
+        return merged_data[list(df.columns) + ['date', 'data_index']].set_index('date')
     
     
     def _add_backtest_price_data(self, backtest_price_data: pd.DataFrame) -> None:
@@ -859,6 +869,42 @@ class AutoPlot:
                  line_color = line_colour,
                  # legend_label = legend_label,
                  source = source)
+        
+        return fig
+    
+    
+    def _plot_lineV2(self, source, linked_fig, column, new_fig=False, fig_height=150,
+                     fig_title=None, legend_label=None, hover_name=None,
+                     line_colour='black'):
+        """Generic method to plot data as a line.
+        """
+        
+        # Initiate figure
+        if new_fig:
+            fig = figure(plot_width = linked_fig.plot_width,
+                         plot_height = fig_height,
+                         title = fig_title,
+                         tools = self._fig_tools,
+                         active_drag = 'pan',
+                         active_scroll = 'wheel_zoom',
+                         x_range = linked_fig.x_range)
+        else:
+            fig = linked_fig
+        
+        fig.line('data_index', column, 
+                 line_color=line_colour,
+                 legend_label=legend_label,
+                 source=source)
+        
+        # if hover_name is not None:
+        #     fig_hovertool = HoverTool(tooltips = [("Date", "@date{%b %d %H:%M}"),
+        #                                           (hover_name, "@{plot_data}{%0.2f}")
+        #                                           ], 
+        #                               formatters={'@{plot_data}' : 'printf',
+        #                                           '@date' : 'datetime'},
+        #                               mode = 'vline')
+            
+        #     fig.add_tools(fig_hovertool)
         
         return fig
     

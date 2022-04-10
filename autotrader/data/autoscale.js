@@ -2,7 +2,7 @@ if (!window.autoscale_range) {
     window.autoscale_range = function (range, min, max, pad) {
         "use strict";
         if (min !== Infinity && max !== -Infinity) {
-            pad         = pad ? (max - min) * .03 : 0;
+            pad         = pad ? (max - min) * .05 : 0;
             range.start = min - pad;
             range.end   = max + pad;
         } else console.error('AutoPlot data range error:', min, max, range);
@@ -20,5 +20,11 @@ window.autoscale_timeout = setTimeout(function () {
     let max = Math.max.apply(null, source.data['High'].slice(i, j)),
         min = Math.min.apply(null, source.data['Low'].slice(i, j));
     autoscale_range(y_range, min, max, true);
+    
+    if (top_range) {
+        let max = Math.max.apply(null, top_source.data['High'].slice(i, j)),
+            min = Math.min.apply(null, top_source.data['Low'].slice(i, j));
+        autoscale_range(top_range, min, max, true);
+    }
 
 }, 50);
