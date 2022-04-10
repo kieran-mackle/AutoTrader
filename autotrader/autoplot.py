@@ -839,28 +839,21 @@ class AutoPlot:
                                                              indicators[indicator]['data'], 
                                                              left_on='date', 
                                                              right_index=True)
-                            line_data = merged_indicator_data[indicators[indicator]['data'].name]
-                            x_vals = line_data.index
-                            y_vals = line_data.values
-                        else:
-                            # List provided
-                            x_vals = x_range
-                            y_vals = np.zeros(len(x_range))
-                            y_vals[:len(indicators[indicator]['data'])] = indicators[indicator]['data']
                             
-                        new_fig = figure(plot_width = linked_fig.plot_width,
-                                         plot_height = 130,
-                                         title = None,
-                                         tools = linked_fig.tools,
-                                         active_drag = linked_fig.tools[0],
-                                         active_scroll = linked_fig.tools[1],
-                                         x_range = linked_fig.x_range)
-                        
-                        # Add glyphs
-                        new_fig.line(x_vals, y_vals,
-                                     line_color = indicators[indicator]['color'] if \
-                                         'color' in indicators[indicator] else 'black', 
-                                     legend_label = indicator)
+                            merged_indicator_data.fillna(method='bfill', inplace=True)
+                            data_name = indicators[indicator]['data'].name
+                            line_source = ColumnDataSource(merged_indicator_data[[data_name,
+                                                                    'data_index']])
+                        else:
+                            raise Exception("Plot data must be a timeseries.")
+                            
+                        line_source.add(merged_indicator_data[data_name].values, 'High')
+                        line_source.add(merged_indicator_data[data_name].values, 'Low')
+                        new_fig = self._plot_lineV2(line_source, linked_fig,
+                                                    data_name, new_fig=True,
+                                                    legend_label=data_name,
+                                                    fig_height=130)
+                        self._add_to_autoscale_args(line_source, new_fig.y_range)
                         
                     indis_below += 1
                     bottom_figs.append(new_fig)
