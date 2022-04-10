@@ -146,7 +146,7 @@ class AutoPlot:
         
     
     def plot(self, instrument: str = None, indicators: dict = None, 
-             backtest_dict: dict = None, cumulative_PL: list = None,
+             backtest_dict: dict = None,
              show_fig: bool = True) -> None:
         """Creates a trading chart of OHLC price data and indicators.
 
@@ -202,8 +202,6 @@ class AutoPlot:
             The backtest results dictionary. The default is None.
         indicators : dict, optional
             Indicators dictionary. The default is None.
-        cumulative_PL : list, optional
-            Cumulative PL history. The default is None.
         show_fig : bool, optional
             Flag to show the chart. The default is True.
 

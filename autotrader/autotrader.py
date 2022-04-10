@@ -1039,11 +1039,7 @@ class AutoTrader:
         
         data = bot._check_strategy_for_plot_data(self._use_strat_plot_data)
         ap = self._instantiate_autoplot(data)
-        profit_df = pd.merge(bot.data, 
-                             bot.backtest_results.trade_history['profit'], 
-                             left_index=True, right_index=True).profit.cumsum()
-        
-        ap.plot(backtest_dict=bot.backtest_results, cumulative_PL=profit_df)
+        ap.plot(backtest_dict=bot.backtest_results)
     
     
     def plot_multibot_backtest(self) -> None:
