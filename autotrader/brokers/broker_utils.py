@@ -199,29 +199,4 @@ class BrokerUtils:
         new_df = new_df.interpolate()
         
         return new_df
-    
-    
-    def get_streaks(self, trade_summary):
-        """Calculates longest winning and losing streaks from trade summary. 
-        """
-        profit_list = trade_summary[trade_summary['status']=='closed'].profit.values
-        longest_winning_streak = 1
-        longest_losing_streak = 1
-        streak = 1
-        
-        for i in range(1, len(profit_list)):
-            if np.sign(profit_list[i]) == np.sign(profit_list[i-1]):
-                streak += 1
-                
-                if np.sign(profit_list[i]) > 0:
-                    # update winning streak
-                    longest_winning_streak  = max(longest_winning_streak, streak)
-                else:
-                    # Update losing 
-                    longest_losing_streak   = max(longest_losing_streak, streak)
-    
-            else:
-                streak = 1
-        
-        return longest_winning_streak, longest_losing_streak
 

@@ -1,7 +1,8 @@
 import sys
 import yaml
+import numpy as np
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timedelta
 from autotrader.brokers.virtual.broker import Broker
 
 
@@ -145,6 +146,103 @@ def get_config(environment: str, global_config: dict, feed: str) -> dict:
     return config_dict
     
 
+def get_watchlist(index, feed):
+    """Returns a watchlist of instruments. 
+    
+    Notes
+    ------
+    The current implementation only support forex indices, with Oanda 
+    formatting.
+    
+    Examples
+    --------
+    >>> get_warchlist('forex:major')
+        [Out]: list of major forex pairs
+    """
+    
+    if len(index) == 0:
+        print("\nArgument for scan missing. Please specify instrument/index to scan.")
+        print("Try $ ./AutoTrader.py -h s for more help.\n")
+        sys.exit(0)
+    
+    if index == 'all':
+        ''' Returns all currency pairs. '''
+        watchlist = ['EUR_USD', 'USD_JPY', 'GBP_USD', 'AUD_USD', 
+                     'USD_CAD', 'USD_CHF', 'NZD_USD', 'EUR_GBP',
+                     'EUR_AUD', 'EUR_CAD', 'EUR_CHF', 'EUR_JPY',
+                     'EUR_NZD', 'GBP_JPY', 'GBP_AUD', 'GBP_CAD',
+                     'GBP_CHF', 'GBP_NZD', 'AUD_CAD', 'AUD_CHF',
+                     'AUD_JPY', 'AUD_NZD', 'CAD_CHF', 'CAD_JPY',
+                     'CHF_JPY', 'NZD_CHF', 'NZD_JPY']
+    
+    elif index == 'major':
+        ''' Returns major currency pairs. '''
+        if feed.lower() == 'oanda':
+            watchlist = ['EUR_USD', 'USD_JPY', 'GBP_USD', 'AUD_USD', 
+                         'USD_CAD', 'USD_CHF', 'NZD_USD']
+            
+        elif feed.lower() == 'yahoo':
+            watchlist = ['EURUSD=X', 'USDJPY=X', 'GBPUSD=X', 'AUDUSD=X', 
+                         'USDCAD=X', 'USDCHF=X', 'NZDUSD=X']
+        
+    elif index == 'minor':
+        ''' Returns minor currency pairs. '''
+        
+        if feed.lower() == 'oanda':
+            watchlist = ['EUR_GBP', 'EUR_AUD', 'EUR_CAD', 'EUR_CHF',
+                         'EUR_JPY', 'EUR_NZD', 'GBP_JPY', 'GBP_AUD',
+                         'GBP_CAD', 'GBP_CHF', 'GBP_NZD', 'AUD_CAD',
+                         'AUD_CHF', 'AUD_JPY', 'AUD_NZD', 'CAD_CHF',
+                         'CAD_JPY', 'CHF_JPY', 'NZD_CHF', 'NZD_JPY']
+            
+        elif feed.lower() == 'yahoo':
+            watchlist = ['EURGBP=X', 'EURAUD=X', 'EURCAD=X', 'EURCHF=X',
+                         'EURJPY=X', 'EURNZD=X', 'GBPJPY=X', 'GBPAUD=X',
+                         'GBPCAD=X', 'GBPCHF=X', 'GBPNZD=X', 'AUDCAD=X',
+                         'AUDCHF=X', 'AUDJPY=X', 'AUDNZD=X', 'CADCHF=X',
+                         'CADJPY=X', 'CHFJPY=X', 'NZDCHF=X', 'NZDJPY=X']
+    
+    elif index == 'exotic':
+        ''' Returns exotic currency pairs. '''
+        watchlist = ['EUR_TRY', 'USD_HKD', 'JPY_NOK', 'NZD_SGD',
+        	         'GBP_ZAR', 'AUD_MXN'] 
+    
+    elif index[3] == "_":
+        watchlist = [index]
+    
+    else:
+        print("Not supported.")
+        sys.exit(0)
+
+    
+    return watchlist
+
+
+def get_streaks(trade_summary):
+    """Calculates longest winning and losing streaks from trade summary. 
+    """
+    profit_list = trade_summary[trade_summary['status']=='closed'].profit.values
+    longest_winning_streak = 1
+    longest_losing_streak = 1
+    streak = 1
+    
+    for i in range(1, len(profit_list)):
+        if np.sign(profit_list[i]) == np.sign(profit_list[i-1]):
+            streak += 1
+            
+            if np.sign(profit_list[i]) > 0:
+                # update winning streak
+                longest_winning_streak  = max(longest_winning_streak, streak)
+            else:
+                # Update losing 
+                longest_losing_streak   = max(longest_losing_streak, streak)
+
+        else:
+            streak = 1
+    
+    return longest_winning_streak, longest_losing_streak
+
+
 class BacktestResults:
     """AutoTrader backtest results class."""
     def __init__(self, broker: Broker, instrument: str = None):
@@ -155,6 +253,7 @@ class BacktestResults:
         self.order_history = None
         self.open_trades = None
         self.cancelled_orders = None
+        self.bots = None # TODO - implement
         
         self.analyse_backtest(broker, instrument)
     
@@ -293,77 +392,105 @@ class BacktestResults:
         
         return dataframe
 
-
-def get_watchlist(index, feed):
-    """Returns a watchlist of instruments. 
     
-    Notes
-    ------
-    The current implementation only support forex indices, with Oanda 
-    formatting.
-    
-    Examples
-    --------
-    >>> get_warchlist('forex:major')
-        [Out]: list of major forex pairs
-    """
-    
-    if len(index) == 0:
-        print("\nArgument for scan missing. Please specify instrument/index to scan.")
-        print("Try $ ./AutoTrader.py -h s for more help.\n")
-        sys.exit(0)
-    
-    if index == 'all':
-        ''' Returns all currency pairs. '''
-        watchlist = ['EUR_USD', 'USD_JPY', 'GBP_USD', 'AUD_USD', 
-                     'USD_CAD', 'USD_CHF', 'NZD_USD', 'EUR_GBP',
-                     'EUR_AUD', 'EUR_CAD', 'EUR_CHF', 'EUR_JPY',
-                     'EUR_NZD', 'GBP_JPY', 'GBP_AUD', 'GBP_CAD',
-                     'GBP_CHF', 'GBP_NZD', 'AUD_CAD', 'AUD_CHF',
-                     'AUD_JPY', 'AUD_NZD', 'CAD_CHF', 'CAD_JPY',
-                     'CHF_JPY', 'NZD_CHF', 'NZD_JPY']
-    
-    elif index == 'major':
-        ''' Returns major currency pairs. '''
-        if feed.lower() == 'oanda':
-            watchlist = ['EUR_USD', 'USD_JPY', 'GBP_USD', 'AUD_USD', 
-                         'USD_CAD', 'USD_CHF', 'NZD_USD']
-            
-        elif feed.lower() == 'yahoo':
-            watchlist = ['EURUSD=X', 'USDJPY=X', 'GBPUSD=X', 'AUDUSD=X', 
-                         'USDCAD=X', 'USDCHF=X', 'NZDUSD=X']
+    def summary(self):
         
-    elif index == 'minor':
-        ''' Returns minor currency pairs. '''
+        backtest_results = {}
+        cpl = self.trade_history.profit.cumsum()
         
-        if feed.lower() == 'oanda':
-            watchlist = ['EUR_GBP', 'EUR_AUD', 'EUR_CAD', 'EUR_CHF',
-                         'EUR_JPY', 'EUR_NZD', 'GBP_JPY', 'GBP_AUD',
-                         'GBP_CAD', 'GBP_CHF', 'GBP_NZD', 'AUD_CAD',
-                         'AUD_CHF', 'AUD_JPY', 'AUD_NZD', 'CAD_CHF',
-                         'CAD_JPY', 'CHF_JPY', 'NZD_CHF', 'NZD_JPY']
+        # All trades
+        no_trades = len(self.trade_history[self.trade_history['status'] == 'closed'])
+        backtest_results['no_trades'] = no_trades
+        backtest_results['start'] = self.account_history.index[0]
+        backtest_results['end'] = self.account_history.index[-1]
+        
+        if no_trades > 0:
+            backtest_results['all_trades'] = {}
+            wins = self.trade_history[self.trade_history.profit > 0]
+            avg_win = np.mean(wins.profit)
+            max_win = np.max(wins.profit)
+            loss = self.trade_history[self.trade_history.profit < 0]
+            avg_loss = abs(np.mean(loss.profit))
+            max_loss = abs(np.min(loss.profit))
+            win_rate = 100*len(wins)/no_trades
+            longest_win_streak, longest_lose_streak  = get_streaks(self.trade_history)
+            avg_trade_duration = np.nanmean(self.trade_history.trade_duration.values)
+            min_trade_duration = np.nanmin(self.trade_history.trade_duration.values)
+            max_trade_duration = np.nanmax(self.trade_history.trade_duration.values)
+            max_drawdown = min(self.account_history.drawdown)
+            total_fees = self.trade_history.fees.sum()
             
-        elif feed.lower() == 'yahoo':
-            watchlist = ['EURGBP=X', 'EURAUD=X', 'EURCAD=X', 'EURCHF=X',
-                         'EURJPY=X', 'EURNZD=X', 'GBPJPY=X', 'GBPAUD=X',
-                         'GBPCAD=X', 'GBPCHF=X', 'GBPNZD=X', 'AUDCAD=X',
-                         'AUDCHF=X', 'AUDJPY=X', 'AUDNZD=X', 'CADCHF=X',
-                         'CADJPY=X', 'CHFJPY=X', 'NZDCHF=X', 'NZDJPY=X']
-    
-    elif index == 'exotic':
-        ''' Returns exotic currency pairs. '''
-        watchlist = ['EUR_TRY', 'USD_HKD', 'JPY_NOK', 'NZD_SGD',
-        	         'GBP_ZAR', 'AUD_MXN'] 
-    
-    elif index[3] == "_":
-        watchlist = [index]
-    
-    else:
-        print("Not supported.")
-        sys.exit(0)
+            starting_balance = self.account_history.equity[0]
+            ending_balance = self.account_history.equity[-1]
+            ending_NAV = self.account_history.NAV[-1]
+            abs_return = ending_balance - starting_balance
+            pc_return = 100 * abs_return / starting_balance
+            
+            backtest_results['all_trades']['starting_balance'] = starting_balance
+            backtest_results['all_trades']['ending_balance'] = ending_balance
+            backtest_results['all_trades']['ending_NAV'] = ending_NAV
+            backtest_results['all_trades']['abs_return'] = abs_return
+            backtest_results['all_trades']['pc_return'] = pc_return
+            backtest_results['all_trades']['avg_win'] = avg_win
+            backtest_results['all_trades']['max_win'] = max_win
+            backtest_results['all_trades']['avg_loss'] = avg_loss
+            backtest_results['all_trades']['max_loss'] = max_loss
+            backtest_results['all_trades']['win_rate'] = win_rate
+            backtest_results['all_trades']['win_streak'] = longest_win_streak
+            backtest_results['all_trades']['lose_streak'] = longest_lose_streak
+            backtest_results['all_trades']['longest_trade'] = str(timedelta(seconds = int(max_trade_duration)))
+            backtest_results['all_trades']['shortest_trade'] = str(timedelta(seconds = int(min_trade_duration)))
+            backtest_results['all_trades']['avg_trade_duration'] = str(timedelta(seconds = int(avg_trade_duration)))
+            backtest_results['all_trades']['net_pl'] = cpl.values[-1]
+            backtest_results['all_trades']['max_drawdown'] = max_drawdown
+            backtest_results['all_trades']['total_fees'] = total_fees
+            
+        # Cancelled and open orders
+        backtest_results['no_open'] = len(self.open_trades)
+        backtest_results['no_cancelled'] = len(self.cancelled_orders)
+        
+        # Long trades
+        long_trades = self.trade_history[self.trade_history['direction'] > 0]
+        no_long = len(long_trades)
+        backtest_results['long_trades'] = {}
+        backtest_results['long_trades']['no_trades'] = no_long
+        if no_long > 0:
+            long_wins = long_trades[long_trades.profit > 0]
+            avg_long_win = np.mean(long_wins.profit)
+            max_long_win = np.max(long_wins.profit)
+            long_loss = long_trades[long_trades.profit < 0]
+            avg_long_loss = abs(np.mean(long_loss.profit))
+            max_long_loss = abs(np.min(long_loss.profit))
+            long_wr = 100*len(long_trades[long_trades.profit > 0])/no_long
+            
+            backtest_results['long_trades']['avg_long_win'] = avg_long_win
+            backtest_results['long_trades']['max_long_win'] = max_long_win 
+            backtest_results['long_trades']['avg_long_loss'] = avg_long_loss
+            backtest_results['long_trades']['max_long_loss'] = max_long_loss
+            backtest_results['long_trades']['long_wr'] = long_wr
+            
+        # Short trades
+        short_trades = self.trade_history[self.trade_history['direction'] < 0]
+        no_short = len(short_trades)
+        backtest_results['short_trades'] = {}
+        backtest_results['short_trades']['no_trades'] = no_short
+        if no_short > 0:
+            short_wins = short_trades[short_trades.profit > 0]
+            avg_short_win = np.mean(short_wins.profit)
+            max_short_win = np.max(short_wins.profit)
+            short_loss = short_trades[short_trades.profit < 0]
+            avg_short_loss = abs(np.mean(short_loss.profit))
+            max_short_loss = abs(np.min(short_loss.profit))
+            short_wr = 100*len(short_trades[short_trades.profit > 0])/no_short
+            
+            backtest_results['short_trades']['avg_short_win'] = avg_short_win
+            backtest_results['short_trades']['max_short_win'] = max_short_win
+            backtest_results['short_trades']['avg_short_loss'] = avg_short_loss
+            backtest_results['short_trades']['max_short_loss'] = max_short_loss
+            backtest_results['short_trades']['short_wr'] = short_wr
+        
+        return backtest_results
 
-    
-    return watchlist
 
 
 class DataStream:
