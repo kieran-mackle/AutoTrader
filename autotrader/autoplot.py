@@ -149,6 +149,7 @@ class AutoPlot:
              show_fig: bool = True) -> None:
         """Creates a trading chart of OHLC price data and indicators.
 
+        TODO - clean up info below
         Extended Summary
         ----------------
         The following lists the keys corresponding to various indicators,
@@ -235,6 +236,7 @@ class AutoPlot:
         
         # Add base data
         source = ColumnDataSource(self._data)
+        # TODO - only use column data sources throughout
         
         # Main plot
         if self._use_strat_plot_data:
