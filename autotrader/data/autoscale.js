@@ -38,7 +38,7 @@ window.autoscale_timeout = setTimeout(function () {
             autoscale_range(bot_range_1, min, max, true);
                         }
     } catch (error) {
-    console.error('No top range');
+    console.error('No bottom_1 range');
     }
     
     try {
@@ -48,7 +48,7 @@ window.autoscale_timeout = setTimeout(function () {
         autoscale_range(bot_range_2, min, max, true);
     }
     } catch (error) {
-    console.error('No top range');
+    console.error('No bottom_2 range');
     }
     
     try {
@@ -58,7 +58,7 @@ window.autoscale_timeout = setTimeout(function () {
         autoscale_range(bot_range_3, min, max, true);
     }
     } catch (error) {
-    console.error('No top range');
+    console.error('No bottom_3 range');
     }
     
     try {
@@ -68,7 +68,17 @@ window.autoscale_timeout = setTimeout(function () {
         autoscale_range(bot_range_4, min, max, true);
     }
     } catch (error) {
-    console.error('No top range');
+    console.error('No bottom_4 range');
+    }
+    
+    try {
+    if (bot_range_5) {
+        let max = Math.max.apply(null, bot_source_5.data['High'].slice(i, j)),
+            min = Math.min.apply(null, bot_source_5.data['Low'].slice(i, j));
+        autoscale_range(bot_range_5, min, max, true);
+    }
+    } catch (error) {
+    console.error('No bottom_5 range');
     }
     
 }, 50);
