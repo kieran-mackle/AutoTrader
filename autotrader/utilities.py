@@ -143,118 +143,155 @@ def get_config(environment: str, global_config: dict, feed: str) -> dict:
                   "Please check global config and retry.")
     
     return config_dict
+    
 
-
-def trade_summary(trades: dict = None, orders: dict = None, 
-                  instrument: str = None) -> pd.DataFrame:
-    """Creates backtest trade summary dataframe.
-    """
-    if trades is not None:
-        iter_dict = trades
-    else:
-        iter_dict = orders
+class BacktestResults:
+    """AutoTrader backtest results class."""
+    def __init__(self, broker: Broker, instrument: str = None):
+        
+        self.instruments_traded = None
+        self.account_history = None
+        self.trade_history = None
+        self.order_history = None
+        self.open_trades = None
+        self.cancelled_orders = None
+        
+        self.analyse_backtest(broker, instrument)
     
-    iter_dict = {} if iter_dict is None else iter_dict 
     
-    product = []
-    status = []
-    ids = []
-    times_list = []
-    order_price = []
-    size = []
-    direction = []
-    stop_price = []
-    take_price = []
+    def __str__(self):
+        return 'AutoTrader Backtest Results'
     
-    if trades is not None:
-        entry_time = []
-        fill_price = []
-        profit = []
-        portfolio_balance = []
-        exit_times = []
-        exit_prices = []
-        trade_duration = []
-        fees = []
     
-    for ID, item in iter_dict.items():
-        product.append(item.instrument)
-        status.append(item.status)
-        ids.append(item.id)
-        size.append(item.size)
-        direction.append(item.direction)
-        times_list.append(item.order_time)
-        order_price.append(item.order_price)
-        stop_price.append(item.stop_loss)
-        take_price.append(item.take_profit)
+    def __repr__(self):
+        return 'AutoTrader Backtest Results'
+        
     
-    if trades is not None:
-        for trade_id, trade in iter_dict.items():
-            entry_time.append(trade.time_filled)
-            fill_price.append(trade.fill_price)
-            profit.append(trade.profit)
-            portfolio_balance.append(trade.balance)
-            exit_times.append(trade.exit_time)
-            exit_prices.append(trade.exit_price)
-            fees.append(trade.fees)
-            if trade.status == 'closed':
-                if type(trade.exit_time) == str:
-                    exit_dt = datetime.strptime(trade.exit_time, "%Y-%m-%d %H:%M:%S%z")
-                    entry_dt = datetime.strptime(trade.time_filled, "%Y-%m-%d %H:%M:%S%z")
-                    trade_duration.append(exit_dt.timestamp() - entry_dt.timestamp())
-                elif isinstance(trade.exit_time, pd.Timestamp):
-                    trade_duration.append((trade.exit_time - trade.time_filled).total_seconds())
+    def analyse_backtest(self, broker: Broker, instrument: str = None):
+        """Analyses backtest and creates summary of key details.
+        """
+        # Construct trade and order summaries
+        trades = BacktestResults.create_trade_summary(trades=broker.trades, instrument=instrument)
+        orders = BacktestResults.create_trade_summary(orders=broker.orders, instrument=instrument)
+        
+        # Construct account history
+        account_history = broker.account_history.copy()
+        account_history = account_history[~account_history.index.duplicated(keep='last')]
+        account_history['drawdown'] = account_history.NAV/account_history.NAV.cummax() - 1
+        
+        # Assign attributes
+        self.instruments_traded = list(orders.instrument.unique())
+        self.account_history = account_history
+        self.trade_history = trades
+        self.order_history = orders
+        self.open_trades = trades[trades.status == 'open']
+        self.cancelled_orders = orders[orders.status == 'cancelled']
+    
+    
+    @staticmethod
+    def create_trade_summary(trades: dict = None, orders: dict = None, 
+                      instrument: str = None) -> pd.DataFrame:
+        """Creates backtest trade summary dataframe.
+        """
+        # TODO - index by ID
+        
+        if trades is not None:
+            iter_dict = trades
+        else:
+            iter_dict = orders
+        
+        iter_dict = {} if iter_dict is None else iter_dict 
+        
+        product = []
+        status = []
+        ids = []
+        times_list = []
+        order_price = []
+        size = []
+        direction = []
+        stop_price = []
+        take_price = []
+        
+        if trades is not None:
+            entry_time = []
+            fill_price = []
+            profit = []
+            portfolio_balance = []
+            exit_times = []
+            exit_prices = []
+            trade_duration = []
+            fees = []
+        
+        for ID, item in iter_dict.items():
+            product.append(item.instrument)
+            status.append(item.status)
+            ids.append(item.id)
+            size.append(item.size)
+            direction.append(item.direction)
+            times_list.append(item.order_time)
+            order_price.append(item.order_price)
+            stop_price.append(item.stop_loss)
+            take_price.append(item.take_profit)
+        
+        if trades is not None:
+            for trade_id, trade in iter_dict.items():
+                entry_time.append(trade.time_filled)
+                fill_price.append(trade.fill_price)
+                profit.append(trade.profit)
+                portfolio_balance.append(trade.balance)
+                exit_times.append(trade.exit_time)
+                exit_prices.append(trade.exit_price)
+                fees.append(trade.fees)
+                if trade.status == 'closed':
+                    if type(trade.exit_time) == str:
+                        exit_dt = datetime.strptime(trade.exit_time, "%Y-%m-%d %H:%M:%S%z")
+                        entry_dt = datetime.strptime(trade.time_filled, "%Y-%m-%d %H:%M:%S%z")
+                        trade_duration.append(exit_dt.timestamp() - entry_dt.timestamp())
+                    elif isinstance(trade.exit_time, pd.Timestamp):
+                        trade_duration.append((trade.exit_time - trade.time_filled).total_seconds())
+                    else:
+                        trade_duration.append(trade.exit_time.timestamp() - 
+                                              trade.time_filled.timestamp())
                 else:
-                    trade_duration.append(trade.exit_time.timestamp() - 
-                                          trade.time_filled.timestamp())
-            else:
-                trade_duration.append(None)
+                    trade_duration.append(None)
+                
+            dataframe = pd.DataFrame({"instrument": product,
+                                      "status": status,
+                                      "ID": ids, 
+                                      "order_price": order_price,
+                                      "order_time": times_list,
+                                      "fill_time": entry_time,
+                                      "fill_price": fill_price, "size": size,
+                                      "direction": direction,
+                                      "stop_loss": stop_price, "take_profit": take_price,
+                                      "profit": profit, "balance": portfolio_balance,
+                                      "exit_time": exit_times, "exit_price": exit_prices,
+                                      "trade_duration": trade_duration,
+                                      "fees": fees},
+                                     index = pd.to_datetime(entry_time))
             
-        dataframe = pd.DataFrame({"instrument": product,
-                                  "status": status,
-                                  "ID": ids, 
-                                  "order_price": order_price,
-                                  "order_time": times_list,
-                                  "fill_time": entry_time,
-                                  "fill_price": fill_price, "size": size,
-                                  "direction": direction,
-                                  "stop_loss": stop_price, "take_profit": take_price,
-                                  "profit": profit, "balance": portfolio_balance,
-                                  "exit_time": exit_times, "exit_price": exit_prices,
-                                  "trade_duration": trade_duration,
-                                  "fees": fees},
-                                 index = pd.to_datetime(entry_time))
+            # Fill missing values for balance
+            dataframe.balance.fillna(method='ffill', inplace=True)
+            
+        else:
+            dataframe = pd.DataFrame({"instrument": product,
+                                      "status": status,
+                                      "ID": ids, 
+                                      "order_price": order_price,
+                                      "order_time": times_list,
+                                      "size": size,
+                                      "direction": direction,
+                                      "stop_loss": stop_price, 
+                                      "take_profit": take_price},
+                                     index = pd.to_datetime(times_list))
+            
+        dataframe = dataframe.sort_index()
         
-        # Fill missing values for balance
-        dataframe.balance.fillna(method='ffill', inplace=True)
+        # Filter by instrument
+        if instrument is not None:
+            dataframe = dataframe[dataframe['instrument'] == instrument]
         
-    else:
-        dataframe = pd.DataFrame({"instrument": product,
-                                  "status": status,
-                                  "ID": ids, 
-                                  "order_price": order_price,
-                                  "order_time": times_list,
-                                  "size": size,
-                                  "direction": direction,
-                                  "stop_loss": stop_price, 
-                                  "take_profit": take_price},
-                                 index = pd.to_datetime(times_list))
-        
-    dataframe = dataframe.sort_index()
-    
-    # Filter by instrument
-    if instrument is not None:
-        dataframe = dataframe[dataframe['instrument'] == instrument]
-    
-    return dataframe
-
-
-def analyse_backtest(broker: Broker):
-    """Analyses the history of the virtual broker to create a backtest summary.
-    """
-    trades = trade_summary(trades=broker.trades)
-    orders = trade_summary(orders=broker.orders)
-    
-    return trades, orders
+        return dataframe
 
 
 def get_watchlist(index, feed):

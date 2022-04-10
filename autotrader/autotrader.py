@@ -837,10 +837,10 @@ class AutoTrader:
         data = bot._check_strategy_for_plot_data(self._use_strat_plot_data)
         ap = self._instantiate_autoplot(data)
         profit_df = pd.merge(bot.data, 
-                             bot.backtest_summary['trade_summary']['profit'], 
+                             bot.backtest_results.trade_history['profit'], 
                              left_index=True, right_index=True).profit.cumsum()
         
-        ap.plot(backtest_dict=bot.backtest_summary, cumulative_PL=profit_df)
+        ap.plot(backtest_dict=bot.backtest_results, cumulative_PL=profit_df)
     
     
     def plot_multibot_backtest(self) -> None:
@@ -854,15 +854,15 @@ class AutoTrader:
         cpl_dict = {}
         for bot in self._bots_deployed:
             profit_df = pd.merge(bot.data, 
-                     bot.backtest_summary['trade_summary']['profit'], 
+                     bot.backtest_results.trade_history['profit'], 
                      left_index=True, right_index=True).profit.cumsum()
             cpl_dict[bot.instrument] = profit_df
         
         ap = self._instantiate_autoplot(bot.data)
         ap._plot_multibot_backtest(self.multibot_backtest_results, 
-                                   bot.backtest_summary['account_history']['NAV'], 
+                                   bot.backtest_results.account_history['NAV'], 
                                    cpl_dict, 
-                                   bot.backtest_summary['account_history']['margin'])
+                                   bot.backtest_results.account_history['margin'])
         
     
     def analyse_backtest(self, bot = None) -> dict:
@@ -887,6 +887,7 @@ class AutoTrader:
         --------
         get_bots_deployed
         """
+        # TODO - use new method
         
         if bot is None:
             if len(self._bots_deployed) == 1:
@@ -895,11 +896,11 @@ class AutoTrader:
                 print("Reverting to multi-bot backtest.")
                 return self.multibot_backtest_analysis()
                     
-        backtest_summary = bot.backtest_summary
+        backtest_summary = bot.backtest_results
         
-        trade_summary   = backtest_summary['trade_summary']
-        instrument      = backtest_summary['instrument']
-        account_history = backtest_summary['account_history']
+        trade_summary   = backtest_summary.trade_history
+        instrument      = backtest_summary.instruments_traded[0]
+        account_history = backtest_summary.account_history
         
         cpl = trade_summary.profit.cumsum()
         
@@ -1087,7 +1088,7 @@ class AutoTrader:
         """
         
         bot = self._bots_deployed[0]
-        account_history = bot.backtest_summary['account_history']
+        account_history = bot.backtest_results.account_history
         
         start_date = account_history.index[0]
         end_date = account_history.index[-1]
@@ -1365,7 +1366,7 @@ class AutoTrader:
         if self._backtest_mode:
             # Create backtest summary for each bot 
             for bot in self._bots_deployed:
-                bot._create_backtest_summary()            
+                bot._create_backtest_results()            
             
             if int(self._verbosity) > 0:
                 print(f"Backtest complete (runtime {round((backtest_end_time - backtest_start_time), 3)} s).")
@@ -1407,7 +1408,7 @@ class AutoTrader:
             
             elif self._virtual_livetrading:
                 # TODO - write broker stats to file (trade summary and so on)
-                # look to AutoTraderBot._create_backtest_summary for process
+                # look to AutoTraderBot._create_backtest_results for process
                 pass
         
 

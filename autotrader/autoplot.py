@@ -228,8 +228,8 @@ class AutoPlot:
         else:
             # Plotting backtest results
             if instrument is None:
-                instrument = backtest_dict['instrument']
-            title_string = f"Backtest chart for {instrument} ({backtest_dict['interval']} candles)"
+                instrument = backtest_dict.instruments_traded[0]
+            title_string = f"Backtest chart for {instrument} ({backtest_dict.interval} candles)"
             output_file(f"{instrument}-backtest-chart.html",
                         title=f"AutoTrader Backtest Results - {instrument}")
         
@@ -250,15 +250,15 @@ class AutoPlot:
         bottom_figs = []
         
         if backtest_dict is not None:
-            account_hist = backtest_dict['account_history']
+            account_hist = backtest_dict.account_history
             if len(account_hist) != len(self._data):
                 account_hist = self._interpolate_and_merge(account_hist)
             NAV = account_hist['NAV']
             balance = account_hist['equity']
-            trade_summary = backtest_dict['trade_summary']
-            indicators = backtest_dict['indicators']
-            open_trades = backtest_dict['open_trades']
-            cancelled_trades = backtest_dict['cancelled_trades']
+            trade_summary = backtest_dict.trade_history
+            indicators = backtest_dict.indicators
+            open_trades = backtest_dict.open_trades
+            cancelled_trades = backtest_dict.cancelled_orders
             
             # Top plots
             top_fig = self._plot_line(NAV, main_plot, new_fig=True, 

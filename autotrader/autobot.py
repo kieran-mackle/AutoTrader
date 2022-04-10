@@ -6,7 +6,7 @@ from autotrader.comms import emailing
 from datetime import datetime, timezone
 from autotrader.autodata import GetData
 from autotrader.brokers.trading import Order
-from autotrader.utilities import read_yaml, get_config, trade_summary
+from autotrader.utilities import read_yaml, get_config, BacktestResults
 
 
 class AutoTraderBot:
@@ -22,9 +22,9 @@ class AutoTraderBot:
         The OHLC quote data used by the bot.
     MTF_data : dict
         The multiple timeframe data used by the bot.
-    backtest_summary : dict
-        A dictionary containing results from the bot in backtest. This 
-        dictionary is available only after a backtest and has keys: 'data', 
+    backtest_results : BacktestResults
+        A class containing results from the bot in backtest. This 
+        is available only after a backtest and has attributes: 'data', 
         'account_history', 'trade_summary', 'indicators', 'instrument', 
         'interval', 'open_trades', 'cancelled_trades'.
     
@@ -178,7 +178,7 @@ class AutoTraderBot:
         # Assign strategy attributes for tick-based strategy development
         if self._backtest_mode:
             self._strategy._backtesting = True
-            self.backtest_summary = None
+            self.backtest_results = None
         if interval.split(',')[0] == 'tick':
             self._strategy._tick_data = True
         
@@ -522,27 +522,15 @@ class AutoTraderBot:
             self._broker._update_positions(bar, product)
     
     
-    def _create_backtest_summary(self) -> dict:
+    def _create_backtest_results(self) -> dict:
         """Constructs backtest summary dictionary for further processing.
         """
-        trades = trade_summary(trades=self._broker.trades, instrument=self.instrument)
-        orders = trade_summary(orders=self._broker.orders, instrument=self.instrument)
-        
-        account_history = self._broker.account_history.copy()
-        account_history = account_history[~account_history.index.duplicated(keep='last')]
-        account_history['drawdown'] = account_history.NAV/account_history.NAV.cummax() - 1
-        
-        backtest_dict = {}
-        backtest_dict['data'] = self.data
-        backtest_dict['account_history'] = account_history
-        backtest_dict['trade_summary'] = trades
-        backtest_dict['indicators'] = self._strategy.indicators if hasattr(self._strategy, 'indicators') else None
-        backtest_dict['instrument'] = self.instrument
-        backtest_dict['interval'] = self._strategy_params['granularity']
-        backtest_dict['open_trades'] = trades[trades.status == 'open']
-        backtest_dict['cancelled_trades'] = orders[orders.status == 'cancelled']
-        
-        self.backtest_summary = backtest_dict
+        backtest_results = BacktestResults(self._broker, self.instrument)
+        backtest_results.indicators = self._strategy.indicators if \
+            hasattr(self._strategy, 'indicators') else None
+        backtest_results.data = self.data
+        backtest_results.interval = self._strategy_params['granularity']
+        self.backtest_results = backtest_results
     
     
     def _get_iteration_range(self) -> int:
