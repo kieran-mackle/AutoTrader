@@ -1,7 +1,9 @@
 import sys
 import yaml
+import numpy as np
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timedelta
+from autotrader.brokers.virtual.broker import Broker
 
 
 def read_yaml(file_path: str) -> dict:
@@ -142,7 +144,7 @@ def get_config(environment: str, global_config: dict, feed: str) -> dict:
                   "Please check global config and retry.")
     
     return config_dict
-
+    
 
 def get_watchlist(index, feed):
     """Returns a watchlist of instruments. 
@@ -214,6 +216,281 @@ def get_watchlist(index, feed):
 
     
     return watchlist
+
+
+def get_streaks(trade_summary):
+    """Calculates longest winning and losing streaks from trade summary. 
+    """
+    profit_list = trade_summary[trade_summary['status']=='closed'].profit.values
+    longest_winning_streak = 1
+    longest_losing_streak = 1
+    streak = 1
+    
+    for i in range(1, len(profit_list)):
+        if np.sign(profit_list[i]) == np.sign(profit_list[i-1]):
+            streak += 1
+            
+            if np.sign(profit_list[i]) > 0:
+                # update winning streak
+                longest_winning_streak  = max(longest_winning_streak, streak)
+            else:
+                # Update losing 
+                longest_losing_streak   = max(longest_losing_streak, streak)
+
+        else:
+            streak = 1
+    
+    return longest_winning_streak, longest_losing_streak
+
+
+class BacktestResults:
+    """AutoTrader backtest results class."""
+    def __init__(self, broker: Broker, instrument: str = None):
+        
+        self.instruments_traded = None
+        self.account_history = None
+        self.trade_history = None
+        self.order_history = None
+        self.open_trades = None
+        self.cancelled_orders = None
+        self.bots = None # TODO - implement
+        
+        self.analyse_backtest(broker, instrument)
+    
+    
+    def __str__(self):
+        return 'AutoTrader Backtest Results'
+    
+    
+    def __repr__(self):
+        return 'AutoTrader Backtest Results'
+        
+    
+    def analyse_backtest(self, broker: Broker, instrument: str = None):
+        """Analyses backtest and creates summary of key details.
+        """
+        # Construct trade and order summaries
+        trades = BacktestResults.create_trade_summary(trades=broker.trades, instrument=instrument)
+        orders = BacktestResults.create_trade_summary(orders=broker.orders, instrument=instrument)
+        
+        # Construct account history
+        account_history = broker.account_history.copy()
+        account_history = account_history[~account_history.index.duplicated(keep='last')]
+        account_history['drawdown'] = account_history.NAV/account_history.NAV.cummax() - 1
+        
+        # Assign attributes
+        self.instruments_traded = list(orders.instrument.unique())
+        self.account_history = account_history
+        self.trade_history = trades
+        self.order_history = orders
+        self.open_trades = trades[trades.status == 'open']
+        self.cancelled_orders = orders[orders.status == 'cancelled']
+    
+    
+    @staticmethod
+    def create_trade_summary(trades: dict = None, orders: dict = None, 
+                      instrument: str = None) -> pd.DataFrame:
+        """Creates backtest trade summary dataframe.
+        """
+        # TODO - index by ID
+        
+        if trades is not None:
+            iter_dict = trades
+        else:
+            iter_dict = orders
+        
+        iter_dict = {} if iter_dict is None else iter_dict 
+        
+        product = []
+        status = []
+        ids = []
+        times_list = []
+        order_price = []
+        size = []
+        direction = []
+        stop_price = []
+        take_price = []
+        
+        if trades is not None:
+            entry_time = []
+            fill_price = []
+            profit = []
+            portfolio_balance = []
+            exit_times = []
+            exit_prices = []
+            trade_duration = []
+            fees = []
+        
+        for ID, item in iter_dict.items():
+            product.append(item.instrument)
+            status.append(item.status)
+            ids.append(item.id)
+            size.append(item.size)
+            direction.append(item.direction)
+            times_list.append(item.order_time)
+            order_price.append(item.order_price)
+            stop_price.append(item.stop_loss)
+            take_price.append(item.take_profit)
+        
+        if trades is not None:
+            for trade_id, trade in iter_dict.items():
+                entry_time.append(trade.time_filled)
+                fill_price.append(trade.fill_price)
+                profit.append(trade.profit)
+                portfolio_balance.append(trade.balance)
+                exit_times.append(trade.exit_time)
+                exit_prices.append(trade.exit_price)
+                fees.append(trade.fees)
+                if trade.status == 'closed':
+                    if type(trade.exit_time) == str:
+                        exit_dt = datetime.strptime(trade.exit_time, "%Y-%m-%d %H:%M:%S%z")
+                        entry_dt = datetime.strptime(trade.time_filled, "%Y-%m-%d %H:%M:%S%z")
+                        trade_duration.append(exit_dt.timestamp() - entry_dt.timestamp())
+                    elif isinstance(trade.exit_time, pd.Timestamp):
+                        trade_duration.append((trade.exit_time - trade.time_filled).total_seconds())
+                    else:
+                        trade_duration.append(trade.exit_time.timestamp() - 
+                                              trade.time_filled.timestamp())
+                else:
+                    trade_duration.append(None)
+                
+            dataframe = pd.DataFrame({"instrument": product,
+                                      "status": status,
+                                      "ID": ids, 
+                                      "order_price": order_price,
+                                      "order_time": times_list,
+                                      "fill_time": entry_time,
+                                      "fill_price": fill_price, "size": size,
+                                      "direction": direction,
+                                      "stop_loss": stop_price, "take_profit": take_price,
+                                      "profit": profit, "balance": portfolio_balance,
+                                      "exit_time": exit_times, "exit_price": exit_prices,
+                                      "trade_duration": trade_duration,
+                                      "fees": fees},
+                                     index = pd.to_datetime(entry_time))
+            
+            # Fill missing values for balance
+            dataframe.balance.fillna(method='ffill', inplace=True)
+            
+        else:
+            dataframe = pd.DataFrame({"instrument": product,
+                                      "status": status,
+                                      "ID": ids, 
+                                      "order_price": order_price,
+                                      "order_time": times_list,
+                                      "size": size,
+                                      "direction": direction,
+                                      "stop_loss": stop_price, 
+                                      "take_profit": take_price},
+                                     index = pd.to_datetime(times_list))
+            
+        dataframe = dataframe.sort_index()
+        
+        # Filter by instrument
+        if instrument is not None:
+            dataframe = dataframe[dataframe['instrument'] == instrument]
+        
+        return dataframe
+
+    
+    def summary(self):
+        
+        backtest_results = {}
+        cpl = self.trade_history.profit.cumsum()
+        
+        # All trades
+        no_trades = len(self.trade_history[self.trade_history['status'] == 'closed'])
+        backtest_results['no_trades'] = no_trades
+        backtest_results['start'] = self.account_history.index[0]
+        backtest_results['end'] = self.account_history.index[-1]
+        
+        if no_trades > 0:
+            backtest_results['all_trades'] = {}
+            wins = self.trade_history[self.trade_history.profit > 0]
+            avg_win = np.mean(wins.profit)
+            max_win = np.max(wins.profit)
+            loss = self.trade_history[self.trade_history.profit < 0]
+            avg_loss = abs(np.mean(loss.profit))
+            max_loss = abs(np.min(loss.profit))
+            win_rate = 100*len(wins)/no_trades
+            longest_win_streak, longest_lose_streak  = get_streaks(self.trade_history)
+            avg_trade_duration = np.nanmean(self.trade_history.trade_duration.values)
+            min_trade_duration = np.nanmin(self.trade_history.trade_duration.values)
+            max_trade_duration = np.nanmax(self.trade_history.trade_duration.values)
+            max_drawdown = min(self.account_history.drawdown)
+            total_fees = self.trade_history.fees.sum()
+            
+            starting_balance = self.account_history.equity[0]
+            ending_balance = self.account_history.equity[-1]
+            ending_NAV = self.account_history.NAV[-1]
+            abs_return = ending_balance - starting_balance
+            pc_return = 100 * abs_return / starting_balance
+            
+            backtest_results['all_trades']['starting_balance'] = starting_balance
+            backtest_results['all_trades']['ending_balance'] = ending_balance
+            backtest_results['all_trades']['ending_NAV'] = ending_NAV
+            backtest_results['all_trades']['abs_return'] = abs_return
+            backtest_results['all_trades']['pc_return'] = pc_return
+            backtest_results['all_trades']['avg_win'] = avg_win
+            backtest_results['all_trades']['max_win'] = max_win
+            backtest_results['all_trades']['avg_loss'] = avg_loss
+            backtest_results['all_trades']['max_loss'] = max_loss
+            backtest_results['all_trades']['win_rate'] = win_rate
+            backtest_results['all_trades']['win_streak'] = longest_win_streak
+            backtest_results['all_trades']['lose_streak'] = longest_lose_streak
+            backtest_results['all_trades']['longest_trade'] = str(timedelta(seconds = int(max_trade_duration)))
+            backtest_results['all_trades']['shortest_trade'] = str(timedelta(seconds = int(min_trade_duration)))
+            backtest_results['all_trades']['avg_trade_duration'] = str(timedelta(seconds = int(avg_trade_duration)))
+            backtest_results['all_trades']['net_pl'] = cpl.values[-1]
+            backtest_results['all_trades']['max_drawdown'] = max_drawdown
+            backtest_results['all_trades']['total_fees'] = total_fees
+            
+        # Cancelled and open orders
+        backtest_results['no_open'] = len(self.open_trades)
+        backtest_results['no_cancelled'] = len(self.cancelled_orders)
+        
+        # Long trades
+        long_trades = self.trade_history[self.trade_history['direction'] > 0]
+        no_long = len(long_trades)
+        backtest_results['long_trades'] = {}
+        backtest_results['long_trades']['no_trades'] = no_long
+        if no_long > 0:
+            long_wins = long_trades[long_trades.profit > 0]
+            avg_long_win = np.mean(long_wins.profit)
+            max_long_win = np.max(long_wins.profit)
+            long_loss = long_trades[long_trades.profit < 0]
+            avg_long_loss = abs(np.mean(long_loss.profit))
+            max_long_loss = abs(np.min(long_loss.profit))
+            long_wr = 100*len(long_trades[long_trades.profit > 0])/no_long
+            
+            backtest_results['long_trades']['avg_long_win'] = avg_long_win
+            backtest_results['long_trades']['max_long_win'] = max_long_win 
+            backtest_results['long_trades']['avg_long_loss'] = avg_long_loss
+            backtest_results['long_trades']['max_long_loss'] = max_long_loss
+            backtest_results['long_trades']['long_wr'] = long_wr
+            
+        # Short trades
+        short_trades = self.trade_history[self.trade_history['direction'] < 0]
+        no_short = len(short_trades)
+        backtest_results['short_trades'] = {}
+        backtest_results['short_trades']['no_trades'] = no_short
+        if no_short > 0:
+            short_wins = short_trades[short_trades.profit > 0]
+            avg_short_win = np.mean(short_wins.profit)
+            max_short_win = np.max(short_wins.profit)
+            short_loss = short_trades[short_trades.profit < 0]
+            avg_short_loss = abs(np.mean(short_loss.profit))
+            max_short_loss = abs(np.min(short_loss.profit))
+            short_wr = 100*len(short_trades[short_trades.profit > 0])/no_short
+            
+            backtest_results['short_trades']['avg_short_win'] = avg_short_win
+            backtest_results['short_trades']['max_short_win'] = max_short_win
+            backtest_results['short_trades']['avg_short_loss'] = avg_short_loss
+            backtest_results['short_trades']['max_short_loss'] = max_short_loss
+            backtest_results['short_trades']['short_wr'] = short_wr
+        
+        return backtest_results
+
 
 
 class DataStream:

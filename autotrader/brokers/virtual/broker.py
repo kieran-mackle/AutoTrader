@@ -20,16 +20,16 @@ class Broker:
         The average spread to use when opening and closing trades.
     margin_available : float
         The margin available on the account.
-    portfolio_balance : float
-        The account balance.
+    equity : float
+        The account equity balance.
     hedging : bool
         Flag whethere hedging is enabled on the account. The default is False.
     home_currency : str
         The default is 'AUD'.
     NAV : float
         The net asset value of the account.
-    unrealised_PL : float
-        The unrealised (floating) PnL.
+    floating_pnl : float
+        The floating PnL.
     verbosity : int
         The verbosity of the broker.
     commission_scheme : str
@@ -49,25 +49,26 @@ class Broker:
         self.trades = {}
         
         # Account 
+        self.NAV = 0 # Net asset value
+        self.equity = 0
+        self.margin_available = 0 
+        
         self.leverage = 1
         self.spread = 0 # TODO - pips or price units? Add docs
-        self.margin_available = 0
-        self.portfolio_balance = 0
         self.hedging = False
         self.margin_closeout = 0.0 # Fraction at margin call
         
-        self.profitable_trades = 0
-        self.peak_value = 0
-        self.low_value = 0
-        self.max_drawdown = 0
         self.home_currency = 'AUD'
-        self.NAV = 0
-        self.unrealised_PL = 0
+        self.floating_pnl = 0
+        
         self.verbosity = broker_config['verbosity']
         
         # Commissions
         self.commission_scheme = 'percentage'
         self.commission = 0
+        
+        # History
+        self.account_history = pd.DataFrame()
         
     
     def __repr__(self):
@@ -87,7 +88,7 @@ class Broker:
     def get_balance(self) -> float:
         """Returns balance of account.
         """
-        return self.portfolio_balance
+        return self.equity
     
     
     def place_order(self, order: Order, **kwargs) -> None:
@@ -480,11 +481,19 @@ class Broker:
         self._update_margin(instrument, candle)
         
         # Update unrealised P/L
-        self.unrealised_PL = unrealised_PL
+        self.floating_pnl = unrealised_PL
         
         # Update open position value
-        self.NAV = self.portfolio_balance + self.unrealised_PL
-    
+        self.NAV = self.equity + self.floating_pnl
+        
+        # Update account history
+        account_snapshot = pd.DataFrame(data={'NAV': self.NAV, 
+                                              'equity': self.equity, 
+                                              'margin': self.margin_available}, 
+                                        index=[candle.name])
+        self.account_history = pd.concat([self.account_history,
+                                          account_snapshot])
+        
     
     def _close_position(self, instrument: str, candle: pd.core.series.Series, 
                         exit_price: float, trade_id=None) -> None:
@@ -534,12 +543,9 @@ class Broker:
         commission = self._calculate_commissions(trade_id, exit_price, size)
         net_profit = gross_PL - commission
         
-        if net_profit > 0:
-            self.profitable_trades += 1
-        
         # Add trade to closed positions
         trade.profit = net_profit
-        trade.balance = self.portfolio_balance
+        trade.balance = self.equity
         trade.exit_price = exit_price
         trade.fees = commission
         if candle is None:
@@ -550,7 +556,6 @@ class Broker:
         
         # Update account
         self._add_funds(net_profit)
-        self._update_MDD()
     
     
     def _reduce_position(self, order: Order) -> None:
@@ -635,18 +640,13 @@ class Broker:
     def _add_funds(self, amount: float) -> None:
         """Adds funds to brokerage account.
         """
-        self.portfolio_balance  += amount
+        self.equity += amount
     
     
     def _make_deposit(self, deposit: float) -> None:
         """Adds deposit to account balance and NAV.
         """
-        if self.portfolio_balance == 0:
-            # If this is the initial deposit, set peak and low values for MDD
-            self.peak_value = deposit
-            self.low_value = deposit
-            
-        self.portfolio_balance += deposit
+        self.equity += deposit
         self.NAV += deposit
         self._update_margin()
     
@@ -684,26 +684,6 @@ class Broker:
                 print("MARGIN CALL: closing all positions.")
             self._margin_call(instrument, candle)
 
-
-    def _update_MDD(self) -> None:
-        """Function to calculate maximum portfolio drawdown.
-        """
-        balance     = self.portfolio_balance
-        peak_value  = self.peak_value
-        low_value   = self.low_value
-        
-        if balance > peak_value:
-            self.peak_value = balance
-            self.low_value = balance
-            
-        elif balance < low_value:
-            self.low_value = balance
-        
-        MDD = 100*(low_value - peak_value)/peak_value
-        
-        if MDD < self.max_drawdown:
-            self.max_drawdown = MDD
-    
     
     def _modify_order(self, order: Order) -> None:
         """Modify order with updated parameters. Called when order_type = 'modify', 
