@@ -1050,6 +1050,7 @@ class AutoTrader:
         None
             A chart will be generated and shown.
         """
+        # TODO - improve passing around BacktestResults object
         # cpl_dict = {}
         # for bot in self._bots_deployed:
         #     profit_df = pd.merge(bot.data, 
@@ -1063,8 +1064,7 @@ class AutoTrader:
         #                            cpl_dict, 
         #                            bot.backtest_results.account_history['margin'])
         
-        backtest_summary = self.analyse_backtest()
-        ap._plot_multibot_backtest(backtest_summary)
+        ap._plot_multibot_backtest(BacktestResults(self._broker))
         
     
     def _main(self) -> None:
@@ -1245,7 +1245,7 @@ class AutoTrader:
         self._bots_deployed = []
     
     
-    def _instantiate_autoplot(self, data: pd.DataFrame) -> AutoPlot:
+    def _instantiate_autoplot(self, data: pd.DataFrame = None) -> AutoPlot:
         """Creates instance of AutoPlot.
 
         Parameters
