@@ -1050,18 +1050,21 @@ class AutoTrader:
         None
             A chart will be generated and shown.
         """
-        cpl_dict = {}
-        for bot in self._bots_deployed:
-            profit_df = pd.merge(bot.data, 
-                     bot.backtest_results.trade_history['profit'], 
-                     left_index=True, right_index=True).profit.cumsum()
-            cpl_dict[bot.instrument] = profit_df
+        # cpl_dict = {}
+        # for bot in self._bots_deployed:
+        #     profit_df = pd.merge(bot.data, 
+        #              bot.backtest_results.trade_history['profit'], 
+        #              left_index=True, right_index=True).profit.cumsum()
+        #     cpl_dict[bot.instrument] = profit_df
         
-        ap = self._instantiate_autoplot(bot.data)
-        ap._plot_multibot_backtest(self.multibot_backtest_results, 
-                                   bot.backtest_results.account_history['NAV'], 
-                                   cpl_dict, 
-                                   bot.backtest_results.account_history['margin'])
+        ap = self._instantiate_autoplot()
+        # ap._plot_multibot_backtest(self.multibot_backtest_results, 
+        #                            bot.backtest_results.account_history['NAV'], 
+        #                            cpl_dict, 
+        #                            bot.backtest_results.account_history['margin'])
+        
+        backtest_summary = self.analyse_backtest()
+        ap._plot_multibot_backtest(backtest_summary)
         
     
     def _main(self) -> None:
