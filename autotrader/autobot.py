@@ -6,7 +6,7 @@ from autotrader.comms import emailing
 from datetime import datetime, timezone
 from autotrader.autodata import GetData
 from autotrader.brokers.trading import Order
-from autotrader.utilities import read_yaml, get_config
+from autotrader.utilities import read_yaml, get_config, trade_summary
 
 
 class AutoTraderBot:
@@ -525,28 +525,22 @@ class AutoTraderBot:
     def _create_backtest_summary(self) -> dict:
         """Constructs backtest summary dictionary for further processing.
         """
-        trade_summary = self._broker_utils.trade_summary(trades=self._broker.trades,
-                                                         instrument=self.instrument)
-        order_summary = self._broker_utils.trade_summary(orders=self._broker.orders,
-                                                         instrument=self.instrument)
+        trades = trade_summary(trades=self._broker.trades, instrument=self.instrument)
+        orders = trade_summary(orders=self._broker.orders, instrument=self.instrument)
         
-        open_trade_summary = trade_summary[trade_summary.status == 'open']
-        cancelled_summary = order_summary[order_summary.status == 'cancelled']
-        
-        account_history = self._broker.account_history
+        account_history = self._broker.account_history.copy()
         account_history = account_history[~account_history.index.duplicated(keep='last')]
-        account_history['drawdown'] = np.array(account_history.NAV) / \
-                          np.maximum.accumulate(account_history.NAV) - 1
+        account_history['drawdown'] = account_history.NAV/account_history.NAV.cummax() - 1
         
         backtest_dict = {}
         backtest_dict['data'] = self.data
         backtest_dict['account_history'] = account_history
-        backtest_dict['trade_summary'] = trade_summary
+        backtest_dict['trade_summary'] = trades
         backtest_dict['indicators'] = self._strategy.indicators if hasattr(self._strategy, 'indicators') else None
         backtest_dict['instrument'] = self.instrument
         backtest_dict['interval'] = self._strategy_params['granularity']
-        backtest_dict['open_trades'] = open_trade_summary
-        backtest_dict['cancelled_trades'] = cancelled_summary
+        backtest_dict['open_trades'] = trades[trades.status == 'open']
+        backtest_dict['cancelled_trades'] = orders[orders.status == 'cancelled']
         
         self.backtest_summary = backtest_dict
     
