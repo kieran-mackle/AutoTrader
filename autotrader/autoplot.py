@@ -444,9 +444,7 @@ class AutoPlot:
     def _plot_multibot_backtest(self, backtest_results):
         """Creates multi-bot backtest figure. 
         """
-        
         # TODO - merge this into self.plot method?
-        # First, clean up individual plots (pie, etc) into new methods
         
         # Preparation
         instruments = backtest_results.instruments_traded
@@ -459,6 +457,8 @@ class AutoPlot:
         
         # Account Balance 
         acc_hist = ColumnDataSource(reindexed_acc_hist)
+        acc_hist.add(reindexed_acc_hist[['NAV', 'equity']].min(1), 'Low')
+        acc_hist.add(reindexed_acc_hist[['NAV', 'equity']].max(1), 'High')
         navfig = figure(plot_width=self._ohlc_width,
                         plot_height=self._top_fig_height,
                         title="Backtest Account History",
@@ -485,6 +485,8 @@ class AutoPlot:
         navfig.legend.label_text_font_size = '8pt'
         navfig.add_tools(linked_crosshair)
         
+        # Initialise autoscale arguments
+        self.autoscale_args = {'y_range': navfig.y_range, 'source': acc_hist}
         
         # Cumultive returns plot
         returns_per_instrument = [trade_history.profit[trade_history.instrument == i].cumsum() for i in instruments]
@@ -657,6 +659,9 @@ class AutoPlot:
         plbars.outline_line_color = None
         plbars.sizing_mode = 'stretch_width'
         
+        # Autoscaling
+        navfig.x_range.js_on_change('end', CustomJS(args=self.autoscale_args, 
+                                   code=self._autoscale_code))
         
         # Construct final figure     
         final_fig = layout([  
