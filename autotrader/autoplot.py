@@ -453,7 +453,7 @@ class AutoPlot:
         # Preparation
         instruments = backtest_results.instruments_traded
         no_instruments = len(instruments)
-        output_file("candlestick.html", title = "AutoTrader Multi-Bot Backtest Results")
+        output_file("autotrader_backtest.html", title = "AutoTrader Multi-Bot Backtest Results")
         linked_crosshair = CrosshairTool(dimensions='both')
         reindexed_acc_hist = self._reindex_data(backtest_results.account_history)
         trade_history = backtest_results.trade_history
