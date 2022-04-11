@@ -327,6 +327,7 @@ class Broker:
             trade = Trade(order)
             trade.id = trade_id
             trade.fill_price = working_price
+            trade.last_price = working_price
             trade.time_filled = candle.name
             trade.margin_required = margin_required
             self.trades[trade_id] = trade
