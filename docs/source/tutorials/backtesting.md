@@ -6,7 +6,7 @@ An easy way and organised way to deploy a trading bot is to set up a run file. H
 run settings and deploy your bot. This is all achieved in the example below.
 
 ```python
-from autotrader.autotrader import AutoTrader
+from autotrader import AutoTrader
 
 at = AutoTrader()                           # Create a new instance of AutoTrader
 at.configure(show_plot=True, verbosity=1)   # Configure the instance

@@ -33,7 +33,7 @@ The code block below provides some boilerplate for a strategy. Note the differen
 
 ````{tab} Periodic Update Mode
 ```python
-from autotrader.brokers.trading import Order
+from autotrader import Order
 
 class Strategy:
     def __init__(self, parameters, data, instrument, **kwargs):

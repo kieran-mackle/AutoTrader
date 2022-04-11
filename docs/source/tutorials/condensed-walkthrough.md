@@ -86,8 +86,8 @@ periodic update mode [here](autotrader-run-modes).
 ```py
 # Import packages
 from finta import TA
-import autotrader.indicators as indicators 
-from autotrader.brokers.trading import Order
+from autotrader import indicators 
+from autotrader import Order
 
 class SimpleMACD:
 
@@ -183,7 +183,7 @@ that's it!
 
 
 ```python
-from autotrader.autotrader import AutoTrader
+from autotrader import AutoTrader
 
 at = AutoTrader()                           # Create a new instance of AutoTrader
 at.configure(show_plot=True, verbosity=1)   # Configure the instance

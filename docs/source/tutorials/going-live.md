@@ -10,7 +10,7 @@ To take our MACD strategy live, we would simply modify our run file by removing 
 `optimise` calls, as shown below. 
 
 ```python
-from autotrader.autotrader import AutoTrader
+from autotrader import AutoTrader
 
 at = AutoTrader()
 at.configure(broker='oanda', feed='oanda')

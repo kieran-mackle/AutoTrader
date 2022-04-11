@@ -18,8 +18,8 @@ when we run this module, the strategy will run!
 ```python
 import os
 from finta import TA
-import autotrader.indicators as indicators
-from autotrader.brokers.trading import Order
+from autotrader import indicators
+from autotrader import Order
 
 
 class SimpleMACD:
@@ -114,7 +114,7 @@ class SimpleMACD:
     
     
 if __name__ == "__main__":
-    from autotrader.autotrader import AutoTrader
+    from autotrader import AutoTrader
     
     config = {'NAME': 'MACD Strategy',
               'MODULE': 'macd_strategy',
