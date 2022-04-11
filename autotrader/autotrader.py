@@ -811,23 +811,24 @@ class AutoTrader:
         return bots
         
     
-    @staticmethod
-    def print_backtest_results(backtest_summary: dict) -> None:
+    def print_backtest_results(self, backtest_results: BacktestResults = None) -> None:
         """Prints backtest results.
 
         Parameters
         ----------
-        backtest_summary : dict
-            The backtest results summary dictionary.
+        backtest_results : BacktestResults
+            The backtest results class object.
 
         Returns
         -------
         None
             Backtest results will be printed.
         """
-        # TODO - accomodate multi-instrument results (win rate per inst.,
-        # no trades, max wins and max losses, R/R, etc)
         
+        if backtest_results is None:
+            backtest_results = self.backtest_results
+            
+        backtest_summary = backtest_results.summary()
         start_date = backtest_summary['start'].strftime("%b %d %Y %H:%M:%S")
         end_date = backtest_summary['end'].strftime("%b %d %Y %H:%M:%S")
         
@@ -922,6 +923,29 @@ class AutoTrader:
             
         else:
             print("There were no short trades.")
+        
+        # Check for multiple instruments
+        if len(backtest_results.instruments_traded) > 1:
+            # Mutliple instruments traded
+            instruments = backtest_results.instruments_traded
+            trade_history = backtest_results.trade_history
+            instrument_trades = [trade_history[trade_history.instrument == i] for i in instruments]
+            # returns_per_instrument = [trade_history.profit[trade_history.instrument == i].cumsum() for i in instruments]
+            max_wins = [instrument_trades[i].profit.max() for i in range(len(instruments))]
+            max_losses = [instrument_trades[i].profit.min() for i in range(len(instruments))]
+            avg_wins = [instrument_trades[i].profit[instrument_trades[i].profit>0].mean() for i in range(len(instruments))]
+            avg_losses = [instrument_trades[i].profit[instrument_trades[i].profit<0].mean() for i in range(len(instruments))]
+            win_rates = [100*sum(instrument_trades[i].profit>0)/len(instrument_trades[i]) for i in range(len(instruments))]
+            
+            results = pd.DataFrame(data={'Instrument': instruments, 
+                                         'Max. Win': max_wins, 
+                                         'Max. Loss': max_losses, 
+                                         'Avg. Win': avg_wins, 
+                                         'Avg. Loss': avg_losses, 
+                                         'Win rate': win_rates})
+            
+            print("\n Instrument Breakdown:")
+            print(results.to_string(index=False))
 
     
     def plot_backtest(self, bot=None) -> None:
@@ -1090,7 +1114,7 @@ class AutoTrader:
             if int(self._verbosity) > 0:
                 print("Backtest complete (runtime " + \
                       f"{round((backtest_end_time - backtest_start_time), 3)} s).")
-                self.print_backtest_results(self.backtest_results.summary())
+                self.print_backtest_results()
                 
             if self._show_plot:
                 self.plot_backtest()

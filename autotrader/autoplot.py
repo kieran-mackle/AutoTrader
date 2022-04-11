@@ -448,8 +448,6 @@ class AutoPlot:
     def _plot_multibot_backtest(self, backtest_results):
         """Creates multi-bot backtest figure. 
         """
-        # TODO - merge this into self.plot method?
-        
         # Preparation
         instruments = backtest_results.instruments_traded
         no_instruments = len(instruments)
