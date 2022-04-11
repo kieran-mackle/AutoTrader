@@ -803,10 +803,10 @@ class AutoTrader:
                 bots = bots[instrument]
             except:
                 raise Exception(f"There were no bots found to be trading '{instrument}'.")
-        
-        if len(bots) == 1:
-            # Single bot backtest, return directly
-            bots = bots[list(bots.keys())[0]]
+        else:
+            if len(bots) == 1:
+                # Single bot backtest, return directly
+                bots = bots[list(bots.keys())[0]]
         
         return bots
         
@@ -1333,12 +1333,12 @@ class AutoTrader:
     def _check_bot_data(self) -> None:
         """Function to compare lengths of bot data. 
         """
-        
         data_lengths = [len(bot.data) for bot in self._bots_deployed]
-        
         if min(data_lengths) != np.mean(data_lengths):
-            print("\nWarning: mismatched data lengths detected. Correcting via row reduction.")
+            print("Warning: mismatched data lengths detected. "+\
+                  "Correcting via row reduction.")
             self._normalise_bot_data()
+            print("  Done.\n")
     
     
     def _normalise_bot_data(self) -> None:
