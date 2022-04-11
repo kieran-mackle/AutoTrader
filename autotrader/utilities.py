@@ -244,7 +244,27 @@ def get_streaks(trade_summary):
 
 
 class BacktestResults:
-    """AutoTrader backtest results class."""
+    """AutoTrader backtest results class.
+    
+    Attributes
+    ----------
+    instruments_traded : list
+        The instruments traded during the backtest.
+    account_history : pd.DataFrame
+        A timeseries history of the account during the backtest.
+    holding_history : pd.DataFrame
+        A timeseries summary of holdings during the backtest
+    trade_history : pd.DataFrame
+        A timeseries history of trades taken during the backtest.
+    order_history : pd.DataFrame
+        A timeseries history of orders placed during the backtest.
+    open_trades : pd.DataFrame
+        Trades which remained open at the end of the backtest.
+    cancelled_orders : pd.DataFrame
+        Orders which were cancelled during the backtest.
+    
+    """
+    
     def __init__(self, broker: Broker, instrument: str = None):
         
         self.instruments_traded = None
@@ -254,7 +274,7 @@ class BacktestResults:
         self.order_history = None
         self.open_trades = None
         self.cancelled_orders = None
-        self.bots = None # TODO - implement
+        self._bots = None # TODO - implement
         
         self.analyse_backtest(broker, instrument)
     
@@ -282,7 +302,10 @@ class BacktestResults:
         holding_history = pd.DataFrame(columns=list(orders.instrument.unique()), 
                                         index=account_history.index)
         for i in range(len(holding_history)):
-            holding_history.iloc[i] = holdings[i]
+            try:
+                holding_history.iloc[i] = holdings[i]
+            except:
+                pass
         holding_history.fillna(0, inplace=True)
         
         for col in holding_history.columns:
