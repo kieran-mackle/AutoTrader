@@ -772,8 +772,10 @@ class AutoPlot:
                     
                     else:
                         # Generic overlay indicator - plot as line
-                        if type(indicators[indicator]['data']) == pd.Series:
-                            # Merge indexes
+                        if isinstance(indicators[indicator]['data'], pd.Series):
+                            # Timeseries provided, merge indexes
+                            if indicators[indicator]['data'].name is None:
+                                indicators[indicator]['data'].name = 'data'
                             merged_indicator_data = pd.merge(self._data, 
                                                              indicators[indicator]['data'], 
                                                              left_on='date', 
@@ -782,8 +784,7 @@ class AutoPlot:
                             x_vals = line_data.index
                             y_vals = line_data.values
                         else:
-                            x_vals = x_range
-                            y_vals = indicators[indicator]['data']
+                            raise Exception("Plot data must be a timeseries.")
                         
                         linked_fig.line(x_vals, y_vals, line_width = 1.5, 
                                         legend_label = indicator,
