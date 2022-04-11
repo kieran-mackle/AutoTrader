@@ -1,15 +1,16 @@
 # AutoTrader Changelog
 
-## Version 0.6.2 (Unreleased)
+## Version 0.6.2
 ### Features
 - Named arguments for strategy initialisation: strategies must be constructed
   from named arguments "parameters", "data" and "instrument". Additionally,
   "broker" and "broker_utils", when including broker access, and "data_stream"
   when including data stream access. This change was made for disambiguation of
   input arguments.
-  
-
-### Fixes
+- Improvements to `AutoPlot`, including autoscaling of indicator figures
+  and backtest account history
+- Addition of `BacktestResults` class, improving readability and accessibility 
+  of backtest results.
 
 
 
