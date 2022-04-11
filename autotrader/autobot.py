@@ -805,4 +805,10 @@ class AutoTraderBot:
                 shutdown_method()
             except AttributeError:
                 print(f"\nShutdown method '{self._strategy_shutdown_method}' not found!")
-            
+    
+    
+    def _replace_data(self, data: pd.DataFrame) -> None:
+        """Function to replace the data assigned locally and to the strategy.
+        """
+        self.data = data
+        self._strategy.data = data
