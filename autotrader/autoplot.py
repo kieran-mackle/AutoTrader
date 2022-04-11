@@ -470,6 +470,10 @@ class AutoPlot:
                     line_color = 'black',
                     legend_label = 'Backtest Net Asset Value',
                     source=acc_hist)
+        navfig.line('data_index', 'equity', 
+                    line_color = 'blue',
+                    legend_label = 'Backtest Equity',
+                    source=acc_hist)
         
         navfig.xaxis.major_label_overrides = {
                     i: date.strftime('%b %d %Y') for i, date in enumerate(pd.to_datetime(reindexed_acc_hist["date"]))
@@ -540,7 +544,7 @@ class AutoPlot:
         # Portoflio distribution
         names = list(holding_history.columns)
         holding_history['date'] = holding_history.index
-        holding_hist_source = pd.merge(reindexed_acc_hist, holding_history, left_on='date', right_on='date')
+        holding_hist_source = ColumnDataSource(pd.merge(reindexed_acc_hist, holding_history, left_on='date', right_on='date'))
         portfolio = figure(plot_width = navfig.plot_width,
                            plot_height = self._top_fig_height,
                            title = "Asset Allocation History",
@@ -570,6 +574,11 @@ class AutoPlot:
                     i: date.strftime('%b %d %Y') for i, date in enumerate(pd.to_datetime(reindexed_acc_hist["date"]))
                 }
         portfolio.xaxis.bounds = (0, reindexed_acc_hist.index[-1])
+        
+        # Define autoscale arguments
+        holding_hist_source.add(np.ones(len(holding_history)), 'High')
+        holding_hist_source.add(np.zeros(len(holding_history)), 'Low')
+        self._add_to_autoscale_args(holding_hist_source, portfolio.y_range)
         
         # Pie chart of trades per instrument
         trades_per_instrument = [sum(trade_history.instrument == i) for i in instruments]
