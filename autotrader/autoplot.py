@@ -533,7 +533,7 @@ class AutoPlot:
         
         
         
-        # Portoflio distribution
+        # TODO - Portoflio distribution
         
         
         
@@ -546,7 +546,7 @@ class AutoPlot:
         else:
             pie_data['color'] = Category20c[no_instruments]
 
-        pie = self._plot_pie(pie_data, fig_title="Trade distribution")
+        pie = self._plot_pie(pie_data, fig_title="Trade Distribution")
         
         pie.axis.axis_label=None
         pie.axis.visible=False
@@ -591,7 +591,7 @@ class AutoPlot:
         
         plbars = figure(x_range=instruments,
                         y_range=(abs_max_loss, abs_max_win),
-                        title="Win/Loss breakdown",
+                        title="Win/Loss Breakdown",
                         toolbar_location=None,
                         tools = "hover",
                         tooltips = TOOLTIPS,
@@ -627,7 +627,6 @@ class AutoPlot:
         plbars.sizing_mode = 'stretch_width'
         
         
-        
         # Construct final figure     
         final_fig = layout([  
                                    [navfig],
@@ -643,226 +642,6 @@ class AutoPlot:
             output_notebook()
         show(final_fig)
         
-        
-        
-        
-        
-        
-        
-        
-        
-        # if no_instruments < 3:
-        #     multibot_backtest_results['color'] = Category20c[3][0:no_instruments]
-        # else:
-        #     multibot_backtest_results['color'] = Category20c[no_instruments]
-            
-        # MBR = ColumnDataSource(multibot_backtest_results)
-        
-        # # Account Balance 
-        # navfig = figure(plot_width = self._ohlc_width,
-        #                 plot_height = self._top_fig_height,
-        #                 title = None,
-        #                 active_drag = 'pan',
-        #                 active_scroll = 'wheel_zoom')
-        
-        # # Add glyphs
-        # navfig.line(self._data.index, 
-        #             NAV, 
-        #             line_color = 'black',
-        #             legend_label = 'Backtest Net Asset Value')
-        
-        # navfig.xaxis.major_label_overrides = {
-        #             i: date.strftime('%b %d %Y') for i, date in enumerate(pd.to_datetime(self._data["date"]))
-        #         }
-        # navfig.xaxis.bounds = (0, self._data.index[-1])
-        # navfig.sizing_mode = 'stretch_width'
-        # navfig.legend.location = 'top_left'
-        # navfig.legend.border_line_width   = 1
-        # navfig.legend.border_line_color   = '#333333'
-        # navfig.legend.padding             = 5
-        # navfig.legend.spacing             = 0
-        # navfig.legend.margin              = 0
-        # navfig.legend.label_text_font_size = '8pt'
-        # navfig.add_tools(linked_crosshair)
-        
-        # # Win rate bar chart
-        # instruments = multibot_backtest_results.index.values
-        
-        # winrate = self._plot_bars(instruments, 'win_rate', MBR, 
-        #                           fig_title='Bot win rate (%)',
-        #                           hover_name='win_rate%')
-        
-        # winrate.sizing_mode = 'stretch_width'
-        
-        
-        # # Pie chart of trades per bot
-        # pie_data = pd.Series(multibot_backtest_results.no_trades).reset_index(name='value').rename(columns={'index':'instrument'})
-        # pie_data['angle'] = pie_data['value']/pie_data['value'].sum() * 2*pi
-        # if len(multibot_backtest_results) < 3:
-        #     pie_data['color'] = Category20c[3][0:len(multibot_backtest_results)]
-        # else:
-        #     pie_data['color'] = Category20c[len(multibot_backtest_results)]
-
-        # pie = self._plot_pie(pie_data, fig_title="Trade distribution")
-        
-        # pie.axis.axis_label=None
-        # pie.axis.visible=False
-        # pie.grid.grid_line_color = None
-        # pie.sizing_mode = 'stretch_width'
-        # pie.legend.location = "top_left"
-        # pie.legend.border_line_width = 1
-        # pie.legend.border_line_color = '#333333'
-        # pie.legend.padding = 5
-        # pie.legend.spacing = 0
-        # pie.legend.margin = 0
-        # pie.legend.label_text_font_size = '8pt'
-        
-        # # Bar plot for avg/max win/loss
-        # win_metrics = ['Average Win', 'Max. Win']
-        # lose_metrics = ['Average Loss', 'Max. Loss']
-        
-        # abs_max_loss = -1.2*max(multibot_backtest_results.max_loss)
-        # abs_max_win = 1.2*max(multibot_backtest_results.max_win)
-        
-        # pldata = {'instruments': instruments,
-        #         'Average Win': multibot_backtest_results.avg_win.values,
-        #         'Max. Win': multibot_backtest_results.max_win.values - 
-        #                     multibot_backtest_results.avg_win.values,
-        #         'Average Loss': -multibot_backtest_results.avg_loss.values,
-        #         'Max. Loss': multibot_backtest_results.avg_loss.values - 
-        #                      multibot_backtest_results.max_loss.values}
-        
-        # TOOLTIPS = [
-        #             ("Instrument:", "@instruments"),
-        #             ("Max win", "@{Max. Win}"),
-        #             ("Avg. win", "@{Average Win}"),
-        #             ("Max Loss", "@{Max. Loss}"),
-        #             ("Avg. loss", "@{Average Loss}"),
-        #             ]
-        
-        # plbars = figure(x_range=instruments,
-        #                 y_range=(abs_max_loss, abs_max_win),
-        #                 title="Win/Loss breakdown",
-        #                 toolbar_location=None,
-        #                 tools = "hover",
-        #                 tooltips = TOOLTIPS,
-        #                 plot_height = 250)
-
-        # plbars.vbar_stack(win_metrics,
-        #              x='instruments',
-        #              width = 0.9,
-        #              color = ('#008000', '#FFFFFF'),
-        #              line_color='black',
-        #              source = ColumnDataSource(pldata),
-        #              legend_label = ["%s" % x for x in win_metrics])
-
-        # plbars.vbar_stack(lose_metrics,
-        #              x = 'instruments',
-        #              width = 0.9,
-        #              color = ('#ff0000' , '#FFFFFF'),
-        #              line_color='black',
-        #              source = ColumnDataSource(pldata),
-        #              legend_label = ["%s" % x for x in lose_metrics])
-        
-        # plbars.x_range.range_padding = 0.1
-        # plbars.ygrid.grid_line_color = None
-        # plbars.legend.location = "bottom_center"
-        # plbars.legend.border_line_width   = 1
-        # plbars.legend.border_line_color   = '#333333'
-        # plbars.legend.padding             = 5
-        # plbars.legend.spacing             = 0
-        # plbars.legend.margin              = 0
-        # plbars.legend.label_text_font_size = '8pt'
-        # plbars.axis.minor_tick_line_color = None
-        # plbars.outline_line_color = None
-        # plbars.sizing_mode = 'stretch_width'
-    
-        # # Cumulative PL
-        # cplfig = figure(plot_width = navfig.plot_width,
-        #                 plot_height = self._top_fig_height,
-        #                 title = None,
-        #                 active_drag = 'pan',
-        #                 active_scroll = 'wheel_zoom',
-        #                 x_range = navfig.x_range)
-        
-        # # self._data['data_index'] = self._data.reset_index(drop=True).index
-        
-        # if len(multibot_backtest_results) < 3:
-        #     colors = Category20c[3][0:len(multibot_backtest_results)]
-        # else:
-        #     colors = Category20c[len(multibot_backtest_results)]
-        
-        # for ix, instrument in enumerate(cpl_dict):
-        #     cpldata = cpl_dict[instrument].copy().to_frame()
-        #     cpldata['date'] = cpldata.index
-        #     cpldata = cpldata.reset_index(drop = True)
-            
-        #     cpldata = pd.merge(self._data, cpldata, left_on='date', right_on='date')
-            
-        #     cplfig.line(cpldata.data_index.values,
-        #                 cpldata.profit.values,
-        #                 legend_label = "{}".format(instrument),
-        #                 line_color = colors[ix])
-        
-        # cplfig.legend.location = 'top_left'
-        # cplfig.legend.border_line_width = 1
-        # cplfig.legend.border_line_color = '#333333'
-        # cplfig.legend.padding = 5
-        # cplfig.legend.spacing = 0
-        # cplfig.legend.margin = 0
-        # cplfig.legend.label_text_font_size = '8pt'
-        # cplfig.sizing_mode = 'stretch_width'
-        # cplfig.add_tools(linked_crosshair)
-        
-        # cplfig.xaxis.major_label_overrides = {
-        #             i: date.strftime('%b %d %Y') for i, date in enumerate(pd.to_datetime(self._data["date"]))
-        #         }
-        # cplfig.xaxis.bounds = (0, self._data.index[-1])
-        
-        # # Margin Available 
-        # marfig = figure(plot_width = self._ohlc_width,
-        #                 plot_height = self._top_fig_height,
-        #                 title = None,
-        #                 active_drag = 'pan',
-        #                 active_scroll = 'wheel_zoom',
-        #                 x_range = navfig.x_range)
-        
-        # # Add glyphs
-        # marfig.line(self._data.index, 
-        #             margin_available, 
-        #             line_color = 'black',
-        #             legend_label = 'Margin Available')
-        
-        # marfig.xaxis.major_label_overrides = {
-        #             i: date.strftime('%b %d %Y') for i, date in enumerate(pd.to_datetime(self._data["date"]))
-        #         }
-        # marfig.xaxis.bounds = (0, self._data.index[-1])
-        # marfig.sizing_mode = 'stretch_width'
-        # marfig.legend.location = 'top_left'
-        # marfig.legend.border_line_width = 1
-        # marfig.legend.border_line_color = '#333333'
-        # marfig.legend.padding = 5
-        # marfig.legend.spacing = 0
-        # marfig.legend.margin = 0
-        # marfig.legend.label_text_font_size = '8pt'
-        # marfig.add_tools(linked_crosshair)
-        
-        # # Construct final figure     
-        # final_fig = layout([  
-        #                            [navfig],
-        #                     [winrate, pie, plbars],
-        #                            [cplfig],
-        #                            [marfig]
-        #                     ])
-        # final_fig.sizing_mode = 'scale_width'
-        
-        # # Set theme - # TODO - adapt line colours based on theme
-        # curdoc().theme = self._chart_theme
-        
-        # if self._jupyter_notebook:
-        #     output_notebook()
-        # show(final_fig)
-    
         
     def _plot_indicators(self, indicators: dict, linked_fig):
         """Plots indicators based on indicator type. If inidcator type is 
