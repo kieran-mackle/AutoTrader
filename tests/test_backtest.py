@@ -29,7 +29,7 @@ def test_macd_backtest():
                 spread=0.5, commission=0.005, hedging=True)
     at.run()
     bot = at.get_bots_deployed()
-    bt_results = at.analyse_backtest()
+    bt_results = at.backtest_results.summary()
     
     # Test backtest results
     assert bt_results['no_trades'] == 36, "Incorrect number of trades"
@@ -55,7 +55,7 @@ def test_multibot_macd_backtest():
     home_dir = os.path.abspath(os.path.dirname(__file__))
     
     at = AutoTrader()
-    at.configure(verbosity=2, show_plot=True)
+    at.configure(verbosity=0, show_plot=False)
     at.add_strategy(config_dict=config, strategy=SimpleMACD)
     at.plot_settings(show_cancelled=False)
     at.add_data({'EUR_USD': 'EUR_USD_H4.csv',
@@ -67,13 +67,10 @@ def test_multibot_macd_backtest():
     at.run()
     bots = at.get_bots_deployed()
     EU1bot = bots['EUR_USD']
-    bt_results = at.multibot_backtest_results
+    bt_results = at.backtest_results.summary()
     
-    assert round(bt_results['win_rate'][0],5) == 34.28571
-    assert round(bt_results['win_rate'][1],5) == 36.36364
-    assert bt_results['no_long'][0] == 10, "Incorrect number of long trades"
-    assert bt_results['no_long'][1] == 8, "Incorrect number of long trades"
-    assert bt_results['no_short'][0] == 25, "Incorrect number of short trades"
-    assert bt_results['no_short'][1] == 25, "Incorrect number of short trades"
-    assert round(EU1bot.backtest_results.account_history['equity'][-1], 5) == 839.43366, "Incorrect ending balance"
-
+    assert bt_results['no_trades'] == 68, "Incorrect number of trades"
+    assert round(bt_results['all_trades']['ending_balance'], 3) == 839.434, "Incorrect ending balance"
+    assert bt_results['long_trades']['no_trades'] == 18, "Incorrect number of long trades"
+    assert bt_results['short_trades']['no_trades'] == 50, "Incorrect number of short trades"
+    
