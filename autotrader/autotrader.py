@@ -950,6 +950,10 @@ class AutoTrader:
                 # Multi-bot backtest
                 ap = self._instantiate_autoplot()
                 ap._plot_multibot_backtest(self.backtest_results)
+        else:
+            data = bot._check_strategy_for_plot_data(self._use_strat_plot_data)
+            ap = self._instantiate_autoplot(data)
+            ap.plot(backtest_dict=bot.backtest_results)
         
     
     def _main(self) -> None:
