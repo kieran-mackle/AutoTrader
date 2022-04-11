@@ -249,6 +249,7 @@ class BacktestResults:
         
         self.instruments_traded = None
         self.account_history = None
+        self.holding_history = None
         self.trade_history = None
         self.order_history = None
         self.open_trades = None
@@ -275,12 +276,28 @@ class BacktestResults:
         
         # Construct account history
         account_history = broker.account_history.copy()
+        
+        # Create history of holdings
+        holdings = broker.holdings.copy()
+        holding_history = pd.DataFrame(columns=list(orders.instrument.unique()), 
+                                        index=account_history.index)
+        for i in range(len(holding_history)):
+            holding_history.iloc[i] = holdings[i]
+        holding_history.fillna(0, inplace=True)
+        
+        for col in holding_history.columns:
+            holding_history[col] = holding_history[col] / account_history.NAV
+        
+        holding_history = holding_history[~holding_history.index.duplicated(keep='last')]
+        holding_history['cash'] = 1 - holding_history.sum(1)
+        
         account_history = account_history[~account_history.index.duplicated(keep='last')]
         account_history['drawdown'] = account_history.NAV/account_history.NAV.cummax() - 1
         
         # Assign attributes
         self.instruments_traded = list(orders.instrument.unique())
         self.account_history = account_history
+        self.holding_history = holding_history
         self.trade_history = trades
         self.order_history = orders
         self.open_trades = trades[trades.status == 'open']
@@ -490,8 +507,7 @@ class BacktestResults:
             backtest_results['short_trades']['short_wr'] = short_wr
         
         return backtest_results
-
-
+    
 
 class DataStream:
     """Data stream class.

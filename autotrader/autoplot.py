@@ -455,12 +455,13 @@ class AutoPlot:
         linked_crosshair = CrosshairTool(dimensions='both')
         reindexed_acc_hist = self._reindex_data(backtest_results.account_history)
         trade_history = backtest_results.trade_history
+        holding_history = backtest_results.holding_history
         
         # Account Balance 
         acc_hist = ColumnDataSource(reindexed_acc_hist)
         navfig = figure(plot_width=self._ohlc_width,
                         plot_height=self._top_fig_height,
-                        title=None,
+                        title="Backtest Account History",
                         active_drag='pan',
                         active_scroll='wheel_zoom')
         
@@ -496,8 +497,10 @@ class AutoPlot:
         
         if no_instruments < 3:
             colors = Category20c[3][0:no_instruments]
+            portfolio_colors = Category20c[3][0:no_instruments+1]
         else:
             colors = Category20c[no_instruments]
+            portfolio_colors = Category20c[3][0:no_instruments+1]
         
         for i in range(len(instruments)):
             cpldata = returns_per_instrument[i].to_frame()
@@ -532,10 +535,39 @@ class AutoPlot:
         cplfig.xaxis.bounds = (0, reindexed_acc_hist.index[-1])
         
         
+        # Portoflio distribution
+        names = list(holding_history.columns)
+        holding_history['date'] = holding_history.index
+        holding_hist_source = pd.merge(reindexed_acc_hist, holding_history, left_on='date', right_on='date')
+        portfolio = figure(plot_width = navfig.plot_width,
+                           plot_height = self._top_fig_height,
+                           title = "Asset Allocation History",
+                           active_drag = 'pan',
+                           active_scroll = 'wheel_zoom',
+                           x_range = navfig.x_range)
+        portfolio.grid.minor_grid_line_color = '#eeeeee'
         
-        # TODO - Portoflio distribution
+        portfolio.varea_stack(stackers=names, 
+                              x='data_index', 
+                              color=portfolio_colors, 
+                              legend_label=names,
+                              source=holding_hist_source)
         
-        
+        portfolio.legend.orientation = "horizontal"
+        portfolio.legend.background_fill_color = "#fafafa"
+        portfolio.legend.location = 'top_left'
+        portfolio.legend.border_line_width = 1
+        portfolio.legend.border_line_color = '#333333'
+        portfolio.legend.padding = 5
+        portfolio.legend.spacing = 0
+        portfolio.legend.margin = 0
+        portfolio.legend.label_text_font_size = '8pt'
+        portfolio.sizing_mode = 'stretch_width'
+        portfolio.add_tools(linked_crosshair)
+        portfolio.xaxis.major_label_overrides = {
+                    i: date.strftime('%b %d %Y') for i, date in enumerate(pd.to_datetime(reindexed_acc_hist["date"]))
+                }
+        portfolio.xaxis.bounds = (0, reindexed_acc_hist.index[-1])
         
         # Pie chart of trades per instrument
         trades_per_instrument = [sum(trade_history.instrument == i) for i in instruments]
@@ -559,7 +591,6 @@ class AutoPlot:
         pie.legend.spacing = 0
         pie.legend.margin = 0
         pie.legend.label_text_font_size = '8pt'
-        
         
         # Bar plot for avg/max win/loss
         win_metrics = ['Average Win', 'Max. Win']
@@ -630,6 +661,7 @@ class AutoPlot:
         # Construct final figure     
         final_fig = layout([  
                                    [navfig],
+                                   [portfolio],
                                    [cplfig],
                                    [pie, plbars],
                             ])
@@ -1380,7 +1412,7 @@ class AutoPlot:
         pie = figure(title = fig_title, 
                      toolbar_location = None,
                      tools = "hover", 
-                     tooltips="@index: @trades",
+                     tooltips="@index: @trades trades",
                      x_range=(-1, 1),
                      y_range=(0.0, 2.0),
                      plot_height = fig_height)
