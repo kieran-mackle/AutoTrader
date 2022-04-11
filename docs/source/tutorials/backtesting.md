@@ -119,4 +119,7 @@ You will now have access to *bot*, an instance of [AutoBot](../core/AutoBot) whi
 now is the backtest summary of the bot, written to `bot.backtest_summary`. This is a dictionary containing a history of trades taken,
 orders cancelled, trades still open, and more. Exploring this is left as an exercise to the reader.
 
-
+```{tip}
+With AutoTrader `v0.6.2`, you can also access backtest data from `at.backtest_results`. This attribute is an instance of 
+the [BacktestResults](utils-backtest-results) class.
+```

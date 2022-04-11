@@ -30,6 +30,13 @@
 .. autofunction:: autotrader.utilities.get_watchlist
 ```
 
+(utils-backtest-results)=
+## BacktestResults Class
+```{eval-rst}
+.. autoclass:: autotrader.utilities.BacktestResults
+   :members:
+```
+
 
 (utils-datastream)=
 ## DataStream Class

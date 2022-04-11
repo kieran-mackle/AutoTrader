@@ -69,6 +69,7 @@ class Broker:
         
         # History
         self.account_history = pd.DataFrame()
+        self.holdings = []
         
     
     def __repr__(self):
@@ -489,10 +490,14 @@ class Broker:
         # Update account history
         account_snapshot = pd.DataFrame(data={'NAV': self.NAV, 
                                               'equity': self.equity, 
-                                              'margin': self.margin_available}, 
+                                              'margin': self.margin_available,}, 
                                         index=[candle.name])
         self.account_history = pd.concat([self.account_history,
                                           account_snapshot])
+        
+        # TODO - dont record holdings when not plotting, or by specification
+        holdings = self._get_holding_allocations()
+        self.holdings.append(holdings)
         
     
     def _close_position(self, instrument: str, candle: pd.core.series.Series, 
@@ -728,4 +733,20 @@ class Broker:
         """
         self._close_position(instrument, candle, candle.Close)
     
+    
+    def _get_holding_allocations(self):
+        """Returns a dictionary containing the margin required to hold 
+        all open trades."""
+        open_trades = self.get_trades()
+        margins = {}
+        for trade_id, trade in open_trades.items():
+            if trade.instrument in margins:
+                margins[trade.instrument] += trade.margin_required
+            else:
+                margins[trade.instrument] = trade.margin_required
+                
+        if len(margins) == 0:
+            margins = {None: None}
+            
+        return margins
     

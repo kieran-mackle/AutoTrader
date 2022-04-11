@@ -38,7 +38,7 @@ class AutoPlot:
     
     """
     
-    def __init__(self, data: pd.DataFrame):
+    def __init__(self, data: pd.DataFrame = None):
         """Instantiates AutoPlot.
 
         Parameters
@@ -66,10 +66,12 @@ class AutoPlot:
         self._use_strat_plot_data = False
         
         # Modify data index
-        self._data = self._reindex_data(data)
-        self._backtest_data = None
+        if data is not None:
+            self._data = self._reindex_data(data)
+            self._backtest_data = None
         
         # Load JavaScript code for auto-scaling 
+        self.autoscale_args = {}
         self._autoscale_code = pkg_resources.read_text(pkgdata, 'autoscale.js')
         
         
@@ -145,7 +147,7 @@ class AutoPlot:
         
     
     def plot(self, instrument: str = None, indicators: dict = None, 
-             backtest_dict: dict = None, cumulative_PL: list = None,
+             backtest_dict: dict = None,
              show_fig: bool = True) -> None:
         """Creates a trading chart of OHLC price data and indicators.
 
@@ -201,8 +203,6 @@ class AutoPlot:
             The backtest results dictionary. The default is None.
         indicators : dict, optional
             Indicators dictionary. The default is None.
-        cumulative_PL : list, optional
-            Cumulative PL history. The default is None.
         show_fig : bool, optional
             Flag to show the chart. The default is True.
 
@@ -238,13 +238,16 @@ class AutoPlot:
         
         # Main plot
         if self._use_strat_plot_data:
-            source.add(np.ones(len(self._data))*max(self._data.plot_data), 'High')
-            source.add(np.ones(len(self._data))*min(self._data.plot_data), 'Low')
+            source.add(self._data.plot_data, 'High')
+            source.add(self._data.plot_data, 'Low')
             main_plot = self._create_main_plot(source)
         else:
             source.add((self._data.Close >= self._data.Open).values.astype(np.uint8).astype(str),
                        'change')
             main_plot = self._plot_candles(source)
+        
+        # Initialise autoscale arguments
+        self.autoscale_args = {'y_range': main_plot.y_range, 'source': source}
         
         top_figs = []
         bottom_figs = []
@@ -253,19 +256,27 @@ class AutoPlot:
             account_hist = backtest_dict.account_history
             if len(account_hist) != len(self._data):
                 account_hist = self._interpolate_and_merge(account_hist)
-            NAV = account_hist['NAV']
-            balance = account_hist['equity']
+            
+            topsource = ColumnDataSource(account_hist)
+            topsource.add(account_hist[['NAV', 'equity']].min(1), 'Low')
+            topsource.add(account_hist[['NAV', 'equity']].max(1), 'High')
+            
             trade_summary = backtest_dict.trade_history
             indicators = backtest_dict.indicators
             open_trades = backtest_dict.open_trades
             cancelled_trades = backtest_dict.cancelled_orders
             
-            # Top plots
-            top_fig = self._plot_line(NAV, main_plot, new_fig=True, 
+            top_fig = self._plot_lineV2(topsource, main_plot, "NAV", new_fig=True, 
                                       legend_label='Net Asset Value', 
                                       hover_name='NAV')
-            self._plot_line(balance, top_fig, legend_label='Account Balance', 
+            # Add equity balance
+            self._plot_lineV2(topsource, top_fig, "equity", legend_label='Account Balance', 
                             hover_name='P/L', line_colour='blue')
+            
+            # Append autoscale args
+            self.autoscale_args['top_range'] = top_fig.y_range
+            self.autoscale_args['top_source'] = topsource
+            
             top_figs.append(top_fig)
             
             if not self._use_strat_plot_data:
@@ -282,10 +293,8 @@ class AutoPlot:
             bottom_figs = self._plot_indicators(indicators, main_plot)
         
         # Auto-scale y-axis of candlestick chart
-        # TODO - also autoscale indicators
-        autoscale_args = dict(y_range = main_plot.y_range, source = source)
-        main_plot.x_range.js_on_change('end', CustomJS(args = autoscale_args, 
-                                       code = self._autoscale_code))
+        main_plot.x_range.js_on_change('end', CustomJS(args=self.autoscale_args, 
+                                       code=self._autoscale_code))
         
         # Compile plots for final figure
         plots = top_figs + [main_plot] + bottom_figs
@@ -375,8 +384,10 @@ class AutoPlot:
             data: the data to be merged
             name: the desired column name of the merged data
         """
-        # TODO - need to add handling of different data types, ie. list vs. series vs. df
-        # Mainly check if the series has a name or not
+        if isinstance(data, pd.Series):
+            if data.name is None:
+                data.name = 'name'
+            
         merged_data = pd.merge(self._data, data, left_on='date', 
                                right_index=True).fillna('')
         
@@ -393,8 +404,35 @@ class AutoPlot:
         interp_data = concat_data.interpolate(method='nearest').fillna(method='bfill')
         merged_data = self._merge_data(interp_data).drop_duplicates()
         merged_data = merged_data.replace('', np.nan).fillna(method='ffill')
-        return merged_data[list(df.columns) + ['date']].set_index('date')
+        merged_data['data_index'] = merged_data.index
+        return merged_data[list(df.columns) + ['date', 'data_index']].set_index('date')
     
+    
+    def _add_to_autoscale_args(self, source, y_range):
+        """
+
+        Parameters
+        ----------
+        source : ColumnDataSource
+            The column data source.
+        y_range : Bokeh Range
+            The y_range attribute of the chart.
+
+        """
+        added = False
+        range_key = 'bot_range_1'
+        source_key = 'bot_source_1'
+        while not added:
+            if range_key not in self.autoscale_args:
+                # Keys can be added
+                self.autoscale_args[range_key] = y_range
+                self.autoscale_args[source_key] = source
+                added = True
+            else:
+                # Increment key
+                range_key = range_key[:-1] + str(int(range_key[-1])+1)
+                source_key = source_key[:-1] + str(int(source_key[-1])+1)
+        
     
     def _add_backtest_price_data(self, backtest_price_data: pd.DataFrame) -> None:
         """Processes backtest price data to included integer index of base 
@@ -407,80 +445,153 @@ class AutoPlot:
     
     
     ''' ------------------- FIGURE MANAGEMENT METHODS --------------------- '''
-    def _plot_multibot_backtest(self, multibot_backtest_results: dict, 
-                                NAV: pd.Series, cpl_dict: pd.Series,
-                                margin_available: pd.Series):
+    def _plot_multibot_backtest(self, backtest_results):
         """Creates multi-bot backtest figure. 
-        
-            Parameters:
-                multibot_backtest_results (df): dataframe of bot backtest results.
-                
-                NAV (list): Net asset value.
-                
-                cpl_dict (dict): cumulative PL of each bot.
         """
-        
-        # TODO - merge this into self.plot method?
-        # First, clean up individual plots (pie, etc) into new methods
-        
         # Preparation
-        output_file("candlestick.html",
-                    title = "AutoTrader Multi-Bot Backtest Results")
-        
+        instruments = backtest_results.instruments_traded
+        no_instruments = len(instruments)
+        output_file("autotrader_backtest.html", title = "AutoTrader Multi-Bot Backtest Results")
         linked_crosshair = CrosshairTool(dimensions='both')
-        if len(multibot_backtest_results) < 3:
-            multibot_backtest_results['color'] = Category20c[3][0:len(multibot_backtest_results)]
-        else:
-            multibot_backtest_results['color'] = Category20c[len(multibot_backtest_results)]
-            
-        MBR = ColumnDataSource(multibot_backtest_results)
+        reindexed_acc_hist = self._reindex_data(backtest_results.account_history)
+        trade_history = backtest_results.trade_history
+        holding_history = backtest_results.holding_history
         
         # Account Balance 
-        navfig = figure(plot_width = self._ohlc_width,
-                        plot_height = self._top_fig_height,
-                        title = None,
-                        active_drag = 'pan',
-                        active_scroll = 'wheel_zoom')
+        acc_hist = ColumnDataSource(reindexed_acc_hist)
+        acc_hist.add(reindexed_acc_hist[['NAV', 'equity']].min(1), 'Low')
+        acc_hist.add(reindexed_acc_hist[['NAV', 'equity']].max(1), 'High')
+        navfig = figure(plot_width=self._ohlc_width,
+                        plot_height=self._top_fig_height,
+                        title="Backtest Account History",
+                        active_drag='pan',
+                        active_scroll='wheel_zoom')
         
         # Add glyphs
-        navfig.line(self._data.index, 
-                    NAV, 
+        navfig.line('data_index', 'NAV', 
                     line_color = 'black',
-                    legend_label = 'Backtest Net Asset Value')
+                    legend_label = 'Backtest Net Asset Value',
+                    source=acc_hist)
+        navfig.line('data_index', 'equity', 
+                    line_color = 'blue',
+                    legend_label = 'Backtest Equity',
+                    source=acc_hist)
         
         navfig.xaxis.major_label_overrides = {
-                    i: date.strftime('%b %d %Y') for i, date in enumerate(pd.to_datetime(self._data["date"]))
+                    i: date.strftime('%b %d %Y') for i, date in enumerate(pd.to_datetime(reindexed_acc_hist["date"]))
                 }
-        navfig.xaxis.bounds = (0, self._data.index[-1])
+        navfig.xaxis.bounds = (0, reindexed_acc_hist.index[-1])
         navfig.sizing_mode = 'stretch_width'
         navfig.legend.location = 'top_left'
-        navfig.legend.border_line_width   = 1
-        navfig.legend.border_line_color   = '#333333'
-        navfig.legend.padding             = 5
-        navfig.legend.spacing             = 0
-        navfig.legend.margin              = 0
+        navfig.legend.border_line_width = 1
+        navfig.legend.border_line_color = '#333333'
+        navfig.legend.padding = 5
+        navfig.legend.spacing = 0
+        navfig.legend.margin = 0
         navfig.legend.label_text_font_size = '8pt'
         navfig.add_tools(linked_crosshair)
         
-        # Win rate bar chart
-        instruments = multibot_backtest_results.index.values
+        # Initialise autoscale arguments
+        self.autoscale_args = {'y_range': navfig.y_range, 'source': acc_hist}
         
-        winrate = self._plot_bars(instruments, 'win_rate', MBR, 
-                                  fig_title='Bot win rate (%)',
-                                  hover_name='win_rate%')
+        # Cumultive returns plot
+        returns_per_instrument = [trade_history.profit[trade_history.instrument == i].cumsum() for i in instruments]
+        cplfig = figure(plot_width = navfig.plot_width,
+                        plot_height = self._top_fig_height,
+                        title = "Cumulative Returns per Instrument",
+                        active_drag = 'pan',
+                        active_scroll = 'wheel_zoom',
+                        x_range = navfig.x_range)
         
-        winrate.sizing_mode = 'stretch_width'
-        
-        
-        # Pie chart of trades per bot
-        pie_data = pd.Series(multibot_backtest_results.no_trades).reset_index(name='value').rename(columns={'index':'instrument'})
-        pie_data['angle'] = pie_data['value']/pie_data['value'].sum() * 2*pi
-        if len(multibot_backtest_results) < 3:
-            pie_data['color'] = Category20c[3][0:len(multibot_backtest_results)]
+        if no_instruments < 3:
+            colors = Category20c[3][0:no_instruments]
+            portfolio_colors = Category20c[3][0:no_instruments+1]
         else:
-            pie_data['color'] = Category20c[len(multibot_backtest_results)]
+            colors = Category20c[no_instruments]
+            portfolio_colors = Category20c[no_instruments+1]
+        
+        for i in range(len(instruments)):
+            cpldata = returns_per_instrument[i].to_frame()
+            cpldata['date'] = cpldata.index
+            cpldata = cpldata.reset_index(drop = True)
+            
+            cpldata = pd.merge(reindexed_acc_hist, cpldata, left_on='date', right_on='date')
+            concatted = pd.concat([reindexed_acc_hist, cpldata])
+            non_duplicated = concatted[~concatted.data_index.duplicated(keep='last')][['data_index','profit']]
+            sorted_data = non_duplicated.sort_values('data_index').fillna(method='ffill').fillna(0)
+            
+            cplsource = ColumnDataSource(sorted_data)
+            cplfig.line('data_index',
+                        'profit',
+                        legend_label = f"{instruments[i]}",
+                        line_color = colors[i],
+                        source=cplsource)
+        
+        cplfig.legend.location = 'top_left'
+        cplfig.legend.border_line_width = 1
+        cplfig.legend.border_line_color = '#333333'
+        cplfig.legend.padding = 5
+        cplfig.legend.spacing = 0
+        cplfig.legend.margin = 0
+        cplfig.legend.label_text_font_size = '8pt'
+        cplfig.sizing_mode = 'stretch_width'
+        cplfig.add_tools(linked_crosshair)
+        
+        cplfig.xaxis.major_label_overrides = {
+                    i: date.strftime('%b %d %Y') for i, date in enumerate(pd.to_datetime(reindexed_acc_hist["date"]))
+                }
+        cplfig.xaxis.bounds = (0, reindexed_acc_hist.index[-1])
+        
+        
+        # Portoflio distribution
+        names = list(holding_history.columns)
+        holding_history['date'] = holding_history.index
+        holding_hist_source = ColumnDataSource(pd.merge(reindexed_acc_hist, holding_history, left_on='date', right_on='date'))
+        portfolio = figure(plot_width = navfig.plot_width,
+                           plot_height = self._top_fig_height,
+                           title = "Asset Allocation History",
+                           active_drag = 'pan',
+                           active_scroll = 'wheel_zoom',
+                           x_range = navfig.x_range)
+        portfolio.grid.minor_grid_line_color = '#eeeeee'
+        
+        portfolio.varea_stack(stackers=names, 
+                              x='data_index', 
+                              color=portfolio_colors, 
+                              legend_label=names,
+                              source=holding_hist_source)
+        
+        portfolio.legend.orientation = "horizontal"
+        portfolio.legend.background_fill_color = "#fafafa"
+        portfolio.legend.location = 'top_left'
+        portfolio.legend.border_line_width = 1
+        portfolio.legend.border_line_color = '#333333'
+        portfolio.legend.padding = 5
+        portfolio.legend.spacing = 0
+        portfolio.legend.margin = 0
+        portfolio.legend.label_text_font_size = '8pt'
+        portfolio.sizing_mode = 'stretch_width'
+        portfolio.add_tools(linked_crosshair)
+        portfolio.xaxis.major_label_overrides = {
+                    i: date.strftime('%b %d %Y') for i, date in enumerate(pd.to_datetime(reindexed_acc_hist["date"]))
+                }
+        portfolio.xaxis.bounds = (0, reindexed_acc_hist.index[-1])
+        
+        # Define autoscale arguments
+        holding_hist_source.add(np.ones(len(holding_history)), 'High')
+        holding_hist_source.add(np.zeros(len(holding_history)), 'Low')
+        self._add_to_autoscale_args(holding_hist_source, portfolio.y_range)
+        
+        # Pie chart of trades per instrument
+        trades_per_instrument = [sum(trade_history.instrument == i) for i in instruments]
+        pie_data = pd.DataFrame(data={'trades': trades_per_instrument}, index=instruments)
+        pie_data['angle'] = pie_data['trades']/pie_data['trades'].sum() * 2*pi
+        if no_instruments < 3:
+            pie_data['color'] = Category20c[3][0:no_instruments]
+        else:
+            pie_data['color'] = Category20c[no_instruments]
 
-        pie = self._plot_pie(pie_data, fig_title="Trade distribution")
+        pie = self._plot_pie(pie_data, fig_title="Trade Distribution")
         
         pie.axis.axis_label=None
         pie.axis.visible=False
@@ -498,16 +609,21 @@ class AutoPlot:
         win_metrics = ['Average Win', 'Max. Win']
         lose_metrics = ['Average Loss', 'Max. Loss']
         
-        abs_max_loss = -1.2*max(multibot_backtest_results.max_loss)
-        abs_max_win = 1.2*max(multibot_backtest_results.max_win)
+        instrument_trades = [trade_history[trade_history.instrument == i] for i in instruments]
+        max_wins = [instrument_trades[i].profit.max() for i in range(len(instruments))]
+        max_losses = [instrument_trades[i].profit.min() for i in range(len(instruments))]
+        avg_wins = [instrument_trades[i].profit[instrument_trades[i].profit>0].mean() for i in range(len(instruments))]
+        avg_losses = [instrument_trades[i].profit[instrument_trades[i].profit<0].mean() for i in range(len(instruments))]
+        
+        abs_max_loss = 1.2*max(max_losses)
+        abs_max_win = 1.2*max(max_wins)
         
         pldata = {'instruments': instruments,
-                'Average Win': multibot_backtest_results.avg_win.values,
-                'Max. Win': multibot_backtest_results.max_win.values - 
-                            multibot_backtest_results.avg_win.values,
-                'Average Loss': -multibot_backtest_results.avg_loss.values,
-                'Max. Loss': multibot_backtest_results.avg_loss.values - 
-                             multibot_backtest_results.max_loss.values}
+                  'Average Win': avg_wins,
+                  'Max. Win': [max_wins[i] - avg_wins[i] for i in range(len(max_wins))],
+                  'Average Loss': avg_losses,
+                  'Max. Loss': [max_losses[i] - avg_losses[i] for i in range(len(max_losses))]
+                  }
         
         TOOLTIPS = [
                     ("Instrument:", "@instruments"),
@@ -519,27 +635,27 @@ class AutoPlot:
         
         plbars = figure(x_range=instruments,
                         y_range=(abs_max_loss, abs_max_win),
-                        title="Win/Loss breakdown",
+                        title="Win/Loss Breakdown",
                         toolbar_location=None,
                         tools = "hover",
                         tooltips = TOOLTIPS,
                         plot_height = 250)
 
         plbars.vbar_stack(win_metrics,
-                     x='instruments',
-                     width = 0.9,
-                     color = ('#008000', '#FFFFFF'),
-                     line_color='black',
-                     source = ColumnDataSource(pldata),
-                     legend_label = ["%s" % x for x in win_metrics])
+                      x='instruments',
+                      width = 0.9,
+                      color = ('#008000', '#FFFFFF'),
+                      line_color='black',
+                      source = ColumnDataSource(pldata),
+                      legend_label = ["%s" % x for x in win_metrics])
 
         plbars.vbar_stack(lose_metrics,
-                     x = 'instruments',
-                     width = 0.9,
-                     color = ('#ff0000' , '#FFFFFF'),
-                     line_color='black',
-                     source = ColumnDataSource(pldata),
-                     legend_label = ["%s" % x for x in lose_metrics])
+                      x = 'instruments',
+                      width = 0.9,
+                      color = ('#ff0000' , '#FFFFFF'),
+                      line_color='black',
+                      source = ColumnDataSource(pldata),
+                      legend_label = ["%s" % x for x in lose_metrics])
         
         plbars.x_range.range_padding = 0.1
         plbars.ygrid.grid_line_color = None
@@ -553,83 +669,26 @@ class AutoPlot:
         plbars.axis.minor_tick_line_color = None
         plbars.outline_line_color = None
         plbars.sizing_mode = 'stretch_width'
-    
-        # Cumulative PL
-        cplfig = figure(plot_width = navfig.plot_width,
-                        plot_height = self._top_fig_height,
-                        title = None,
-                        active_drag = 'pan',
-                        active_scroll = 'wheel_zoom',
-                        x_range = navfig.x_range)
         
-        # self._data['data_index'] = self._data.reset_index(drop=True).index
+        # Win rate bar chart
+        win_rates = [100*sum(instrument_trades[i].profit>0)/len(instrument_trades[i]) for i in range(len(instruments))]
+        WRsource = ColumnDataSource(pd.DataFrame(data={'win_rate': win_rates,
+                                                       'color': colors}, index=instruments))
+        winrate = self._plot_bars(instruments, 'win_rate', WRsource, 
+                                  fig_title='Instrument win rate (%)',
+                                  hover_name='win_rate%')
+        winrate.sizing_mode = 'stretch_width'
         
-        if len(multibot_backtest_results) < 3:
-            colors = Category20c[3][0:len(multibot_backtest_results)]
-        else:
-            colors = Category20c[len(multibot_backtest_results)]
-        
-        for ix, instrument in enumerate(cpl_dict):
-            cpldata = cpl_dict[instrument].copy().to_frame()
-            cpldata['date'] = cpldata.index
-            cpldata = cpldata.reset_index(drop = True)
-            
-            cpldata = pd.merge(self._data, cpldata, left_on='date', right_on='date')
-            
-            cplfig.line(cpldata.data_index.values,
-                        cpldata.profit.values,
-                        legend_label = "{}".format(instrument),
-                        line_color = colors[ix])
-        
-        cplfig.legend.location = 'top_left'
-        cplfig.legend.border_line_width = 1
-        cplfig.legend.border_line_color = '#333333'
-        cplfig.legend.padding = 5
-        cplfig.legend.spacing = 0
-        cplfig.legend.margin = 0
-        cplfig.legend.label_text_font_size = '8pt'
-        cplfig.sizing_mode = 'stretch_width'
-        cplfig.add_tools(linked_crosshair)
-        
-        cplfig.xaxis.major_label_overrides = {
-                    i: date.strftime('%b %d %Y') for i, date in enumerate(pd.to_datetime(self._data["date"]))
-                }
-        cplfig.xaxis.bounds = (0, self._data.index[-1])
-        
-        # Margin Available 
-        marfig = figure(plot_width = self._ohlc_width,
-                        plot_height = self._top_fig_height,
-                        title = None,
-                        active_drag = 'pan',
-                        active_scroll = 'wheel_zoom',
-                        x_range = navfig.x_range)
-        
-        # Add glyphs
-        marfig.line(self._data.index, 
-                    margin_available, 
-                    line_color = 'black',
-                    legend_label = 'Margin Available')
-        
-        marfig.xaxis.major_label_overrides = {
-                    i: date.strftime('%b %d %Y') for i, date in enumerate(pd.to_datetime(self._data["date"]))
-                }
-        marfig.xaxis.bounds = (0, self._data.index[-1])
-        marfig.sizing_mode = 'stretch_width'
-        marfig.legend.location = 'top_left'
-        marfig.legend.border_line_width = 1
-        marfig.legend.border_line_color = '#333333'
-        marfig.legend.padding = 5
-        marfig.legend.spacing = 0
-        marfig.legend.margin = 0
-        marfig.legend.label_text_font_size = '8pt'
-        marfig.add_tools(linked_crosshair)
+        # Autoscaling
+        navfig.x_range.js_on_change('end', CustomJS(args=self.autoscale_args, 
+                                   code=self._autoscale_code))
         
         # Construct final figure     
         final_fig = layout([  
                                    [navfig],
-                            [winrate, pie, plbars],
+                                   [portfolio],
                                    [cplfig],
-                                   [marfig]
+                                   [pie, plbars, winrate],
                             ])
         final_fig.sizing_mode = 'scale_width'
         
@@ -639,16 +698,13 @@ class AutoPlot:
         if self._jupyter_notebook:
             output_notebook()
         show(final_fig)
-    
+        
         
     def _plot_indicators(self, indicators: dict, linked_fig):
         """Plots indicators based on indicator type. If inidcator type is 
         "over", it will be plotted on top of linked_fig. If indicator type is 
         "below", it will be plotted on a new figure below the OHLC chart.
         """
-        # TODO - convert all data to a ColumnDataSource, to allow indicator
-        # autoscaling and proper index matching. Create helper method for this
-        
         x_range   = self._data.index
         plot_type = {'MACD'        : 'below',
                      'MA'          : 'over',
@@ -687,11 +743,11 @@ class AutoPlot:
                     if indi_type == 'Supertrend':
                         self._plot_supertrend(indicators[indicator]['data'], 
                                               linked_fig)
-                        indis_over     += 1 # Count as 2 indicators
+                        indis_over += 1 # Count as 2 indicators
                     elif indi_type == 'HalfTrend':
                         self._plot_halftrend(indicators[indicator]['data'], 
                                              linked_fig)
-                        indis_over     += 1 # Count as 2 indicators
+                        indis_over += 1 # Count as 2 indicators
                     elif indi_type == 'Swings':
                         self._plot_swings(indicators[indicator]['data'], 
                                           linked_fig)
@@ -800,32 +856,16 @@ class AutoPlot:
                             # Timeseries provided, merge indexes
                             if indicators[indicator]['data'].name is None:
                                 indicators[indicator]['data'].name = 'data'
-                            merged_indicator_data = pd.merge(self._data, 
-                                                             indicators[indicator]['data'], 
-                                                             left_on='date', 
-                                                             right_index=True)
-                            line_data = merged_indicator_data[indicators[indicator]['data'].name]
-                            x_vals = line_data.index
-                            y_vals = line_data.values
+                            line_source = self._create_line_source(indicators[indicator]['data'])
                         else:
-                            # List provided
-                            x_vals = x_range
-                            y_vals = np.zeros(len(x_range))
-                            y_vals[:len(indicators[indicator]['data'])] = indicators[indicator]['data']
+                            raise Exception("Plot data must be a timeseries.")
                             
-                        new_fig = figure(plot_width = linked_fig.plot_width,
-                                         plot_height = 130,
-                                         title = None,
-                                         tools = linked_fig.tools,
-                                         active_drag = linked_fig.tools[0],
-                                         active_scroll = linked_fig.tools[1],
-                                         x_range = linked_fig.x_range)
-                        
-                        # Add glyphs
-                        new_fig.line(x_vals, y_vals,
-                                     line_color = indicators[indicator]['color'] if \
-                                         'color' in indicators[indicator] else 'black', 
-                                     legend_label = indicator)
+                        new_fig = self._plot_lineV2(line_source, linked_fig,
+                                                indicators[indicator]['data'].name, 
+                                                new_fig=True,
+                                                legend_label=indicators[indicator]['data'].name,
+                                                fig_height=130)
+                        self._add_to_autoscale_args(line_source, new_fig.y_range)
                         
                     indis_below += 1
                     bottom_figs.append(new_fig)
@@ -833,15 +873,33 @@ class AutoPlot:
                 # The indicator plot type is not recognised - plotting on new fig
                 if indis_below < self._max_indis_below:
                     print("Indicator type '{}' not recognised in AutoPlot.".format(indi_type))
-                    new_fig = self._plot_line(indicators[indicator]['data'], 
-                                              linked_fig, new_fig=True, 
-                                              legend_label=indicator, 
-                                              hover_name=indicator)
+                    line_source = self._create_line_source(indicators[indicator]['data'])
+                    new_fig = self._plot_lineV2(line_source, linked_fig,
+                                                indicators[indicator]['data'].name, 
+                                                new_fig=True,
+                                                legend_label=indicators[indicator]['data'].name,
+                                                fig_height=130)
+                    self._add_to_autoscale_args(line_source, new_fig.y_range)
                     
                     indis_below += 1
                     bottom_figs.append(new_fig)
                 
         return bottom_figs
+    
+    
+    def _create_line_source(self, indicator_data):
+        """Create ColumndDataSource from indicator line data."""
+        merged_indicator_data = pd.merge(self._data, 
+                                         indicator_data, 
+                                         left_on='date', 
+                                         right_index=True)
+        merged_indicator_data.fillna(method='bfill', inplace=True)
+        data_name = indicator_data.name
+        line_source = ColumnDataSource(merged_indicator_data[[data_name,
+                                                'data_index']])
+        line_source.add(merged_indicator_data[data_name].values, 'High')
+        line_source.add(merged_indicator_data[data_name].values, 'Low')
+        return line_source
     
     
     def _create_main_plot(self, source, line_colour: str = 'black',
@@ -857,6 +915,32 @@ class AutoPlot:
                  line_color = line_colour,
                  # legend_label = legend_label,
                  source = source)
+        
+        return fig
+    
+    
+    def _plot_lineV2(self, source, linked_fig, column, new_fig=False, fig_height=150,
+                     fig_title=None, legend_label=None, hover_name=None,
+                     line_colour='black'):
+        """Generic method to plot data as a line.
+        """
+        
+        # Initiate figure
+        if new_fig:
+            fig = figure(plot_width = linked_fig.plot_width,
+                         plot_height = fig_height,
+                         title = fig_title,
+                         tools = self._fig_tools,
+                         active_drag = 'pan',
+                         active_scroll = 'wheel_zoom',
+                         x_range = linked_fig.x_range)
+        else:
+            fig = linked_fig
+        
+        fig.line('data_index', column, 
+                 line_color=line_colour,
+                 legend_label=legend_label,
+                 source=source)
         
         return fig
     
@@ -1320,7 +1404,12 @@ class AutoPlot:
                         size = 15,
                         fill_color = 'black',
                         legend_label = 'Last Crossover Value')
-    
+        
+        # Define autoscale arguments
+        source.add(np.maximum(macd_data['macd'], macd_data['signal']), 'High')
+        source.add(np.minimum(macd_data['macd'], macd_data['signal']), 'Low')
+        self._add_to_autoscale_args(source, fig.y_range)
+        
         return fig
     
     
@@ -1348,17 +1437,17 @@ class AutoPlot:
         pie = figure(title = fig_title, 
                      toolbar_location = None,
                      tools = "hover", 
-                     tooltips="@instrument: @value",
+                     tooltips="@index: @trades trades",
                      x_range=(-1, 1),
                      y_range=(0.0, 2.0),
                      plot_height = fig_height)
         
-        pie.wedge(x=0, y=1, radius=0.3,
+        pie.wedge(x=0, y=1, radius=0.2,
                   start_angle=cumsum('angle', include_zero=True), 
                   end_angle=cumsum('angle'),
                   line_color="white", 
                   fill_color='color',
-                  legend_field='instrument',
+                  legend_field='index',
                   source=source)
         
         return pie
