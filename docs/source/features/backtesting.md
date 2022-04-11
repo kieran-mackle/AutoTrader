@@ -18,48 +18,55 @@ Shown below is the output for a backtest on EUR/USD using the MACD strategy deve
 /_/   \_\__,_|\__\___/|____/ \__,_|\___|_|\_\\__\___||___/\__|
                                                               
 
-Analysing EUR/USD on M15 timeframe using Simple MACD Trend Strategy.
-Time: Saturday, August 07 2021, 10:32:36
-From:  2020-07-01 00:00:00+00:00
-To:    2021-01-01 00:00:00+00:00
+Beginning new backtest.
+[*********************100%***********************]  1 of 1 completed
 
--------------------------------------------
-            Backtest Results
--------------------------------------------
-Strategy: Simple MACD Trend Strategy
-Timeframe:               M15
-Risk to reward ratio:    1.5
-Profitable win rate:     40.0%
-Backtest win rate:       52.3%
-Total no. trades:        247
-Profit:                  $685.987 (68.6%)
+AutoTraderBot assigned to trade EURUSD=X with virtual broker using MACD Trend Strategy.
+
+Trading...
+
+Backtest complete (runtime 4.642 s).
+
+----------------------------------------------
+               Backtest Results
+----------------------------------------------
+Start date:              Jan 20 2021 05:00:00
+End date:                Dec 31 2021 13:00:00
+Starting balance:        $1000.0
+Ending balance:          $1255.11
+Ending NAV:              $1270.05
+Total return:            $255.11 (25.5%)
+Total no. trades:        96
+Total fees:              $0.0
+Backtest win rate:       46.9%
 Maximum drawdown:        -18.1%
-Max win:                 $36.02
-Average win:             $27.59
-Max loss:                -$30.58
-Average loss:            -$22.88
-Longest win streak:      7 trades
-Longest losing streak:   12 trades
-Average trade duration   9:59:55
-Cancelled orders:        52
+Max win:                 $40.5
+Average win:             $26.53
+Max loss:                -$43.81
+Average loss:            -$18.41
+Longest win streak:      6 trades
+Longest losing streak:   6 trades
+Average trade duration:  1 day, 2:37:30
+Orders still open:       1
+Cancelled orders:        3
 
-         Summary of long trades
--------------------------------------------
-Number of long trades:   116
-Long win rate:           53.4%
-Max win:                 $35.71
-Average win:             $26.68
-Max loss:                -$30.19
-Average loss:            -$22.51
+            Summary of long trades
+----------------------------------------------
+Number of long trades:   40
+Long win rate:           50.0%
+Max win:                 $40.5
+Average win:             $26.99
+Max loss:                -$21.91
+Average loss:            -$17.96
 
-          Summary of short trades
--------------------------------------------
-Number of short trades:  79
-short win rate:          50.6%
-Max win:                 $36.02
-Average win:             $29.0
-Max loss:                -$30.58
-Average loss:            -$23.4
+             Summary of short trades
+----------------------------------------------
+Number of short trades:  59
+short win rate:          42.4%
+Max win:                 $35.06
+Average win:             $26.17
+Max loss:                -$43.81
+Average loss:            -$18.65
 ```
 
 This output is useful, but as the saying goes, a picture is worth a thousand words. Running a backtest is no 
@@ -69,7 +76,7 @@ effective your exit strategy is. By visualising the exit targets, you can see if
 too early on otherwise good trades. The chart interactive chart below is automatically generated using the
 automated plotting module, [AutoPlot](autoplot-docs), after running a backtest.
 
-<iframe data-src="../_static/charts/simple-macd-bt.html" id="iframe" loading="lazy" style="width:100%; margin-top:1em; height:720px; overflow:hidden;" data-ga-on="wheel" data-ga-event-category="iframe" data-ga-event-action="wheel" src="../_static/charts/simple-macd-bt.html"></iframe>
+<iframe data-src="../_static/charts/macd_backtest_demo.html" id="iframe" loading="lazy" style="width:100%; margin-top:1em; height:720px; overflow:hidden;" data-ga-on="wheel" data-ga-event-category="iframe" data-ga-event-action="wheel" src="../_static/charts/macd_backtest_demo.html"></iframe>
 
 
 
@@ -134,65 +141,71 @@ AutoTraderBot assigned to trade EURUSD=X with virtual broker using MACD Trend St
 AutoTraderBot assigned to trade EURJPY=X with virtual broker using MACD Trend Strategy.
 [*********************100%***********************]  1 of 1 completed
 
-AutoTraderBot assigned to trade AUDJPY=X with virtual broker using EMA Crossover Strategy.
+AutoTraderBot assigned to trade AUDJPY=X with virtual broker using EMA Crossover.
 [*********************100%***********************]  1 of 1 completed
 
-AutoTraderBot assigned to trade EURAUD=X with virtual broker using EMA Crossover Strategy.
+AutoTraderBot assigned to trade EURAUD=X with virtual broker using EMA Crossover.
 
 Trading...
 
-Backtest complete (runtime 69.541 s).
+Warning: mismatched data lengths detected. Correcting via row reduction.
+  Done.
 
----------------------------------------------------
-            MultiBot Backtest Results
----------------------------------------------------
-Start date:              2021-08-01 00:00:00+00:00
-End date:                2022-01-01 00:00:00+00:00
+Backtest complete (runtime 13.154 s).
+
+----------------------------------------------
+               Backtest Results
+----------------------------------------------
+Start date:              Aug 18 2021 14:00:00
+End date:                Dec 31 2021 13:00:00
 Starting balance:        $1000.0
-Ending balance:          $1456.54
-Ending NAV:              $1456.54
-Total return:            $456.54 (45.7%)
-Instruments traded:  ['EURUSD=X' 'EURJPY=X' 'AUDJPY=X' 'EURAUD=X']
-Total no. trades:    116
-Short trades:        66 (56.9%)
-Long trades:         54 (46.55%)
+Ending balance:          $1517.52
+Ending NAV:              $1517.52
+Total return:            $517.52 (51.8%)
+Total no. trades:        120
+Total fees:              $0.0
+Backtest win rate:       42.5%
+Maximum drawdown:        -13.97%
+Max win:                 $57.45
+Average win:             $37.77
+Max loss:                -$29.58
+Average loss:            -$20.41
+Longest win streak:      4 trades
+Longest losing streak:   7 trades
+Average trade duration:  1 day, 3:59:00
+Orders still open:       3
+Cancelled orders:        10
 
-Instrument win rates (%):
-           win_rate  no_trades
-EURUSD=X  38.709677         31
-EURJPY=X  50.000000         26
-AUDJPY=X  60.000000         25
-EURAUD=X  29.411765         34
+            Summary of long trades
+----------------------------------------------
+Number of long trades:   53
+Long win rate:           34.0%
+Max win:                 $57.01
+Average win:             $38.86
+Max loss:                -$29.58
+Average loss:            -$21.38
 
-Maximum/Average Win/Loss breakdown ($):
-            max_win   max_loss    avg_win   avg_loss
-EURUSD=X  34.036303  23.568356  28.984046  19.756270
-EURJPY=X  34.971404  21.449399  28.871176  19.957594
-AUDJPY=X  56.713913  28.449948  50.929921  26.115462
-EURAUD=X  55.921397  29.655745  49.439287  26.207001
-
-Average Reward to Risk Ratio:
-EURUSD=X    1.5
-EURJPY=X    1.4
-AUDJPY=X    2.0
-EURAUD=X    1.9
-dtype: float64
-
-Results for multiple-instrument backtests have been
-written to AutoTrader.multibot_backtest_results.
-Individual bot results can be found in the
-'bots_deployed' attribute of the AutoTrader instance.
+             Summary of short trades
+----------------------------------------------
+Number of short trades:  70
+short win rate:          47.1%
+Max win:                 $57.45
+Average win:             $37.17
+Max loss:                -$28.79
+Average loss:            -$19.58
 ```
 
 Now [AutoPlot](autoplot-docs) will create a dashboard-like output, showing the performance of each bot,
 as well as account metrics such as net asset value and margin available for the duration of the backtest.
-You can also pull out individual trading bots using the [`get_bots_deployed`](autotrader-bots-deployed) 
-method to analyse them (and the trades they took) individually.
 
 <iframe data-src="../_static/charts/multibot2.html" id="iframe" loading="lazy" style="width:100%; margin-top:1em; height:720px; overflow:hidden;" data-ga-on="wheel" data-ga-event-category="iframe" data-ga-event-action="wheel" src="../_static/charts/multibot2.html"></iframe>
 
 
-
+```{tip}
+You can also pull out individual trading bots using the [`get_bots_deployed`](autotrader-bots-deployed) 
+method to analyse them (and the trades they took) individually. You can also plot them individually
+using `at.plot_backtest(bot)`!
+```
 
 
 

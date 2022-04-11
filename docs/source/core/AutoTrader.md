@@ -230,24 +230,6 @@ multiplie-timeframe strategies.
 ```
 
 
-#### Plot Mutlibot Backtest
-```{eval-rst}
-.. automethod:: autotrader.autotrader.AutoTrader.plot_multibot_backtest
-```
-
-
-### Analyse Backtest
-```{eval-rst}
-.. automethod:: autotrader.autotrader.AutoTrader.analyse_backtest
-```
-
-
-#### Analyse Mutlibot Backtest
-```{eval-rst}
-.. automethod:: autotrader.autotrader.AutoTrader.multibot_backtest_analysis
-```
-
-
 
 ### Print Backtest Results
 
@@ -256,11 +238,6 @@ multiplie-timeframe strategies.
 ```
 
 print_backtest_results
-
-#### Print Mutlibot Backtest
-```{eval-rst}
-.. automethod:: autotrader.autotrader.AutoTrader.print_multibot_backtest_results
-```
 
 
 
