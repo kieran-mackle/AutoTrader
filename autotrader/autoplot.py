@@ -384,6 +384,10 @@ class AutoPlot:
             data: the data to be merged
             name: the desired column name of the merged data
         """
+        if isinstance(data, pd.Series):
+            if data.name is None:
+                data.name = 'name'
+            
         merged_data = pd.merge(self._data, data, left_on='date', 
                                right_index=True).fillna('')
         
@@ -506,7 +510,7 @@ class AutoPlot:
             portfolio_colors = Category20c[3][0:no_instruments+1]
         else:
             colors = Category20c[no_instruments]
-            portfolio_colors = Category20c[3][0:no_instruments+1]
+            portfolio_colors = Category20c[no_instruments+1]
         
         for i in range(len(instruments)):
             cpldata = returns_per_instrument[i].to_frame()
