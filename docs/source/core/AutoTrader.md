@@ -237,9 +237,6 @@ multiplie-timeframe strategies.
 .. automethod:: autotrader.autotrader.AutoTrader.print_backtest_results
 ```
 
-print_backtest_results
-
-
 
 ## Run AutoTrader
 ```{eval-rst}
