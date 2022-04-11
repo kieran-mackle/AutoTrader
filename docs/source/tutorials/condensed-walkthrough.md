@@ -48,6 +48,7 @@ NAME: 'Simple Macd Strategy'    # strategy name
 MODULE: 'macd'                  # strategy module
 CLASS: 'SimpleMACD'             # strategy class
 INTERVAL: '1h'                  # stategy timeframe
+PERIOD: 300                     # candles required by strategy
 SIZING: 'risk'                  # sizing method
 RISK_PC: 1.5                    # risk per trade (%)
 PARAMETERS:                     # strategy parameters
