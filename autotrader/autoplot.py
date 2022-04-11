@@ -489,7 +489,7 @@ class AutoPlot:
         returns_per_instrument = [trade_history.profit[trade_history.instrument == i].cumsum() for i in instruments]
         cplfig = figure(plot_width = navfig.plot_width,
                         plot_height = self._top_fig_height,
-                        title = "Cumulative returns per instrument",
+                        title = "Cumulative Returns per Instrument",
                         active_drag = 'pan',
                         active_scroll = 'wheel_zoom',
                         x_range = navfig.x_range)
@@ -536,6 +536,7 @@ class AutoPlot:
         # Portoflio distribution
         
         
+        
         # Pie chart of trades per instrument
         trades_per_instrument = [sum(trade_history.instrument == i) for i in instruments]
         pie_data = pd.DataFrame(data={'trades': trades_per_instrument}, index=instruments)
@@ -560,13 +561,78 @@ class AutoPlot:
         pie.legend.label_text_font_size = '8pt'
         
         
+        # Bar plot for avg/max win/loss
+        win_metrics = ['Average Win', 'Max. Win']
+        lose_metrics = ['Average Loss', 'Max. Loss']
+        
+        instrument_trades = [trade_history[trade_history.instrument == i] for i in instruments]
+        max_wins = [instrument_trades[i].profit.max() for i in range(len(instruments))]
+        max_losses = [instrument_trades[i].profit.min() for i in range(len(instruments))]
+        avg_wins = [instrument_trades[i].profit[instrument_trades[i].profit>0].mean() for i in range(len(instruments))]
+        avg_losses = [instrument_trades[i].profit[instrument_trades[i].profit<0].mean() for i in range(len(instruments))]
+        
+        abs_max_loss = 1.2*max(max_losses)
+        abs_max_win = 1.2*max(max_wins)
+        
+        pldata = {'instruments': instruments,
+                  'Average Win': avg_wins,
+                  'Max. Win': [max_wins[i] - avg_wins[i] for i in range(len(max_wins))],
+                  'Average Loss': avg_losses,
+                  'Max. Loss': [max_losses[i] - avg_losses[i] for i in range(len(max_losses))]
+                  }
+        
+        TOOLTIPS = [
+                    ("Instrument:", "@instruments"),
+                    ("Max win", "@{Max. Win}"),
+                    ("Avg. win", "@{Average Win}"),
+                    ("Max Loss", "@{Max. Loss}"),
+                    ("Avg. loss", "@{Average Loss}"),
+                    ]
+        
+        plbars = figure(x_range=instruments,
+                        y_range=(abs_max_loss, abs_max_win),
+                        title="Win/Loss breakdown",
+                        toolbar_location=None,
+                        tools = "hover",
+                        tooltips = TOOLTIPS,
+                        plot_height = 250)
+
+        plbars.vbar_stack(win_metrics,
+                      x='instruments',
+                      width = 0.9,
+                      color = ('#008000', '#FFFFFF'),
+                      line_color='black',
+                      source = ColumnDataSource(pldata),
+                      legend_label = ["%s" % x for x in win_metrics])
+
+        plbars.vbar_stack(lose_metrics,
+                      x = 'instruments',
+                      width = 0.9,
+                      color = ('#ff0000' , '#FFFFFF'),
+                      line_color='black',
+                      source = ColumnDataSource(pldata),
+                      legend_label = ["%s" % x for x in lose_metrics])
+        
+        plbars.x_range.range_padding = 0.1
+        plbars.ygrid.grid_line_color = None
+        plbars.legend.location = "bottom_center"
+        plbars.legend.border_line_width   = 1
+        plbars.legend.border_line_color   = '#333333'
+        plbars.legend.padding             = 5
+        plbars.legend.spacing             = 0
+        plbars.legend.margin              = 0
+        plbars.legend.label_text_font_size = '8pt'
+        plbars.axis.minor_tick_line_color = None
+        plbars.outline_line_color = None
+        plbars.sizing_mode = 'stretch_width'
+        
         
         
         # Construct final figure     
         final_fig = layout([  
                                    [navfig],
                                    [cplfig],
-                                   [pie],
+                                   [pie, plbars],
                             ])
         final_fig.sizing_mode = 'scale_width'
         
