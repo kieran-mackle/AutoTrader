@@ -154,6 +154,9 @@ class AutoTraderBot:
         self.Stream = self._data_stream_object(**stream_attributes)
         
         # Initial data call
+        # TODO - add PORTFOLIO option to strategy config, similar to MTF 
+        # data retrieval but with multiple products instead of multiple 
+        # timeframes
         self._refresh_data(deploy_dt)
         
         # Instantiate Strategy
