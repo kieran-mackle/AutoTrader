@@ -194,6 +194,8 @@ class AutoPlot:
             Threshold indicator type 
         trading-session : over
             Highlighted trading session times with key: data
+        bricks : below
+            Price-based bricks with keys: data (DataFrame), timescale (bool)
         
         Parameters
         ----------
@@ -817,7 +819,10 @@ class AutoPlot:
                             self._plot_swings(indicators[indicator]['swings'], 
                                               new_fig)
                     elif indi_type == 'bricks':
-                        new_fig = self._plot_bricks(indicators[indicator]['data'])
+                        timescale = indicators[indicator]['timescale'] if \
+                            'timescale' in indicators[indicator] else False
+                        new_fig = self._plot_bricks(indicators[indicator]['data'],
+                                                    linked_fig, timescale)
                             
                     elif indi_type == 'multi':
                         # Plot multiple lines on the same figure
@@ -1033,10 +1038,16 @@ class AutoPlot:
         return candle_plot
     
     
-    def _plot_bricks(self, data):
+    def _plot_bricks(self, data, linked_fig, timescale: bool = False):
         """Plots bricks onto new figure. 
         """
-        
+        if timescale:
+            data = pd.merge(self._data[['date', 'data_index']],
+                            data, left_on='date', right_index=True).dropna()
+            xrange = linked_fig.x_range
+        else:
+            data.reset_index(drop=True, inplace=True)
+            xrange = None
         source = ColumnDataSource(data)
         source.add((data.Close >= data.Open).values.astype(np.uint8).astype(str),
                     'change')
@@ -1052,7 +1063,8 @@ class AutoPlot:
                              plot_height = self._ohlc_height, 
                              tools = self._fig_tools,
                              active_drag = 'pan',
-                             active_scroll = 'wheel_zoom')
+                             active_scroll = 'wheel_zoom',
+                             x_range = xrange)
         
         candles = candle_plot.vbar('index', 0.7, 'Open', 'Close', 
                                    source = source,
@@ -1065,6 +1077,12 @@ class AutoPlot:
                                   renderers = [candles])
         
         candle_plot.add_tools(candle_hovertool)
+        
+        if timescale:
+            # Define autoscale arguments
+            source.add(np.maximum(data['Close'], data['Open']), 'High')
+            source.add(np.minimum(data['Close'], data['Open']), 'Low')
+            self._add_to_autoscale_args(source, candle_plot.y_range)
         
         return candle_plot
     
