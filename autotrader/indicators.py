@@ -1196,6 +1196,47 @@ def atr(data: pd.DataFrame, period: int = 14):
     return atr
 
 
+def create_bricks(data: pd.DataFrame, brick_size: float = 0.002, 
+                  column: str = 'Close'):
+    """Creates a dataframe of price-sized bricks.
+
+    Parameters
+    ----------
+    data : pd.DataFrame
+        The OHLC price data.
+    brick_size : float, optional
+        The brick size in price units. The default is 0.0020.
+    column : str, optional
+        The column of the OHLC to use. The default is 'Close'.
+
+    Returns
+    -------
+    bricks : pd.DataFrame
+        The Open and Close prices of each brick, indexed by brick close time.
+
+    """
+    brick_open = data[column][0]
+    opens = [brick_open]
+    close_times = [data.index[0]]
+    for i in range(len(data)):
+        price = data[column][i]
+        price_diff = price - brick_open
+        if abs(price_diff) > brick_size:
+            # New brick(s)
+            no_new_bricks = abs(int(price_diff/brick_size))
+            for b in range(no_new_bricks):
+                brick_close = brick_open + np.sign(price_diff)*brick_size
+                brick_open = brick_close
+                opens.append(brick_open)
+                close_times.append(data.index[i])
+    
+    bricks = pd.DataFrame(data={'Open': opens, 'Close': opens}, 
+                          index=close_times)
+    bricks['Close'] = bricks['Close'].shift(-1)
+    
+    return bricks
+
+
 def _conditional_ema(x, condition=1, n=14, s=2):
     'Conditional sampling EMA functtion'
     if type(condition) == int: condition = condition*np.ones(len(x))
