@@ -724,7 +724,8 @@ class AutoPlot:
                      'signals'     : 'over',
                      'bands'       : 'over',
                      'threshold'   : 'below',
-                     'trading-session': 'over'}
+                     'trading-session': 'over',
+                     'bricks'      : 'below'}
         
         # Plot indicators
         indis_over = 0
@@ -815,6 +816,8 @@ class AutoPlot:
                         if 'swings' in indicators[indicator]:
                             self._plot_swings(indicators[indicator]['swings'], 
                                               new_fig)
+                    elif indi_type == 'bricks':
+                        new_fig = self._plot_bricks(indicators[indicator]['data'])
                             
                     elif indi_type == 'multi':
                         # Plot multiple lines on the same figure
@@ -1010,7 +1013,7 @@ class AutoPlot:
                              tools          = self._fig_tools,
                              active_drag    = 'pan',
                              active_scroll  = 'wheel_zoom')
-    
+        
         candle_plot.segment('index', 'High',
                             'index', 'Low', 
                             color   = "black",
@@ -1030,10 +1033,45 @@ class AutoPlot:
         return candle_plot
     
     
+    def _plot_bricks(self, data):
+        """Plots bricks onto new figure. 
+        """
+        
+        source = ColumnDataSource(data)
+        source.add((data.Close >= data.Open).values.astype(np.uint8).astype(str),
+                    'change')
+        
+        bull_colour = "#D5E1DD"
+        bear_colour = "#F2583E"
+        candle_colours = [bear_colour, bull_colour]
+        colour_map = factor_cmap('change', candle_colours, ['0', '1'])
+        
+        candle_tooltips = [("Open", "@Open{0.0000}"), ("Close", "@Close{0.0000}")]
+    
+        candle_plot = figure(plot_width = self._ohlc_width, 
+                             plot_height = self._ohlc_height, 
+                             tools = self._fig_tools,
+                             active_drag = 'pan',
+                             active_scroll = 'wheel_zoom')
+        
+        candles = candle_plot.vbar('index', 0.7, 'Open', 'Close', 
+                                   source = source,
+                                   line_color = "black", 
+                                   fill_color = colour_map)
+        
+        candle_hovertool = HoverTool(tooltips = candle_tooltips, 
+                                  formatters = {'@date':'datetime'}, 
+                                  mode = 'vline',
+                                  renderers = [candles])
+        
+        candle_plot.add_tools(candle_hovertool)
+        
+        return candle_plot
+    
+    
     def _plot_swings(self, swings, linked_fig):
-        '''
-        Plots swing detection indicator.
-        '''
+        """Plots swing detection indicator.
+        """
         swings = pd.merge(self._data, swings, left_on='date', right_index=True).fillna('')
         
         linked_fig.scatter(list(swings.index),
