@@ -964,17 +964,21 @@ class AutoTrader:
         """
         
         if bot is None:
-            if len(self._bots_deployed) == 1:
+            # No bot has been provided, select automatically
+            if len(self.backtest_results.instruments_traded) > 1 or \
+                len(self._bots_deployed) > 1:
+                # Multi-product backtest
+                ap = self._instantiate_autoplot()
+                ap._plot_multibot_backtest(self.backtest_results)
+            else:
+                # Single product backtest
                 bot = self._bots_deployed[0]
                 data = bot._check_strategy_for_plot_data(self._use_strat_plot_data)
                 ap = self._instantiate_autoplot(data)
                 ap.plot(backtest_dict=bot.backtest_results)
                 
-            else:
-                # Multi-bot backtest
-                ap = self._instantiate_autoplot()
-                ap._plot_multibot_backtest(self.backtest_results)
         else:
+            # A bot has been provided
             data = bot._check_strategy_for_plot_data(self._use_strat_plot_data)
             ap = self._instantiate_autoplot(data)
             ap.plot(backtest_dict=bot.backtest_results)
