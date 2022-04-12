@@ -539,8 +539,28 @@ class DataStream:
     
     Methods
     -------
-    _retrieve_data
-        Returns data, multi_data, quote_data, auxdata
+    refresh
+        Returns up-to-date data, multi_data, quote_data and auxdata.
+    get_trading_bars
+        Returns a dictionary of the current bars for the products being 
+        traded, used to act on trading signals.
+    
+    Notes
+    -----
+    A 'dynamic' dataset is one where the specific products being traded 
+    change over time. For example, trading contracts on an underlying product.
+    In this case, dynamic_data should be set to True in AutoTrader.add_data
+    method. When True, the datastream will be refreshed each update interval
+    to ensure that data for the relevant contracts are being provided.
+    
+    When the data is 'static', the instrument being traded does not change
+    over time. This is the more common scenario. In this case, the datastream
+    is only refreshed during livetrading, to accomodate for new data coming in.
+    In backtesting however, the entire dataset can be provided after the 
+    initial call, as it will not evolve during the backtest. Note that future
+    data will not be provided to the strategy; instead, the data returned from
+    the datastream will be filtered by each AutoTraderBot before being passed
+    to the strategy.
     
     """
     

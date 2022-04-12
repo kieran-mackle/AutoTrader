@@ -343,7 +343,14 @@ class AutoTraderBot:
         
     
     def _refresh_data(self, timestamp: datetime = None, **kwargs):
-        """Refreshes the active Bot's data attributes for trading.
+        """Refreshes the active Bot's data attributes for trading. 
+        
+        When backtesting without dynamic data updates, the data attributes
+        of the bot will be constant. When using dynamic data, or when 
+        livetrading in continuous mode, the data attributes will change 
+        as time passes, reflecting more up-to-date data. This method refreshes
+        the data attributes for a given timestamp by calling the datastream 
+        object.
 
         Parameters
         ----------
@@ -638,7 +645,11 @@ class AutoTraderBot:
                 
     
     def _check_data(self, timestamp: datetime, indexing: str = 'open') -> dict:
-        """Wrapper for multiple datasets contained in a dictionary.
+        """Function to return trading data based on the current timestamp. If 
+        dynamc_data updates are required (eg. when livetrading), the 
+        datastream will be refreshed each update to retrieve new data. The 
+        data will then be checked to ensure that there is no future data 
+        included.
 
         Parameters
         ----------
@@ -809,6 +820,8 @@ class AutoTraderBot:
     
     def _replace_data(self, data: pd.DataFrame) -> None:
         """Function to replace the data assigned locally and to the strategy.
+        Called when there is a mismatch in data lengths during multi-instrument
+        backtests in periodic update mode.
         """
         self.data = data
         self._strategy.data = data
