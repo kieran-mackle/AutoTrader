@@ -659,14 +659,20 @@ class DataStream:
             data_func = getattr(self.get_data, self.feed.lower())
             if self.portfolio:
                 # Portfolio strategy
-                granularity = self.strategy_params['granularity']
-                data_key = self.portfolio[0]
-                for instrument in self.portfolio:
-                    data = data_func(instrument, granularity=granularity, 
-                                     count=self.strategy_params['period'], 
-                                     start_time=self.data_start,
-                                     end_time=self.data_end)
-                    multi_data[instrument] = data
+                if len(self.portfolio) > 1:
+                    granularity = self.strategy_params['granularity']
+                    data_key = self.portfolio[0]
+                    for instrument in self.portfolio:
+                        data = data_func(instrument, granularity=granularity, 
+                                         count=self.strategy_params['period'], 
+                                         start_time=self.data_start,
+                                         end_time=self.data_end)
+                        multi_data[instrument] = data
+                else:
+                    raise Exception("Portfolio strategies require more "+\
+                                    "than a single instrument. Please set "+\
+                                    "portfolio to False, or specify more "+\
+                                    "instruments in the watchlist.")
             else:
                 # Single instrument strategy
                 granularities = self.strategy_params['granularity'].split(',')
