@@ -17,6 +17,9 @@ class Order:
         The type of order. The default is 'market'.
     size : float
         The number of units.
+    target_value : float
+        The target value of the resulting trade, specified in the home 
+        currency of the account.
     stop_loss : float
         The price to set the stop-loss at.
     stop_distance : float
@@ -51,6 +54,8 @@ class Order:
         self.direction = direction
         self.order_type = order_type
         self.size = None
+        self.target_value = None
+        self.size_precision = 2
         self.order_price = None
         self.order_time = None
         self.order_limit_price = None
@@ -118,29 +123,29 @@ class Order:
     def __call__(self, broker = None, order_price: float = None, 
                  order_time: datetime = datetime.now(), 
                  HCF: float = None) -> None:
-        """Order object, called to initialise prior to submission to broker.
+        """Order object, called before submission to broker.
 
         Parameters
         ----------
         broker : TYPE, optional
-            DESCRIPTION. The default is None.
+            The broker-autotrader api instance. The default is None.
         order_price : float, optional
-            DESCRIPTION. The default is None.
+            The order price. The default is None.
         order_time : datetime, optional
-            DESCRIPTION. The default is datetime.now().
+            The time of the order. The default is datetime.now().
         HCF : float, optional
-            DESCRIPTION. The default is 1.
+            The home conversion factor. The default is 1.
 
         Returns
         -------
         None
-            DESCRIPTION.
+            Calling an Order will ensure all information is present.
         """
         self.order_price = order_price if order_price else self.order_price
         self.order_time = order_time if order_time else self.order_time
         self.HCF = HCF if HCF is not None else self.HCF
         
-        # Enfore size scalar
+        # Enforce size scalar
         self.size = abs(self.size) if self.size is not None else self.size
         
         if self.order_type not in ['close']:
@@ -249,19 +254,21 @@ class Order:
             else risk_pc
         
         if self.size is None:
-            amount_risked = amount_risked if amount_risked else \
-                broker.get_NAV() * risk_pc / 100
-            # Size not provided, need to calculate it
-            if sizing == 'risk':
-                size = broker.utils.get_size(self.instrument, amount_risked, 
-                                             working_price, self.stop_loss, 
-                                             HCF, self.stop_distance)
+            # Size has not been set
+            if self.target_value is None:
+                amount_risked = amount_risked if amount_risked else \
+                    broker.get_NAV() * risk_pc / 100
+                # Size not provided, need to calculate it
+                if sizing == 'risk':
+                    self.size = broker.utils.get_size(self.instrument, amount_risked, 
+                                                 working_price, self.stop_loss, 
+                                                 HCF, self.stop_distance)
+                else:
+                    self.size = sizing
             else:
-                self.size = sizing
+                # Calculate size based on target trade value
+                self.size = round(self.target_value / HCF, self.size_precision)
             
-            # Vectorise and save size
-            self.size = size
-    
     
     def _check_precision(self,):
         # TODO - implement
