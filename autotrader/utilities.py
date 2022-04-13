@@ -678,18 +678,15 @@ class DataStream:
             quote_data_func = getattr(self.get_data,f'_{self.feed.lower()}_quote_data')
             if self.portfolio:
                 # Portfolio strategy - quote data for each instrument
-                # TODO - (currently only for first instrument to patch)
                 granularity = self.strategy_params['granularity']
-                instrument = self.portfolio[0]
-                quote_data = quote_data_func(data, instrument, 
-                                             granularity, 
-                                             self.data_start, self.data_end)
-                # for instrument in self.portfolio:
-                #     data = data_func(instrument, granularity=granularity, 
-                #                       count=self.strategy_params['period'], 
-                #                       start_time=self.data_start,
-                #                       end_time=self.data_end)
-                #     multi_data[instrument] = data
+                quote_data = {}
+                for instrument in self.portfolio:
+                    quote_df = quote_data_func(multi_data[instrument], 
+                                                 instrument, 
+                                                 granularity, 
+                                                 self.data_start, 
+                                                 self.data_end)
+                    quote_data[instrument] = quote_df
                 
             else:
                 # Single instrument strategy - quote data for base granularity
@@ -714,7 +711,14 @@ class DataStream:
             auxdata = None
         
         # Correct any data mismatches
-        data, quote_data = self.match_quote_data(data, quote_data)
+        if self.portfolio:
+            for instrument in multi_data:
+                matched_data, matched_quote_data = self.match_quote_data(multi_data[instrument], 
+                                                                         quote_data[instrument])
+                multi_data[instrument] = matched_data
+                quote_data[instrument] = matched_quote_data
+        else:
+            data, quote_data = self.match_quote_data(data, quote_data)
         
         return data, multi_data, quote_data, auxdata
         
@@ -757,7 +761,10 @@ class DataStream:
             The strategy base OHLC data.
         quote_bars : bool
             Boolean flag to signal that quote data bars are being requested.
-
+        processed_strategy_data : dict
+            A dictionary containing all of the processed strategy data, 
+            allowing flexibility in what bars are returned. 
+    
         Returns
         -------
         dict
@@ -769,6 +776,15 @@ class DataStream:
         trading bars dictionary. The quote_bars boolean flag is provided in
         case a distinction must be made when this method is called.
         """
-        return {self.instrument: data.iloc[-1]}
+        bars = {}
+        strat_data = processed_strategy_data['base'] if 'base' in \
+            processed_strategy_data else processed_strategy_data
+        if isinstance(strat_data, dict):
+            for instrument, data in strat_data.items():
+                bars[instrument] = data.iloc[-1]
+        else:
+            bars[self.instrument] = strat_data.iloc[-1]
+        
+        return bars
     
     

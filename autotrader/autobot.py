@@ -676,7 +676,6 @@ class AutoTraderBot:
             Boolean flag whether sufficient data is available.
 
         """
-        # TODO - add check of data frequency against update frequency
         
         def get_current_bars(data: pd.DataFrame, quote_data: bool = False,
                              processed_strategy_data: dict = None) -> dict:
@@ -698,7 +697,7 @@ class AutoTraderBot:
                 if 'aux' in original_strat_data:
                     base_data = original_strat_data['base']
                     processed_auxdata = self._check_auxdata(original_strat_data['aux'],
-                                    timestamp, indexing, bars, check_for_future_data)
+                                    timestamp, indexing, no_bars, check_for_future_data)
                 else:
                     # MTF data
                     base_data = original_strat_data
@@ -707,7 +706,7 @@ class AutoTraderBot:
                 processed_basedata = {}
                 for granularity, data in base_data.items():
                     processed_basedata[granularity] = self._check_ohlc_data(data, 
-                                timestamp, indexing, bars, check_for_future_data)
+                                timestamp, indexing, no_bars, check_for_future_data)
                 
                 # Combine the results of the conditionals above
                 strat_data = {}
@@ -723,17 +722,17 @@ class AutoTraderBot:
                                                 processed_strategy_data=strat_data)
                 
                 # Check that enough bars have accumulated
-                if len(first_tf_data) < bars:
+                if len(first_tf_data) < no_bars:
                     sufficient_data = False
                 
             elif isinstance(original_strat_data, pd.DataFrame):
                 strat_data = self._check_ohlc_data(original_strat_data, 
-                             timestamp, indexing, bars, check_for_future_data)
+                             timestamp, indexing, no_bars, check_for_future_data)
                 current_bars = get_current_bars(strat_data,
                                                 processed_strategy_data=strat_data)
                 
                 # Check that enough bars have accumulated
-                if len(strat_data) < bars:
+                if len(strat_data) < no_bars:
                     sufficient_data = False
             
             else:
@@ -742,7 +741,7 @@ class AutoTraderBot:
             return strat_data, current_bars, sufficient_data
         
         # Define minimum number of bars for strategy to run
-        bars = self._strategy_params['period']
+        no_bars = self._strategy_params['period']
         
         if self._backtest_mode:
             check_for_future_data = True
@@ -757,9 +756,24 @@ class AutoTraderBot:
                                                                        check_for_future_data)
 
         # Process quote data
-        quote_data = self._check_ohlc_data(self.quote_data, timestamp, 
-                                           indexing, bars)
-        quote_bars = get_current_bars(quote_data, True, strat_data)
+        if isinstance(self.quote_data, dict):
+            processed_quote_data = {}
+            for instrument in self.quote_data:
+                processed_quote_data[instrument] = self._check_ohlc_data(self.quote_data[instrument], 
+                                                               timestamp, 
+                                                               indexing, 
+                                                               no_bars)
+            quote_data = processed_quote_data[instrument] # Dummy
+            
+        elif isinstance(self.quote_data, pd.DataFrame):
+            quote_data = self._check_ohlc_data(self.quote_data, timestamp, 
+                                               indexing, no_bars)
+            processed_quote_data = {self.instrument: quote_data}
+        else:
+            raise Exception("Unrecognised data type. Cannot process.")
+        
+        # Get quote bars
+        quote_bars = get_current_bars(quote_data, True, processed_quote_data)
         
         return strat_data, current_bars, quote_bars, sufficient_data
     
