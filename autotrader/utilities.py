@@ -546,6 +546,19 @@ class DataStream:
         Returns a dictionary of the current bars for the products being 
         traded, used to act on trading signals.
     
+    Attributes
+    ----------
+    instrument : str
+    feed : str
+    data_filepaths : str|dict
+    quote_data_file : str
+    auxdata_files : dict
+    strategy_params : dict
+    get_data : GetData
+    data_start : datetime
+    data_end : datetime
+    portfolio : bool
+    
     Notes
     -----
     A 'dynamic' dataset is one where the specific products being traded 
@@ -576,6 +589,7 @@ class DataStream:
         self.get_data  = None
         self.data_start = None
         self.data_end = None
+        self.portfolio = None
         
         # Unpack kwargs
         for item in kwargs:
@@ -602,6 +616,8 @@ class DataStream:
             Strategy auxiliary data.
 
         """
+        # TODO - verify support of local data for portfolio strategies
+        
         # Retrieve main data
         if self.data_filepaths is not None:
             # Local data filepaths provided
@@ -624,29 +640,62 @@ class DataStream:
         else:
             # Download data
             multi_data = {}
-            for granularity in self.strategy_params['granularity'].split(','):
-                data_func = getattr(self.get_data, self.feed.lower())
-                data = data_func(self.instrument, granularity=granularity, 
-                                 count=self.strategy_params['period'], 
-                                 start_time=self.data_start,
-                                 end_time=self.data_end)
+            data_func = getattr(self.get_data, self.feed.lower())
+            if self.portfolio:
+                # Portfolio strategy
+                granularity = self.strategy_params['granularity']
+                data_key = self.portfolio[0]
+                for instrument in self.portfolio:
+                    data = data_func(instrument, granularity=granularity, 
+                                     count=self.strategy_params['period'], 
+                                     start_time=self.data_start,
+                                     end_time=self.data_end)
+                    multi_data[instrument] = data
+            else:
+                # Single instrument strategy
+                granularities = self.strategy_params['granularity'].split(',')
+                data_key = granularities[0]
+                for granularity in granularities:
+                    data = data_func(self.instrument, granularity=granularity, 
+                                     count=self.strategy_params['period'], 
+                                     start_time=self.data_start,
+                                     end_time=self.data_end)
+                    multi_data[granularity] = data
                 
-                multi_data[granularity] = data
-            
-            data = multi_data[self.strategy_params['granularity'].split(',')[0]]
+            # Take data as first element of multi-data
+            data = multi_data[data_key]
             
             if len(multi_data) == 1:
                 multi_data = None
         
         # Retrieve quote data
         if self.quote_data_file is not None:
+            # TODO - support multiple quote data files (portfolio strategies)
             quote_data = self.get_data.local(self.quote_data_file, 
                                               self.data_start, self.data_end)
         else:
+            # Download data
             quote_data_func = getattr(self.get_data,f'_{self.feed.lower()}_quote_data')
-            quote_data = quote_data_func(data, self.instrument, 
-                                         self.strategy_params['granularity'].split(',')[0], 
-                                         self.data_start, self.data_end)
+            if self.portfolio:
+                # Portfolio strategy - quote data for each instrument
+                # TODO - (currently only for first instrument to patch)
+                granularity = self.strategy_params['granularity']
+                instrument = self.portfolio[0]
+                quote_data = quote_data_func(data, instrument, 
+                                             granularity, 
+                                             self.data_start, self.data_end)
+                # for instrument in self.portfolio:
+                #     data = data_func(instrument, granularity=granularity, 
+                #                       count=self.strategy_params['period'], 
+                #                       start_time=self.data_start,
+                #                       end_time=self.data_end)
+                #     multi_data[instrument] = data
+                
+            else:
+                # Single instrument strategy - quote data for base granularity
+                quote_data = quote_data_func(data, self.instrument, 
+                                             self.strategy_params['granularity'].split(',')[0], 
+                                             self.data_start, self.data_end)
         
         # Retrieve auxiliary data
         if self.auxdata_files is not None:
@@ -717,8 +766,8 @@ class DataStream:
         Notes
         -----
         The quote data bars dictionary must have the exact same keys as the
-        trading bars dictionary. The quote_bars boolean flag is provided for
-        this reason.
+        trading bars dictionary. The quote_bars boolean flag is provided in
+        case a distinction must be made when this method is called.
         """
         return {self.instrument: data.iloc[-1]}
     

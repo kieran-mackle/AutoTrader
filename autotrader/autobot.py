@@ -136,6 +136,12 @@ class AutoTraderBot:
         self._data_filepaths = data_dict            # Either str or dict, or None
         self._auxdata_files = auxdata               # Either str or dict, or None
         
+        # Check for portfolio strategy
+        trade_portfolio = strategy_config['PORTFOLIO'] if 'PORTFOLIO' in \
+            strategy_config else False
+        
+        portfolio = strategy_config['WATCHLIST'] if trade_portfolio else False
+        
         # Fetch data
         self._get_data = GetData(broker_config, self._allow_dancing_bears,
                                  self._base_currency)
@@ -149,13 +155,11 @@ class AutoTraderBot:
                              "data_start": self._data_start,
                              "data_end": self._data_end,
                              "instrument": self.instrument,
-                             "feed": self._feed}
+                             "feed": self._feed,
+                             "portfolio": portfolio}
         self.Stream = self._data_stream_object(**stream_attributes)
         
         # Initial data call
-        # TODO - add PORTFOLIO option to strategy config, similar to MTF 
-        # data retrieval but with multiple products instead of multiple 
-        # timeframes
         self._refresh_data(deploy_dt)
         
         # Instantiate Strategy
