@@ -253,7 +253,8 @@ class BacktestResults:
     account_history : pd.DataFrame
         A timeseries history of the account during the backtest.
     holding_history : pd.DataFrame
-        A timeseries summary of holdings during the backtest
+        A timeseries summary of holdings during the backtest, by portfolio
+        allocation fraction.
     trade_history : pd.DataFrame
         A timeseries history of trades taken during the backtest.
     order_history : pd.DataFrame
