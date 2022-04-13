@@ -267,7 +267,7 @@ class Order:
                     self.size = sizing
             else:
                 # Calculate size based on target trade value
-                self.size = round(self.target_value / HCF, self.size_precision)
+                self.size = round(self.target_value / working_price / HCF, self.size_precision)
             
     
     def _check_precision(self,):
