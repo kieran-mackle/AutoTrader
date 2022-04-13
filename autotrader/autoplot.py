@@ -580,9 +580,9 @@ class AutoPlot:
         portfolio.xaxis.bounds = (0, reindexed_acc_hist.index[-1])
         
         # Define autoscale arguments
-        holding_hist_source.add(np.ones(len(holding_history)), 'High')
-        holding_hist_source.add(np.zeros(len(holding_history)), 'Low')
-        self._add_to_autoscale_args(holding_hist_source, portfolio.y_range)
+        # holding_hist_source.add(np.ones(len(holding_history)), 'High')
+        # holding_hist_source.add(np.zeros(len(holding_history)), 'Low')
+        # self._add_to_autoscale_args(holding_hist_source, portfolio.y_range)
         
         # Pie chart of trades per instrument
         trades_per_instrument = [sum(trade_history.instrument == i) for i in instruments]
