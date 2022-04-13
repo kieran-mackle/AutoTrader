@@ -83,7 +83,7 @@ class AutoTraderBot:
             in strategy_config else None
         sizing = strategy_config["SIZING"] if 'SIZING' \
             in strategy_config else None
-        params = strategy_config["PARAMETERS"]
+        params = strategy_config["PARAMETERS"] if "PARAMETERS" in strategy_config else {}
         strategy_params = params
         strategy_params['granularity'] = strategy_params['granularity'] \
             if 'granularity' in strategy_params else interval
