@@ -736,18 +736,18 @@ class Broker:
     
     
     def _get_holding_allocations(self):
-        """Returns a dictionary containing the margin required to hold 
+        """Returns a dictionary containing the nominal value of
         all open trades."""
         open_trades = self.get_trades()
-        margins = {}
+        values = {}
         for trade_id, trade in open_trades.items():
-            if trade.instrument in margins:
-                margins[trade.instrument] += trade.margin_required
+            if trade.instrument in values:
+                values[trade.instrument] += trade.size * trade.last_price
             else:
-                margins[trade.instrument] = trade.margin_required
+                values[trade.instrument] = trade.size * trade.last_price
                 
-        if len(margins) == 0:
-            margins = {None: None}
+        if len(values) == 0:
+            values = {None: None}
             
-        return margins
+        return values
     
