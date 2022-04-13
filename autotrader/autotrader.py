@@ -147,6 +147,7 @@ class AutoTrader:
         self._chart_timeframe = 'default'
         self._chart_theme = 'caliber'
         self._use_strat_plot_data = False
+        self._plot_portolio_chart = False
         
     
     def __repr__(self):
@@ -717,7 +718,8 @@ class AutoTrader:
                       top_fig_height: int = 150, bottom_fig_height: int = 150, 
                       jupyter_notebook: bool = False, show_cancelled: bool = True,
                       chart_timeframe: str = 'default', chart_theme: str = 'caliber',
-                      use_strat_plot_data: bool = False) -> None:
+                      use_strat_plot_data: bool = False, 
+                      portfolio_chart: bool = False) -> None:
         """Configure the plot settings.
 
         Parameters
@@ -752,13 +754,15 @@ class AutoTrader:
             Boolean flag to use data from the strategy instead of candlestick
             data for the chart. If True, ensure your strategy has a timeseries
             data attribute named 'plot_data'. The default is False.
+        portfolio_chart : bool, optional
+            Override the default plot settings to plot the portfolio chart
+            even when running a single instrument backtest.
         
         Returns
         -------
         None
             The plot settings will be saved to the active AutoTrader instance.
         """
-        
         # Assign attributes
         self._max_indis_over    = max_indis_over
         self._max_indis_below   = max_indis_below
@@ -772,6 +776,7 @@ class AutoTrader:
         self._chart_timefram    = chart_timeframe
         self._chart_theme       = chart_theme
         self._use_strat_plot_data = use_strat_plot_data
+        self._plot_portolio_chart = portfolio_chart
     
     
     def get_bots_deployed(self, instrument: str = None) -> dict:
@@ -963,25 +968,28 @@ class AutoTrader:
             A chart will be generated and shown.
         """
         
-        if bot is None:
-            # No bot has been provided, select automatically
-            if len(self.backtest_results.instruments_traded) > 1 or \
-                len(self._bots_deployed) > 1:
-                # Multi-product backtest
-                ap = self._instantiate_autoplot()
-                ap._plot_multibot_backtest(self.backtest_results)
-            else:
-                # Single product backtest
-                bot = self._bots_deployed[0]
-                data = bot._check_strategy_for_plot_data(self._use_strat_plot_data)
-                ap = self._instantiate_autoplot(data)
-                ap.plot(backtest_dict=bot.backtest_results)
-                
-        else:
-            # A bot has been provided
+        def portfolio_plot():
+            ap = self._instantiate_autoplot()
+            ap._plot_multibot_backtest(self.backtest_results)
+        
+        def single_instrument_plot(bot):
             data = bot._check_strategy_for_plot_data(self._use_strat_plot_data)
             ap = self._instantiate_autoplot(data)
             ap.plot(backtest_dict=bot.backtest_results)
+        
+        if bot is None:
+            # No bot has been provided, select automatically
+            if len(self.backtest_results.instruments_traded) > 1 or \
+                len(self._bots_deployed) > 1 or self._plot_portolio_chart:
+                # Multi-product backtest
+                portfolio_plot()
+            else:
+                # Single product backtest
+                bot = self._bots_deployed[0]
+                single_instrument_plot(bot)
+        else:
+            # A bot has been provided
+            single_instrument_plot(bot)
         
     
     def _main(self) -> None:
