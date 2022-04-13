@@ -638,7 +638,8 @@ class DataStream:
             elif isinstance(self.data_filepaths, dict):
                 # Multiple data filepaths provided
                 if self.portfolio:
-                    raise NotImplementedError("Not ready.")
+                    raise NotImplementedError("Locally-provided data not "+\
+                                              "implemented for portfolios.")
                     # TODO - implement
                     for instrument, filepath in self.data_filepaths.items():
                         data = self.get_data.local(filepath, self.data_start, self.data_end)
@@ -693,7 +694,8 @@ class DataStream:
             elif isinstance(quote_data, dict) and self.portfolio:
                 # Multiple quote datafiles provided
                 # TODO - support multiple quote data files (portfolio strategies)
-                raise NotImplementedError("Locally-provided quote data not implemented for portfolios.")
+                raise NotImplementedError("Locally-provided quote data not "+\
+                                          "implemented for portfolios.")
                 quote_data = {}
                 for instrument, path in quote_data.items():
                     quote_data[instrument] = self.get_data.local(self.quote_data_file,  # need to specify 
