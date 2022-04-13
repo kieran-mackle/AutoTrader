@@ -1,6 +1,5 @@
 import os
 import importlib
-import numpy as np
 import pandas as pd
 from autotrader.comms import emailing
 from datetime import datetime, timezone

@@ -1288,12 +1288,7 @@ class AutoTrader:
         verbosity = self._verbosity
         self._verbosity = 0
         self._show_plot = False
-        
-        self.objective      = 'profit + MDD'
-        
-        ''' --------------------------------------------------------------- '''
-        '''                          Unpack user options                    '''
-        ''' --------------------------------------------------------------- '''
+        self.objective = 'profit + MDD'
         
         # Look in self._strategy_configs for config
         if len(self._strategy_configs) > 1:
@@ -1303,14 +1298,8 @@ class AutoTrader:
         else:
             config_dict = self._strategy_configs[list(self._strategy_configs.keys())[0]]
                 
-        ''' --------------------------------------------------------------- '''
-        '''                      Define optimisation inputs                 '''
-        ''' --------------------------------------------------------------- '''
         my_args = (config_dict, self._opt_params, self._verbosity)
         
-        ''' --------------------------------------------------------------- '''
-        '''                             Run Optimiser                       '''
-        ''' --------------------------------------------------------------- '''
         start = timeit.default_timer()
         result = brute(func         = self._optimisation_helper_function, 
                        ranges       = self._bounds, 
@@ -1322,9 +1311,6 @@ class AutoTrader:
         opt_params = result[0]
         opt_value = result[1]
         
-        ''' --------------------------------------------------------------- '''
-        '''                           Print output                          '''
-        ''' --------------------------------------------------------------- '''
         print("\nOptimisation complete.")
         print('Time to run: {}s'.format(round((stop - start), 3)))
         print("Optimal parameters:")
@@ -1341,19 +1327,12 @@ class AutoTrader:
         """Helper function for optimising strategy parameters in AutoTrader.
         This function will parse the ordered params into the config dict.
         """
-        
-        ''' ------------------------------------------------------------------ '''
-        '''   Edit strategy parameters in config_dict using supplied params    '''
-        ''' ------------------------------------------------------------------ '''
         for parameter in config_dict['PARAMETERS']:
             if parameter in opt_params:
                 config_dict['PARAMETERS'][parameter] = params[opt_params.index(parameter)]
             else:
                 continue
-        
-        ''' ------------------------------------------------------------------ '''
-        '''           Run AutoTrader and evaluate objective function           '''
-        ''' ------------------------------------------------------------------ '''
+
         self._clear_strategies()
         self._clear_bots()
         self.add_strategy(config_dict = config_dict)
