@@ -684,7 +684,7 @@ class Broker:
         self.margin_available = self.NAV - margin_used
         
         # Check for margin call
-        if self.margin_available/self.NAV < self.margin_closeout:
+        if self.leverage > 1 and self.margin_available/self.NAV < self.margin_closeout:
             # Margin call
             if self.verbosity > 0:
                 print("MARGIN CALL: closing all positions.")
