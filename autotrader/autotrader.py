@@ -1049,6 +1049,7 @@ class AutoTrader:
             portfolio = config['PORTFOLIO'] if 'PORTFOLIO' in config else False
             watchlist = ["Portfolio"] if portfolio else config['WATCHLIST']
             for instrument in watchlist:
+                # TODO - local data dict for portfolio
                 data_dict = self._local_data[instrument] \
                     if self._local_data is not None else None
                 quote_data_path = self._local_quote_data[instrument] \

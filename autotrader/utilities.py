@@ -626,8 +626,6 @@ class DataStream:
             Strategy auxiliary data.
 
         """
-        # TODO - verify support of local data for portfolio strategies
-        
         # Retrieve main data
         if self.data_filepaths is not None:
             # Local data filepaths provided
@@ -639,12 +637,19 @@ class DataStream:
                 
             elif isinstance(self.data_filepaths, dict):
                 # Multiple data filepaths provided
-                multi_data = {}
-                for granularity, filepath in self.data_filepaths.items():
-                    data = self.get_data.local(filepath, self.data_start, self.data_end)
-                    multi_data[granularity] = data
+                if self.portfolio:
+                    raise NotImplementedError("Not ready.")
+                    # TODO - implement
+                    for instrument, filepath in self.data_filepaths.items():
+                        data = self.get_data.local(filepath, self.data_start, self.data_end)
+                        multi_data[instrument] = data
+                else:
+                    multi_data = {}
+                    for granularity, filepath in self.data_filepaths.items():
+                        data = self.get_data.local(filepath, self.data_start, self.data_end)
+                        multi_data[granularity] = data
                 
-                # Extract first dataset as base data
+                # Extract first dataset as base data (arbitrary)
                 data = multi_data[list(self.data_filepaths.keys())[0]]
         
         else:
@@ -680,9 +685,23 @@ class DataStream:
         
         # Retrieve quote data
         if self.quote_data_file is not None:
-            # TODO - support multiple quote data files (portfolio strategies)
-            quote_data = self.get_data.local(self.quote_data_file, 
+            if isinstance(self.quote_data_file, str):
+                # Single quote datafile
+                quote_data = self.get_data.local(self.quote_data_file, 
                                               self.data_start, self.data_end)
+                
+            elif isinstance(quote_data, dict) and self.portfolio:
+                # Multiple quote datafiles provided
+                # TODO - support multiple quote data files (portfolio strategies)
+                raise NotImplementedError("Locally-provided quote data not implemented for portfolios.")
+                quote_data = {}
+                for instrument, path in quote_data.items():
+                    quote_data[instrument] = self.get_data.local(self.quote_data_file,  # need to specify 
+                                                                 self.data_start, 
+                                                                 self.data_end)
+            else:
+                raise Exception("Error in quote data file provided.")
+            
         else:
             # Download data
             quote_data_func = getattr(self.get_data,f'_{self.feed.lower()}_quote_data')
