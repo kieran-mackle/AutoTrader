@@ -1,5 +1,18 @@
 # AutoTrader Changelog
 
+## Version 0.6.3 (Unreleased)
+### Features 
+- Portfolio strategies: include `"PORTFOLIO": True` in your strategy 
+  configuration to signal that the strategy is a portfolio-based strategy.
+  Doing so, data for each instrument in the watchlist will be passed to the
+  strategy, allowing a single strategy to control multiple instruments at 
+  once, as in a portfolio. Currently supported for continuous mode only.
+- Strategy configuration key `PARAMETERS` now optional.
+- Autodetection of multiple instrument backtests for plotting.
+- Option to select chart type (standard or portfolio) for single instrument
+  backtests, via `AutoTrader.plot_settings()`.
+
+
 ## Version 0.6.2
 ### Features
 - Named arguments for strategy initialisation: strategies must be constructed

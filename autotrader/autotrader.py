@@ -313,6 +313,8 @@ class AutoTrader:
         None
             The strategy will be added to the active AutoTrader instance.
         """
+        # TODO - assign unique ID to different strategies to prevent instrument
+        # traded names conflict
         
         if self._home_dir is None:
             # Home directory has not yet been set, postpone strategy addition
@@ -330,9 +332,11 @@ class AutoTrader:
         else:
             # Home directory has been set
             if config_dict is None:
+                # Config YAML filepath provided
                 config_file_path = os.path.join(self._home_dir, 'config', config_filename)
                 new_strategy = read_yaml(config_file_path + '.yaml')
             else:
+                # Config dictionary provided directly
                 new_strategy = config_dict
             
             name = new_strategy['NAME']
@@ -1039,9 +1043,13 @@ class AutoTrader:
                 print("Current time: {}".format(datetime.now().strftime("%A, %B %d %Y, "+
                                                                   "%H:%M:%S")))
         
-        # Assign strategy to bot for each instrument in watchlist 
-        for strategy in self._strategy_configs:
-            for instrument in self._strategy_configs[strategy]['WATCHLIST']:
+        # Assign trading bots to each strategy
+        for strategy, config in self._strategy_configs.items():
+            # Check for portfolio strategy
+            portfolio = config['PORTFOLIO'] if 'PORTFOLIO' in config else False
+            watchlist = ["Portfolio"] if portfolio else config['WATCHLIST']
+            for instrument in watchlist:
+                # TODO - local data dict for portfolio
                 data_dict = self._local_data[instrument] \
                     if self._local_data is not None else None
                 quote_data_path = self._local_quote_data[instrument] \
@@ -1049,8 +1057,8 @@ class AutoTrader:
                 auxdata = self._auxdata[instrument] \
                     if self._auxdata is not None else None
                 
-                strategy_class = self._strategy_configs[strategy]['CLASS']
-                strategy_dict = {'config': self._strategy_configs[strategy],
+                strategy_class = config['CLASS']
+                strategy_dict = {'config': config,
                                  'class': self._strategy_classes[strategy_class] \
                                      if strategy_class in self._strategy_classes else None,
                                  'shutdown_method': self._shutdown_methods[strategy]}
