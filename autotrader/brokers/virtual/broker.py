@@ -231,19 +231,19 @@ class Broker:
                 total_margin = 0
                 trade_IDs = []
                 
-                for trade_id in open_trades:
-                    trade_IDs.append(trade_id)
-                    total_margin += open_trades[trade_id].margin_required
-                    if open_trades[trade_id].direction > 0:
+                for trade_id, trade in open_trades.items():
+                    trade_IDs.append(trade.id)
+                    total_margin += trade.margin_required
+                    if trade.direction > 0:
                         # Long trade
-                        long_units += open_trades[trade_id].size
-                        long_PL += open_trades[trade_id].unrealised_PL
-                        long_margin += open_trades[trade_id].margin_required
+                        long_units += trade.size
+                        long_PL += trade.unrealised_PL
+                        long_margin += trade.margin_required
                     else:
                         # Short trade
-                        short_units += open_trades[trade_id].size
-                        short_PL += open_trades[trade_id].unrealised_PL
-                        short_margin += open_trades[trade_id].margin_required
+                        short_units += trade.size
+                        short_PL += trade.unrealised_PL
+                        short_margin += trade.margin_required
             
                 # Construct instrument position dict
                 instrument_position = {'long_units': long_units,
@@ -330,6 +330,7 @@ class Broker:
             trade.last_price = working_price
             trade.time_filled = candle.name
             trade.margin_required = margin_required
+            trade.value = position_value
             self.trades[trade_id] = trade
             
             # Subtract spread cost from account NAV
@@ -680,6 +681,7 @@ class Broker:
                 
                 # Update margin required in trade dict
                 trade.margin_required = margin_required
+                trade.value = position_value
         
         self.margin_available = self.NAV - margin_used
         
