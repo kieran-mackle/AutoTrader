@@ -549,15 +549,25 @@ class DataStream:
     Attributes
     ----------
     instrument : str
+        The instrument being traded.
     feed : str
+        The data feed.
     data_filepaths : str|dict
+        The filepaths to locally stored data.
     quote_data_file : str
+        The filepaths to locally stored quote data.
     auxdata_files : dict
+        The auxiliary data files.
     strategy_params : dict
+        The strategy parameters.
     get_data : GetData
+        The GetData instance.
     data_start : datetime
+        The backtest start date.
     data_end : datetime
-    portfolio : bool
+        The backtest end date.
+    portfolio : bool|list
+        The instruments being traded in a portfolio, if any.
     
     Notes
     -----
