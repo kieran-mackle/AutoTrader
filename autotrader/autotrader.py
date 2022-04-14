@@ -896,7 +896,7 @@ class AutoTrader:
         no_cancelled = backtest_summary['no_cancelled']
         
         if no_open > 0:
-            print("Orders still open:       {}".format(no_open))
+            print("Trades still open:       {}".format(no_open))
         if no_cancelled > 0:
             print("Cancelled orders:        {}".format(no_cancelled))
         
