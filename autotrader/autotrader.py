@@ -6,6 +6,7 @@ import pyfiglet
 import importlib
 import numpy as np
 import pandas as pd
+from tqdm import tqdm
 from ast import literal_eval
 from scipy.optimize import brute
 from autotrader.autoplot import AutoPlot
@@ -1085,6 +1086,8 @@ class AutoTrader:
                 # Backtesting
                 end_time = self._data_end # datetime
                 timestamp = self._data_start # datetime
+                pbar = tqdm(total=int((self._data_end - self._data_start).total_seconds()),
+                            position=0, leave=True)
                 while timestamp <= end_time:
                     # Update each bot with latest data to generate signal
                     for bot in self._bots_deployed:
@@ -1092,7 +1095,9 @@ class AutoTrader:
                         
                     # Iterate through time
                     timestamp += self._timestep
-        
+                    pbar.update(self._timestep.total_seconds())
+                pbar.close()
+                
             else:
                 # Live trading
                 instance_id = self._get_instance_id()
