@@ -696,7 +696,14 @@ class AutoTrader:
                 print("Warning: notify set to {} ".format(self._notify) + \
                       "during backtest. Setting to zero to prevent emails.")
                 self._notify = 0
-        
+            
+            # Check that the backtest does not request future data
+            if self._data_end > datetime.now(tz=timezone.utc):
+                print("Warning: you have requested backtest data into the "+\
+                      "future. The backtest end date will be adjsuted to "+ \
+                      "the current time.")
+                self._data_end = datetime.now(tz=timezone.utc)
+            
         if self._optimise_mode:
             if self._backtest_mode:
                 self._run_optimise()
