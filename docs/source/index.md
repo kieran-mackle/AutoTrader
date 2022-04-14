@@ -30,7 +30,7 @@ check out the [changelog](changelog) for more details. Major changes include:
 
 ## Contact
 If you have any other queries or suggestions, please [raise an issue](https://github.com/kieran-mackle/AutoTrader/issues)
-on GitHub or send me and [email](mailto:kemackle98@gmail.com).
+on GitHub or send me an [email](mailto:kemackle98@gmail.com).
 
 
 ## Index
