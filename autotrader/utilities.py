@@ -389,6 +389,9 @@ class BacktestResults:
                         trade_duration.append(exit_dt.timestamp() - entry_dt.timestamp())
                     elif isinstance(trade.exit_time, pd.Timestamp):
                         trade_duration.append((trade.exit_time - trade.time_filled).total_seconds())
+                    elif trade.exit_time is None:
+                        # Weird edge case
+                        trade_duration.append(None)
                     else:
                         trade_duration.append(trade.exit_time.timestamp() - 
                                               trade.time_filled.timestamp())
