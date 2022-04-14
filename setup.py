@@ -41,6 +41,7 @@ setuptools.setup(
         "finta >= 1.3",
         "v20 >= 3.0.25.0",
         "ib_insync >= 0.9.70",
+        "tqdm>=4.64.0",
         "importlib-resources",
         ],
     setup_requires=[
