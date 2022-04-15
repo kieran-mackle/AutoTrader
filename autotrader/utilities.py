@@ -610,7 +610,8 @@ class DataStream:
         
     
     def refresh(self, timestamp: datetime = None):
-        """Returns up-to-date trading data.
+        """Returns up-to-date trading data for AutoBot to provide to the 
+        strategy.
 
         Parameters
         ----------
@@ -793,7 +794,7 @@ class DataStream:
                          timestamp: datetime = None, 
                          processed_strategy_data: dict = None) -> dict:
         """Returns a dictionary of the current bars of the products being 
-        traded.
+        traded, based on the up-to-date data.
 
         Parameters
         ----------
