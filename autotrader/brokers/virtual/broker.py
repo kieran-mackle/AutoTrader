@@ -102,6 +102,11 @@ class Broker:
         
         if order.order_type == 'limit' or order.order_type == 'stop-limit':
             working_price = order.order_limit_price
+        elif order.order_type == 'modify':
+            # Get direction of related trade
+            related_trade = self.trades[order.related_orders]
+            order.direction = related_trade.direction
+            working_price = order.order_price
         else:
             working_price = order.order_price
         
@@ -369,6 +374,7 @@ class Broker:
                 elif order.order_type == 'modify':
                     # Modification order
                     self._modify_order(order)
+                    order.status = 'closed'
                 
                 elif order.order_type == 'close':
                     related_order = order.related_orders
