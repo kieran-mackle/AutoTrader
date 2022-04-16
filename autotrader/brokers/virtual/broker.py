@@ -141,7 +141,7 @@ class Broker:
                 print(f"  Order {order.id} rejected.\n")
             self.cancel_order(order.id, reason)
         else:
-            immediate_orders = ['close', 'reduce']
+            immediate_orders = ['close', 'reduce', 'modify']
             status = 'open' if order.order_type in immediate_orders else 'pending'
             order.status = status
         
