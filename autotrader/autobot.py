@@ -346,6 +346,13 @@ class AutoTraderBot:
                                                    scan_details, 
                                                    self._email_params['mailing_list'],
                                                    self._email_params['host_email'])
+            
+        else:
+            if int(self._verbosity) > 1:
+                print("\nThe strategy has not been updated as there is either "+\
+                      "insufficient data, or no new data. If you believe "+\
+                      "this is an error, try setting allow_dancing_bears to "+\
+                      "True in AutoTrader.configure().")
         
     
     def _refresh_data(self, timestamp: datetime = None, **kwargs):
