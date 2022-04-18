@@ -1322,13 +1322,17 @@ class AutoPlot:
         
         if cancelled_summary is False and open_summary is False:
             
-            if self._backtest_data is not None:
-                # Charting on different timeframe data
-                exit_summary = pd.merge(self._backtest_data, exit_summary, 
-                                        left_index=True, right_on='exit_time')
+            if any(exit_summary.status=='closed'):
+                if self._backtest_data is not None:
+                    # Charting on different timeframe data
+                    exit_summary = pd.merge(self._backtest_data, exit_summary, 
+                                            left_index=True, right_on='exit_time')
+                else:
+                    exit_summary = pd.merge(self._data, exit_summary, 
+                                            left_on='date', right_on='exit_time')
             else:
-                exit_summary = pd.merge(self._data, exit_summary, 
-                                        left_on='date', right_on='exit_time')
+                # No trades were closed
+                exit_summary = None
             
             profitable_longs = long_trades[(long_trades['profit'] > 0)]
             unprofitable_longs = long_trades[(long_trades['profit'] < 0)]
@@ -1406,7 +1410,8 @@ class AutoPlot:
                              'dash', 'black', 'Take profit', linked_fig)
         
         # Position exits
-        if cancelled_summary is False and open_summary is False:
+        if cancelled_summary is False and open_summary is False and \
+            exit_summary is not None:
             self._plot_trade(list(exit_summary.data_index),
                              list(exit_summary.exit_price.values),
                              'circle', 'black', 'Position exit', linked_fig,
