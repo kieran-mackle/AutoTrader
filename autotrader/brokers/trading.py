@@ -17,6 +17,8 @@ class Order:
         The type of order. The default is 'market'.
     size : float
         The number of units.
+    base_size : float
+         The number of units, in the base currency (pre-HCF conversion).
     target_value : float
         The target value of the resulting trade, specified in the home 
         currency of the account.
@@ -54,6 +56,7 @@ class Order:
         self.direction = direction
         self.order_type = order_type
         self.size = None
+        self.base_size = None
         self.target_value = None
         self.size_precision = 2
         self.order_price = None
@@ -255,19 +258,22 @@ class Order:
         
         if self.size is None:
             # Size has not been set
-            if self.target_value is None:
+            if self.target_value is not None:
+                # Calculate size based on target trade value
+                self.size = round(self.target_value / working_price / HCF, self.size_precision)
+            elif self.base_size is not None:
+                self.size = round(self.base_size/HCF, self.size_precision)
+                
+            else:
+                # Size not provided, need to calculate it
                 amount_risked = amount_risked if amount_risked else \
                     broker.get_NAV() * risk_pc / 100
-                # Size not provided, need to calculate it
                 if sizing == 'risk':
                     self.size = broker.utils.get_size(self.instrument, amount_risked, 
                                                  working_price, self.stop_loss, 
                                                  HCF, self.stop_distance)
                 else:
                     self.size = sizing
-            else:
-                # Calculate size based on target trade value
-                self.size = round(self.target_value / working_price / HCF, self.size_precision)
             
     
     def _check_precision(self,):
