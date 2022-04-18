@@ -849,11 +849,15 @@ class AutoTrader:
         start_date = backtest_summary['start'].strftime("%b %d %Y %H:%M:%S")
         end_date = backtest_summary['end'].strftime("%b %d %Y %H:%M:%S")
         
-        no_trades   = backtest_summary['no_trades']
+        starting_balance = backtest_summary['starting_balance']
+        ending_balance = backtest_summary['ending_balance']
+        ending_NAV = backtest_summary['ending_NAV']
+        abs_return = backtest_summary['abs_return']
+        pc_return = backtest_summary['pc_return']
+        
+        no_trades = backtest_summary['no_trades']
         if no_trades > 0:
             win_rate = backtest_summary['all_trades']['win_rate']
-            abs_return = backtest_summary['all_trades']['abs_return']
-            pc_return = backtest_summary['all_trades']['pc_return']
             max_drawdown = backtest_summary['all_trades']['max_drawdown']
             max_win = backtest_summary['all_trades']['max_win']
             avg_win = backtest_summary['all_trades']['avg_win']
@@ -862,21 +866,19 @@ class AutoTrader:
             longest_win_streak = backtest_summary['all_trades']['win_streak']
             longest_lose_streak = backtest_summary['all_trades']['lose_streak']
             total_fees = backtest_summary['all_trades']['total_fees']
-            starting_balance = backtest_summary['all_trades']['starting_balance']
-            ending_balance = backtest_summary['all_trades']['ending_balance']
-            ending_NAV = backtest_summary['all_trades']['ending_NAV']
+            
         
         print("\n----------------------------------------------")
         print("               Backtest Results")
         print("----------------------------------------------")
+        print("Start date:              {}".format(start_date))
+        print("End date:                {}".format(end_date))
+        print("Starting balance:        ${}".format(round(starting_balance, 2)))
+        print("Ending balance:          ${}".format(round(ending_balance, 2)))
+        print("Ending NAV:              ${}".format(round(ending_NAV, 2)))
+        print("Total return:            ${} ({}%)".format(round(abs_return, 2), 
+                                          round(pc_return, 1)))
         if no_trades > 0:
-            print("Start date:              {}".format(start_date))
-            print("End date:                {}".format(end_date))
-            print("Starting balance:        ${}".format(round(starting_balance, 2)))
-            print("Ending balance:          ${}".format(round(ending_balance, 2)))
-            print("Ending NAV:              ${}".format(round(ending_NAV, 2)))
-            print("Total return:            ${} ({}%)".format(round(abs_return, 2), 
-                                              round(pc_return, 1)))
             print("Total no. trades:        {}".format(no_trades))
             print("Total fees:              ${}".format(round(total_fees, 3)))
             print("Backtest win rate:       {}%".format(round(win_rate, 1)))
@@ -890,7 +892,7 @@ class AutoTrader:
             print("Average trade duration:  {}".format(backtest_summary['all_trades']['avg_trade_duration']))
             
         else:
-            print("No trades taken.")
+            print("\n No trades closed.")
         
         no_open = backtest_summary['no_open']
         no_cancelled = backtest_summary['no_cancelled']

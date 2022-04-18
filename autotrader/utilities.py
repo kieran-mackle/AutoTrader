@@ -448,6 +448,18 @@ class BacktestResults:
         backtest_results['start'] = self.account_history.index[0]
         backtest_results['end'] = self.account_history.index[-1]
         
+        starting_balance = self.account_history.equity[0]
+        ending_balance = self.account_history.equity[-1]
+        ending_NAV = self.account_history.NAV[-1]
+        abs_return = ending_balance - starting_balance
+        pc_return = 100 * abs_return / starting_balance
+        
+        backtest_results['starting_balance'] = starting_balance
+        backtest_results['ending_balance'] = ending_balance
+        backtest_results['ending_NAV'] = ending_NAV
+        backtest_results['abs_return'] = abs_return
+        backtest_results['pc_return'] = pc_return
+        
         if no_trades > 0:
             backtest_results['all_trades'] = {}
             wins = self.trade_history[self.trade_history.profit > 0]
@@ -464,17 +476,6 @@ class BacktestResults:
             max_drawdown = min(self.account_history.drawdown)
             total_fees = self.trade_history.fees.sum()
             
-            starting_balance = self.account_history.equity[0]
-            ending_balance = self.account_history.equity[-1]
-            ending_NAV = self.account_history.NAV[-1]
-            abs_return = ending_balance - starting_balance
-            pc_return = 100 * abs_return / starting_balance
-            
-            backtest_results['all_trades']['starting_balance'] = starting_balance
-            backtest_results['all_trades']['ending_balance'] = ending_balance
-            backtest_results['all_trades']['ending_NAV'] = ending_NAV
-            backtest_results['all_trades']['abs_return'] = abs_return
-            backtest_results['all_trades']['pc_return'] = pc_return
             backtest_results['all_trades']['avg_win'] = avg_win
             backtest_results['all_trades']['max_win'] = max_win
             backtest_results['all_trades']['avg_loss'] = avg_loss
