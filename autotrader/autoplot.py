@@ -878,7 +878,7 @@ class AutoPlot:
                         new_fig = self._plot_lineV2(line_source, linked_fig,
                                                 indicators[indicator]['data'].name, 
                                                 new_fig=True,
-                                                legend_label=indicators[indicator]['data'].name,
+                                                legend_label=indicator,
                                                 fig_height=130)
                         self._add_to_autoscale_args(line_source, new_fig.y_range)
                         
@@ -904,6 +904,9 @@ class AutoPlot:
     
     def _create_line_source(self, indicator_data):
         """Create ColumndDataSource from indicator line data."""
+        # Overwrite indicator data name to prevent conflict
+        data_name = 'plot_data'
+        indicator_data.name = data_name
         merged_indicator_data = pd.merge(self._data, 
                                          indicator_data, 
                                          left_on='date', 
