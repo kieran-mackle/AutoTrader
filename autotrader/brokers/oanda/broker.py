@@ -70,6 +70,8 @@ class Broker:
             response = self._place_limit_order(order)
         elif order.order_type == 'close':
             response = self._close_position(order.instrument)
+        elif order.order_type == 'modify':
+            response = self._modify_trade(order)
         else:
             print("Order type not recognised.")
         
@@ -559,6 +561,50 @@ class Broker:
                         "Please raise an issue on GitHub.")
         
 
+    def _modify_trade(self, order):
+        """Modifies the take profit and/or stop loss of an existing trade.
+
+        Parameters
+        ----------
+        order : TYPE
+            DESCRIPTION.
+        """
+        # Get ID of trade to modify
+        modify_trade_id = order.related_orders
+        trade = self.api.trade.get(accountID=self.ACCOUNT_ID, 
+                                   tradeSpecifier=modify_trade_id).body['trade']
+        
+        if order.take_profit is not None:
+            # Modify trade take-profit
+            tpID = trade.takeProfitOrder.id
+            
+            # Cancel existing TP
+            self.api.order.cancel(self.ACCOUNT_ID, tpID)
+            
+            # Create new TP
+            tp_price = self._check_precision(order.instrument, order.take_profit)
+            new_tp_order = self.api.order.TakeProfitOrder(tradeID=str(modify_trade_id), 
+                                                          price=str(tp_price))
+            response = self.api.order.create(accountID=self.ACCOUNT_ID, 
+                                             order=new_tp_order)
+            self._check_response(response)
+        
+        if order.stop_loss is not None:
+            # Modify trade stop-loss
+            slID = trade.stopLossOrder.id
+            
+            # Cancel existing SL
+            self.api.order.cancel(self.ACCOUNT_ID, slID)
+            
+            # Create new SL
+            sl_price = self._check_precision(order.instrument, order.stop_loss)
+            new_sl_order = self.api.order.StopLossOrder(tradeID=str(modify_trade_id), 
+                                                        price=str(sl_price))
+            response = self.api.order.create(accountID=self.ACCOUNT_ID, 
+                                             order=new_sl_order)
+            self._check_response(response)
+        
+        
     def _get_stop_loss_details(self, order: Order) -> dict:
         """Constructs stop loss details dictionary.
         """
