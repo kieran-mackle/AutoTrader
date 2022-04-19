@@ -727,7 +727,8 @@ class AutoPlot:
                      'bands'       : 'over',
                      'threshold'   : 'below',
                      'trading-session': 'over',
-                     'bricks'      : 'below'}
+                     'bricks'      : 'below',
+                     'PSAR'        : 'over'}
         
         # Plot indicators
         indis_over = 0
@@ -773,6 +774,11 @@ class AutoPlot:
                         self._plot_trading_session(indicators[indicator],
                                                    linked_fig)
                     
+                    elif indi_type == 'PSAR':
+                        self._plot_scatter(linked_fig, 
+                                           indicators[indicator]['data'],
+                                           legend_label=indicator)
+                        
                     else:
                         # Generic overlay indicator - plot as line
                         if isinstance(indicators[indicator]['data'], pd.Series):
@@ -997,6 +1003,29 @@ class AutoPlot:
             fig.add_tools(fig_hovertool)
         
         return fig
+    
+    
+    def _plot_scatter(self, linked_fig, data, new_fig=False, fig_height=150,
+                      fig_title=None, legend_label=None):
+        """Creates a scatter plot.
+        """
+        # Initiate figure
+        if new_fig:
+            fig = figure(plot_width = linked_fig.plot_width,
+                         plot_height = fig_height,
+                         title = fig_title,
+                         tools = self._fig_tools,
+                         active_drag = 'pan',
+                         active_scroll = 'wheel_zoom',
+                         x_range = linked_fig.x_range)
+        else:
+            fig = linked_fig
+        
+        # Add glyphs
+        merged_data = self._merge_data(data, 'plot_data')
+        source = ColumnDataSource(merged_data)
+        fig.circle('data_index', 'plot_data', legend_label=legend_label,
+                   source=source)
     
     
     ''' ------------------------ OVERLAY PLOTTING ------------------------- '''
