@@ -151,7 +151,7 @@ class Order:
         # Enforce size scalar
         self.size = abs(self.size) if self.size is not None else self.size
         
-        if self.order_type not in ['close']:
+        if self.order_type not in ['close', 'modify']:
             self._set_working_price()
             self._calculate_exit_prices(broker)
             self._calculate_position_size(broker)
