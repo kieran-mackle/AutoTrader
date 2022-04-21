@@ -158,13 +158,14 @@ indicator_dict = {'Bollinger Bands': {'type': 'bands',
 
 The full list of keys which can be provided with the indicator type is shown in the table below.
 
-|Key| Required/Optional|Description| Default value|
-|`band_name`| Optional| legend name for bands| String provided for indicator (eg. 'Bollinger Bands') |
-|`fill_color`| Optional | color filling upper and lower bands| 'blue'|
-|`fill_alpha`|Optional | transparency of fill (0 - 1)| 0.6 |
-|`mid`|Optional |  data for a mid line| None |
-|`mid_name`|Optional | legend name for mid line| 'Band Mid Line'|
-|`line_color`|Optional |line color for mid line|'black'|
+| Key          | Required/Optional  | Description                  | Default value    |
+| ------------ | ------------------ | ---------------------------- | ---------------- |
+| `band_name`  | Optional           | legend name for bands       | String provided for indicator (eg. 'Bollinger Bands') |
+| `fill_color` | Optional           | color filling upper and lower bands | 'blue'  |
+| `fill_alpha` | Optional           | transparency of fill (0 - 1) |    0.6      |
+| `mid`        | Optional           |  data for a mid line        |    None |
+| `mid_name`   | Optional           | legend name for mid line    |     'Band Mid Line' |
+| `line_color` | Optional           | line color for mid line     |  'black' |
 
 
 #### Shaded threshold plot
