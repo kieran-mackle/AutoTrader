@@ -843,18 +843,16 @@ class AutoPlot:
                         for dataset in list(indicators[indicator].keys())[1:]:
                             if type(indicators[indicator][dataset]['data']) == pd.Series:
                                 # Merge indexes
-                                if indicators[indicator][dataset]['data'].name is None:
-                                    indicators[indicator][dataset]['data'].name = 'name'
+                                data_name = 'plot_data'
+                                indicators[indicator][dataset]['data'].name = data_name
                                 merged_indicator_data = pd.merge(self._data, 
                                                                  indicators[indicator][dataset]['data'], 
-                                                                 left_on='date', 
-                                                                 right_index=True)
-                                line_data = merged_indicator_data[indicators[indicator][dataset]['data'].name]
+                                                                 left_on='date', right_index=True)
+                                line_data = merged_indicator_data[data_name]
                                 x_vals = line_data.index
                                 y_vals = line_data.values
                             else:
-                                x_vals = x_range
-                                y_vals = indicators[indicator][dataset]['data']
+                                raise Exception("Plot data must be a timeseries.")
                             
                             new_fig.line(x_vals, y_vals,
                                          line_color = indicators[indicator][dataset]['color'] if \
