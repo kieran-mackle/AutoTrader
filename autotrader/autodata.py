@@ -285,25 +285,34 @@ class GetData:
         """
         candles = response.body["candles"]
         times = []
-        close_price, high_price, low_price, open_price = [], [], [], []
+        close_price, high_price, low_price, open_price, volume = [],[],[],[],[]
         
-        for candle in candles:
-            if self.allow_dancing_bears:
+        if self.allow_dancing_bears:
+            # Allow all candles
+            for candle in candles:
                 times.append(candle.time)
                 close_price.append(float(candle.mid.c))
                 high_price.append(float(candle.mid.h))
                 low_price.append(float(candle.mid.l))
                 open_price.append(float(candle.mid.o))
+                volume.append(float(candle.volume))
                 
-            else:
+        else:
+            # Only allow complete candles
+            for candle in candles:
                 if candle.complete:
                     times.append(candle.time)
                     close_price.append(float(candle.mid.c))
                     high_price.append(float(candle.mid.h))
                     low_price.append(float(candle.mid.l))
                     open_price.append(float(candle.mid.o))
+                    volume.append(float(candle.volume))
         
-        dataframe = pd.DataFrame({"Open": open_price, "High": high_price, "Low": low_price, "Close": close_price})
+        dataframe = pd.DataFrame({"Open": open_price, 
+                                  "High": high_price, 
+                                  "Low": low_price, 
+                                  "Close": close_price,
+                                  "Volume": volume})
         dataframe.index = pd.to_datetime(times)
         dataframe.drop_duplicates(inplace=True)
         
