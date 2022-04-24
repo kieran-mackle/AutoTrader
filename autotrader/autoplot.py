@@ -874,7 +874,8 @@ class AutoPlot:
                         
                         new_fig = self._plot_bars(0, 'plot_data', source, 
                                                   linked_fig=linked_fig,
-                                                  fig_height=self._bottom_fig_height)
+                                                  fig_height=self._bottom_fig_height,
+                                                  hover_name='plot_data')
                     
                     else:
                         # Generic indicator - plot as line
@@ -1522,18 +1523,27 @@ class AutoPlot:
     def _plot_bars(self, x_vals, data_name, source, linked_fig=None, fig_height=250,
                    fig_title=None, hover_name=None):
         x_range = x_vals if linked_fig is None else linked_fig.x_range
+        tooltips = f"@index: @{hover_name}" if linked_fig is None else f"@{hover_name}"
         fig = figure(x_range=x_range,
                      title=fig_title,
                      toolbar_location=None,
-                     tools='hover',
-                     tooltips = "@index: @{}".format(hover_name),
-                     plot_height=fig_height)
+                     tools=self._fig_tools + ",ywheel_zoom",
+                     tooltips=tooltips,
+                     plot_height=fig_height,
+                     active_drag='pan',
+                     active_scroll='wheel_zoom')
         
         fig.vbar(x='index', 
-                 top= data_name,
+                 top=data_name,
                  width=0.9,
                  color='color',
                  source=source)
+        
+        if linked_fig is not None:
+            # Plotting indicator, define autoscale arguments
+            source.add(source.data['plot_data'], 'High')
+            source.add(np.zeros(len(source.data['plot_data'])), 'Low')
+            self._add_to_autoscale_args(source, fig.y_range)
         
         return fig
     
