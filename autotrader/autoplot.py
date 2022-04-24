@@ -728,7 +728,8 @@ class AutoPlot:
                      'threshold'   : 'below',
                      'trading-session': 'over',
                      'bricks'      : 'below',
-                     'PSAR'        : 'over'}
+                     'PSAR'        : 'over',
+                     'bars'        : 'below'}
         
         # Plot indicators
         indis_over = 0
@@ -862,6 +863,18 @@ class AutoPlot:
                     elif indi_type == 'threshold':
                         new_fig = self._plot_bands(indicators[indicator], 
                                          linked_fig=linked_fig, legend_label=indicator)
+                    
+                    elif indi_type == 'bars':
+                        frame = indicators[indicator]['data'].to_frame()
+                        frame['color'] = 'grey'
+                        source = self._create_line_source(indicators[indicator]['data'])
+                        
+                        # Add color to data
+                        source.add(frame['color'].values, 'color')
+                        
+                        new_fig = self._plot_bars(0, 'plot_data', source, 
+                                                  linked_fig=linked_fig,
+                                                  fig_height=self._bottom_fig_height)
                     
                     else:
                         # Generic indicator - plot as line
@@ -1508,18 +1521,19 @@ class AutoPlot:
     ''' -------------------- MISCELLANEOUS PLOTTING ----------------------- '''
     def _plot_bars(self, x_vals, data_name, source, linked_fig=None, fig_height=250,
                    fig_title=None, hover_name=None):
-        fig = figure(x_range = x_vals,
-                     title = fig_title,
-                     toolbar_location = None,
-                     tools = 'hover',
+        x_range = x_vals if linked_fig is None else linked_fig.x_range
+        fig = figure(x_range=x_range,
+                     title=fig_title,
+                     toolbar_location=None,
+                     tools='hover',
                      tooltips = "@index: @{}".format(hover_name),
-                     plot_height = fig_height)
+                     plot_height=fig_height)
         
-        fig.vbar(x = 'index', 
-                 top = data_name,
-                 width = 0.9,
-                 color = 'color',
-                 source = source)
+        fig.vbar(x='index', 
+                 top= data_name,
+                 width=0.9,
+                 color='color',
+                 source=source)
         
         return fig
     
