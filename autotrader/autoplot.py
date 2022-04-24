@@ -273,8 +273,19 @@ class AutoPlot:
                                       hover_name='NAV')
             # Add equity balance
             self._plot_lineV2(topsource, top_fig, "equity", legend_label='Account Balance', 
-                            hover_name='P/L', line_colour='blue')
+                             line_colour='blue', hover_name='equity')
             
+            # Add hover tool
+            top_fig_hovertool = HoverTool(tooltips = [("Date", "@date{%b %d %H:%M}"),
+                                                      ("Equity", "@{equity}{%0.2f}"),
+                                                      ("NAV", "@{NAV}{%0.2f}")
+                                                      ], 
+                                          formatters={'@{equity}': 'printf',
+                                                      '@{NAV}': 'printf',
+                                                      '@date': 'datetime'},
+                                          mode='mouse')
+            top_fig.add_tools(top_fig_hovertool)
+                
             # Append autoscale args
             self.autoscale_args['top_range'] = top_fig.y_range
             self.autoscale_args['top_source'] = topsource
