@@ -859,6 +859,10 @@ def rolling_signal_list(signals: Union[list, pd.Series]) -> list:
         
         rolling_signals.append(last_signal)
     
+    if isinstance(signals, pd.Series):
+        rolling_signals = pd.Series(data=rolling_signals,
+                                    index=signals.index)
+    
     return rolling_signals
 
 
