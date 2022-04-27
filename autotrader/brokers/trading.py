@@ -103,7 +103,7 @@ class Order:
             setattr(self, item, kwargs[item])
         
         # Enforce stop type
-        if self.stop_loss is not None:
+        if self.stop_loss is not None or self.stop_distance is not None:
             self.stop_type = self.stop_type if self.stop_type is \
                 not None else 'limit'
     
@@ -126,11 +126,12 @@ class Order:
     def __call__(self, broker = None, order_price: float = None, 
                  order_time: datetime = datetime.now(), 
                  HCF: float = None) -> None:
-        """Order object, called before submission to broker.
+        """Order object, called before submission to broker in 
+        autobot._qualify_orders.
 
         Parameters
         ----------
-        broker : TYPE, optional
+        broker : AutoTrader broker API instance, optional
             The broker-autotrader api instance. The default is None.
         order_price : float, optional
             The order price. The default is None.
@@ -213,6 +214,12 @@ class Order:
             # Stop loss provided as pip distance, convert to price
             self.stop_loss = working_price - np.sign(self.direction)*\
                 self.stop_distance*pip_value
+        
+        if self.stop_type == 'trailing' and self.stop_distance is None and \
+            working_price is not None:
+            # Convert stop_loss price to stop_distance as well
+            self.stop_distance = np.sign(self.direction) * (working_price - \
+                                                self.stop_loss) / pip_value
         
         # Calculate take profit price
         if self.take_profit is None and self.take_distance is not None:
