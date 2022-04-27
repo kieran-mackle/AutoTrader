@@ -532,6 +532,7 @@ class Broker:
         """Places MarketIfTouchedOrder with Oanda.
         https://developer.oanda.com/rest-live-v20/order-df/
         """
+        # TODO - this submits market if touched, not stopOrder type
         self._check_connection()
         
         stop_loss_order = self._get_stop_loss_order(order)
@@ -556,11 +557,28 @@ class Broker:
     
     
     def _place_limit_order(self, order: Order):
-        """(NOT YET IMPLEMENTED) PLaces limit order. 
+        """PLaces a limit order. 
         """
-        raise Exception("Limit orders are not yet implemented for Oanda. "+\
-                        "Please raise an issue on GitHub.")
+        self._check_connection()
         
+        stop_loss_order = self._get_stop_loss_order(order)
+        take_profit_details = self._get_take_profit_details(order)
+        
+        # Check and correct order stop price
+        price = self._check_precision(order.instrument, 
+                                      order.order_limit_price)
+        
+        trigger_condition = order.trigger_price
+        
+        response = self.api.order.limit(accountID = self.ACCOUNT_ID,
+                                        instrument = order.instrument,
+                                        units = order.direction * order.size,
+                                        price = str(price),
+                                        takeProfitOnFill = take_profit_details,
+                                        triggerCondition = trigger_condition,
+                                        **stop_loss_order)
+        return response
+    
 
     def _modify_trade(self, order):
         """Modifies the take profit and/or stop loss of an existing trade.
