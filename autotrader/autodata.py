@@ -283,7 +283,12 @@ class GetData:
     def response_to_df(self, response):
         """Function to convert api response into a pandas dataframe.
         """
-        candles = response.body["candles"]
+        try:
+            candles = response.body["candles"]
+        except KeyError:
+            raise Exception("Error dowloading data - please check instrument"+\
+                            " format and try again.")
+            
         times = []
         close_price, high_price, low_price, open_price, volume = [],[],[],[],[]
         
