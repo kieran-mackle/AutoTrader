@@ -166,8 +166,6 @@ class AutoPlot:
              Moving average overlay indicator with key: data
         RSI : below
             RSI indicator with key: data
-        STOCHASTIC : below
-            Stochastics indicator with keys: K, D
         Heikin-Ashi : below
             Heikin Ashi candlesticks with key: data
         Supertrend : over
