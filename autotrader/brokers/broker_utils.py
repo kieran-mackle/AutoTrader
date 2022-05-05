@@ -63,34 +63,30 @@ class BrokerUtils:
         return pip_value
     
     
-    def get_size(self, pair: str, amount_risked: float, price: float, 
-                 stop_price: float, HCF: float, 
-                 stop_distance: float = None) -> float:
+    def get_size(self, instrument: str, amount_risked: float, price: float, 
+                   HCF: float, stop_price: float = None,
+                   stop_distance: float = None) -> float:
         """Calculate position size based on account balance and risk profile.
-        
-        References
-        ----------
-        https://www.babypips.com/tools/position-size-calculator
         """
         if stop_price is None and stop_distance is None:
             # No stop loss being used, instead risk portion of account
             units = amount_risked/(HCF*price)
             
         else:
-            # Convert SL to distance
-            pip_value = self.get_pip_ratio(pair)
-            
+            # SL provided
             if stop_price is None:
-                pip_stop_distance = stop_distance
+                # Stop distance provided (assume FX)
+                pip_value = self.get_pip_ratio(instrument)
+                price_distance = stop_distance * pip_value
             else:
-                pip_stop_distance = abs(price - stop_price) / pip_value
+                price_distance = abs(price - stop_price)
             
-            if pip_stop_distance == 0:
+            # Calculate units
+            if price_distance == 0:
                 units = 0
             else:
                 quote_risk = amount_risked / HCF
-                price_per_pip = quote_risk / pip_stop_distance
-                units = price_per_pip / pip_value
+                units = quote_risk / price_distance
         
         return units
     
