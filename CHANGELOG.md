@@ -1,6 +1,6 @@
 # AutoTrader Changelog
 
-## Version 0.6.3 (Unreleased)
+## Version 0.6.3
 ### Features 
 - Portfolio strategies: include `"PORTFOLIO": True` in your strategy 
   configuration to signal that the strategy is a portfolio-based strategy.
@@ -16,6 +16,11 @@
   account's home currency (particularly useful for Forex traders).
 - `modify` order types are now supported by the Oanda broker API, allowing
   a trader to change the take profit or stop loss attached to an open trade.
+
+### Fixes
+- generalised `get_size` method of broker utilities to give correct results
+  for non-FX instruments (in this case, SL price must be provided rather than
+  SL distance).
 
 
 ## Version 0.6.2
