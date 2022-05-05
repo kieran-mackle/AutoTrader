@@ -51,8 +51,10 @@ class BrokerUtils:
     
     def get_pip_ratio(self, pair):
         """Function to return pip value ($/pip) of a given forex pair.
+        If you are not trading FX, stop losses should only be provided 
+        by the stop loss price (rather than a distance) to avoid 
+        unexpected results.
         """
-        # TODO - implications on non FX?
         if 'JPY' in pair:
             pip_value = 1e-2
         else:
@@ -72,22 +74,23 @@ class BrokerUtils:
         """
         if stop_price is None and stop_distance is None:
             # No stop loss being used, instead risk portion of account
-            units               = amount_risked/(HCF*price)
+            units = amount_risked/(HCF*price)
+            
         else:
-            pip_value           = self.get_pip_ratio(pair)
+            # Convert SL to distance
+            pip_value = self.get_pip_ratio(pair)
             
             if stop_price is None:
                 pip_stop_distance = stop_distance
             else:
                 pip_stop_distance = abs(price - stop_price) / pip_value
             
-            
             if pip_stop_distance == 0:
-                units           = 0
+                units = 0
             else:
-                quote_risk      = amount_risked / HCF
-                price_per_pip   = quote_risk / pip_stop_distance
-                units           = price_per_pip / pip_value
+                quote_risk = amount_risked / HCF
+                price_per_pip = quote_risk / pip_stop_distance
+                units = price_per_pip / pip_value
         
         return units
     
