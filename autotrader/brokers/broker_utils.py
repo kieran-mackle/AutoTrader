@@ -64,8 +64,8 @@ class BrokerUtils:
     
     
     def get_size(self, instrument: str, amount_risked: float, price: float, 
-                   HCF: float, stop_price: float = None,
-                   stop_distance: float = None) -> float:
+                 HCF: float, stop_price: float = None,
+                 stop_distance: float = None) -> float:
         """Calculate position size based on account balance and risk profile.
         """
         if stop_price is None and stop_distance is None:

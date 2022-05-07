@@ -276,9 +276,12 @@ class Order:
                 amount_risked = amount_risked if amount_risked else \
                     broker.get_NAV() * risk_pc / 100
                 if sizing == 'risk':
-                    self.size = broker.utils.get_size(self.instrument, amount_risked, 
-                                                 working_price, self.stop_loss, 
-                                                 HCF, self.stop_distance)
+                    self.size = broker.utils.get_size(instrument=self.instrument, 
+                                                      amount_risked=amount_risked, 
+                                                      price=working_price, 
+                                                      HCF=HCF,
+                                                      stop_price=self.stop_loss, 
+                                                      stop_distance=self.stop_distance)
                 else:
                     self.size = sizing
             
