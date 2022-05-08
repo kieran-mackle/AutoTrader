@@ -562,10 +562,11 @@ def detect_divergence(classified_price_swings: pd.DataFrame,
             else:
                 hidden_bearish.append(False)
             
-            divergence = pd.DataFrame(data = {'regularBull': unroll_signal_list(regular_bullish),
-                                              'regularBear': unroll_signal_list(regular_bearish),
-                                              'hiddenBull': unroll_signal_list(hidden_bullish),
-                                              'hiddenBear': unroll_signal_list(hidden_bearish)})
+        divergence = pd.DataFrame(data = {'regularBull': unroll_signal_list(regular_bullish),
+                                          'regularBear': unroll_signal_list(regular_bearish),
+                                          'hiddenBull': unroll_signal_list(hidden_bullish),
+                                          'hiddenBear': unroll_signal_list(hidden_bearish)},
+                                  index=classified_price_swings.index)
     elif method == 1:
         # Use indicator swings only to detect divergence
         for i in range(len(classified_price_swings)):
@@ -584,10 +585,11 @@ def detect_divergence(classified_price_swings: pd.DataFrame,
             hidden_bullish = (classified_indicator_swings['LL']) & (price_at_indi_lows_change > 0 )
             hidden_bearish = (classified_indicator_swings['HH']) & (price_at_indi_highs_change < 0 )
             
-            divergence = pd.DataFrame(data = {'regularBull': regular_bullish,
-                                              'regularBear': regular_bearish,
-                                              'hiddenBull': hidden_bullish,
-                                              'hiddenBear': hidden_bearish})
+        divergence = pd.DataFrame(data = {'regularBull': regular_bullish,
+                                          'regularBear': regular_bearish,
+                                          'hiddenBull': hidden_bullish,
+                                          'hiddenBear': hidden_bearish},
+                                  index=classified_price_swings.index)
         
     else:
         raise Exception("Error: unrecognised method of divergence detection.")

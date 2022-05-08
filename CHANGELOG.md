@@ -1,6 +1,10 @@
 # AutoTrader Changelog
 
 ## Version 0.6.3
+### Fixes
+- Autodetect divergence order of operations, timeseries indexing
+
+## Version 0.6.3
 ### Features 
 - Portfolio strategies: include `"PORTFOLIO": True` in your strategy 
   configuration to signal that the strategy is a portfolio-based strategy.
