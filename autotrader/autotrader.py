@@ -167,7 +167,7 @@ class AutoTrader:
                   jupyter_notebook: bool = False, mode: str = 'periodic',
                   update_interval: str = '10s', data_index_time: str = 'open',
                   global_config: dict = None, instance_str: str = None,
-                  broker_verbosity: int = 0) -> None:
+                  broker_verbosity: int = 0, home_currency: str = None) -> None:
         """Configures run settings for AutoTrader.
 
         Parameters
@@ -220,6 +220,9 @@ class AutoTrader:
             The default is None.
         broker_verbosity : int, optional
             The verbosity of the broker. The default is 0.
+        home_currency : str, optional
+            The home currency of trading accounts used (intended for FX 
+            conversions). The default is None.
         
         Returns
         -------
@@ -244,12 +247,12 @@ class AutoTrader:
         self._global_config_dict = global_config
         self._instance_str = instance_str
         self._broker_verbosity = broker_verbosity
+        self._base_currency = home_currency
         
         
     def virtual_livetrade_config(self, initial_balance: float = 1000, 
                                   spread: float = 0, commission: float = 0, 
-                                  leverage: int = 1, base_currency: str = 'AUD', 
-                                  hedging: bool = False, 
+                                  leverage: int = 1, hedging: bool = False, 
                                   margin_call_fraction: float = 0) -> None:
         """Configures the virtual broker's initial state to allow livetrading
         on the virtual broker.
@@ -264,8 +267,6 @@ class AutoTrader:
             Trading commission as percentage per trade. The default is 0.
         leverage : int, optional
             Account leverage. The default is 1.
-        base_currency : str, optional
-            The base currency of the account. The default is 'AUD'.
         hedging : bool, optional
             Allow hedging in the virtual broker (opening simultaneous 
             trades in oposing directions). The default is False.
@@ -282,7 +283,6 @@ class AutoTrader:
         self._virtual_leverage = leverage
         self._virtual_broker_hedging = hedging
         self._virtual_margin_call = margin_call_fraction
-        self._base_currency = base_currency
         
         # Enforce virtual broker
         self._broker_name = 'virtual'
@@ -360,8 +360,7 @@ class AutoTrader:
     def backtest(self, start: str = None, end: str = None, 
                  initial_balance: float = 1000, spread: float = 0, 
                  commission: float = 0, leverage: int = 1,
-                 base_currency: str = 'AUD', start_dt: datetime = None, 
-                 end_dt: datetime = None, hedging: bool = False,
+                 start_dt: datetime = None, end_dt: datetime = None, hedging: bool = False,
                  margin_call_fraction: float = 0) -> None:
         """Configures settings for backtesting.
 
@@ -383,8 +382,6 @@ class AutoTrader:
             Trading commission as percentage per trade. The default is 0.
         leverage : int, optional
             Account leverage. The default is 1.
-        base_currency : str, optional
-            The base currency of the account. The default is 'AUD'.
         hedging : bool, optional
             Allow hedging in the virtual broker (opening simultaneous 
             trades in oposing directions). The default is False.
@@ -414,7 +411,6 @@ class AutoTrader:
         self._virtual_leverage = leverage
         self._virtual_broker_hedging = hedging
         self._virtual_margin_call = margin_call_fraction
-        self._base_currency = base_currency
         
         # Enforce virtual broker
         self._broker_name = 'virtual'
