@@ -58,6 +58,7 @@ class GetData:
                 ACCESS_TOKEN = broker_config["ACCESS_TOKEN"]
                 port = broker_config["PORT"]
                 self.api = v20.Context(hostname=API, token=ACCESS_TOKEN, port=port)
+                self.ACCOUNT_ID = broker_config["ACCOUNT_ID"]
             
             elif broker_config['data_source'] == 'IB':
                 host = broker_config['host']
@@ -238,7 +239,8 @@ class GetData:
     
     
     def _oanda_quote_data(self, data: pd.DataFrame, pair: str, granularity: str, 
-                         start_time: datetime, end_time: datetime):
+                         start_time: datetime, end_time: datetime, 
+                         count: int = None):
         """Function to retrieve price conversion data.
         """
         base_currency = pair[:3]
@@ -250,25 +252,40 @@ class GetData:
             
         else:
             if self.home_currency == base_currency:
-                # Invert data to get quote data
-                quote_data = 1/data
+                # Disturb the data by machine precision to prompt HCF calculation
+                quote_data = (1 + 1e-15) * data
                 
             else:
                 # Try download quote data
-                try:
-                    conversion_pair = self.home_currency + "_" + quote_currency
-                    if conversion_pair != pair:
-                        # Do not re-download the same data
-                        quote_data = self.oanda(instrument  = conversion_pair,
-                                                granularity = granularity,
-                                                start_time  = start_time,
-                                                end_time    = end_time)
-                    else:
-                        quote_data = data
-                        
-                except:
-                    # Download failed, revert to original data
+                conversion_pair = self.home_currency + "_" + quote_currency
+                if conversion_pair == pair:
+                    # Same instrument
                     quote_data = data
+                    
+                else:
+                    # Different instrument, fetch data
+                    try:
+                        # Directly
+                        quote_data = self.oanda(instrument=conversion_pair,
+                                                granularity=granularity,
+                                                start_time=start_time,
+                                                end_time=end_time,
+                                                count=count)
+                    except:
+                        # Failed
+                        try:
+                            # Invert conversion pair
+                            conversion_pair = quote_currency + "_" + self.home_currency
+                            inverse_quote_data = self.oanda(instrument=conversion_pair,
+                                                    granularity=granularity,
+                                                    start_time=start_time,
+                                                    end_time=end_time,
+                                                    count=count)
+                            quote_data = 1/inverse_quote_data[['Open', 'High', 'Low', 'Close']]
+                            
+                        except:
+                            # Failed, just used original data
+                            quote_data = data
         
         return quote_data
     
@@ -421,7 +438,8 @@ class GetData:
         
     
     def _yahoo_quote_data(self, data: pd.DataFrame, pair: str, interval: str,
-                         from_date: datetime, to_date: datetime):
+                         from_date: datetime, to_date: datetime, 
+                         count: int = None):
         """Returns nominal price data - quote conversion not supported for 
         Yahoo finance API.
         """
@@ -558,8 +576,8 @@ class GetData:
                 positiveHCF = 1
             else:
                 # Quote data
-                negativeHCF = quote_price
-                positiveHCF = quote_price
+                negativeHCF = 1/quote_price
+                positiveHCF = 1/quote_price
                 
         else:
             # No quote price provided
