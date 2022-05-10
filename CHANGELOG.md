@@ -1,8 +1,11 @@
 # AutoTrader Changelog
 
-## Version 0.6.3
+## Version 0.6.4
 ### Fixes
 - Autodetect divergence order of operations, timeseries indexing
+- Specification and handling of 'home_currency' (provided through `configure`)
+- Calculation of home conversion factors, and handling of oanda quote data
+
 
 ## Version 0.6.3
 ### Features 
