@@ -456,15 +456,6 @@ class Broker:
         return response.body['instruments'][0].pipLocation
     
     
-    def get_trade_unit_precision(self, instrument: str):
-        """Returns the trade unit precision for the requested instrument.
-        """
-        # TODO - implement checking using this method
-        response = self.api.account.instruments(self.ACCOUNT_ID, 
-                                                instruments=instrument)
-        return response.body['instruments'][0].tradeUnitsPrecision
-    
-    
     def _check_connection(self) -> None:
         """Connects to Oanda v20 REST API. An initial call is performed to check
         for a timeout error.
@@ -543,14 +534,14 @@ class Broker:
         # Check and correct order stop price
         price = self._check_precision(order.instrument, 
                                       order.order_stop_price)
-        
         trigger_condition = order.trigger_price
+        size = self.check_trade_size(order.instrument, order.size)
         
         # Need to test cases when no stop/take is provided (as None type)
         # TODO - support other order types (see link above, market is default)
         response = self.api.order.market_if_touched(accountID = self.ACCOUNT_ID,
                                                     instrument = order.instrument,
-                                                    units = order.direction * order.size,
+                                                    units = order.direction * size,
                                                     price = str(price),
                                                     takeProfitOnFill = take_profit_details,
                                                     triggerCondition = trigger_condition,
@@ -571,10 +562,11 @@ class Broker:
                                       order.order_limit_price)
         
         trigger_condition = order.trigger_price
+        size = self.check_trade_size(order.instrument, order.size)
         
         response = self.api.order.limit(accountID = self.ACCOUNT_ID,
                                         instrument = order.instrument,
-                                        units = order.direction * order.size,
+                                        units = order.direction * size,
                                         price = str(price),
                                         takeProfitOnFill = take_profit_details,
                                         triggerCondition = trigger_condition,
