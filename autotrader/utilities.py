@@ -727,14 +727,16 @@ class DataStream:
                                                  instrument, 
                                                  granularity, 
                                                  self.data_start, 
-                                                 self.data_end)
+                                                 self.data_end,
+                                                 count=self.strategy_params['period'])
                     quote_data[instrument] = quote_df
                 
             else:
                 # Single instrument strategy - quote data for base granularity
                 quote_data = quote_data_func(data, self.instrument, 
                                              self.strategy_params['granularity'].split(',')[0], 
-                                             self.data_start, self.data_end)
+                                             self.data_start, self.data_end,
+                                             count=self.strategy_params['period'])
         
         # Retrieve auxiliary data
         if self.auxdata_files is not None:
