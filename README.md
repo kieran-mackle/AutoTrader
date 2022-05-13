@@ -23,8 +23,8 @@
     <img src="https://github.com/kieran-mackle/AutoTrader/actions/workflows/tests.yml/badge.svg" alt="Build Status" >
   </a>
   
-  <a href='https://py-autotrader.readthedocs.io/en/latest/?badge=latest'>
-    <img src='https://readthedocs.org/projects/py-autotrader/badge/?version=latest' alt='Documentation Status' />
+  <a href='https://autotrader.readthedocs.io/en/latest/?badge=latest'>
+    <img src='https://readthedocs.org/projects/autotrader/badge/?version=latest' alt='Documentation Status' />
   </a>
   
 </p>
@@ -34,18 +34,18 @@
 AutoTrader is Python-based platform intended to help in the development, optimisation and deployment of automated trading systems. 
 From simple indicator-based strategies, to complex non-directional hedging strategies, AutoTrader can do it all. If you prefer a more hands-on 
 approach to trading, AutoTrader can also assist you by notifying you of price behaviour, ensuring you never miss a signal again.
-A basic level of experience with Python is recommended for using AutoTrader, but the [docs](https://py-autotrader.readthedocs.io/en/latest/) 
+A basic level of experience with Python is recommended for using AutoTrader, but the [docs](https://autotrader.readthedocs.io/en/latest/) 
 aim to make using it as easy as possible with detailed tutorials and documentation.
 
 ## Features
-- [Backtesting](https://py-autotrader.readthedocs.io/en/latest/features/backtesting.html), featuring multiple 
-[order types](https://py-autotrader.readthedocs.io/en/latest/broker/trading.html)
+- [Backtesting](https://autotrader.readthedocs.io/en/latest/features/backtesting.html), featuring multiple 
+[order types](https://autotrader.readthedocs.io/en/latest/broker/trading.html)
 (market, limit, stop-limit, trailing stops, etc.) and the ability to **trade multiple instruments, multiple timeframes, and multiple strategies in the same backtest, against the same broker**
 - [Integrated data feeds](https://kieran-mackle.github.io/AutoTrader/tutorials/price-data), such as Yahoo Finance (via [yfinance](https://pypi.org/project/yfinance/)) and Oanda v20 REST API
-- [Automated interactive visualisation](https://py-autotrader.readthedocs.io/en/latest/features/visualisation.html) using [Bokeh](https://bokeh.org/)
-- [Library of custom indicators](https://py-autotrader.readthedocs.io/en/latest/indicators.html)
-- [Live trading](https://py-autotrader.readthedocs.io/en/latest/features/live-trading.html) supported for [Oanda](https://www.oanda.com/) and [Interactive Brokers](https://www.interactivebrokers.com)
-- [Detailed documenation and tutorials](https://py-autotrader.readthedocs.io/en/latest/index.html)
+- [Automated interactive visualisation](https://autotrader.readthedocs.io/en/latest/features/visualisation.html) using [Bokeh](https://bokeh.org/)
+- [Library of custom indicators](https://autotrader.readthedocs.io/en/latest/indicators.html)
+- [Live trading](https://autotrader.readthedocs.io/en/latest/features/live-trading.html) supported for [Oanda](https://www.oanda.com/) and [Interactive Brokers](https://www.interactivebrokers.com)
+- [Detailed documenation and tutorials](https://autotrader.readthedocs.io/en/latest/index.html)
 - [Repository](https://github.com/kieran-mackle/autotrader-demo) of example strategies
 
 ## Installation
@@ -60,7 +60,7 @@ pip install autotrader --upgrade
 ```
 
 ## Documentation
-AutoTrader is very well documented in-code and on [Read the Docs](https://py-autotrader.readthedocs.io/en/latest/). There is also a [detailed walthrough](https://py-autotrader.readthedocs.io/en/latest/tutorials/walkthrough.html), covering everything from strategy concept to livetrading.
+AutoTrader is very well documented in-code and on [Read the Docs](https://autotrader.readthedocs.io/en/latest/). There is also a [detailed walthrough](https://autotrader.readthedocs.io/en/latest/tutorials/walkthrough.html), covering everything from strategy concept to livetrading.
 
 ### Example Strategies
 Example strategies can be found in the [demo repository](https://github.com/kieran-mackle/autotrader-demo). You can also request your own strategy to be built [here](https://github.com/kieran-mackle/autotrader-demo/issues/new?assignees=&labels=&template=strategy-request.md&title=%5BSTRATEGY+REQUEST%5D).
@@ -68,15 +68,15 @@ Example strategies can be found in the [demo repository](https://github.com/kier
 
 ## Backtest Demo
 The chart below is produced by a backtest of the MACD trend strategy documented in the 
-[tutorials](https://py-autotrader.readthedocs.io/en/latest/tutorials/building-strategy.html) (and available in the 
+[tutorials](https://autotrader.readthedocs.io/en/latest/tutorials/building-strategy.html) (and available in the 
 [demo repository](https://github.com/kieran-mackle/autotrader-demo)). Entry signals are defined by MACD crossovers, with exit targets defined
 by a 1.5 risk-to-reward ratio. Stop-losses are automatically placed using the custom
-[swing detection](https://py-autotrader.readthedocs.io/en/latest/indicators.html#swing-detection) indicator, and position sizes are dynamically calculated based 
+[swing detection](https://autotrader.readthedocs.io/en/latest/indicators.html#swing-detection) indicator, and position sizes are dynamically calculated based 
 on risk percentages defined in the strategy configuration.
 
 Running this strategy with AutoTrader in backtest mode will produce the following interactive chart. 
 
-[![MACD-backtest-demo](https://user-images.githubusercontent.com/60687606/128127659-bf81fdd2-c246-4cd1-b86d-ef624cac50a7.png)](https://py-autotrader.readthedocs.io/en/latest/tutorials/backtesting.html#interactive-chart)
+[![MACD-backtest-demo](https://user-images.githubusercontent.com/60687606/128127659-bf81fdd2-c246-4cd1-b86d-ef624cac50a7.png)](https://autotrader.readthedocs.io/en/latest/tutorials/backtesting.html#interactive-chart)
 
 Note that stop loss and take profit levels are shown for each trade taken. This allows you to see how effective your exit strategy is - are you being stopped out too 
 early by placing your stop losses too tight? Are you missing out on otherwise profitable trades becuase your take profits are too far away? AutoTrader helps you 
