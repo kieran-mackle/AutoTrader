@@ -1105,7 +1105,14 @@ class AutoTrader:
                 deploy_time = time.time()
                 while instance_file_exists:
                     for bot in self._bots_deployed:
-                        bot._update(timestamp=datetime.now(timezone.utc))
+                        try:
+                            bot._update(timestamp=datetime.now(timezone.utc))
+                        except:
+                            if int(self._verbosity) > 0:
+                                print("Error: failed to update bot running" +\
+                                      f"{bot._strategy_name} ({bot.instrument})")
+                            
+                    # Go to sleep until next update
                     time.sleep(self._timestep.seconds - ((time.time() - \
                                 deploy_time) % self._timestep.seconds))
                     instance_file_exists = self._check_instance_file(instance_str)
