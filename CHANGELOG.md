@@ -1,5 +1,13 @@
 # AutoTrader Changelog
 
+## Version 0.6.5
+### Features 
+- General exception handling of bot updates in continuous mode
+
+### Fixes
+- Link to documentation and website
+
+
 ## Version 0.6.4
 ### Fixes
 - Autodetect divergence order of operations, timeseries indexing
