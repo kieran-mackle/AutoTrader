@@ -671,11 +671,9 @@ class GetData:
 
         """
         
-        interval = pd.Timedelta(granularity).total_seconds()
-        
         def fetch_between_dates():
             # Fetches data between two dates
-            count = 1000 # Can make this dynamic 
+            count = 1000
             start_ts = int(start_time.timestamp()*1000)
             end_ts = int(end_time.timestamp()*1000)
             
@@ -685,18 +683,14 @@ class GetData:
                                                          timeframe=granularity, 
                                                          since=start_ts,
                                                          limit=count)
-                
                 # Append data
-                data.append(raw_data)
+                data += raw_data
                 
                 # Increment start_ts
-                start_ts += count*interval*1000 # in ms
+                start_ts = raw_data[-1][0]
             
             return data
             
-            
-            
-        
         if count is not None:
             if start_time is None and end_time is None:
                 # Fetch N most recent candles
@@ -714,13 +708,13 @@ class GetData:
                 raise Exception("Fetching data from end_time and count is "+\
                                 "not yet supported.")
             else:
-                raw_data = fetch_between_dates(start_time, end_time)
+                raw_data = fetch_between_dates()
                 
         else:
             # Count is None
             try:
                 assert start_time is not None and end_time is not None
-                raw_data = fetch_between_dates(start_time, end_time)
+                raw_data = fetch_between_dates()
                 
             except AssertionError:
                 raise Exception("When no count is provided, both start_time "+\
@@ -732,8 +726,3 @@ class GetData:
         data.index = pd.to_datetime(data.index, unit='ms')
         
         return data
-        
-        
-        
-        
-        
