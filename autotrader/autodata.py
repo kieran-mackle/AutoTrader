@@ -73,6 +73,14 @@ class GetData:
             
         self.allow_dancing_bears = allow_dancing_bears
         self.home_currency = home_currency
+
+    
+    def __repr__(self):
+        return self.__str__()
+    
+    
+    def __str__(self):
+        return 'AutoTrader GetData instance'
         
 
     def oanda(self, instrument: str, granularity: str, count: int = None, 
