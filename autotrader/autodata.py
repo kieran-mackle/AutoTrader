@@ -37,7 +37,8 @@ class GetData:
         Parameters
         ----------
         broker_config : dict, optional
-            The configuration dictionary for the broker to be used. The 
+            The configuration dictionary for the data source to be used. This 
+            is created automatically in autotrader.utilities.get_config. The 
             default is None.
         allow_dancing_bears : bool, optional
             A flag to allow incomplete bars to be returned in the data. The 
@@ -70,6 +71,9 @@ class GetData:
                 self.ibapi = ib_insync.IB()
                 self.ibapi.connect(host=host, port=port, clientId=client_id, 
                                    readonly=read_only, account=account)
+            
+            elif broker_config['data_source'] == 'CCXT':
+                self.ccxt_exchange = broker_config['exchange_instance']
             
         self.allow_dancing_bears = allow_dancing_bears
         self.home_currency = home_currency
@@ -639,3 +643,97 @@ class GetData:
         end dates (as close as possible).
         """
         return data[(data.index >= start_date) & (data.index <= end_date)]
+    
+    
+    def ccxt(self, instrument: str, granularity: str, count: int = None, 
+             start_time: datetime = None, 
+             end_time: datetime = None) -> pd.DataFrame:
+        """Retrieves historical price data of a instrument from an exchange
+        instance of the CCXT package.
+
+        Parameters
+        ----------
+        instrument : str
+            The instrument to fetch data for.
+        granularity : str
+            The candlestick granularity (eg. "1m", "15m", "1h", "1d").
+        count : int, optional
+            The number of candles to fetch (maximum 5000). The default is None.
+        start_time : datetime, optional
+            The data start time. The default is None.
+        end_time : datetime, optional
+            The data end time. The default is None.
+
+        Returns
+        -------
+        data : DataFrame
+            The price data, as an OHLCV DataFrame.
+
+        """
+        
+        interval = pd.Timedelta(granularity).total_seconds()
+        
+        def fetch_between_dates():
+            # Fetches data between two dates
+            count = 1000 # Can make this dynamic 
+            start_ts = int(start_time.timestamp()*1000)
+            end_ts = int(end_time.timestamp()*1000)
+            
+            data = []
+            while start_ts <= end_ts:
+                raw_data = self.ccxt_exchange.fetchOHLCV(instrument, 
+                                                         timeframe=granularity, 
+                                                         since=start_ts,
+                                                         limit=count)
+                
+                # Append data
+                data.append(raw_data)
+                
+                # Increment start_ts
+                start_ts += count*interval*1000 # in ms
+            
+            return data
+            
+            
+            
+        
+        if count is not None:
+            if start_time is None and end_time is None:
+                # Fetch N most recent candles
+                raw_data = self.ccxt_exchange.fetchOHLCV(instrument, 
+                                                         timeframe=granularity, 
+                                                         limit=count)
+            elif start_time is not None and end_time is None:
+                # Fetch N candles since start_time
+                start_ts = None if start_time is None else int(start_time.timestamp()*1000) 
+                raw_data = self.ccxt_exchange.fetchOHLCV(instrument, 
+                                                         timeframe=granularity, 
+                                                         since=start_ts,
+                                                         limit=count)
+            elif end_time is not None and start_time is None:
+                raise Exception("Fetching data from end_time and count is "+\
+                                "not yet supported.")
+            else:
+                raw_data = fetch_between_dates(start_time, end_time)
+                
+        else:
+            # Count is None
+            try:
+                assert start_time is not None and end_time is not None
+                raw_data = fetch_between_dates(start_time, end_time)
+                
+            except AssertionError:
+                raise Exception("When no count is provided, both start_time "+\
+                                "and end_time must be provided.")
+        
+        # Process data 
+        data = pd.DataFrame(raw_data, columns=['time','Open','High','Low',
+                                                'Close','Volume']).set_index('time')
+        data.index = pd.to_datetime(data.index, unit='ms')
+        
+        return data
+        
+        
+        
+        
+        
