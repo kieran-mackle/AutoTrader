@@ -1,4 +1,5 @@
 import v20
+import time
 import ib_insync
 import pandas as pd
 import yfinance as yf
@@ -688,7 +689,10 @@ class GetData:
                 
                 # Increment start_ts
                 start_ts = raw_data[-1][0]
-            
+                
+                # Sleep for API limit
+                time.sleep(1)
+                
             return data
             
         if count is not None:
