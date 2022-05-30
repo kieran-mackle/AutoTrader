@@ -245,7 +245,7 @@ class GetData:
                                                    count = max_candles)
             
             partial_data = self.response_to_df(response)
-            data = data.append(partial_data)
+            data = pd.concat([data, partial_data])
             last_time = data.index[-1].timestamp()
             
         return data

@@ -111,7 +111,7 @@ class Broker:
             working_price = order.order_price
         
         # Convert stop distance to price
-        if not order.stop_loss and order.stop_distance:
+        if order.stop_loss is None and order.stop_distance:
             pip_value = self.utils.get_pip_ratio(order.instrument)
             order.stop_loss = working_price - order.direction*order.stop_distance*pip_value
         
