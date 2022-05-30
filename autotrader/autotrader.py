@@ -4,6 +4,7 @@ import time
 import timeit
 import pyfiglet
 import importlib
+import traceback
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
@@ -1116,6 +1117,7 @@ class AutoTrader:
                             if int(self._verbosity) > 0:
                                 print("Error: failed to update bot running" +\
                                       f"{bot._strategy_name} ({bot.instrument})")
+                                traceback.print_exc()
                             
                     # Go to sleep until next update
                     time.sleep(self._timestep.seconds - ((time.time() - \
