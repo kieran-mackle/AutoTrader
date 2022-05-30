@@ -114,6 +114,7 @@ class AutoTrader:
         self._local_quote_data = None
         self._auxdata = None
         self._dynamic_data = False
+        self._allow_duplicate_bars = False
         
         # Virtual Broker Parameters
         self._virtual_livetrading = False
@@ -168,7 +169,8 @@ class AutoTrader:
                   jupyter_notebook: bool = False, mode: str = 'periodic',
                   update_interval: str = '10s', data_index_time: str = 'open',
                   global_config: dict = None, instance_str: str = None,
-                  broker_verbosity: int = 0, home_currency: str = None) -> None:
+                  broker_verbosity: int = 0, home_currency: str = None,
+                  allow_duplicate_bars: bool = False) -> None:
         """Configures run settings for AutoTrader.
 
         Parameters
@@ -224,6 +226,9 @@ class AutoTrader:
         home_currency : str, optional
             The home currency of trading accounts used (intended for FX 
             conversions). The default is None.
+        allow_duplicate_bars : bool, optional
+            Allow duplicate bars to be passed on to the strategy. The default 
+            is False.
         
         Returns
         -------
@@ -238,6 +243,7 @@ class AutoTrader:
         self._notify = notify
         self._home_dir = home_dir if home_dir is not None else os.getcwd()
         self._allow_dancing_bears = allow_dancing_bears
+        self._allow_duplicate_bars = allow_duplicate_bars
         self._account_id = account_id
         self._environment = environment
         self._show_plot = show_plot
