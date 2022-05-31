@@ -278,7 +278,7 @@ class AutoTraderBot:
                 current_time = current_bars[list(current_bars.keys())[0]].name.strftime('%b %d %Y %H:%M:%S')
                 if len(orders) > 0:
                     for order in orders:
-                        direction = 'long' if order.direction > 1 else 'short'
+                        direction = 'long' if order.direction > 0 else 'short'
                         order_string = f"{current_time}: {order.instrument} "+\
                             f"{direction} {order.order_type} order of " + \
                             f"{order.size} units placed at {order.order_price}."
