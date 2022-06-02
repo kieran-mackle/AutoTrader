@@ -844,6 +844,7 @@ class AutoTrader:
         backtest_summary = backtest_results.summary()
         start_date = backtest_summary['start'].strftime("%b %d %Y %H:%M:%S")
         end_date = backtest_summary['end'].strftime("%b %d %Y %H:%M:%S")
+        duration = backtest_summary['end'] - backtest_summary['start']
         
         starting_balance = backtest_summary['starting_balance']
         ending_balance = backtest_summary['ending_balance']
@@ -869,6 +870,7 @@ class AutoTrader:
         print("----------------------------------------------")
         print("Start date:              {}".format(start_date))
         print("End date:                {}".format(end_date))
+        print("Duration:                {}".format(duration))
         print("Starting balance:        ${}".format(round(starting_balance, 2)))
         print("Ending balance:          ${}".format(round(ending_balance, 2)))
         print("Ending NAV:              ${}".format(round(ending_NAV, 2)))
