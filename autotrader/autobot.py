@@ -237,6 +237,7 @@ class AutoTraderBot:
         new_data = self._check_last_bar(current_bars) 
         
         if sufficient_data and new_data:
+            # There is a sufficient amount of data, and it includes new data
             if self._backtest_mode or self._virtual_livetrading:
                 # Update virtual broker with latest price bars
                 self._update_virtual_broker(current_bars)
@@ -277,7 +278,7 @@ class AutoTraderBot:
                 current_time = current_bars[list(current_bars.keys())[0]].name.strftime('%b %d %Y %H:%M:%S')
                 if len(orders) > 0:
                     for order in orders:
-                        direction = 'long' if order.direction > 1 else 'short'
+                        direction = 'long' if order.direction > 0 else 'short'
                         order_string = f"{current_time}: {order.instrument} "+\
                             f"{direction} {order.order_type} order of " + \
                             f"{order.size} units placed at {order.order_price}."
@@ -352,7 +353,8 @@ class AutoTraderBot:
                 print("\nThe strategy has not been updated as there is either "+\
                       "insufficient data, or no new data. If you believe "+\
                       "this is an error, try setting allow_dancing_bears to "+\
-                      "True in AutoTrader.configure().")
+                      "True, or set allow_duplicate_bars to True in "+\
+                      "AutoTrader.configure().")
         
     
     def _refresh_data(self, timestamp: datetime = None, **kwargs):
@@ -788,21 +790,24 @@ class AutoTraderBot:
     def _check_last_bar(self, current_bars: dict) -> bool:
         """Checks for new data to prevent duplicate signals.
         """
-        try:
-            duplicated_bars = []
-            for product, bar in current_bars.items():
-                if (bar == self._last_bars[product]).all():
-                    duplicated_bars.append(True)
-                else:
-                    duplicated_bars.append(False)
-                    
-            if len(duplicated_bars) == sum(duplicated_bars):
-                new_data = False
-            else: 
-                new_data = True
-            
-        except:
+        if self._allow_duplicate_bars:
             new_data = True
+        else:
+            try:
+                duplicated_bars = []
+                for product, bar in current_bars.items():
+                    if (bar == self._last_bars[product]).all():
+                        duplicated_bars.append(True)
+                    else:
+                        duplicated_bars.append(False)
+                        
+                if len(duplicated_bars) == sum(duplicated_bars):
+                    new_data = False
+                else: 
+                    new_data = True
+                
+            except:
+                new_data = True
         
         # Reset last bars
         self._last_bars = current_bars

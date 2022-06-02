@@ -4,6 +4,7 @@ import time
 import timeit
 import pyfiglet
 import importlib
+import traceback
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
@@ -113,6 +114,7 @@ class AutoTrader:
         self._local_quote_data = None
         self._auxdata = None
         self._dynamic_data = False
+        self._allow_duplicate_bars = False
         
         # Virtual Broker Parameters
         self._virtual_livetrading = False
@@ -167,7 +169,8 @@ class AutoTrader:
                   jupyter_notebook: bool = False, mode: str = 'periodic',
                   update_interval: str = '10s', data_index_time: str = 'open',
                   global_config: dict = None, instance_str: str = None,
-                  broker_verbosity: int = 0, home_currency: str = None) -> None:
+                  broker_verbosity: int = 0, home_currency: str = None,
+                  allow_duplicate_bars: bool = False) -> None:
         """Configures run settings for AutoTrader.
 
         Parameters
@@ -223,6 +226,9 @@ class AutoTrader:
         home_currency : str, optional
             The home currency of trading accounts used (intended for FX 
             conversions). The default is None.
+        allow_duplicate_bars : bool, optional
+            Allow duplicate bars to be passed on to the strategy. The default 
+            is False.
         
         Returns
         -------
@@ -237,6 +243,7 @@ class AutoTrader:
         self._notify = notify
         self._home_dir = home_dir if home_dir is not None else os.getcwd()
         self._allow_dancing_bears = allow_dancing_bears
+        self._allow_duplicate_bars = allow_duplicate_bars
         self._account_id = account_id
         self._environment = environment
         self._show_plot = show_plot
@@ -1057,13 +1064,17 @@ class AutoTrader:
             portfolio = config['PORTFOLIO'] if 'PORTFOLIO' in config else False
             watchlist = ["Portfolio"] if portfolio else config['WATCHLIST']
             for instrument in watchlist:
-                # TODO - local data dict for portfolio
-                data_dict = self._local_data[instrument] \
-                    if self._local_data is not None else None
-                quote_data_path = self._local_quote_data[instrument] \
-                    if self._local_quote_data is not None else None
-                auxdata = self._auxdata[instrument] \
-                    if self._auxdata is not None else None
+                if portfolio:
+                    data_dict = self._local_data
+                    quote_data_path = self._local_quote_data
+                    auxdata = self._auxdata
+                else:
+                    data_dict = self._local_data[instrument] \
+                        if self._local_data is not None else None
+                    quote_data_path = self._local_quote_data[instrument] \
+                        if self._local_quote_data is not None else None
+                    auxdata = self._auxdata[instrument] \
+                        if self._auxdata is not None else None
                 
                 strategy_class = config['CLASS']
                 strategy_dict = {'config': config,
@@ -1082,6 +1093,7 @@ class AutoTrader:
         # Begin trading
         if self._run_mode.lower() == 'continuous':
             # Running in continuous update mode
+            # TODO - skip initial data collection period
             if self._backtest_mode:
                 # Backtesting
                 end_time = self._data_end # datetime
@@ -1113,6 +1125,7 @@ class AutoTrader:
                             if int(self._verbosity) > 0:
                                 print("Error: failed to update bot running" +\
                                       f"{bot._strategy_name} ({bot.instrument})")
+                                traceback.print_exc()
                             
                     # Go to sleep until next update
                     time.sleep(self._timestep.seconds - ((time.time() - \

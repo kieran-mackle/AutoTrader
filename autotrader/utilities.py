@@ -642,15 +642,14 @@ class DataStream:
                 
             elif isinstance(self.data_filepaths, dict):
                 # Multiple data filepaths provided
+                multi_data = {}
                 if self.portfolio:
-                    raise NotImplementedError("Locally-provided data not "+\
-                                              "implemented for portfolios.")
-                    # TODO - implement
+                    # raise NotImplementedError("Locally-provided data not "+\
+                    #                           "implemented for portfolios.")
                     for instrument, filepath in self.data_filepaths.items():
                         data = self.get_data.local(filepath, self.data_start, self.data_end)
                         multi_data[instrument] = data
                 else:
-                    multi_data = {}
                     for granularity, filepath in self.data_filepaths.items():
                         data = self.get_data.local(filepath, self.data_start, self.data_end)
                         multi_data[granularity] = data

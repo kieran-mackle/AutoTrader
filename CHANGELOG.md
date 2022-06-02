@@ -1,5 +1,11 @@
 # AutoTrader Changelog
 
+
+## Version 0.6.6
+### Features 
+- Support of local data with ortfolio strategies
+
+
 ## Version 0.6.5
 ### Features 
 - General exception handling of bot updates in continuous mode

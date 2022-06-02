@@ -36,6 +36,10 @@ class Order:
         A list of related order/trade ID's.
     id : int
         The order ID.
+    pip_value : float, optional
+        The pip value of the product being traded. Specify this for non-FX 
+        products when using stop_distance/take_distance arguments. The default
+        is None.
     currency : str
         The base currency of the order (IB only).
     secType : str
@@ -63,6 +67,7 @@ class Order:
         self.order_time = None
         self.order_limit_price = None
         self.order_stop_price = None
+        self.pip_value = None
         
         self.HCF = 1
         
@@ -207,7 +212,8 @@ class Order:
             utils = BrokerUtils()
         else:
             utils = broker.utils
-        pip_value = utils.get_pip_ratio(self.instrument)
+        pip_value = self.pip_value if self.pip_value is not None else\
+            utils.get_pip_ratio(self.instrument)
 
         # Calculate stop loss price
         if self.stop_loss is None and self.stop_distance is not None:
