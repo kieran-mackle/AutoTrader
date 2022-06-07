@@ -682,7 +682,7 @@ class AutoPlot:
         plbars.sizing_mode = 'stretch_width'
         
         # Win rate bar chart
-        win_rates = [100*sum(instrument_trades[i].profit>0)/len(instrument_trades[i]) for i in range(len(instruments))]
+        win_rates = [100*(instrument_trades[i].profit>0).sum()/len(instrument_trades[i]) for i in range(len(instruments))]
         WRsource = ColumnDataSource(pd.DataFrame(data={'win_rate': win_rates,
                                                        'color': colors}, index=instruments))
         winrate = self._plot_bars(instruments, 'win_rate', WRsource, 
@@ -692,9 +692,9 @@ class AutoPlot:
         
         # Autoscaling
         navfig.x_range.js_on_change('end', CustomJS(args=self.autoscale_args, 
-                                   code=self._autoscale_code))
+                                    code=self._autoscale_code))
         
-        # Construct final figure     
+        # Construct final figure
         final_fig = layout([  
                                    [navfig],
                                    [portfolio],

@@ -959,14 +959,14 @@ class AutoTrader:
             max_losses = [instrument_trades[i].profit.min() for i in range(len(instruments))]
             avg_wins = [instrument_trades[i].profit[instrument_trades[i].profit>0].mean() for i in range(len(instruments))]
             avg_losses = [instrument_trades[i].profit[instrument_trades[i].profit<0].mean() for i in range(len(instruments))]
-            win_rates = [100*sum(instrument_trades[i].profit>0)/len(instrument_trades[i]) for i in range(len(instruments))]
+            win_rates = [100*(instrument_trades[i].profit>0).sum()/len(instrument_trades[i]) for i in range(len(instruments))]
             
             results = pd.DataFrame(data={'Instrument': instruments, 
                                          'Max. Win': max_wins, 
                                          'Max. Loss': max_losses, 
                                          'Avg. Win': avg_wins, 
                                          'Avg. Loss': avg_losses, 
-                                         'Win rate': win_rates})
+                                         'Win Rate': win_rates})
             
             print("\n Instrument Breakdown:")
             print(results.to_string(index=False))
