@@ -2,6 +2,7 @@
 import numpy as np
 import pandas as pd
 from math import pi
+from typing import Union
 
 from bokeh.models.annotations import Title
 from bokeh.plotting import figure, output_file, show
@@ -38,7 +39,7 @@ class AutoPlot:
     
     """
     
-    def __init__(self, data: pd.DataFrame = None):
+    def __init__(self, data: Union[pd.DataFrame, pd.Series] = None):
         """Instantiates AutoPlot.
 
         Parameters
@@ -64,11 +65,19 @@ class AutoPlot:
         self._jupyter_notebook = False
         self._show_cancelled = True
         self._use_strat_plot_data = False
+        self._line_chart = False
         
         # Modify data index
         if data is not None:
-            self._data = self._reindex_data(data)
-            self._backtest_data = None
+            if isinstance(data, pd.Series):
+                self._data = self._reindex_data(data)
+                self._backtest_data = None
+                self._line_chart = True
+            elif isinstance(data, pd.DataFrame):
+                self._data = self._reindex_data(data)
+                self._backtest_data = None
+            else:
+                raise Exception("Unrecognised data type pass to AutoPlot ({type(data)})")
         
         # Load JavaScript code for auto-scaling 
         self.autoscale_args = {}
@@ -237,7 +246,7 @@ class AutoPlot:
         source = ColumnDataSource(self._data)
         
         # Main plot
-        if self._use_strat_plot_data:
+        if self._use_strat_plot_data or self._line_chart:
             source.add(self._data.plot_data, 'High')
             source.add(self._data.plot_data, 'Low')
             main_plot = self._create_main_plot(source)
@@ -944,7 +953,7 @@ class AutoPlot:
     def _create_main_plot(self, source, line_colour: str = 'black',
                           legend_label: str = 'Data'):
         fig = figure(plot_width = self._ohlc_width,
-                     plot_height = 150,
+                     plot_height = self._ohlc_height,
                      title = "Custom Plot Data",
                      tools = self._fig_tools,
                      active_drag = 'pan',
