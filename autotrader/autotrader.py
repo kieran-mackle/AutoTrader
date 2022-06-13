@@ -74,6 +74,7 @@ class AutoTrader:
         self._instance_str = None
         self._run_mode = 'periodic'
         self._timestep = pd.Timedelta('10s').to_pytimedelta()
+        self._warmup_period = pd.Timedelta('0s').to_pytimedelta()
         self._feed = 'yahoo'
         self._req_liveprice = False
         
@@ -367,8 +368,9 @@ class AutoTrader:
     def backtest(self, start: str = None, end: str = None, 
                  initial_balance: float = 1000, spread: float = 0, 
                  commission: float = 0, leverage: int = 1,
-                 start_dt: datetime = None, end_dt: datetime = None, hedging: bool = False,
-                 margin_call_fraction: float = 0) -> None:
+                 start_dt: datetime = None, end_dt: datetime = None, 
+                 hedging: bool = False, margin_call_fraction: float = 0, 
+                 warmup_period: str = '0s') -> None:
         """Configures settings for backtesting.
 
         Parameters
@@ -395,6 +397,10 @@ class AutoTrader:
         margin_call_fraction : float, optional
             The fraction of margin usage at which a margin call will occur.
             The default is 0.
+        warmup_period : str, optional
+            A string describing the warmup period to be used. This is 
+            equivalent to the minimum period of time required to collect 
+            sufficient data for the strategy. The default is '0s'.
             
         Notes
         ------
@@ -418,6 +424,7 @@ class AutoTrader:
         self._virtual_leverage = leverage
         self._virtual_broker_hedging = hedging
         self._virtual_margin_call = margin_call_fraction
+        self._warmup_period = pd.Timedelta(warmup_period).to_pytimedelta()
         
         # Enforce virtual broker
         self._broker_name = 'virtual'
@@ -1094,12 +1101,10 @@ class AutoTrader:
         # Begin trading
         if self._run_mode.lower() == 'continuous':
             # Running in continuous update mode
-            # TODO - skip initial data collection period
             if self._backtest_mode:
                 # Backtesting
                 end_time = self._data_end # datetime
-                timestamp = self._data_start # datetime
-                # TODO - adjust start timestamp using warm up period
+                timestamp = self._data_start + self._warmup_period # datetime
                 pbar = tqdm(total=int((self._data_end - self._data_start).total_seconds()),
                             position=0, leave=True)
                 while timestamp <= end_time:
