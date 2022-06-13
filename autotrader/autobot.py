@@ -194,7 +194,11 @@ class AutoTraderBot:
     
     
     def __repr__(self):
-        return f'{self.instrument} AutoTraderBot'
+        # TODO - alter str for portfolio bots
+        if isinstance(self.instrument, list):
+            return 'Portfolio AutoTraderBot'
+        else:
+            return f'{self.instrument} AutoTraderBot'
     
     
     def __str__(self):
