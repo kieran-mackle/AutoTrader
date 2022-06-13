@@ -1105,7 +1105,7 @@ class AutoTrader:
                 # Backtesting
                 end_time = self._data_end # datetime
                 timestamp = self._data_start + self._warmup_period # datetime
-                pbar = tqdm(total=int((self._data_end - self._data_start).total_seconds()),
+                pbar = tqdm(total=int((self._data_end - timestamp).total_seconds()),
                             position=0, leave=True)
                 while timestamp <= end_time:
                     # Update each bot with latest data to generate signal
