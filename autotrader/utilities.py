@@ -330,9 +330,12 @@ class BacktestResults:
     
     @staticmethod
     def create_trade_summary(trades: dict = None, orders: dict = None, 
-                      instrument: str = None) -> pd.DataFrame:
+                             instrument: str = None) -> pd.DataFrame:
         """Creates backtest trade summary dataframe.
         """
+        
+        instrument = None if isinstance(instrument, list) else instrument
+        
         # TODO - index by ID
         
         if trades is not None:

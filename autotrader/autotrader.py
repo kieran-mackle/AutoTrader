@@ -822,7 +822,11 @@ class AutoTrader:
         """
         bots = {}
         for bot in self._bots_deployed:
-            bots[bot.instrument] = bot
+            symbol = bot.instrument
+            if isinstance(symbol, list):
+                # Porfolio-trading bot
+                symbol = 'portfolio'
+            bots[symbol] = bot
         
         if instrument is not None:
             # Retrieve bot requested
