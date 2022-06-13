@@ -1062,7 +1062,8 @@ class AutoTrader:
         for strategy, config in self._strategy_configs.items():
             # Check for portfolio strategy
             portfolio = config['PORTFOLIO'] if 'PORTFOLIO' in config else False
-            watchlist = ["Portfolio"] if portfolio else config['WATCHLIST']
+            # watchlist = ["Portfolio"] if portfolio else config['WATCHLIST']
+            watchlist = [config['WATCHLIST']] if portfolio else config['WATCHLIST']
             for instrument in watchlist:
                 if portfolio:
                     data_dict = self._local_data
@@ -1098,6 +1099,7 @@ class AutoTrader:
                 # Backtesting
                 end_time = self._data_end # datetime
                 timestamp = self._data_start # datetime
+                # TODO - adjust start timestamp using warm up period
                 pbar = tqdm(total=int((self._data_end - self._data_start).total_seconds()),
                             position=0, leave=True)
                 while timestamp <= end_time:
