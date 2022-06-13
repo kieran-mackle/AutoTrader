@@ -964,20 +964,33 @@ class AutoTrader:
             # Mutliple instruments traded
             instruments = backtest_results.instruments_traded
             trade_history = backtest_results.trade_history
-            instrument_trades = [trade_history[trade_history.instrument == i] for i in instruments]
-            # returns_per_instrument = [trade_history.profit[trade_history.instrument == i].cumsum() for i in instruments]
-            max_wins = [instrument_trades[i].profit.max() for i in range(len(instruments))]
-            max_losses = [instrument_trades[i].profit.min() for i in range(len(instruments))]
-            avg_wins = [instrument_trades[i].profit[instrument_trades[i].profit>0].mean() for i in range(len(instruments))]
-            avg_losses = [instrument_trades[i].profit[instrument_trades[i].profit<0].mean() for i in range(len(instruments))]
-            win_rates = [100*(instrument_trades[i].profit>0).sum()/len(instrument_trades[i]) for i in range(len(instruments))]
+            
+            total_no_trades = []
+            max_wins = []
+            max_losses = []
+            avg_wins = []
+            avg_losses = []
+            profitable_trades = []
+            win_rates = []
+            for i in range(len(instruments)):
+                instrument_trades = trade_history[trade_history.instrument == \
+                                                  instruments[i]]
+                no_trades = len(instrument_trades)
+                total_no_trades.append(no_trades)
+                max_wins.append(instrument_trades.profit.max())
+                max_losses.append(instrument_trades.profit.min())
+                avg_wins.append(instrument_trades.profit[instrument_trades.profit>0].mean())
+                avg_losses.append(instrument_trades.profit[instrument_trades.profit<0].mean())
+                profitable_trades.append((instrument_trades.profit>0).sum())
+                win_rates.append(100*profitable_trades[i]/no_trades if \
+                                 no_trades > 0 else 0.0)
             
             results = pd.DataFrame(data={'Instrument': instruments, 
                                          'Max. Win': max_wins, 
                                          'Max. Loss': max_losses, 
                                          'Avg. Win': avg_wins, 
                                          'Avg. Loss': avg_losses, 
-                                         'Win Rate': win_rates})
+                                         'Win Rate': win_rates}).fillna(0)
             
             print("\n Instrument Breakdown:")
             print(results.to_string(index=False))
