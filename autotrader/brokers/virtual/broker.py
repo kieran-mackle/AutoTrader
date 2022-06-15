@@ -399,6 +399,7 @@ class Broker:
                 
         # Update open trades
         unrealised_PL = 0 # Un-leveraged value
+        # TODO - only iterate open trades (with df update)
         for trade_id, trade in self.trades.items():
             if trade.instrument == instrument and trade.status == 'open':
                 # Update stop losses
@@ -490,6 +491,8 @@ class Broker:
         self._update_margin(instrument, candle)
         
         # Update unrealised P/L
+        # TODO - I do not think this should be reassigned each update
+        # BIG BUG!
         self.floating_pnl = unrealised_PL
         
         # Update open position value
@@ -558,7 +561,7 @@ class Broker:
         
         # Add trade to closed positions
         trade.profit = net_profit
-        trade.balance = self.equity
+        trade.balance = self.equity # TODO - double check
         trade.exit_price = exit_price
         trade.fees = commission
         if candle is None:
