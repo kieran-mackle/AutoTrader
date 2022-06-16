@@ -409,6 +409,8 @@ class AutoTrader:
             example, both start and end arguments must be provided together, 
             or alternatively, start_dt and end_dt must both be provided.
         """
+        # TODO - allow specifying spread dictionary to have custom spreads for 
+        # different products
         
         # Convert start and end strings to datetime objects
         if start_dt is None and end_dt is None:
