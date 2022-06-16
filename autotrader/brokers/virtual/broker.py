@@ -351,6 +351,7 @@ class Broker:
                           instrument: str) -> None:
         """Updates orders and open positions based on current candle.
         """
+        
         # Open pending orders
         pending_orders = self.get_orders(instrument, 'pending')
         for order_id, order in pending_orders.items():
@@ -398,9 +399,10 @@ class Broker:
                                              order.order_limit_price)
                 
         # Update open trades
-        unrealised_PL = 0 # Un-leveraged value
+        unrealised_PL = 0
         # TODO - only iterate open trades (with df update)
         for trade_id, trade in self.trades.items():
+            # Update trades of current instrument
             if trade.instrument == instrument and trade.status == 'open':
                 # Update stop losses
                 if trade.stop_type == 'trailing':
@@ -429,6 +431,7 @@ class Broker:
                                                    new_stop_type='trailing')
                 
                 # Update trades
+                # TODO - below could be generalised by trade direction multiplier
                 if trade.direction > 0:
                     # Long trade
                     if trade.stop_loss and \
@@ -447,18 +450,10 @@ class Broker:
                                             trade_id)
                     else:
                         # Position is still open, update value of holding
-                        size        = trade.size
-                        direction   = trade.direction
-                        fill_price = trade.fill_price
-                        price       = candle.Close
-                        HCF         = trade.HCF
-                        trade_PL    = direction*size*(price - fill_price)*HCF
-                        unrealised_PL += trade_PL
-                        
-                        # Update PL of trade
-                        trade.last_price = price
+                        trade.last_price = candle.Close
                         trade.last_time = candle.name
-                        trade.unrealised_PL = trade_PL
+                        trade.unrealised_PL = trade.direction*trade.size * \
+                            (trade.last_price - trade.fill_price)*trade.HCF
                 
                 else:
                     # Short trade
@@ -474,26 +469,19 @@ class Broker:
                                              trade.take_profit, trade_id)
                     else:
                         # Position is still open, update value of holding
-                        size        = trade.size
-                        direction   = trade.direction
-                        fill_price = trade.fill_price
-                        price       = candle.Close
-                        HCF         = trade.HCF
-                        trade_PL    = direction*size*(price - fill_price)*HCF
-                        unrealised_PL += trade_PL
-                        
-                        # Update PL of trade
-                        trade.last_price = price
+                        trade.last_price = candle.Close
                         trade.last_time = candle.name
-                        trade.unrealised_PL = trade_PL
+                        trade.unrealised_PL = trade.direction*trade.size * \
+                            (trade.last_price - trade.fill_price)*trade.HCF
+                            
+            # Update margin used and floating pnl on all open trades
+            # TODO - move update_margin calculations here
         
         # Update margin available
+        # TODO - this iterates over open trades, move into above to reduce 
+        # double iteration
+        # This also updates self.floating_pnl !
         self._update_margin(instrument, candle)
-        
-        # Update unrealised P/L
-        # TODO - I do not think this should be reassigned each update
-        # BIG BUG!
-        self.floating_pnl = unrealised_PL
         
         # Update open position value
         self.NAV = self.equity + self.floating_pnl
@@ -561,7 +549,7 @@ class Broker:
         
         # Add trade to closed positions
         trade.profit = net_profit
-        trade.balance = self.equity # TODO - double check
+        trade.balance = self.equity
         trade.exit_price = exit_price
         trade.fees = commission
         if candle is None:
@@ -677,13 +665,20 @@ class Broker:
     def _update_margin(self, instrument: str = None, 
                        candle: pd.core.series.Series = None) -> None:
         """Updates margin available in account.
-        """        
+        """
+        # This loop runs every update, and iterates over all open trades
+        # It could be used to calculate the floating pnl...
+        # Or it could be moved into the update loop and only update margin
+        # for the instrument provided....
+        
         margin_used = 0
+        floating_pnl = 0
         for trade_id, trade in self.trades.items():
             if trade.status == 'open':
                 size = trade.size
                 HCF = trade.HCF
                 last_price = trade.last_price
+                fill_price = trade.fill_price
                 position_value = abs(size) * last_price * HCF
                 margin_required = self._calculate_margin(position_value)
                 margin_used += margin_required
@@ -691,10 +686,19 @@ class Broker:
                 # Update margin required in trade dict
                 trade.margin_required = margin_required
                 trade.value = position_value
+                
+                # Floating pnl
+                floating_pnl += trade.direction*size*(last_price - fill_price)*HCF
         
+        # Update unrealised PnL
+        self.floating_pnl = floating_pnl
+        
+        # Update margin available
         self.margin_available = self.NAV - margin_used
         
         # Check for margin call
+        # TODO - due to ordering of updates, margin call could occur on the last
+        # instrument, just by chance...
         if self.leverage > 1 and self.margin_available/self.NAV < self.margin_closeout:
             # Margin call
             if self.verbosity > 0:
