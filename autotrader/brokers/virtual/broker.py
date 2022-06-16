@@ -399,11 +399,10 @@ class Broker:
                                              order.order_limit_price)
                 
         # Update open trades
-        unrealised_PL = 0
-        # TODO - only iterate open trades (with df update)
-        for trade_id, trade in self.trades.items():
-            # Update trades of current instrument
-            if trade.instrument == instrument and trade.status == 'open':
+        open_trades = self.get_trades()
+        for trade_id, trade in open_trades.items(): #self.trades.items():
+            # Update open trades of current instrument
+            if trade.instrument == instrument:# and trade.status == 'open':
                 # Update stop losses
                 if trade.stop_type == 'trailing':
                     # Trailing stop loss type, check if price has moved SL
@@ -432,6 +431,7 @@ class Broker:
                 
                 # Update trades
                 # TODO - below could be generalised by trade direction multiplier
+                # Postponing for df update
                 if trade.direction > 0:
                     # Long trade
                     if trade.stop_loss and \
@@ -474,13 +474,7 @@ class Broker:
                         trade.unrealised_PL = trade.direction*trade.size * \
                             (trade.last_price - trade.fill_price)*trade.HCF
                             
-            # Update margin used and floating pnl on all open trades
-            # TODO - move update_margin calculations here
-        
-        # Update margin available
-        # TODO - this iterates over open trades, move into above to reduce 
-        # double iteration
-        # This also updates self.floating_pnl !
+        # Update floating pnl and margin available 
         self._update_margin(instrument, candle)
         
         # Update open position value
@@ -666,30 +660,24 @@ class Broker:
                        candle: pd.core.series.Series = None) -> None:
         """Updates margin available in account.
         """
-        # This loop runs every update, and iterates over all open trades
-        # It could be used to calculate the floating pnl...
-        # Or it could be moved into the update loop and only update margin
-        # for the instrument provided....
-        
         margin_used = 0
         floating_pnl = 0
-        for trade_id, trade in self.trades.items():
-            if trade.status == 'open':
-                size = trade.size
-                HCF = trade.HCF
-                last_price = trade.last_price
-                fill_price = trade.fill_price
-                position_value = abs(size) * last_price * HCF
-                margin_required = self._calculate_margin(position_value)
-                margin_used += margin_required
+        open_trades = self.get_trades()
+        for trade_id, trade in open_trades.items():
+            size = trade.size
+            HCF = trade.HCF
+            last_price = trade.last_price
+            trade_value = abs(size) * last_price * HCF
+            margin_required = self._calculate_margin(trade_value)
+            margin_used += margin_required
+            
+            # Update margin required in trade dict
+            trade.margin_required = margin_required
+            trade.value = trade_value
+            
+            # Floating pnl
+            floating_pnl += trade.unrealised_PL
                 
-                # Update margin required in trade dict
-                trade.margin_required = margin_required
-                trade.value = position_value
-                
-                # Floating pnl
-                floating_pnl += trade.direction*size*(last_price - fill_price)*HCF
-        
         # Update unrealised PnL
         self.floating_pnl = floating_pnl
         
