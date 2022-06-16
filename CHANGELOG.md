@@ -3,7 +3,19 @@
 
 ## Version 0.6.6
 ### Features 
-- Support of local data with ortfolio strategies
+- Support of local data with portfolio strategies
+- Backtest spread is now specified in price units for disambiguation
+- Skip data warmup period to speed up backtests (specify `warmup_period` in
+  autotrader.backtest) in continuous update mode
+- Improved backtest printout
+- All instruments will be passed to a portfolio strategy as a list using the 
+  `instrument` argument
+- Instrument specific pip values can be provided when creating an order 
+
+### Fixes
+- Bug with floating pnl calculation when running multi-instrument backtests
+- Pagination of Oanda data retrieval
+
 
 
 ## Version 0.6.5
