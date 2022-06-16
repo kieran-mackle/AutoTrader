@@ -386,7 +386,8 @@ class AutoTrader:
         initial_balance : float, optional
             The initial balance of the account. The default is 1000.
         spread : float, optional
-            The bid/ask spread to use in backtest. The default is 0.
+            The bid/ask spread to use in backtest (specified in price units). 
+            The default is 0.
         commission : float, optional
             Trading commission as percentage per trade. The default is 0.
         leverage : int, optional

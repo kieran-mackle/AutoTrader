@@ -42,24 +42,21 @@ class Broker:
     def __init__(self, broker_config: dict, utils: BrokerUtils) -> None:
         self.utils = utils
         
-        # Orders
+        # Orders and trades
         self.orders = {}
-        
-        # Trades
         self.trades = {}
         
         # Account 
-        self.NAV = 0 # Net asset value
-        self.equity = 0
-        self.margin_available = 0 
+        self.home_currency = 'AUD'
+        self.NAV = 0                    # Net asset value
+        self.equity = 0                 # Account equity (balance)
+        self.floating_pnl = 0
+        self.margin_available = 0
         
         self.leverage = 1
-        self.spread = 0 # TODO - pips or price units? Add docs
-        self.hedging = False
-        self.margin_closeout = 0.0 # Fraction at margin call
-        
-        self.home_currency = 'AUD'
-        self.floating_pnl = 0
+        self.spread = 0
+        self.hedging = False            # Allow simultaneous trades on opposing sides
+        self.margin_closeout = 0.0      # Fraction at margin call
         
         self.verbosity = broker_config['verbosity']
         
@@ -112,8 +109,11 @@ class Broker:
         
         # Convert stop distance to price
         if order.stop_loss is None and order.stop_distance:
-            pip_value = self.utils.get_pip_ratio(order.instrument)
-            order.stop_loss = working_price - order.direction*order.stop_distance*pip_value
+            # pip_value = self.utils.get_pip_ratio(order.instrument)
+            # order.stop_loss = working_price - order.direction * \
+            #     order.stop_distance*pip_value
+            order.stop_loss = working_price - order.direction * \
+                order.stop_distance*order.pip_value
         
         # Verify SL price
         invalid_order = False
@@ -310,11 +310,9 @@ class Broker:
             
         # Calculate margin requirements
         current_price = candle.Open
-        pip_value = self.utils.get_pip_ratio(order.instrument) # TODO - implications on non FX?
         position_value = order.size * current_price * order.HCF
         margin_required = self._calculate_margin(position_value)
-        spread_cost = order.size * self.spread * pip_value
-        spread_shift = 0.5 * order.direction * self.spread * pip_value
+        spread_shift = 0.5 * order.direction * self.spread
         
         if margin_required < self.margin_available:
             # Determine working price
@@ -337,9 +335,6 @@ class Broker:
             trade.margin_required = margin_required
             trade.value = position_value
             self.trades[trade_id] = trade
-            
-            # Subtract spread cost from account NAV
-            self.NAV -= spread_cost
             
         else:
             # Cancel order
@@ -400,21 +395,20 @@ class Broker:
                 
         # Update open trades
         open_trades = self.get_trades()
-        for trade_id, trade in open_trades.items(): #self.trades.items():
+        for trade_id, trade in open_trades.items():
             # Update open trades of current instrument
-            if trade.instrument == instrument:# and trade.status == 'open':
+            if trade.instrument == instrument:
                 # Update stop losses
                 if trade.stop_type == 'trailing':
                     # Trailing stop loss type, check if price has moved SL
                     if trade.stop_distance is not None:
-                        pip_value = self.utils.get_pip_ratio(trade.instrument)
+                        # pip_value = self.utils.get_pip_ratio(trade.instrument)
                         pip_distance = trade.stop_distance
-                        distance = pip_distance*pip_value # price units
+                        distance = pip_distance*trade.pip_value # price units
                     else:
-                        distance = abs(trade.fill_price - \
-                                       trade.stop_loss)
-                        pip_value = self.utils.get_pip_ratio(trade.instrument)
-                        trade.stop_distance = distance / pip_value
+                        distance = abs(trade.fill_price - trade.stop_loss)
+                        # pip_value = self.utils.get_pip_ratio(trade.instrument)
+                        trade.stop_distance = distance / trade.pip_value
                         
                     if trade.direction > 0:
                         # long position, stop loss only moves up
