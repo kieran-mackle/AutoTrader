@@ -353,45 +353,45 @@ class Broker:
             if candle.name > order.order_time:
                 order.status = 'open'
         
-        # Update open orders
-        for order_id, order in self.orders.items():
+        # Update open orders for current instrument
+        open_orders = self.get_orders(instrument)
+        for order_id, order in open_orders.items():
             # Filter orders by instrument type since candle is instrument specific
-            if order.instrument == instrument and order.status == 'open':
-                if order.order_type == 'market':
-                    # Market order type - proceed to fill
-                    self._fill_order(order_id, candle)
+            if order.order_type == 'market':
+                # Market order type - proceed to fill
+                self._fill_order(order_id, candle)
+            
+            elif order.order_type == 'stop-limit':
+                # Check if order_stop_price has been reached yet
+                if candle.Low < order.order_stop_price < candle.High:
+                    # order_stop_price has been reached, change order type to 'limit'
+                    order.order_type = 'limit'
+            
+            elif order.order_type == 'modify':
+                # Modification order
+                self._modify_order(order)
+                order.status = 'closed'
+            
+            elif order.order_type == 'close':
+                related_order = order.related_orders
+                self._close_position(order.instrument, candle, 
+                                     candle.Close, trade_id = related_order)
+                order.status = 'closed'
+            elif order.order_type == 'reduce':
+                self._reduce_position(order)
+                order.status = 'closed'
                 
-                elif order.order_type == 'stop-limit':
-                    # Check if order_stop_price has been reached yet
-                    if candle.Low < order.order_stop_price < candle.High:
-                        # order_stop_price has been reached, change order type to 'limit'
-                        order.order_type = 'limit'
-                
-                elif order.order_type == 'modify':
-                    # Modification order
-                    self._modify_order(order)
-                    order.status = 'closed'
-                
-                elif order.order_type == 'close':
-                    related_order = order.related_orders
-                    self._close_position(order.instrument, candle, 
-                                         candle.Close, trade_id = related_order)
-                    order.status = 'closed'
-                elif order.order_type == 'reduce':
-                    self._reduce_position(order)
-                    order.status = 'closed'
-                    
-                # Check for limit orders
-                if order.order_type == 'limit':
-                    # Limit order type
-                    if order.direction > 0:
-                        if candle.Low < order.order_limit_price:
-                            self._fill_order(order_id, candle, 
-                                             order.order_limit_price)
-                    else:
-                        if candle.High > order.order_limit_price:
-                            self._fill_order(order_id, candle, 
-                                             order.order_limit_price)
+            # Check for limit orders
+            if order.order_type == 'limit':
+                # Limit order type
+                if order.direction > 0:
+                    if candle.Low < order.order_limit_price:
+                        self._fill_order(order_id, candle, 
+                                         order.order_limit_price)
+                else:
+                    if candle.High > order.order_limit_price:
+                        self._fill_order(order_id, candle, 
+                                         order.order_limit_price)
                 
         # Update open trades
         open_trades = self.get_trades()
