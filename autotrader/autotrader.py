@@ -1027,10 +1027,10 @@ class AutoTrader:
             # No bot has been provided, select automatically
             if len(self.backtest_results.instruments_traded) > 1 or \
                 len(self._bots_deployed) > 1 or self._plot_portolio_chart:
-                # Multi-product backtest
+                # Multi-bot backtest
                 portfolio_plot()
             else:
-                # Single product backtest
+                # Single bot backtest
                 bot = self._bots_deployed[0]
                 single_instrument_plot(bot)
         else:
@@ -1195,7 +1195,7 @@ class AutoTrader:
                       f"{round((backtest_end_time - backtest_start_time), 3)} s).")
                 self.print_backtest_results()
                 
-            if self._show_plot:
+            if self._show_plot and len(self.backtest_results.trade_history) > 0:
                 self.plot_backtest()
         
         elif self._scan_mode and self._show_plot:
