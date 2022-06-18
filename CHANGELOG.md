@@ -11,7 +11,7 @@
 - All instruments will be passed to a portfolio strategy as a list using the 
   `instrument` argument
 - Instrument specific pip values can be provided when creating an order 
-- Improved Trade `__repr__`
+- Improved Trade and Position `__repr__` methods
 
 ### Fixes
 - Bug with floating pnl calculation when running multi-instrument backtests
