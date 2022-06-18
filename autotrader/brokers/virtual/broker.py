@@ -42,24 +42,21 @@ class Broker:
     def __init__(self, broker_config: dict, utils: BrokerUtils) -> None:
         self.utils = utils
         
-        # Orders
+        # Orders and trades
         self.orders = {}
-        
-        # Trades
         self.trades = {}
         
         # Account 
-        self.NAV = 0 # Net asset value
-        self.equity = 0
-        self.margin_available = 0 
+        self.home_currency = 'AUD'
+        self.NAV = 0                    # Net asset value
+        self.equity = 0                 # Account equity (balance)
+        self.floating_pnl = 0
+        self.margin_available = 0
         
         self.leverage = 1
-        self.spread = 0 # TODO - pips or price units? Add docs
-        self.hedging = False
-        self.margin_closeout = 0.0 # Fraction at margin call
-        
-        self.home_currency = 'AUD'
-        self.floating_pnl = 0
+        self.spread = 0
+        self.hedging = False            # Allow simultaneous trades on opposing sides
+        self.margin_closeout = 0.0      # Fraction at margin call
         
         self.verbosity = broker_config['verbosity']
         
@@ -112,8 +109,11 @@ class Broker:
         
         # Convert stop distance to price
         if order.stop_loss is None and order.stop_distance:
-            pip_value = self.utils.get_pip_ratio(order.instrument)
-            order.stop_loss = working_price - order.direction*order.stop_distance*pip_value
+            # pip_value = self.utils.get_pip_ratio(order.instrument)
+            # order.stop_loss = working_price - order.direction * \
+            #     order.stop_distance*pip_value
+            order.stop_loss = working_price - order.direction * \
+                order.stop_distance*order.pip_value
         
         # Verify SL price
         invalid_order = False
@@ -310,11 +310,9 @@ class Broker:
             
         # Calculate margin requirements
         current_price = candle.Open
-        pip_value = self.utils.get_pip_ratio(order.instrument) # TODO - implications on non FX?
         position_value = order.size * current_price * order.HCF
         margin_required = self._calculate_margin(position_value)
-        spread_cost = order.size * self.spread * pip_value
-        spread_shift = 0.5 * order.direction * self.spread * pip_value
+        spread_shift = 0.5 * order.direction * self.spread
         
         if margin_required < self.margin_available:
             # Determine working price
@@ -338,9 +336,6 @@ class Broker:
             trade.value = position_value
             self.trades[trade_id] = trade
             
-            # Subtract spread cost from account NAV
-            self.NAV -= spread_cost
-            
         else:
             # Cancel order
             cancel_reason = "Insufficient margin to fill order."
@@ -351,68 +346,69 @@ class Broker:
                           instrument: str) -> None:
         """Updates orders and open positions based on current candle.
         """
+        
         # Open pending orders
         pending_orders = self.get_orders(instrument, 'pending')
         for order_id, order in pending_orders.items():
             if candle.name > order.order_time:
                 order.status = 'open'
         
-        # Update open orders
-        for order_id, order in self.orders.items():
+        # Update open orders for current instrument
+        open_orders = self.get_orders(instrument)
+        for order_id, order in open_orders.items():
             # Filter orders by instrument type since candle is instrument specific
-            if order.instrument == instrument and order.status == 'open':
-                if order.order_type == 'market':
-                    # Market order type - proceed to fill
-                    self._fill_order(order_id, candle)
+            if order.order_type == 'market':
+                # Market order type - proceed to fill
+                self._fill_order(order_id, candle)
+            
+            elif order.order_type == 'stop-limit':
+                # Check if order_stop_price has been reached yet
+                if candle.Low < order.order_stop_price < candle.High:
+                    # order_stop_price has been reached, change order type to 'limit'
+                    order.order_type = 'limit'
+            
+            elif order.order_type == 'modify':
+                # Modification order
+                self._modify_order(order)
+                order.status = 'closed'
+            
+            elif order.order_type == 'close':
+                related_order = order.related_orders
+                self._close_position(order.instrument, candle, 
+                                     candle.Close, trade_id = related_order)
+                order.status = 'closed'
+            elif order.order_type == 'reduce':
+                self._reduce_position(order)
+                order.status = 'closed'
                 
-                elif order.order_type == 'stop-limit':
-                    # Check if order_stop_price has been reached yet
-                    if candle.Low < order.order_stop_price < candle.High:
-                        # order_stop_price has been reached, change order type to 'limit'
-                        order.order_type = 'limit'
-                
-                elif order.order_type == 'modify':
-                    # Modification order
-                    self._modify_order(order)
-                    order.status = 'closed'
-                
-                elif order.order_type == 'close':
-                    related_order = order.related_orders
-                    self._close_position(order.instrument, candle, 
-                                         candle.Close, trade_id = related_order)
-                    order.status = 'closed'
-                elif order.order_type == 'reduce':
-                    self._reduce_position(order)
-                    order.status = 'closed'
-                    
-                # Check for limit orders
-                if order.order_type == 'limit':
-                    # Limit order type
-                    if order.direction > 0:
-                        if candle.Low < order.order_limit_price:
-                            self._fill_order(order_id, candle, 
-                                             order.order_limit_price)
-                    else:
-                        if candle.High > order.order_limit_price:
-                            self._fill_order(order_id, candle, 
-                                             order.order_limit_price)
+            # Check for limit orders
+            if order.order_type == 'limit':
+                # Limit order type
+                if order.direction > 0:
+                    if candle.Low < order.order_limit_price:
+                        self._fill_order(order_id, candle, 
+                                         order.order_limit_price)
+                else:
+                    if candle.High > order.order_limit_price:
+                        self._fill_order(order_id, candle, 
+                                         order.order_limit_price)
                 
         # Update open trades
-        unrealised_PL = 0 # Un-leveraged value
-        for trade_id, trade in self.trades.items():
-            if trade.instrument == instrument and trade.status == 'open':
+        open_trades = self.get_trades()
+        for trade_id, trade in open_trades.items():
+            # Update open trades of current instrument
+            if trade.instrument == instrument:
                 # Update stop losses
                 if trade.stop_type == 'trailing':
                     # Trailing stop loss type, check if price has moved SL
                     if trade.stop_distance is not None:
-                        pip_value = self.utils.get_pip_ratio(trade.instrument)
+                        # pip_value = self.utils.get_pip_ratio(trade.instrument)
                         pip_distance = trade.stop_distance
-                        distance = pip_distance*pip_value # price units
+                        distance = pip_distance*trade.pip_value # price units
                     else:
-                        distance = abs(trade.fill_price - \
-                                       trade.stop_loss)
-                        pip_value = self.utils.get_pip_ratio(trade.instrument)
-                        trade.stop_distance = distance / pip_value
+                        distance = abs(trade.fill_price - trade.stop_loss)
+                        # pip_value = self.utils.get_pip_ratio(trade.instrument)
+                        trade.stop_distance = distance / trade.pip_value
                         
                     if trade.direction > 0:
                         # long position, stop loss only moves up
@@ -428,6 +424,8 @@ class Broker:
                                                    new_stop_type='trailing')
                 
                 # Update trades
+                # TODO - below could be generalised by trade direction multiplier
+                # Postponing for df update
                 if trade.direction > 0:
                     # Long trade
                     if trade.stop_loss and \
@@ -446,18 +444,10 @@ class Broker:
                                             trade_id)
                     else:
                         # Position is still open, update value of holding
-                        size        = trade.size
-                        direction   = trade.direction
-                        fill_price = trade.fill_price
-                        price       = candle.Close
-                        HCF         = trade.HCF
-                        trade_PL    = direction*size*(price - fill_price)*HCF
-                        unrealised_PL += trade_PL
-                        
-                        # Update PL of trade
-                        trade.last_price = price
+                        trade.last_price = candle.Close
                         trade.last_time = candle.name
-                        trade.unrealised_PL = trade_PL
+                        trade.unrealised_PL = trade.direction*trade.size * \
+                            (trade.last_price - trade.fill_price)*trade.HCF
                 
                 else:
                     # Short trade
@@ -473,24 +463,13 @@ class Broker:
                                              trade.take_profit, trade_id)
                     else:
                         # Position is still open, update value of holding
-                        size        = trade.size
-                        direction   = trade.direction
-                        fill_price = trade.fill_price
-                        price       = candle.Close
-                        HCF         = trade.HCF
-                        trade_PL    = direction*size*(price - fill_price)*HCF
-                        unrealised_PL += trade_PL
-                        
-                        # Update PL of trade
-                        trade.last_price = price
+                        trade.last_price = candle.Close
                         trade.last_time = candle.name
-                        trade.unrealised_PL = trade_PL
-        
-        # Update margin available
+                        trade.unrealised_PL = trade.direction*trade.size * \
+                            (trade.last_price - trade.fill_price)*trade.HCF
+                            
+        # Update floating pnl and margin available 
         self._update_margin(instrument, candle)
-        
-        # Update unrealised P/L
-        self.floating_pnl = unrealised_PL
         
         # Update open position value
         self.NAV = self.equity + self.floating_pnl
@@ -674,24 +653,34 @@ class Broker:
     def _update_margin(self, instrument: str = None, 
                        candle: pd.core.series.Series = None) -> None:
         """Updates margin available in account.
-        """        
+        """
         margin_used = 0
-        for trade_id, trade in self.trades.items():
-            if trade.status == 'open':
-                size = trade.size
-                HCF = trade.HCF
-                last_price = trade.last_price
-                position_value = abs(size) * last_price * HCF
-                margin_required = self._calculate_margin(position_value)
-                margin_used += margin_required
+        floating_pnl = 0
+        open_trades = self.get_trades()
+        for trade_id, trade in open_trades.items():
+            size = trade.size
+            HCF = trade.HCF
+            last_price = trade.last_price
+            trade_value = abs(size) * last_price * HCF
+            margin_required = self._calculate_margin(trade_value)
+            margin_used += margin_required
+            
+            # Update margin required in trade dict
+            trade.margin_required = margin_required
+            trade.value = trade_value
+            
+            # Floating pnl
+            floating_pnl += trade.unrealised_PL
                 
-                # Update margin required in trade dict
-                trade.margin_required = margin_required
-                trade.value = position_value
+        # Update unrealised PnL
+        self.floating_pnl = floating_pnl
         
+        # Update margin available
         self.margin_available = self.NAV - margin_used
         
         # Check for margin call
+        # TODO - due to ordering of updates, margin call could occur on the last
+        # instrument, just by chance...
         if self.leverage > 1 and self.margin_available/self.NAV < self.margin_closeout:
             # Margin call
             if self.verbosity > 0:

@@ -231,18 +231,19 @@ class GetData:
         end_time = to_time - my_int
         partial_from = from_time
         response = self.api.instrument.candles(instrument,
-                                               granularity = granularity,
-                                               fromTime = partial_from,
-                                               count = max_candles)
+                                               granularity=granularity,
+                                               fromTime=partial_from,
+                                               count=max_candles)
         data = self.response_to_df(response)
         last_time = data.index[-1].timestamp()
         
         while last_time < end_time:
+            candles = min(max_candles, int((end_time - last_time)/my_int))
             partial_from = last_time
             response = self.api.instrument.candles(instrument,
-                                                   granularity = granularity,
-                                                   fromTime = partial_from,
-                                                   count = max_candles)
+                                                   granularity=granularity,
+                                                   fromTime=partial_from,
+                                                   count=candles)
             
             partial_data = self.response_to_df(response)
             data = pd.concat([data, partial_data])

@@ -2,6 +2,7 @@
 import numpy as np
 import pandas as pd
 from math import pi
+from typing import Union
 
 from bokeh.models.annotations import Title
 from bokeh.plotting import figure, output_file, show
@@ -38,7 +39,7 @@ class AutoPlot:
     
     """
     
-    def __init__(self, data: pd.DataFrame = None):
+    def __init__(self, data: Union[pd.DataFrame, pd.Series] = None):
         """Instantiates AutoPlot.
 
         Parameters
@@ -64,11 +65,19 @@ class AutoPlot:
         self._jupyter_notebook = False
         self._show_cancelled = True
         self._use_strat_plot_data = False
+        self._line_chart = False
         
         # Modify data index
         if data is not None:
-            self._data = self._reindex_data(data)
-            self._backtest_data = None
+            if isinstance(data, pd.Series):
+                self._data = self._reindex_data(data)
+                self._backtest_data = None
+                self._line_chart = True
+            elif isinstance(data, pd.DataFrame):
+                self._data = self._reindex_data(data)
+                self._backtest_data = None
+            else:
+                raise Exception("Unrecognised data type pass to AutoPlot ({type(data)})")
         
         # Load JavaScript code for auto-scaling 
         self.autoscale_args = {}
@@ -237,7 +246,7 @@ class AutoPlot:
         source = ColumnDataSource(self._data)
         
         # Main plot
-        if self._use_strat_plot_data:
+        if self._use_strat_plot_data or self._line_chart:
             source.add(self._data.plot_data, 'High')
             source.add(self._data.plot_data, 'Low')
             main_plot = self._create_main_plot(source)
@@ -553,11 +562,13 @@ class AutoPlot:
                 }
         cplfig.xaxis.bounds = (0, reindexed_acc_hist.index[-1])
         
-        
         # Portoflio distribution
         names = list(holding_history.columns)
         holding_history['date'] = holding_history.index
-        holding_hist_source = ColumnDataSource(pd.merge(reindexed_acc_hist, holding_history, left_on='date', right_on='date'))
+        holding_hist_source = ColumnDataSource(pd.merge(reindexed_acc_hist, 
+                                                        holding_history, 
+                                                        left_on='date', 
+                                                        right_on='date'))
         portfolio = figure(plot_width = navfig.plot_width,
                            plot_height = self._top_fig_height,
                            title = "Asset Allocation History",
@@ -620,11 +631,15 @@ class AutoPlot:
         win_metrics = ['Average Win', 'Max. Win']
         lose_metrics = ['Average Loss', 'Max. Loss']
         
-        instrument_trades = [trade_history[trade_history.instrument == i] for i in instruments]
-        max_wins = [instrument_trades[i].profit.max() for i in range(len(instruments))]
-        max_losses = [instrument_trades[i].profit.min() for i in range(len(instruments))]
-        avg_wins = [instrument_trades[i].profit[instrument_trades[i].profit>0].mean() for i in range(len(instruments))]
-        avg_losses = [instrument_trades[i].profit[instrument_trades[i].profit<0].mean() for i in range(len(instruments))]
+        
+        instrument_trades = [trade_history[trade_history.instrument == i] for \
+                             i in instruments]
+        total_no_trades = [len(instrument_trades[i]) for i \
+                           in range(len(instruments))]
+        max_wins = [instrument_trades[i].profit.max() if total_no_trades[i] > 0 else 0 for i in range(len(instruments))]
+        max_losses = [instrument_trades[i].profit.min() if total_no_trades[i] > 0 else 0 for i in range(len(instruments))]
+        avg_wins = [instrument_trades[i].profit[instrument_trades[i].profit>0].mean() if total_no_trades[i] > 0 else 0 for i in range(len(instruments))]
+        avg_losses = [instrument_trades[i].profit[instrument_trades[i].profit<0].mean() if total_no_trades[i] > 0 else 0 for i in range(len(instruments))]
         
         abs_max_loss = 1.2*max(max_losses)
         abs_max_win = 1.2*max(max_wins)
@@ -682,7 +697,11 @@ class AutoPlot:
         plbars.sizing_mode = 'stretch_width'
         
         # Win rate bar chart
-        win_rates = [100*sum(instrument_trades[i].profit>0)/len(instrument_trades[i]) for i in range(len(instruments))]
+        profitable_trades = [(instrument_trades[i].profit>0).sum() for i \
+                             in range(len(instruments))]
+        win_rates = [100*profitable_trades[i]/total_no_trades[i] if \
+                     total_no_trades[i] > 0 else 0 for i \
+                         in range(len(instruments))]
         WRsource = ColumnDataSource(pd.DataFrame(data={'win_rate': win_rates,
                                                        'color': colors}, index=instruments))
         winrate = self._plot_bars(instruments, 'win_rate', WRsource, 
@@ -692,9 +711,9 @@ class AutoPlot:
         
         # Autoscaling
         navfig.x_range.js_on_change('end', CustomJS(args=self.autoscale_args, 
-                                   code=self._autoscale_code))
+                                    code=self._autoscale_code))
         
-        # Construct final figure     
+        # Construct final figure
         final_fig = layout([  
                                    [navfig],
                                    [portfolio],
@@ -944,7 +963,7 @@ class AutoPlot:
     def _create_main_plot(self, source, line_colour: str = 'black',
                           legend_label: str = 'Data'):
         fig = figure(plot_width = self._ohlc_width,
-                     plot_height = 150,
+                     plot_height = self._ohlc_height,
                      title = "Custom Plot Data",
                      tools = self._fig_tools,
                      active_drag = 'pan',

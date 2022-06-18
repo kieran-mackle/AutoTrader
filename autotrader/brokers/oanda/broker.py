@@ -525,7 +525,8 @@ class Broker:
         """Places MarketIfTouchedOrder with Oanda.
         https://developer.oanda.com/rest-live-v20/order-df/
         """
-        # TODO - this submits market if touched, not stopOrder type
+        # TODO - this submits market if touched, options below
+        ordertype = 'MARKET_IF_TOUCHED' # 'MARKET_IF_TOUCHED' # 'STOP', 'LIMIT'
         self._check_connection()
         
         stop_loss_order = self._get_stop_loss_order(order)
@@ -538,11 +539,11 @@ class Broker:
         size = self.check_trade_size(order.instrument, order.size)
         
         # Need to test cases when no stop/take is provided (as None type)
-        # TODO - support other order types (see link above, market is default)
         response = self.api.order.market_if_touched(accountID = self.ACCOUNT_ID,
                                                     instrument = order.instrument,
                                                     units = order.direction * size,
                                                     price = str(price),
+                                                    type = ordertype,
                                                     takeProfitOnFill = take_profit_details,
                                                     triggerCondition = trigger_condition,
                                                     **stop_loss_order)

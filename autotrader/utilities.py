@@ -292,16 +292,18 @@ class BacktestResults:
         """Analyses backtest and creates summary of key details.
         """
         # Construct trade and order summaries
-        trades = BacktestResults.create_trade_summary(trades=broker.trades, instrument=instrument)
-        orders = BacktestResults.create_trade_summary(orders=broker.orders, instrument=instrument)
+        trades = BacktestResults.create_trade_summary(trades=broker.trades, 
+                                                      instrument=instrument)
+        orders = BacktestResults.create_trade_summary(orders=broker.orders, 
+                                                      instrument=instrument)
         
         # Construct account history
         account_history = broker.account_history.copy()
         
         # Create history of holdings
         holdings = broker.holdings.copy()
-        holding_history = pd.DataFrame(columns=list(orders.instrument.unique()), 
-                                        index=account_history.index)
+        holding_history = pd.DataFrame(columns=list(orders.instrument.unique()),
+                                       index=account_history.index)
         for i in range(len(holding_history)):
             try:
                 holding_history.iloc[i] = holdings[i]
@@ -312,6 +314,7 @@ class BacktestResults:
         for col in holding_history.columns:
             holding_history[col] = holding_history[col] / account_history.NAV
         
+        # Drop duplicated indices from multiple product updates 
         holding_history = holding_history[~holding_history.index.duplicated(keep='last')]
         holding_history['cash'] = 1 - holding_history.sum(1)
         
@@ -330,9 +333,12 @@ class BacktestResults:
     
     @staticmethod
     def create_trade_summary(trades: dict = None, orders: dict = None, 
-                      instrument: str = None) -> pd.DataFrame:
+                             instrument: str = None) -> pd.DataFrame:
         """Creates backtest trade summary dataframe.
         """
+        
+        instrument = None if isinstance(instrument, list) else instrument
+        
         # TODO - index by ID
         
         if trades is not None:

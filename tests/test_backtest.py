@@ -26,16 +26,20 @@ def test_macd_backtest():
                 data_directory=os.path.join(home_dir, 'data'))
     at.backtest(start = '1/1/2021', end = '1/1/2022',
                 initial_balance=1000, leverage=30,
-                spread=0.5, commission=0.005, hedging=True)
+                spread=0.5*1e-4, commission=0.005, hedging=True)
     at.run()
     bot = at.get_bots_deployed()
     bt_results = at.backtest_results.summary()
     
     # Test backtest results
-    assert bt_results['no_trades'] == 36, "Incorrect number of trades"
-    assert round(bt_results['ending_balance'], 3) == 923.056, "Incorrect ending balance"
-    assert bt_results['long_trades']['no_trades'] == 10, "Incorrect number of long trades"
-    assert bt_results['short_trades']['no_trades'] == 26, "Incorrect number of short trades"
+    assert bt_results['no_trades'] == 36, "Incorrect number of trades " + \
+        "(single instrument backtest)"
+    assert round(bt_results['ending_balance'], 3) == 923.056, "Incorrect "+\
+        "ending balance (single instrument backtest)"
+    assert bt_results['long_trades']['no_trades'] == 10, "Incorrect number "+\
+        "of long trades (single instrument backtest)"
+    assert bt_results['short_trades']['no_trades'] == 26, "Incorrect number "+\
+        "of short trades (single instrument backtest)"
 
 
 def test_multibot_macd_backtest():
@@ -63,14 +67,16 @@ def test_multibot_macd_backtest():
                 data_directory=os.path.join(home_dir, 'data'))
     at.backtest(start = '1/1/2021', end = '1/1/2022',
                 initial_balance=1000, leverage=30,
-                spread=0.5, commission=0.005, hedging=True)
+                spread=0.5*1e-4, commission=0.005, hedging=True)
     at.run()
-    bots = at.get_bots_deployed()
-    EU1bot = bots['EUR_USD']
     bt_results = at.backtest_results.summary()
     
-    assert bt_results['no_trades'] == 68, "Incorrect number of trades"
-    assert round(bt_results['ending_balance'], 3) == 839.434, "Incorrect ending balance"
-    assert bt_results['long_trades']['no_trades'] == 18, "Incorrect number of long trades"
-    assert bt_results['short_trades']['no_trades'] == 50, "Incorrect number of short trades"
+    assert bt_results['no_trades'] == 68, "Incorrect number of trades"+\
+        " (multi-instrument backtest)"
+    assert round(bt_results['ending_balance'], 3) == 839.504, "Incorrect "+\
+        "ending balance (multi-instrument backtest)"
+    assert bt_results['long_trades']['no_trades'] == 18, "Incorrect number "+\
+        "of long trades (multi-instrument backtest)"
+    assert bt_results['short_trades']['no_trades'] == 50, "Incorrect number "+\
+        "of short trades (multi-instrument backtest)"
     

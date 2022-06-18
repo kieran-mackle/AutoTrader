@@ -4,6 +4,7 @@ import time
 import timeit
 import pyfiglet
 import importlib
+import traceback
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
@@ -73,6 +74,7 @@ class AutoTrader:
         self._instance_str = None
         self._run_mode = 'periodic'
         self._timestep = pd.Timedelta('10s').to_pytimedelta()
+        self._warmup_period = pd.Timedelta('0s').to_pytimedelta()
         self._feed = 'yahoo'
         self._req_liveprice = False
         
@@ -113,6 +115,7 @@ class AutoTrader:
         self._local_quote_data = None
         self._auxdata = None
         self._dynamic_data = False
+        self._allow_duplicate_bars = False
         
         # Virtual Broker Parameters
         self._virtual_livetrading = False
@@ -167,7 +170,8 @@ class AutoTrader:
                   jupyter_notebook: bool = False, mode: str = 'periodic',
                   update_interval: str = '10s', data_index_time: str = 'open',
                   global_config: dict = None, instance_str: str = None,
-                  broker_verbosity: int = 0, home_currency: str = None) -> None:
+                  broker_verbosity: int = 0, home_currency: str = None,
+                  allow_duplicate_bars: bool = False) -> None:
         """Configures run settings for AutoTrader.
 
         Parameters
@@ -223,6 +227,9 @@ class AutoTrader:
         home_currency : str, optional
             The home currency of trading accounts used (intended for FX 
             conversions). The default is None.
+        allow_duplicate_bars : bool, optional
+            Allow duplicate bars to be passed on to the strategy. The default 
+            is False.
         
         Returns
         -------
@@ -237,6 +244,7 @@ class AutoTrader:
         self._notify = notify
         self._home_dir = home_dir if home_dir is not None else os.getcwd()
         self._allow_dancing_bears = allow_dancing_bears
+        self._allow_duplicate_bars = allow_duplicate_bars
         self._account_id = account_id
         self._environment = environment
         self._show_plot = show_plot
@@ -360,8 +368,9 @@ class AutoTrader:
     def backtest(self, start: str = None, end: str = None, 
                  initial_balance: float = 1000, spread: float = 0, 
                  commission: float = 0, leverage: int = 1,
-                 start_dt: datetime = None, end_dt: datetime = None, hedging: bool = False,
-                 margin_call_fraction: float = 0) -> None:
+                 start_dt: datetime = None, end_dt: datetime = None, 
+                 hedging: bool = False, margin_call_fraction: float = 0, 
+                 warmup_period: str = '0s') -> None:
         """Configures settings for backtesting.
 
         Parameters
@@ -377,7 +386,8 @@ class AutoTrader:
         initial_balance : float, optional
             The initial balance of the account. The default is 1000.
         spread : float, optional
-            The bid/ask spread to use in backtest. The default is 0.
+            The bid/ask spread to use in backtest (specified in price units). 
+            The default is 0.
         commission : float, optional
             Trading commission as percentage per trade. The default is 0.
         leverage : int, optional
@@ -388,6 +398,10 @@ class AutoTrader:
         margin_call_fraction : float, optional
             The fraction of margin usage at which a margin call will occur.
             The default is 0.
+        warmup_period : str, optional
+            A string describing the warmup period to be used. This is 
+            equivalent to the minimum period of time required to collect 
+            sufficient data for the strategy. The default is '0s'.
             
         Notes
         ------
@@ -395,6 +409,8 @@ class AutoTrader:
             example, both start and end arguments must be provided together, 
             or alternatively, start_dt and end_dt must both be provided.
         """
+        # TODO - allow specifying spread dictionary to have custom spreads for 
+        # different products
         
         # Convert start and end strings to datetime objects
         if start_dt is None and end_dt is None:
@@ -411,6 +427,7 @@ class AutoTrader:
         self._virtual_leverage = leverage
         self._virtual_broker_hedging = hedging
         self._virtual_margin_call = margin_call_fraction
+        self._warmup_period = pd.Timedelta(warmup_period).to_pytimedelta()
         
         # Enforce virtual broker
         self._broker_name = 'virtual'
@@ -808,7 +825,11 @@ class AutoTrader:
         """
         bots = {}
         for bot in self._bots_deployed:
-            bots[bot.instrument] = bot
+            symbol = bot.instrument
+            if isinstance(symbol, list):
+                # Porfolio-trading bot
+                symbol = 'portfolio'
+            bots[symbol] = bot
         
         if instrument is not None:
             # Retrieve bot requested
@@ -844,6 +865,7 @@ class AutoTrader:
         backtest_summary = backtest_results.summary()
         start_date = backtest_summary['start'].strftime("%b %d %Y %H:%M:%S")
         end_date = backtest_summary['end'].strftime("%b %d %Y %H:%M:%S")
+        duration = backtest_summary['end'] - backtest_summary['start']
         
         starting_balance = backtest_summary['starting_balance']
         ending_balance = backtest_summary['ending_balance']
@@ -869,6 +891,7 @@ class AutoTrader:
         print("----------------------------------------------")
         print("Start date:              {}".format(start_date))
         print("End date:                {}".format(end_date))
+        print("Duration:                {}".format(duration))
         print("Starting balance:        ${}".format(round(starting_balance, 2)))
         print("Ending balance:          ${}".format(round(ending_balance, 2)))
         print("Ending NAV:              ${}".format(round(ending_NAV, 2)))
@@ -944,20 +967,33 @@ class AutoTrader:
             # Mutliple instruments traded
             instruments = backtest_results.instruments_traded
             trade_history = backtest_results.trade_history
-            instrument_trades = [trade_history[trade_history.instrument == i] for i in instruments]
-            # returns_per_instrument = [trade_history.profit[trade_history.instrument == i].cumsum() for i in instruments]
-            max_wins = [instrument_trades[i].profit.max() for i in range(len(instruments))]
-            max_losses = [instrument_trades[i].profit.min() for i in range(len(instruments))]
-            avg_wins = [instrument_trades[i].profit[instrument_trades[i].profit>0].mean() for i in range(len(instruments))]
-            avg_losses = [instrument_trades[i].profit[instrument_trades[i].profit<0].mean() for i in range(len(instruments))]
-            win_rates = [100*sum(instrument_trades[i].profit>0)/len(instrument_trades[i]) for i in range(len(instruments))]
+            
+            total_no_trades = []
+            max_wins = []
+            max_losses = []
+            avg_wins = []
+            avg_losses = []
+            profitable_trades = []
+            win_rates = []
+            for i in range(len(instruments)):
+                instrument_trades = trade_history[trade_history.instrument == \
+                                                  instruments[i]]
+                no_trades = len(instrument_trades)
+                total_no_trades.append(no_trades)
+                max_wins.append(instrument_trades.profit.max())
+                max_losses.append(instrument_trades.profit.min())
+                avg_wins.append(instrument_trades.profit[instrument_trades.profit>0].mean())
+                avg_losses.append(instrument_trades.profit[instrument_trades.profit<0].mean())
+                profitable_trades.append((instrument_trades.profit>0).sum())
+                win_rates.append(100*profitable_trades[i]/no_trades if \
+                                 no_trades > 0 else 0.0)
             
             results = pd.DataFrame(data={'Instrument': instruments, 
                                          'Max. Win': max_wins, 
                                          'Max. Loss': max_losses, 
                                          'Avg. Win': avg_wins, 
                                          'Avg. Loss': avg_losses, 
-                                         'Win rate': win_rates})
+                                         'Win Rate': win_rates}).fillna(0)
             
             print("\n Instrument Breakdown:")
             print(results.to_string(index=False))
@@ -991,10 +1027,10 @@ class AutoTrader:
             # No bot has been provided, select automatically
             if len(self.backtest_results.instruments_traded) > 1 or \
                 len(self._bots_deployed) > 1 or self._plot_portolio_chart:
-                # Multi-product backtest
+                # Multi-bot backtest
                 portfolio_plot()
             else:
-                # Single product backtest
+                # Single bot backtest
                 bot = self._bots_deployed[0]
                 single_instrument_plot(bot)
         else:
@@ -1053,7 +1089,8 @@ class AutoTrader:
         for strategy, config in self._strategy_configs.items():
             # Check for portfolio strategy
             portfolio = config['PORTFOLIO'] if 'PORTFOLIO' in config else False
-            watchlist = ["Portfolio"] if portfolio else config['WATCHLIST']
+            # watchlist = ["Portfolio"] if portfolio else config['WATCHLIST']
+            watchlist = [config['WATCHLIST']] if portfolio else config['WATCHLIST']
             for instrument in watchlist:
                 if portfolio:
                     data_dict = self._local_data
@@ -1084,12 +1121,11 @@ class AutoTrader:
         # Begin trading
         if self._run_mode.lower() == 'continuous':
             # Running in continuous update mode
-            # TODO - skip initial data collection period
             if self._backtest_mode:
                 # Backtesting
                 end_time = self._data_end # datetime
-                timestamp = self._data_start # datetime
-                pbar = tqdm(total=int((self._data_end - self._data_start).total_seconds()),
+                timestamp = self._data_start + self._warmup_period # datetime
+                pbar = tqdm(total=int((self._data_end - timestamp).total_seconds()),
                             position=0, leave=True)
                 while timestamp <= end_time:
                     # Update each bot with latest data to generate signal
@@ -1116,6 +1152,7 @@ class AutoTrader:
                             if int(self._verbosity) > 0:
                                 print("Error: failed to update bot running" +\
                                       f"{bot._strategy_name} ({bot.instrument})")
+                                traceback.print_exc()
                             
                     # Go to sleep until next update
                     time.sleep(self._timestep.seconds - ((time.time() - \
@@ -1158,7 +1195,7 @@ class AutoTrader:
                       f"{round((backtest_end_time - backtest_start_time), 3)} s).")
                 self.print_backtest_results()
                 
-            if self._show_plot:
+            if self._show_plot and len(self.backtest_results.trade_history) > 0:
                 self.plot_backtest()
         
         elif self._scan_mode and self._show_plot:

@@ -395,7 +395,8 @@ class Trade(Order):
         
     
     def __repr__(self):
-        return f'{round(self.size,3)} unit {self.instrument} trade'
+        direction = 'long' if self.direction > 0 else 'short'
+        return f'{round(self.size,3)} unit {direction} {self.instrument} trade'
         
     
     def __str__(self):
@@ -484,7 +485,7 @@ class Position:
             setattr(self, item, kwargs[item])
     
     def __repr__(self):
-        return f'AutoTrader Position in {self.instrument}'
+        return f'Position in {self.instrument}'
         
     
     def __str__(self):
