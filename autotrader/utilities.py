@@ -65,6 +65,7 @@ def get_config(environment: str, global_config: dict, feed: str) -> dict:
     dict
         The AutoTrader configuration dictionary.
     """
+    # TODO - allow kwargs in config
     
     if environment.lower() == 'real':
         # Live trading
@@ -96,6 +97,15 @@ def get_config(environment: str, global_config: dict, feed: str) -> dict:
                            'clientID': client_id,
                            'account': account,
                            'read_only': read_only}
+            
+        elif feed.upper() == 'CCXT':
+            api_key = global_config['api_key'] if 'api_key' in global_config else None
+            secret = global_config['secret'] if 'secret' in global_config else None
+            config_dict = {'data_source': 'CCXT',
+                           'exchange': global_config['exchange'],
+                           'api_key': api_key,
+                           'secret': secret,
+                           'sandbox_mode': False}
             
         elif feed.upper() == 'YAHOO':
             data_source = 'yfinance'
@@ -134,6 +144,16 @@ def get_config(environment: str, global_config: dict, feed: str) -> dict:
                            'clientID': client_id,
                            'account': account,
                            'read_only': read_only}
+        
+        elif feed.upper() == 'CCXT':
+            config = global_config['CCXT']
+            api_key = config['api_key'] if 'api_key' in config else None
+            secret = config['secret'] if 'secret' in config else None
+            config_dict = {'data_source': 'CCXT',
+                           'exchange': config['exchange'],
+                           'api_key': api_key,
+                           'secret': secret,
+                           'sandbox_mode': True}
             
         elif feed.upper() == 'YAHOO':
             data_source = 'yfinance'
@@ -722,7 +742,8 @@ class DataStream:
             
         else:
             # Download data
-            quote_data_func = getattr(self.get_data,f'_{self.feed.lower()}_quote_data')
+            quote_data_func = getattr(self.get_data,
+                                      f'_{self.feed.lower()}_quote_data')
             if self.portfolio:
                 # Portfolio strategy - quote data for each instrument
                 granularity = self.strategy_params['granularity']

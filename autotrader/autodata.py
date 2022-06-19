@@ -1,5 +1,6 @@
 import v20
 import time
+import ccxt
 import ib_insync
 import pandas as pd
 import yfinance as yf
@@ -74,7 +75,7 @@ class GetData:
                                    readonly=read_only, account=account)
             
             elif broker_config['data_source'] == 'CCXT':
-                self.ccxt_exchange = broker_config['exchange_instance']
+                self.ccxt_exchange = getattr(ccxt, broker_config['exchange'])()
             
         self.allow_dancing_bears = allow_dancing_bears
         self.home_currency = home_currency
@@ -731,3 +732,7 @@ class GetData:
         data.index = pd.to_datetime(data.index, unit='ms')
         
         return data
+    
+    
+    def _ccxt_quote_data(self,):
+        pass
