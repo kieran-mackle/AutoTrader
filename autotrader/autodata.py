@@ -737,5 +737,6 @@ class GetData:
     def _ccxt_quote_data(self, data: pd.DataFrame, pair: str, granularity: str, 
                          start_time: datetime, end_time: datetime, 
                          count: int = None):
-        # TODO - implement
+        """Returns the original price data for a CCXT data feed.
+        """
         return data
