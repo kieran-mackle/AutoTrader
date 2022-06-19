@@ -254,8 +254,8 @@ class GetData:
     
     
     def _oanda_quote_data(self, data: pd.DataFrame, pair: str, granularity: str, 
-                         start_time: datetime, end_time: datetime, 
-                         count: int = None):
+                          start_time: datetime, end_time: datetime, 
+                          count: int = None):
         """Function to retrieve price conversion data.
         """
         base_currency = pair[:3]
@@ -453,8 +453,8 @@ class GetData:
         
     
     def _yahoo_quote_data(self, data: pd.DataFrame, pair: str, interval: str,
-                         from_date: datetime, to_date: datetime, 
-                         count: int = None):
+                          from_date: datetime, to_date: datetime, 
+                          count: int = None):
         """Returns nominal price data - quote conversion not supported for 
         Yahoo finance API.
         """
@@ -734,5 +734,8 @@ class GetData:
         return data
     
     
-    def _ccxt_quote_data(self,):
-        pass
+    def _ccxt_quote_data(self, data: pd.DataFrame, pair: str, granularity: str, 
+                         start_time: datetime, end_time: datetime, 
+                         count: int = None):
+        # TODO - implement
+        return data
