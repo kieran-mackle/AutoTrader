@@ -41,10 +41,11 @@ class Broker:
         return self.api.fetchBalance()[self.base_currency]['total']
     
     
-    def get_balance(self) -> float:
+    def get_balance(self, instrument: str = None) -> float:
         """Returns account balance.
         """
-        return self.api.fetchBalance()[self.base_currency]['total']
+        instrument = self.base_currency if instrument is None else instrument
+        return self.api.fetchBalance()[instrument]['total']
         
     
     def place_order(self, order: Order, **kwargs) -> None:
