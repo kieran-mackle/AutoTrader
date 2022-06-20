@@ -1,4 +1,5 @@
 import ccxt
+from datetime import datetime
 from autotrader.brokers.trading import Order
 from autotrader.brokers.broker_utils import BrokerUtils
 
@@ -15,8 +16,16 @@ class Broker:
         exchange_instance = getattr(ccxt, self.exchange)
         self.api = exchange_instance({'apiKey': config['api_key'],
                                       'secret': config['secret']})
+        
+        # Load markets
+        markets = self.api.load_markets()
+        
         if config['sandbox_mode']:
             self.api.set_sandbox_mode(True)
+        
+        self.base_currency = config['base_currency']
+        
+        pause = 0
         
     
     def __repr__(self):
@@ -31,13 +40,13 @@ class Broker:
     def get_NAV(self) -> float:
         """Returns the net asset/liquidation value of the account.
         """
-        pass
+        return self.api.fetchBalance()[self.base_currency]['total']
     
     
     def get_balance(self) -> float:
         """Returns account balance.
         """
-        pass
+        return self.api.fetchBalance()[self.base_currency]['total']
         
     
     def place_order(self, order: Order, **kwargs) -> None:
@@ -49,10 +58,30 @@ class Broker:
         # Submit order to broker
         
     
-    def get_orders(self, instrument: str = None, **kwargs) -> dict:
-        """Returns all pending orders (have not been filled) in the account.
+    def get_orders(self, instrument: str = None, 
+                   order_status: str = 'open', **kwargs) -> dict:
+        """Returns orders associated with the account.
         """
-        pass
+        if instrument is None:
+            raise Exception("Instrument must be specified.")
+        
+        if order_status == 'open':
+            # Fetch open orders (waiting to be filled)
+            orders = self.api.fetchOpenOrders(instrument)
+            
+            
+        elif order_status == 'cancelled':
+            # Fetch cancelled orders                
+            orders = self.api.fetchCanceledOrders(instrument)
+        
+        elif order_status == 'closed':
+            # Fetch closed orders
+            orders = self.api.fetchClosedOrders(instrument)
+        
+        # Convert
+        orders = self._convert_list(orders, orders=True)
+        
+        return orders
     
     
     def cancel_order(self, order_id: int, **kwargs) -> None:
@@ -89,6 +118,42 @@ class Broker:
         pass
     
     
-    # Define here any private methods to support the public methods above
+    def _native_order(self, order):
+        """Returns a CCXT order as a native AutoTrader Order."""
+        direction = 1 if order['side'] == 'buy' else -1
+        order_type = order['info']['type'].lower()
+        
+        if order_type == 'limit':
+            limit_price = order['price']
+        else:
+            limit_price = None
+        
+        native_order = Order(instrument=order['symbol'],
+                             direction=direction, 
+                             order_type=order_type,
+                             status=order['status'],
+                             size=abs(order['amount']),
+                             id=order['id'],
+                             order_limit_price=limit_price,
+                             order_stop_price=order['stopPrice'],
+                             order_time=datetime.fromtimestamp(order['timestamp']/1000),
+                             )
+        return native_order
     
+    
+    def _native_trade(self, trade):
+        """Returns a CCXT trade as a native AutoTrader Trade."""
+        pass
+    
+    
+    def _convert_list(self, items, orders: bool = False, trades: bool = False):
+        """Converts a list of trades or orders to a dictionary."""
+        
+        native_func = '_native_order' if orders else '_native_trade'
+        converted = {}
+        for item in items:
+            native = getattr(self, native_func)(item)
+            converted[native.id] = native
+        
+        return converted
     
