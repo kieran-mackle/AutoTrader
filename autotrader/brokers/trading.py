@@ -390,7 +390,6 @@ class Trade(Order):
         # Inherit order attributes
         if order:
             self._inheret_order(order)
-            order.status = 'filled'
             self.parent_id = order.id
         
     
