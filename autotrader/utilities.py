@@ -99,13 +99,16 @@ def get_config(environment: str, global_config: dict, feed: str) -> dict:
                            'read_only': read_only}
             
         elif feed.upper() == 'CCXT':
-            api_key = global_config['api_key'] if 'api_key' in global_config else None
-            secret = global_config['secret'] if 'secret' in global_config else None
+            config = global_config['CCXT']
+            api_key = config['api_key'] if 'api_key' in config else None
+            secret = config['secret'] if 'secret' in config else None
+            currency = config['base_currency'] if 'base_currency' in config else 'USDT'
             config_dict = {'data_source': 'CCXT',
-                           'exchange': global_config['exchange'],
+                           'exchange': config['exchange'],
                            'api_key': api_key,
                            'secret': secret,
-                           'sandbox_mode': False}
+                           'sandbox_mode': False,
+                           'base_currency': currency}
             
         elif feed.upper() == 'YAHOO':
             data_source = 'yfinance'
@@ -149,11 +152,13 @@ def get_config(environment: str, global_config: dict, feed: str) -> dict:
             config = global_config['CCXT']
             api_key = config['api_key'] if 'api_key' in config else None
             secret = config['secret'] if 'secret' in config else None
+            currency = config['base_currency'] if 'base_currency' in config else 'USDT'
             config_dict = {'data_source': 'CCXT',
                            'exchange': config['exchange'],
                            'api_key': api_key,
                            'secret': secret,
-                           'sandbox_mode': True}
+                           'sandbox_mode': True,
+                           'base_currency': currency}
             
         elif feed.upper() == 'YAHOO':
             data_source = 'yfinance'
