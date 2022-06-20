@@ -1,7 +1,7 @@
 import ccxt
 from datetime import datetime
-from autotrader.brokers.trading import Order
 from autotrader.brokers.broker_utils import BrokerUtils
+from autotrader.brokers.trading import Order, Trade, Position
 
 
 class Broker:
@@ -24,8 +24,6 @@ class Broker:
             self.api.set_sandbox_mode(True)
         
         self.base_currency = config['base_currency']
-        
-        pause = 0
         
     
     def __repr__(self):
@@ -93,7 +91,9 @@ class Broker:
     def get_trades(self, instrument: str = None, **kwargs) -> dict:
         """Returns the open trades held by the account. 
         """
-        pass
+        trades_list = self.api.fetchMyTrades(instrument)
+        trades = self._convert_list(trades_list, trades=True)
+        return trades
     
     
     def get_trade_details(self, trade_ID: str) -> dict:
@@ -143,17 +143,25 @@ class Broker:
     
     def _native_trade(self, trade):
         """Returns a CCXT trade as a native AutoTrader Trade."""
-        pass
+        direction = 1 if trade['side'] == 'buy' else -1
+        native_trade = Trade(instrument=trade['symbol'],
+                             direction=direction,
+                             size=abs(trade['amount']),
+                             id=trade['id'],
+                             parent_id=trade['info']['orderId'],
+                             fill_price=trade['price'],
+                             time_filled=datetime.fromtimestamp(trade['timestamp']/1000),
+                             fees=trade['fee']['cost'])
+        
+        return native_trade
     
     
     def _convert_list(self, items, orders: bool = False, trades: bool = False):
         """Converts a list of trades or orders to a dictionary."""
-        
         native_func = '_native_order' if orders else '_native_trade'
         converted = {}
         for item in items:
             native = getattr(self, native_func)(item)
             converted[native.id] = native
-        
         return converted
     
