@@ -143,8 +143,11 @@ class Broker:
                   f"Order Price: {working_price}\nTake Profit: {order.take_profit}"
             invalid_order = True
         
-        # Append order to orders
+        # Assign order ID
         order.id = self._get_new_order_id()
+        
+        # Move order to pending_orders dict
+        order.status = 'pending'
         try:
             self.pending_orders[order.instrument][order.id] = order
         except KeyError:
@@ -154,11 +157,17 @@ class Broker:
         if invalid_order:
             if self.verbosity > 0:
                 print(f"  Order {order.id} rejected.\n")
-            self.cancel_order(order.id, reason)
+            self.cancel_order(order.instrument, order.id, reason, 
+                              'pending_orders')
         else:
             immediate_orders = ['close', 'reduce', 'modify']
-            status = 'open' if order.order_type in immediate_orders else 'pending'
-            order.status = status
+            open_order = True if order.order_type in immediate_orders else False
+        
+        # Either move order to pending or open orders, depending on status
+        if open_order:
+            # Move to open orders
+            self._move_order(order, from_dict='pending_orders',
+                                 to_dict='open_orders', new_status='open')
         
     
     def get_orders(self, instrument: str = None, 
@@ -179,13 +188,15 @@ class Broker:
     
     
     def cancel_order(self, instrument: str, order_id: int, 
-                     reason: str = None) -> None:
+                     reason: str = None, 
+                     from_dict: str = 'open_orders') -> None:
         """Cancels the order.
         """
-        # Move the order from open to cancelled orders
+        from_dict = getattr(self, from_dict)
+        
         if instrument not in self.cancelled_orders: 
             self.cancelled_orders[instrument] = {}
-        self.cancelled_orders[instrument][order_id] = self.open_orders.pop(order_id)
+        self.cancelled_orders[instrument][order_id] = from_dict.pop(order_id)
         self.cancelled_orders[instrument][order_id].reason = reason
         self.cancelled_orders[instrument][order_id].status = 'cancelled'
         
@@ -311,7 +322,7 @@ class Broker:
                 else:
                     # Reduce the current position
                     self._reduce_position(order)
-                    self._move_to_filled(order)
+                    self._move_order(order)
                     return
             
         # Calculate margin requirements
@@ -346,7 +357,7 @@ class Broker:
                 self.open_trades[instrument] = {trade_id: trade}
             
             # Move order to filled_orders dict
-            self._move_to_filled(order)
+            self._move_order(order)
             
         else:
             # Cancel order
@@ -354,13 +365,18 @@ class Broker:
             self.cancel_order(order_id, cancel_reason)
     
     
-    def _move_to_filled(self, order: Order):
-        """Moves an order from open_orders to filled_orders."""
-        order.status = 'filled'
+    def _move_order(self, order: Order, from_dict: str = 'open_orders', 
+                        to_dict: str = 'filled_orders', 
+                        new_status: str = 'filled'):
+        """Moves an order from the from_dict to the to_dict."""
+        order.status = new_status
+        from_dict = getattr(self, from_dict)[order.instrument]
+        to_dict = getattr(self, to_dict)
+        popped_item = from_dict.pop(order.id)
         try:
-            self.filled_orders[order.instrument][order.id] = self.open_orders.pop(order.id)
+            to_dict[order.instrument][order.id] = popped_item
         except KeyError:
-            self.filled_orders[order.instrument] = {order.id: self.open_orders.pop(order.id)}
+            to_dict[order.instrument] = {order.id: popped_item}
     
     
     def _update_positions(self, candle: pd.core.series.Series, 
@@ -370,19 +386,14 @@ class Broker:
         
         # Open pending orders
         pending_orders = self.get_orders(instrument, 'pending').copy()
-        for order_id, order in self.pending_orders.items():
+        for order_id, order in pending_orders.items():
             if candle.name > order.order_time:
-                order.status = 'open'
-                try:
-                    self.open_orders[instrument][order_id] = pending_orders.pop(order_id)
-                except KeyError:
-                    self.open_orders[instrument] = {order_id: pending_orders.pop(order_id)}
-        self.pending_orders = pending_orders
+                self._move_order(order, from_dict='pending_orders',
+                                 to_dict='open_orders', new_status='open')
         
         # Update open orders for current instrument
         open_orders = self.get_orders(instrument).copy()
         for order_id, order in open_orders.items():
-            # Filter orders by instrument type since candle is instrument specific
             if order.order_type == 'market':
                 # Market order type - proceed to fill
                 self._fill_order(instrument, order_id, candle)
@@ -401,11 +412,11 @@ class Broker:
                 related_order = order.related_orders
                 self._close_position(order.instrument, candle, 
                                      candle.Close, trade_id = related_order)
-                self._move_to_filled(order)
+                self._move_order(order)
                 
             elif order.order_type == 'reduce':
                 self._reduce_position(order)
-                self._move_to_filled(order)
+                self._move_order(order)
                 
             # Check for limit orders
             if order.order_type == 'limit':
@@ -517,8 +528,8 @@ class Broker:
         
         if trade_id:
             # single trade specified to close
-            self._close_trade(trade_id=trade_id, exit_price=exit_price,
-                              candle=candle)
+            self._close_trade(instrument, trade_id=trade_id, 
+                              exit_price=exit_price, candle=candle)
         else:
             # Close all positions for instrument
             open_trades = self.open_trades[instrument].copy()
@@ -571,10 +582,11 @@ class Broker:
             trade.exit_time = candle.name 
         trade.status = 'closed'
         
+        popped_trade = self.open_trades[instrument].pop(trade_id)
         try:
-            self.closed_trades[instrument][trade_id] = self.open_trades.pop(trade_id)
+            self.closed_trades[instrument][trade_id] = popped_trade
         except KeyError:
-            self.closed_trades[instrument] = {trade_id: self.open_trades.pop(trade_id)}
+            self.closed_trades[instrument] = {trade_id: popped_trade}
         
         # Update account
         self._add_funds(net_profit)
@@ -736,7 +748,7 @@ class Broker:
             self._update_take_profit(instrument, modify_trade_id, order.take_profit)
         
         # Move order to filled_orders dict
-        self._move_to_filled(order)
+        self._move_order(order)
         
         
     def _update_stop_loss(self, instrument: str, trade_id: int, 
@@ -756,11 +768,13 @@ class Broker:
         
         
     def _get_new_order_id(self):
-        return self._last_order_id + 1
+        self._last_order_id += 1
+        return self._last_order_id
     
     
     def _get_new_trade_id(self):
-        return self._last_trade_id + 1
+        self._last_trade_id += 1
+        return self._last_trade_id
     
     
     def _margin_call(self, instrument: str, candle: pd.core.series.Series):
