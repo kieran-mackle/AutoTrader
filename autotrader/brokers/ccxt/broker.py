@@ -25,6 +25,9 @@ class Broker:
         
         self.base_currency = config['base_currency']
         
+        orders = self.get_orders('XBTUSD')
+        db = 0
+        
     
     def __repr__(self):
         return f'AutoTrader-{self.exchange[0].upper()}'+\
@@ -55,6 +58,9 @@ class Broker:
         order()
         
         # Submit order to broker
+        side = 'buy' if order.direction > 0 else 'sell'
+        order = self.api.createOrder(order.instrument, order.order_type,
+                                     side, order.size, order.order_limit_price)
         
     
     def get_orders(self, instrument: str = None, 
@@ -86,7 +92,7 @@ class Broker:
     def cancel_order(self, order_id: int, **kwargs) -> None:
         """Cancels order by order ID.
         """
-        pass
+        cancelled_order = self.api.cancelOrder(order_id)
     
     
     def get_trades(self, instrument: str = None, **kwargs) -> dict:
@@ -116,13 +122,17 @@ class Broker:
         open_positions : dict
             A dictionary containing details of the open positions.
         """
-        pass
+        positions = self.api.fetchPosition(instrument, params=kwargs)
+        
+        # TODO - convert positions to native Positions
+        
+        return positions
     
     
     def _native_order(self, order):
         """Returns a CCXT order as a native AutoTrader Order."""
         direction = 1 if order['side'] == 'buy' else -1
-        order_type = order['info']['type'].lower()
+        order_type = order['type'].lower()
         
         if order_type == 'limit':
             limit_price = order['price']
@@ -166,3 +176,10 @@ class Broker:
             converted[native.id] = native
         return converted
     
+    
+    def _modify_order(self, order, old_order_id):
+        # TODO - implement for self.api.editOrder
+        side = 'buy' if order.direction > 0 else 'sell'
+        modified_order = self.api.editOrder(old_order_id, order.instrument,
+                                            order.order_type, side, order.size,
+                                            order.order_limit_price)
