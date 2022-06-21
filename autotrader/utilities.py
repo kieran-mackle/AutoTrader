@@ -308,7 +308,10 @@ class BacktestResults:
                                                       instrument=instrument)
         
         # Construct account history
-        account_history = broker.account_history.copy()
+        account_history = pd.DataFrame(data={'NAV': broker._NAV_hist, 
+                                             'equity': broker._equity_hist, 
+                                             'margin': broker._margin_hist},
+                                       index=broker._time_hist)
         
         # Create history of holdings
         holdings = broker.holdings.copy()

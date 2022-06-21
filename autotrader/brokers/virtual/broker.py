@@ -71,7 +71,11 @@ class Broker:
         self.commission = 0
         
         # History
-        self.account_history = pd.DataFrame()
+        self._NAV_hist = []
+        self._equity_hist = []
+        self._margin_hist = []
+        self._time_hist = []
+        
         self.holdings = []
         
         # Last order and trade counts
@@ -509,12 +513,10 @@ class Broker:
         self.NAV = self.equity + self.floating_pnl
         
         # Update account history
-        account_snapshot = pd.DataFrame(data={'NAV': self.NAV, 
-                                              'equity': self.equity, 
-                                              'margin': self.margin_available,}, 
-                                        index=[candle.name])
-        self.account_history = pd.concat([self.account_history,
-                                          account_snapshot])
+        self._NAV_hist.append(self.NAV)
+        self._equity_hist.append(self.equity)
+        self._margin_hist.append(self.margin_available)
+        self._time_hist.append(candle.name)
         
         # TODO - dont record holdings when not plotting, or by specification
         holdings = self._get_holding_allocations()
@@ -606,8 +608,7 @@ class Broker:
         reduction_direction = order.direction
         
         # Get open trades for instrument
-        open_trades = self.open_trades[instrument]
-        # open_trade_IDs = list(open_trades.keys())
+        open_trades = self.open_trades[instrument].copy()
         
         # Modify existing trades until there are no more units to reduce
         units_to_reduce = reduction_size
@@ -619,7 +620,8 @@ class Broker:
                     if units_to_reduce >= trade.size:
                         # Entire trade must be closed
                         last_price = trade.last_price
-                        self._close_trade(trade_id=trade_id, exit_price=last_price)
+                        self._close_trade(instrument, trade_id=trade_id, 
+                                          exit_price=last_price)
                         
                         # Update units_to_reduce
                         units_to_reduce -= abs(trade.size)
