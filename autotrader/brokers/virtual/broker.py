@@ -192,7 +192,7 @@ class Broker:
                      from_dict: str = 'open_orders') -> None:
         """Cancels the order.
         """
-        from_dict = getattr(self, from_dict)
+        from_dict = getattr(self, from_dict)[instrument]
         
         if instrument not in self.cancelled_orders: 
             self.cancelled_orders[instrument] = {}
@@ -216,7 +216,7 @@ class Broker:
             except KeyError:
                 trades = {}
         else:
-            # Return all currently open positions
+            # Return all currently open trades
             trades = {}
             for instr, instr_trades in all_trades.items():
                 trades.update(instr_trades)
@@ -362,7 +362,7 @@ class Broker:
         else:
             # Cancel order
             cancel_reason = "Insufficient margin to fill order."
-            self.cancel_order(order_id, cancel_reason)
+            self.cancel_order(instrument, order_id, cancel_reason)
     
     
     def _move_order(self, order: Order, from_dict: str = 'open_orders', 
