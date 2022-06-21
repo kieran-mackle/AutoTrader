@@ -105,6 +105,7 @@ class AutoTrader:
         self._data_start = None
         self._data_end = None
         self.backtest_results = None
+        self._process_holding_history = True
         
         # Local Data Parameters
         self._data_indexing = 'open'
@@ -370,7 +371,8 @@ class AutoTrader:
                  commission: float = 0, leverage: int = 1,
                  start_dt: datetime = None, end_dt: datetime = None, 
                  hedging: bool = False, margin_call_fraction: float = 0, 
-                 warmup_period: str = '0s') -> None:
+                 warmup_period: str = '0s', 
+                 process_holding_history: bool = True) -> None:
         """Configures settings for backtesting.
 
         Parameters
@@ -402,6 +404,11 @@ class AutoTrader:
             A string describing the warmup period to be used. This is 
             equivalent to the minimum period of time required to collect 
             sufficient data for the strategy. The default is '0s'.
+        process_holding_history : bool, optional
+            A boolean flag to proccess the acconut holding history across 
+            a backtest into a nicer format. Setting this to False can greatly
+            speedup the time taken to post-process a backtest. The default is
+            True.
             
         Notes
         ------
@@ -428,6 +435,7 @@ class AutoTrader:
         self._virtual_broker_hedging = hedging
         self._virtual_margin_call = margin_call_fraction
         self._warmup_period = pd.Timedelta(warmup_period).to_pytimedelta()
+        self._process_holding_history = process_holding_history
         
         # Enforce virtual broker
         self._broker_name = 'virtual'
@@ -1183,12 +1191,13 @@ class AutoTrader:
             
         # Run instance shut-down routine
         if self._backtest_mode:
-            # Create total backtest results
-            self.backtest_results = BacktestResults(self._broker)
+            # Create overall backtest results
+            self.backtest_results = BacktestResults(self._broker, 
+                        process_holding_history=self._process_holding_history)
             
             # Create backtest results for each bot
             for bot in self._bots_deployed:
-                bot._create_backtest_results()            
+                bot._create_backtest_results()
             
             if int(self._verbosity) > 0:
                 print("Backtest complete (runtime " + \

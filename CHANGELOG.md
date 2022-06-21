@@ -1,5 +1,10 @@
 # AutoTrader Changelog
 
+## Version 0.6.7 (Unreleased)
+### Features
+- Major backtest speed improvements: over 50% reduction in backtest time for 
+  large, multi-asset backtests
+
 
 ## Version 0.6.6
 ### Features 

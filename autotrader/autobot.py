@@ -551,7 +551,8 @@ class AutoTraderBot:
     def _create_backtest_results(self) -> dict:
         """Constructs backtest summary dictionary for further processing.
         """
-        backtest_results = BacktestResults(self._broker, self.instrument)
+        backtest_results = BacktestResults(self._broker, self.instrument, 
+                                           self._process_holding_history)
         backtest_results.indicators = self._strategy.indicators if \
             hasattr(self._strategy, 'indicators') else None
         backtest_results.data = self.data
