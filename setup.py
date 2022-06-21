@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name="autotrader",
-    version="0.6.5",
+    version="0.6.6",
     author="Kieran Mackle",
     author_email="kemackle98@gmail.com",
     license="gpl-3.0",

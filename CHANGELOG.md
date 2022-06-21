@@ -1,5 +1,10 @@
 # AutoTrader Changelog
 
+## Version 0.6.7 (Unreleased)
+### Features
+- Major backtest speed improvements: over 50% reduction in backtest time for 
+  large, multi-asset backtests
+
 
 ## Version 0.6.6
 ### Features 
@@ -11,7 +16,7 @@
 - All instruments will be passed to a portfolio strategy as a list using the 
   `instrument` argument
 - Instrument specific pip values can be provided when creating an order 
-- Improved Trade `__repr__`
+- Improved Trade and Position `__repr__` methods
 
 ### Fixes
 - Bug with floating pnl calculation when running multi-instrument backtests
