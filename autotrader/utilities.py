@@ -292,9 +292,19 @@ class BacktestResults:
         """Analyses backtest and creates summary of key details.
         """
         # Construct trade and order summaries
-        trades = BacktestResults.create_trade_summary(trades=broker.trades, 
+        all_trades = {}
+        for status in ['open', 'closed']:
+            trades = broker.get_trades(trade_status=status)
+            all_trades.update(trades)
+        
+        all_orders = {}
+        for status in ['pending', 'open', 'filled', 'cancelled']:
+            orders = broker.get_orders(order_status=status)
+            all_orders.update(orders)
+        
+        trades = BacktestResults.create_trade_summary(trades=all_trades, 
                                                       instrument=instrument)
-        orders = BacktestResults.create_trade_summary(orders=broker.orders, 
+        orders = BacktestResults.create_trade_summary(orders=all_orders, 
                                                       instrument=instrument)
         
         # Construct account history
