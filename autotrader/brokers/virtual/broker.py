@@ -75,7 +75,6 @@ class Broker:
         self._equity_hist = []
         self._margin_hist = []
         self._time_hist = []
-        
         self.holdings = []
         
         # Last order and trade counts
@@ -518,7 +517,6 @@ class Broker:
         self._margin_hist.append(self.margin_available)
         self._time_hist.append(candle.name)
         
-        # TODO - dont record holdings when not plotting, or by specification
         holdings = self._get_holding_allocations()
         self.holdings.append(holdings)
         

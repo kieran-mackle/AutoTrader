@@ -266,7 +266,8 @@ class BacktestResults:
     
     """
     
-    def __init__(self, broker: Broker, instrument: str = None):
+    def __init__(self, broker: Broker, instrument: str = None, 
+                 process_holding_history: bool = True):
         
         self.instruments_traded = None
         self.account_history = None
@@ -275,9 +276,8 @@ class BacktestResults:
         self.order_history = None
         self.open_trades = None
         self.cancelled_orders = None
-        self._bots = None # TODO - implement
         
-        self.analyse_backtest(broker, instrument)
+        self.analyse_backtest(broker, instrument, process_holding_history)
     
     
     def __str__(self):
@@ -288,7 +288,8 @@ class BacktestResults:
         return 'AutoTrader Backtest Results'
         
     
-    def analyse_backtest(self, broker: Broker, instrument: str = None):
+    def analyse_backtest(self, broker: Broker, instrument: str = None,
+                         process_holding_history: bool = True):
         """Analyses backtest and creates summary of key details.
         """
         # Construct trade and order summaries
@@ -314,22 +315,24 @@ class BacktestResults:
                                        index=broker._time_hist)
         
         # Create history of holdings
-        holdings = broker.holdings.copy()
-        holding_history = pd.DataFrame(columns=list(orders.instrument.unique()),
-                                       index=account_history.index)
-        for i in range(len(holding_history)):
-            try:
-                holding_history.iloc[i] = holdings[i]
-            except:
-                pass
-        holding_history.fillna(0, inplace=True)
-        
-        for col in holding_history.columns:
-            holding_history[col] = holding_history[col] / account_history.NAV
-        
-        # Drop duplicated indices from multiple product updates 
-        holding_history = holding_history[~holding_history.index.duplicated(keep='last')]
-        holding_history['cash'] = 1 - holding_history.sum(1)
+        holding_history = None
+        if process_holding_history:
+            holdings = broker.holdings.copy()
+            holding_history = pd.DataFrame(columns=list(orders.instrument.unique()),
+                                            index=account_history.index)
+            for i in range(len(holding_history)):
+                try:
+                    holding_history.iloc[i] = holdings[i]
+                except:
+                    pass
+            holding_history.fillna(0, inplace=True)
+            
+            for col in holding_history.columns:
+                holding_history[col] = holding_history[col] / account_history.NAV
+            
+            # Drop duplicated indices from multiple product updates 
+            holding_history = holding_history[~holding_history.index.duplicated(keep='last')]
+            holding_history['cash'] = 1 - holding_history.sum(1)
         
         account_history = account_history[~account_history.index.duplicated(keep='last')]
         account_history['drawdown'] = account_history.NAV/account_history.NAV.cummax() - 1
@@ -351,8 +354,6 @@ class BacktestResults:
         """
         
         instrument = None if isinstance(instrument, list) else instrument
-        
-        # TODO - index by ID
         
         if trades is not None:
             iter_dict = trades
