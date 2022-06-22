@@ -1156,6 +1156,8 @@ class AutoTrader:
                     for bot in self._bots_deployed:
                         try:
                             bot._update(timestamp=datetime.now(timezone.utc))
+                        except KeyboardInterrupt:
+                            raise Exception("Keyboard Interrupt.")
                         except:
                             if int(self._verbosity) > 0:
                                 print("Error: failed to update bot running" +\
