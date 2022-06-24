@@ -1,7 +1,7 @@
 import pandas as pd
 from datetime import datetime
 from dydx3 import Client, constants
-from autotrader.brokers.trading import Order
+from autotrader.brokers.trading import Order, Position
 from autotrader.brokers.broker_utils import BrokerUtils
 
 
@@ -21,12 +21,6 @@ class Broker:
                 eth_private_key=config['ETH_PRIV_KEY'],
                 default_ethereum_address=config['ETH_ADDR']
                 )
-        
-        order = Order(instrument='ALGO-USD', 
-                      size=10, order_type='limit',
-                      order_limit_price=0.2, direction=1, 
-                      post_only=True)
-        db = 0
         
     
     def __repr__(self):
@@ -54,8 +48,6 @@ class Broker:
         """Disassemble order_details dictionary to place order.
         """
         # TODO - build in checking of constants.__dict__ for instrument
-        
-        # TODO - error with trigger_price
         
         # Call order to set order time
         order()
@@ -134,8 +126,10 @@ class Broker:
         open_positions : dict
             A dictionary containing details of the open positions.
         """
-        # TODO - use instrument provided
-        positions = self.api.private.get_positions()
+        status = kwargs['status'].upper() if 'status' in kwargs else 'OPEN'
+        positions = self.api.private.get_positions(market=instrument,
+                                                   status=status)
+        positions = self._convert_position_list(positions.data['positions'])
         return positions
     
     
@@ -221,4 +215,29 @@ class Broker:
             native_order = self._native_order(order)
             orders[native_order.id] = native_order
         return orders
+        
+    
+    def _native_position(self, dydx_position):
+        """Converts a dydx position to a native AutoTrader Position."""
+        if dydx_position['side'] == 'SHORT':
+            position_units = {'short_units': float(dydx_position['size']),
+                              'short_PL': dydx_position['unrealizedPnl']}
+        else:
+            position_units = {'long_units': float(dydx_position['size']),
+                              'long_PL': dydx_position['unrealizedPnl']}
+        
+        native_position = Position(instrument=dydx_position['market'],
+                                   net_position=float(dydx_position['size']),
+                                   PL=dydx_position['unrealizedPnl'],
+                                   **position_units
+                                   )
+        return native_position
+    
+    
+    def _convert_position_list(self, dydx_position_list):
+        positions = {}
+        for position in dydx_position_list:
+            positions[position['market']] = self._native_position(position)
+        return positions
+        
         
