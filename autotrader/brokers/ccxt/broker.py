@@ -25,7 +25,7 @@ class Broker:
         
         self.base_currency = config['base_currency']
         
-        orders = self.get_orders('XBTUSD')
+        # trades = self.get_trades('XBTUSD')
         db = 0
         
     
@@ -155,11 +155,13 @@ class Broker:
     def _native_trade(self, trade):
         """Returns a CCXT trade as a native AutoTrader Trade."""
         direction = 1 if trade['side'] == 'buy' else -1
+        # parent_order_id = trade['info']['orderId']
+        parent_order_id = trade['info']['orderID']
         native_trade = Trade(instrument=trade['symbol'],
                              direction=direction,
                              size=abs(trade['amount']),
                              id=trade['id'],
-                             parent_id=trade['info']['orderId'],
+                             parent_id=parent_order_id,
                              fill_price=trade['price'],
                              time_filled=datetime.fromtimestamp(trade['timestamp']/1000),
                              fees=trade['fee']['cost'])
