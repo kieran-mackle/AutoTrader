@@ -68,9 +68,10 @@ class Broker:
             order.order_limit_price is not None else None
         trigger_price = str(order.order_stop_price) if \
             order.order_stop_price is not None else None
+        position_id = self._get_account()['positionId']
         
         # Submit order to dydx
-        order = self.api.private.create_order(position_id=1, 
+        order = self.api.private.create_order(position_id=position_id, 
                                               market=order.instrument, 
                                               side=side,
                                               order_type=order_type, 
@@ -81,7 +82,7 @@ class Broker:
                                               trigger_price=trigger_price,
                                               expiration_epoch_seconds=expiration)
         
-        return order
+        return self._native_order(order.data['order'])
         
     
     def get_orders(self, instrument: str = None, **kwargs) -> dict:
@@ -98,7 +99,14 @@ class Broker:
     def cancel_order(self, order_id: int, **kwargs) -> None:
         """Cancels order by order ID.
         """
-        pass
+        cancelled_order = self.api.private.cancel_order(order_id)
+        
+        return self._native_order(cancelled_order.data['order'])
+    
+    
+    def cancel_all_orders(self, instrument: str = None, **kwargs):
+        cancelled_orders = self.api.private.cancel_all_orders(market=instrument)
+        return cancelled_orders
     
     
     def get_trades(self, instrument: str = None, **kwargs) -> dict:
