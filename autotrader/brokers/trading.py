@@ -92,6 +92,9 @@ class Order:
         # Oanda attributes
         self.trigger_price = "DEFAULT"
         
+        # dydx attributes
+        self.post_only = False
+        
         self.reason = None
         
         self.strategy = None
