@@ -102,7 +102,8 @@ def get_config(environment: str, global_config: dict, feed: str) -> dict:
                 in global_config else None
             eth_private_key = global_config['ETH_PRIV_KEY'] if 'ETH_PRIV_KEY' \
                 in global_config else None
-            config_dict = {'API_KEY': global_config['API_KEYS'],
+            config_dict = {'data_source': 'dYdX',
+                           'API_KEY': global_config['API_KEYS'],
                            'STARK_KEYS': global_config['STARK_KEYS'],
                            'ETH_ADDR': eth_address,
                            'ETH_PRIV_KEY': eth_private_key}

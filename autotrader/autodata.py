@@ -1,8 +1,10 @@
 import v20
+import time
 import ib_insync
 import pandas as pd
 import yfinance as yf
 from typing import Union
+from dydx3 import Client
 from autotrader.brokers.trading import Order
 from datetime import datetime, timedelta, timezone
 from autotrader.brokers.ib.utils import Utils as IB_Utils
@@ -70,6 +72,9 @@ class GetData:
                 self.ibapi = ib_insync.IB()
                 self.ibapi.connect(host=host, port=port, clientId=client_id, 
                                    readonly=read_only, account=account)
+            
+            elif broker_config['data_source'] == 'dYdX':
+                self.api = Client(host='https://api.dydx.exchange')
             
         self.allow_dancing_bears = allow_dancing_bears
         self.home_currency = home_currency
@@ -632,3 +637,93 @@ class GetData:
         end dates (as close as possible).
         """
         return data[(data.index >= start_date) & (data.index <= end_date)]
+    
+    
+    def dydx(self, instrument: str, granularity: str, count: int = None, 
+             start_time: datetime = None, 
+             end_time: datetime = None) -> pd.DataFrame:
+      """Retrieves historical price data of a instrument from dYdX.
+      
+      Parameters
+      ----------
+      instrument : str
+          The instrument/market to fetch data for.
+      granularity : str
+          The candlestick granularity (1DAY, 4HOURS, 1HOUR, 30MINS, 15MINS, 
+                                       5MINS, or 1MIN).
+      count : int, optional
+          The number of candles to fetch (maximum of 100). The default is None.
+      start_time : datetime, optional
+          The data start time. The default is None.
+      end_time : datetime, optional
+          The data end time. The default is None.
+      Returns
+      -------
+      data : DataFrame
+          The price data, as an OHLCV DataFrame.
+      """
+      
+      def fetch_between_dates():
+          # Fetches data between two dates
+          count = 100
+          start = start_time
+          end = end_time
+          
+          data = []
+          while start <= end:
+              raw_data = self.api.public.get_candles(instrument, 
+                                                     resolution=granularity, 
+                                                     from_iso=start.isoformat(),
+                                                     # to_iso=end.isoformat(),
+                                                     limit=count).data['candles']
+              # Append data
+              data += raw_data[::-1]
+              
+              # Increment start 
+              start = datetime.strptime(raw_data[-1]['updatedAt'], 
+                                              '%Y-%m-%dT%H:%M:%S.%fZ')
+              
+              # Sleep to prevent API rate-limiting
+              time.sleep(0.1)
+              
+          return data
+          
+      if count is not None:
+          if start_time is None and end_time is None:
+              # Fetch N most recent candles
+              raw_data = self.api.public.get_candles(market=instrument, 
+                                                     resolution=granularity, 
+                                                     limit=count).data['candles'][::-1]
+          elif start_time is not None and end_time is None:
+              # Fetch N candles since start_time
+              raw_data = self.api.public.get_candles(market=instrument, 
+                                                     resolution=granularity, 
+                                                     from_iso=start_time.isoformat(),
+                                                     limit=count).data['candles'][::-1]
+          elif end_time is not None and start_time is None:
+              raw_data = self.api.public.get_candles(market=instrument, 
+                                                     resolution=granularity, 
+                                                     to_iso=end_time.isoformat(),
+                                                     limit=count).data['candles'][::-1]
+          else:
+              raw_data = fetch_between_dates()
+              
+      else:
+          # Count is None
+          try:
+              assert start_time is not None and end_time is not None
+              raw_data = fetch_between_dates()
+              
+          except AssertionError:
+              raise Exception("When no count is provided, both start_time "+\
+                              "and end_time must be provided.")
+      
+      # Process data 
+      data = pd.DataFrame(raw_data)
+      data.rename(columns={'open': 'Open', 'high': 'High', 
+                   'low': 'Low', 'close': 'Close'}, inplace=True)
+      data.index = pd.to_datetime(data['updatedAt'], format='%Y-%m-%dT%H:%M:%S.%fZ')
+      data.drop(['startedAt', 'updatedAt', 'market', 'resolution'], axis=1, 
+                inplace=True)
+      
+      return data
