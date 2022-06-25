@@ -663,11 +663,16 @@ class GetData:
           The price data, as an OHLCV DataFrame.
       """
       
+      granularity_to_td = {'1DAY': '1day', '4HOURS': '4h', '1HOUR': '1h',
+                           '30MINS': '30min', '15MINS': '15min', 
+                           '5MINS': '5min', '1MIN': '1min'}
+      
       def fetch_between_dates():
           # Fetches data between two dates
           data = []
           start = start_time
           last = start
+          timestep = pd.Timedelta(granularity_to_td[granularity])
           while last < end_time:
               raw_data = self.api.public.get_candles(instrument, 
                                                      resolution=granularity, 
@@ -679,8 +684,7 @@ class GetData:
               # Increment end time
               last = datetime.strptime(data[-1]['updatedAt'], 
                                               '%Y-%m-%dT%H:%M:%S.%fZ')
-              start = last - datetime.strptime(data[0]['updatedAt'], 
-                                               '%Y-%m-%dT%H:%M:%S.%fZ') + last
+              start = last + 100*timestep
               
               if len(raw_data) > 0:
                   # Sleep to prevent API rate-limiting
