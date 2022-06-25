@@ -732,7 +732,7 @@ class GetData:
       data.drop(['startedAt', 'updatedAt', 'market', 'resolution'], axis=1, 
                 inplace=True)
       data = data.apply(pd.to_numeric, errors='ignore')
-      
+      data.drop_duplicates(inplace=True)
       return data
 
 
