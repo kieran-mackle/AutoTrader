@@ -665,26 +665,28 @@ class GetData:
       
       def fetch_between_dates():
           # Fetches data between two dates
-          count = 100
-          start = start_time
-          end = end_time
-          
           data = []
-          while start <= end:
+          start = start_time
+          last = start
+          while last < end_time:
               raw_data = self.api.public.get_candles(instrument, 
                                                      resolution=granularity, 
-                                                     from_iso=start.isoformat(),
-                                                     # to_iso=end.isoformat(),
-                                                     limit=count).data['candles']
+                                                     to_iso=start.isoformat(),
+                                                     ).data['candles']
               # Append data
               data += raw_data[::-1]
               
-              # Increment start 
-              start = datetime.strptime(raw_data[-1]['updatedAt'], 
+              # Increment end time
+              last = datetime.strptime(data[-1]['updatedAt'], 
                                               '%Y-%m-%dT%H:%M:%S.%fZ')
+              start = last - datetime.strptime(data[0]['updatedAt'], 
+                                               '%Y-%m-%dT%H:%M:%S.%fZ') + last
               
-              # Sleep to prevent API rate-limiting
-              time.sleep(0.1)
+              if len(raw_data) > 0:
+                  # Sleep to prevent API rate-limiting
+                  time.sleep(0.1)
+              else:
+                  start = end_time
               
           return data
           
@@ -727,3 +729,11 @@ class GetData:
                 inplace=True)
       
       return data
+
+
+    def _dydx_quote_data(self, data: pd.DataFrame, pair: str, granularity: str, 
+                         start_time: datetime, end_time: datetime, 
+                         count: int = None):
+        """Returns the original price data for a dYdX data feed.
+        """
+        return data
