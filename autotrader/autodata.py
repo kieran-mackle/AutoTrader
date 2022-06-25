@@ -727,6 +727,7 @@ class GetData:
       data.index = pd.to_datetime(data['updatedAt'], format='%Y-%m-%dT%H:%M:%S.%fZ')
       data.drop(['startedAt', 'updatedAt', 'market', 'resolution'], axis=1, 
                 inplace=True)
+      data = data.apply(pd.to_numeric, errors='ignore')
       
       return data
 
