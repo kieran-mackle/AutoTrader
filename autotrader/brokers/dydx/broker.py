@@ -22,7 +22,6 @@ class Broker:
                 default_ethereum_address=config['ETH_ADDR']
                 )
         
-        db = 0
     
     def __repr__(self):
         return 'AutoTrader-dYdX interface'
@@ -114,7 +113,8 @@ class Broker:
     def get_trade_details(self, trade_ID: str) -> dict:
         """Returns the details of the trade specified by trade_ID.
         """
-        pass
+        raise NotImplementedError("Method 'get_trade_details' not "+\
+                                  "implemented for dYdX.")
     
     
     def get_positions(self, instrument: str = None, **kwargs) -> dict:
