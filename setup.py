@@ -46,7 +46,7 @@ setuptools.setup(
         ],
     extras_require={
         'dydx': ['dydx-v3-python'],
-        }
+        },
     setup_requires=[
             "setuptools_git",
             "setuptools_scm",
