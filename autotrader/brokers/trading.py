@@ -94,6 +94,7 @@ class Order:
         
         # dydx attributes
         self.post_only = False
+        self.limit_fee = '0.015'
         
         self.reason = None
         

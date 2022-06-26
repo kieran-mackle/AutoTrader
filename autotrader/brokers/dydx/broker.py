@@ -61,6 +61,7 @@ class Broker:
         trigger_price = str(order.order_stop_price) if \
             order.order_stop_price is not None else None
         position_id = self._get_account()['positionId']
+        limit_fee = order.limit_fee
         
         # Submit order to dydx
         order = self.api.private.create_order(position_id=position_id, 
@@ -70,7 +71,7 @@ class Broker:
                                               post_only=order.post_only, 
                                               size=str(order.size), 
                                               price=order_price, 
-                                              limit_fee='0.015',
+                                              limit_fee=limit_fee,
                                               trigger_price=trigger_price,
                                               expiration_epoch_seconds=expiration)
         
