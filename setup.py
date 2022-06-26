@@ -30,7 +30,7 @@ setuptools.setup(
     package_dir={"": "."},
     packages=setuptools.find_packages(where="."),
     python_requires=">=3.7",
-    install_requires = [
+    install_requires=[
         "numpy >= 1.20.3",
         "pandas >= 1.3.4",
         "pyfiglet >= 0.8.post1",
@@ -44,6 +44,9 @@ setuptools.setup(
         "tqdm>=4.64.0",
         "importlib-resources",
         ],
+    extras_require={
+        'dydx': ['dydx-v3-python'],
+        }
     setup_requires=[
             "setuptools_git",
             "setuptools_scm",

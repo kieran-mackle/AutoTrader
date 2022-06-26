@@ -4,7 +4,6 @@ import ib_insync
 import pandas as pd
 import yfinance as yf
 from typing import Union
-from dydx3 import Client
 from autotrader.brokers.trading import Order
 from datetime import datetime, timedelta, timezone
 from autotrader.brokers.ib.utils import Utils as IB_Utils
@@ -74,7 +73,12 @@ class GetData:
                                    readonly=read_only, account=account)
             
             elif broker_config['data_source'] == 'dYdX':
-                self.api = Client(host='https://api.dydx.exchange')
+                try:
+                    from dydx3 import Client
+                    self.api = Client(host='https://api.dydx.exchange')
+                except ImportError:
+                    raise Exception("Please install dydx-v3 to use the dydx "+\
+                                    "data feed and broker interface.")
             
         self.allow_dancing_bears = allow_dancing_bears
         self.home_currency = home_currency
