@@ -1,8 +1,8 @@
 import pandas as pd
 from datetime import datetime
 from dydx3 import Client, constants
-from autotrader.brokers.trading import Order, Position
 from autotrader.brokers.broker_utils import BrokerUtils
+from autotrader.brokers.trading import Order, Position, Trade
 
 
 class Broker:
@@ -22,6 +22,7 @@ class Broker:
                 default_ethereum_address=config['ETH_ADDR']
                 )
         
+        db = 0
     
     def __repr__(self):
         return 'AutoTrader-dYdX interface'
@@ -105,7 +106,9 @@ class Broker:
     def get_trades(self, instrument: str = None, **kwargs) -> dict:
         """Returns the open trades held by the account. 
         """
-        pass
+        fills = self.api.private.get_fills(market=instrument)
+        trades = self._convert_fills(fills.data['fills'])
+        return trades
     
     
     def get_trade_details(self, trade_ID: str) -> dict:
@@ -240,5 +243,25 @@ class Broker:
         for position in dydx_position_list:
             positions[position['market']] = self._native_position(position)
         return positions
+    
+    
+    def _native_trade(self, dydx_fill: dict):
+        """Converts a dydx fill to a native AutoTrader trade."""
+        direction = 1 if dydx_fill['side'] == 'BUY' else -1
+        native_trade = Trade(instrument=dydx_fill['market'],
+                             id=dydx_fill['id'],
+                             time_filled=dydx_fill['createdAt'],
+                             fill_price=float(dydx_fill['price']),
+                             size=float(dydx_fill['size']),
+                             direction=direction)
+        return native_trade
+    
+    
+    def _convert_fills(self, dydx_fills: list):
+        """Converts an array of fills to a Trades dictionary."""
+        trades = {}
+        for trade in dydx_fills:
+            trades[trade['market']] = self._native_trade(trade)
+        return trades
         
         
