@@ -77,8 +77,8 @@ class GetData:
                     from dydx3 import Client
                     self.api = Client(host='https://api.dydx.exchange')
                 except ImportError:
-                    raise Exception("Please install dydx-v3 to use the dydx "+\
-                                    "data feed and broker interface.")
+                    raise Exception("Please install dydx-v3-python to use "+\
+                                    "the dydx data feed and broker interface.")
             
         self.allow_dancing_bears = allow_dancing_bears
         self.home_currency = home_currency
