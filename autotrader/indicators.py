@@ -891,12 +891,16 @@ def unroll_signal_list(signals: Union[list, pd.Series]) -> np.array:
         array([ 0.,  1.,  0.,  0.,  0., -1.,  0.,  0.,  1.,  0.,  0.])
         
     """
-    new_list = np.zeros(len(signals))
+    unrolled_signals = np.zeros(len(signals))
     for i in range(len(signals)):
         if signals[i] != signals[i-1]:
-            new_list[i] = signals[i]
+            unrolled_signals[i] = signals[i]
     
-    return new_list
+    if isinstance(signals, pd.Series):
+        unrolled_signals = pd.Series(data=unrolled_signals,
+                                     index=signals.index)
+    
+    return unrolled_signals
 
 
 def merge_signals(signal_1: list, signal_2: list) -> list:
