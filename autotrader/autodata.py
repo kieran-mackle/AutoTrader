@@ -1,9 +1,6 @@
 import v20
 import time
-<<<<<<< HEAD
 import ccxt
-=======
->>>>>>> main
 import ib_insync
 import pandas as pd
 import yfinance as yf
@@ -77,10 +74,9 @@ class GetData:
                 self.ibapi.connect(host=host, port=port, clientId=client_id, 
                                    readonly=read_only, account=account)
             
-<<<<<<< HEAD
             elif broker_config['data_source'] == 'CCXT':
                 self.ccxt_exchange = getattr(ccxt, broker_config['exchange'])()
-=======
+
             elif broker_config['data_source'] == 'dYdX':
                 try:
                     from dydx3 import Client
@@ -88,7 +84,6 @@ class GetData:
                 except ImportError:
                     raise Exception("Please install dydx-v3-python to use "+\
                                     "the dydx data feed and broker interface.")
->>>>>>> main
             
         self.allow_dancing_bears = allow_dancing_bears
         self.home_currency = home_currency
