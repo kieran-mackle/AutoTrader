@@ -4,6 +4,7 @@
 ### Features
 - Major backtest speed improvements: over 50% reduction in backtest time for 
   large, multi-asset backtests
+- Support for decentralised crypto exchange dYdX
 
 
 ## Version 0.6.6

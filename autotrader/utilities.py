@@ -97,6 +97,17 @@ def get_config(environment: str, global_config: dict, feed: str) -> dict:
                            'clientID': client_id,
                            'account': account,
                            'read_only': read_only}
+        
+        elif feed.upper() == 'DYDX':
+            eth_address = global_config['ETH_ADDRESS'] if 'ETH_ADDRESS' \
+                in global_config else None
+            eth_private_key = global_config['ETH_PRIV_KEY'] if 'ETH_PRIV_KEY' \
+                in global_config else None
+            config_dict = {'data_source': 'dYdX',
+                           'API_KEY': global_config['API_KEYS'],
+                           'STARK_KEYS': global_config['STARK_KEYS'],
+                           'ETH_ADDR': eth_address,
+                           'ETH_PRIV_KEY': eth_private_key}
             
         elif feed.upper() == 'CCXT':
             config = global_config['CCXT']
@@ -159,6 +170,9 @@ def get_config(environment: str, global_config: dict, feed: str) -> dict:
                            'secret': secret,
                            'sandbox_mode': True,
                            'base_currency': currency}
+            
+        elif feed.upper() == 'DYDX':
+            raise Exception("Paper trading is not supported for dYdX.")
             
         elif feed.upper() == 'YAHOO':
             data_source = 'yfinance'
