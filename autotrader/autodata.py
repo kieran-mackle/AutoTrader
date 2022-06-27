@@ -699,9 +699,10 @@ class GetData:
           return data
       
       def fetch_count(N):
+          count = min(100, N)
           raw_data = self.api.public.get_candles(instrument, 
                                                  resolution=granularity, 
-                                                 limit=100).data['candles']
+                                                 limit=count).data['candles']
           data = raw_data[::-1]
           first_time = datetime.strptime(data[0]['updatedAt'], 
                                          '%Y-%m-%dT%H:%M:%S.%fZ')
