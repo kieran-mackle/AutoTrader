@@ -697,13 +697,32 @@ class GetData:
                   start = end_time
               
           return data
+      
+      def fetch_count(N):
+          raw_data = self.api.public.get_candles(instrument, 
+                                                 resolution=granularity, 
+                                                 limit=100).data['candles']
+          data = raw_data[::-1]
+          first_time = datetime.strptime(data[0]['updatedAt'], 
+                                         '%Y-%m-%dT%H:%M:%S.%fZ')
+          while len(data) < N:
+              count = min(100, N-len(data))
+              raw_data = self.api.public.get_candles(instrument, 
+                                                     resolution=granularity, 
+                                                     to_iso=first_time.isoformat(),
+                                                     limit=count).data['candles']
+              # Append data
+              data += raw_data[::-1]
+              first_time = datetime.strptime(raw_data[-1]['updatedAt'], 
+                                             '%Y-%m-%dT%H:%M:%S.%fZ')
+              time.sleep(0.1)
+              
+          return data
           
       if count is not None:
           if start_time is None and end_time is None:
               # Fetch N most recent candles
-              raw_data = self.api.public.get_candles(market=instrument, 
-                                                     resolution=granularity, 
-                                                     limit=count).data['candles'][::-1]
+              raw_data = fetch_count(count)
           elif start_time is not None and end_time is None:
               # Fetch N candles since start_time
               raw_data = self.api.public.get_candles(market=instrument, 
@@ -737,6 +756,7 @@ class GetData:
                 inplace=True)
       data = data.apply(pd.to_numeric, errors='ignore')
       data.drop_duplicates(inplace=True)
+      data.sort_index(inplace=True)
       return data
 
 
