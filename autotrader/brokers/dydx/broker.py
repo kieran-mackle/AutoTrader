@@ -93,8 +93,7 @@ class Broker:
         """Cancels order by order ID.
         """
         cancelled_order = self.api.private.cancel_order(order_id)
-        
-        return self._native_order(cancelled_order.data['order'])
+        return self._native_order(cancelled_order.data['cancelOrder'])
     
     
     def cancel_all_orders(self, instrument: str = None, **kwargs):
