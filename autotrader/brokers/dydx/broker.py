@@ -262,7 +262,15 @@ class Broker:
         """Converts an array of fills to a Trades dictionary."""
         trades = {}
         for trade in dydx_fills:
-            trades[trade['market']] = self._native_trade(trade)
+            trades[trade['id']] = self._native_trade(trade)
         return trades
         
-        
+    
+    def get_instrument_details(self, instrument):
+        """Returns details of the instrument provided."""
+        markets = self.api.public.get_markets()
+        try:
+            details = markets.data['markets'][instrument]
+        except KeyError:
+            raise Exception(f"The requested instrument '{instrument}' is invalid.")
+        return details
