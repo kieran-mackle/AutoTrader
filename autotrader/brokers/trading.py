@@ -50,6 +50,12 @@ class Order:
         The contract month string (IB only).
     localSymbol : str
         The exchange-specific instrument symbol (IB only).
+    post_only : bool, optional
+        Enforce that the order is placed as a maker order (dYdX only). The 
+        default is False.
+    limit_fee : str, optional
+        The maximum fee to accept as a percentage (dYdX only). The default
+        is '0.015'.
 
     """
     def __init__(self, instrument: str = None, direction: int = None,
