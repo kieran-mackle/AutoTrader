@@ -144,10 +144,10 @@ class Broker:
         return market_df
 
 
-    def get_orderbook(self):
+    def get_orderbook(self, instrument):
         # Get Orderbook
-        orderbook = self.api.public.get_orderbook(market=constants.MARKET_SOL_USD)
-        return orderbook
+        orderbook = self.api.public.get_orderbook(market=instrument)
+        return orderbook.data
 
 
     def get_market_stats(self):
@@ -233,6 +233,7 @@ class Broker:
         native_position = Position(instrument=dydx_position['market'],
                                    net_position=float(dydx_position['size']),
                                    PL=dydx_position['unrealizedPnl'],
+                                   entry_price=float(dydx_position['entryPrice']),
                                    **position_units
                                    )
         return native_position

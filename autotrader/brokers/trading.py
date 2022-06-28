@@ -483,6 +483,9 @@ class Position:
         self.PL = None
         self.contracts = None
         self.portfolio_items = None
+
+        # dYdX Attributes
+        self.entry_price = None
         
         for item in kwargs:
             setattr(self, item, kwargs[item])
