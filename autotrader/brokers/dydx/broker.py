@@ -1,3 +1,4 @@
+from matplotlib.pyplot import step
 import pandas as pd
 from datetime import datetime
 from dydx3 import Client, constants
@@ -53,6 +54,7 @@ class Broker:
         order()
         
         # Extract information for submission to dydx
+        order = self._check_order_precision(order)
         side = 'BUY' if order.direction > 0 else 'SELL'
         order_type = order.order_type.upper()
         expiration = int((pd.Timedelta('30days') + datetime.now()).timestamp())
@@ -273,3 +275,17 @@ class Broker:
         except KeyError:
             raise Exception(f"The requested instrument '{instrument}' is invalid.")
         return details
+    
+
+    def _check_order_precision(self, order: Order):
+        """Enforces that an order has an allowable precision for price and size."""
+        details = self.get_instrument_details(order.instrument)
+        stepsize = float(details['stepSize'])
+        ticksize = float(details['tickSize'])
+        order.size = int(order.size/stepsize)*stepsize
+        if order.order_type == 'limit':
+            order.order_limit_price = int(order.order_limit_price/ticksize)*ticksize
+        elif order.order_type == 'stop-limit':
+            order.order_limit_price = int(order.order_limit_price/ticksize)*ticksize
+            order.order_stop_price = int(order.order_stop_price/ticksize)*ticksize
+        return order
