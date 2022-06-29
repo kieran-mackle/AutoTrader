@@ -284,8 +284,8 @@ class Broker:
         ticksize = float(details['tickSize'])
         order.size = int(order.size/stepsize)*stepsize
         if order.order_type == 'limit':
-            order.order_limit_price = int(order.order_limit_price/ticksize)*ticksize
+            order.order_limit_price = int(order.order_limit_price/ticksize)/int(1/ticksize)
         elif order.order_type == 'stop-limit':
-            order.order_limit_price = int(order.order_limit_price/ticksize)*ticksize
-            order.order_stop_price = int(order.order_stop_price/ticksize)*ticksize
+            order.order_limit_price = int(order.order_limit_price/ticksize)/int(1/ticksize)
+            order.order_stop_price = int(order.order_stop_price/ticksize)/int(1/ticksize)
         return order
