@@ -1,5 +1,5 @@
-from matplotlib.pyplot import step
 import pandas as pd
+from decimal import Decimal
 from datetime import datetime
 from dydx3 import Client, constants
 from autotrader.brokers.broker_utils import BrokerUtils
@@ -282,10 +282,13 @@ class Broker:
         details = self.get_instrument_details(order.instrument)
         stepsize = float(details['stepSize'])
         ticksize = float(details['tickSize'])
-        order.size = int(order.size/stepsize)*stepsize
+        order.size = Decimal(str(order.size)) - Decimal(str(order.size))%Decimal(str(stepsize))
+        
         if order.order_type == 'limit':
-            order.order_limit_price = int(order.order_limit_price/ticksize)/int(1/ticksize)
+            order.order_limit_price = Decimal(str(order.order_limit_price)).quantize(Decimal(str(ticksize)))
+        
         elif order.order_type == 'stop-limit':
-            order.order_limit_price = int(order.order_limit_price/ticksize)/int(1/ticksize)
-            order.order_stop_price = int(order.order_stop_price/ticksize)/int(1/ticksize)
+            order.order_limit_price = Decimal(str(order.order_limit_price)).quantize(Decimal(str(ticksize)))
+            order.order_stop_price = Decimal(str(order.order_stop_price)).quantize(Decimal(str(ticksize)))
+        
         return order
