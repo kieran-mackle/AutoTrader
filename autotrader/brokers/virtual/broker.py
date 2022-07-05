@@ -163,14 +163,12 @@ class Broker:
             self.cancel_order(order.instrument, order.id, reason, 
                               'pending_orders')
         else:
+            # Either move order to open_orders or leave in pending, depending on type
             immediate_orders = ['close', 'reduce', 'modify']
-            open_order = True if order.order_type in immediate_orders else False
-        
-        # Either move order to pending or open orders, depending on status
-        if open_order:
-            # Move to open orders
-            self._move_order(order, from_dict='pending_orders',
-                                 to_dict='open_orders', new_status='open')
+            if order.order_type in immediate_orders:
+                # Move to open orders
+                self._move_order(order, from_dict='pending_orders',
+                                    to_dict='open_orders', new_status='open')
         
     
     def get_orders(self, instrument: str = None, 
