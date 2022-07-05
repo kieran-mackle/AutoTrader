@@ -187,7 +187,7 @@ class Broker:
             orders = {}
             for instr, instr_orders in all_orders.items():
                 orders.update(instr_orders)
-        return orders
+        return orders.copy()
     
     
     def cancel_order(self, instrument: str, order_id: int, 
@@ -223,7 +223,7 @@ class Broker:
             trades = {}
             for instr, instr_trades in all_trades.items():
                 trades.update(instr_trades)
-        return trades
+        return trades.copy()
     
     
     def get_trade_details(self, instrument, trade_ID: int) -> Trade:
