@@ -549,6 +549,34 @@ class Broker:
                                                     **stop_loss_order)
         return response
     
+
+    def _place_stop_order(self, order: Order):
+        """Places a stop order."""
+        # TODO - implement this method
+        self._check_connection()
+        
+        stop_loss_order = self._get_stop_loss_order(order)
+        take_profit_details = self._get_take_profit_details(order)
+
+        # Check and correct order stop price
+        price = self._check_precision(order.instrument, 
+                                      order.order_stop_price)
+        price_bound = self._check_precision(order.instrument, 
+                                      order.order_stop_price)
+
+        trigger_condition = order.trigger_price
+        size = self.check_trade_size(order.instrument, order.size)
+
+        response = self.api.order.stop(accountID=self.ACCOUNT_ID,
+                                 instrument=order.instrument,
+                                 units=order.direction*size,
+                                 price=str(price),
+                                 priceBound=str(price_bound),
+                                 triggerCondition=trigger_condition,
+                                 takeProfitOnFill = take_profit_details,
+                                 **stop_loss_order)
+        return response
+
     
     def _place_limit_order(self, order: Order):
         """PLaces a limit order. 
