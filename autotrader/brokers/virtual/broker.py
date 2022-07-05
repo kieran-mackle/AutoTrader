@@ -47,10 +47,12 @@ class Broker:
         self.open_orders = {}
         self.filled_orders = {}
         self.cancelled_orders = {}
+        self._order_id_instrument = {} # mapper from order_id to instrument
         
         # Trades
         self.open_trades = {}
         self.closed_trades = {}
+        self._trade_id_instrument = {} # mapper from order_id to instrument
         
         # Account 
         self.home_currency = 'AUD'
@@ -148,6 +150,7 @@ class Broker:
         
         # Assign order ID
         order.id = self._get_new_order_id()
+        self._order_id_instrument[order.id] = order.instrument
         
         # Move order to pending_orders dict
         order.status = 'pending'
@@ -160,8 +163,7 @@ class Broker:
         if invalid_order:
             if self.verbosity > 0:
                 print(f"  Order {order.id} rejected.\n")
-            self.cancel_order(order.instrument, order.id, reason, 
-                              'pending_orders')
+            self.cancel_order(order.id, reason, 'pending_orders')
         else:
             # Either move order to open_orders or leave in pending, depending on type
             immediate_orders = ['close', 'reduce', 'modify']
@@ -188,11 +190,11 @@ class Broker:
         return orders.copy()
     
     
-    def cancel_order(self, instrument: str, order_id: int, 
-                     reason: str = None, 
+    def cancel_order(self, order_id: int, reason: str = None, 
                      from_dict: str = 'open_orders') -> None:
         """Cancels the order.
         """
+        instrument = self._order_id_instrument[order_id]
         from_dict = getattr(self, from_dict)[instrument]
         
         if instrument not in self.cancelled_orders: 
@@ -224,9 +226,10 @@ class Broker:
         return trades.copy()
     
     
-    def get_trade_details(self, instrument, trade_ID: int) -> Trade:
+    def get_trade_details(self, trade_ID: int) -> Trade:
         """Returns the trade specified by trade_ID.
         """
+        instrument = self._trade_id_instrument[trade_ID]
         return self.open_trades[instrument][trade_ID]
     
     
@@ -345,6 +348,7 @@ class Broker:
             
             # Fill order
             trade_id = self._get_new_trade_id()
+            self._trade_id_instrument[trade_id] = instrument
             trade = Trade(order)
             trade.id = trade_id
             trade.fill_price = working_price
@@ -363,7 +367,7 @@ class Broker:
         else:
             # Cancel order
             cancel_reason = "Insufficient margin to fill order."
-            self.cancel_order(instrument, order_id, cancel_reason)
+            self.cancel_order(order_id, cancel_reason)
     
     
     def _move_order(self, order: Order, from_dict: str = 'open_orders', 
@@ -648,6 +652,9 @@ class Broker:
         
         # Close partial trade
         self._close_trade(instrument, partial_trade_id)
+
+        # Keep track of partial trade id
+        self._trade_id_instrument[partial_trade_id] = instrument
         
     
     def _calculate_commissions(self, instrument: str, trade_id: int, 
