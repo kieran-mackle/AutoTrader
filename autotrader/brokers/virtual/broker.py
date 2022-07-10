@@ -435,6 +435,9 @@ class Broker:
                         self._fill_order(instrument, order_id, candle, 
                                          order.order_limit_price)
         
+        # Update margin available after any order changes 
+        self._update_margin(instrument, candle)
+
         # Update open trades
         open_trades = self.get_trades(instrument).copy()
         for trade_id, trade in open_trades.items():
@@ -681,6 +684,7 @@ class Broker:
         """Adds funds to brokerage account.
         """
         self.equity += amount
+        self._update_margin()
     
     
     def _make_deposit(self, deposit: float) -> None:
