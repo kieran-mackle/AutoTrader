@@ -1,10 +1,19 @@
 # AutoTrader Changelog
 
-## Version 0.6.7 (Unreleased)
+## Version 0.7.0 (Unreleased)
+### Breaking Changes
+- Backtest `spread` is now specified in absolute price units (rather than 
+  pips as previously)
+
 ### Features
 - Major backtest speed improvements: over 50% reduction in backtest time for 
   large, multi-asset backtests
 - Support for decentralised crypto exchange dYdX
+- Support for many more crypto exchanges via CCXT
+
+### Fixes
+- Minor improvements to margin requirement calculations in backtest
+
 
 
 ## Version 0.6.6
