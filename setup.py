@@ -39,14 +39,14 @@ setuptools.setup(
         "scipy >= 1.7.1",
         "yfinance >= 0.1.67",
         "finta >= 1.3",
-        "v20 >= 3.0.25.0",
-        "ib_insync >= 0.9.70",
         "tqdm>=4.64.0",
         "importlib-resources",
         ],
     extras_require={
         "dydx": ["dydx-v3-python"],
         "ccxt": ["ccxt"],
+        "oanda": ["v20 >= 3.0.25.0",],
+        "ib": ["ib_insync >= 0.9.70",],
         },
     setup_requires=[
             "setuptools_git",
