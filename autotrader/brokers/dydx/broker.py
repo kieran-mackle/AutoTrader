@@ -1,4 +1,5 @@
 import pandas as pd
+from decimal import Decimal
 from datetime import datetime
 from dydx3 import Client, constants
 from autotrader.brokers.broker_utils import BrokerUtils
@@ -53,6 +54,7 @@ class Broker:
         order()
         
         # Extract information for submission to dydx
+        order = self._check_order_precision(order)
         side = 'BUY' if order.direction > 0 else 'SELL'
         order_type = order.order_type.upper()
         expiration = int((pd.Timedelta('30days') + datetime.now()).timestamp())
@@ -93,8 +95,7 @@ class Broker:
         """Cancels order by order ID.
         """
         cancelled_order = self.api.private.cancel_order(order_id)
-        
-        return self._native_order(cancelled_order.data['order'])
+        return self._native_order(cancelled_order.data['cancelOrder'])
     
     
     def cancel_all_orders(self, instrument: str = None, **kwargs):
@@ -144,10 +145,10 @@ class Broker:
         return market_df
 
 
-    def get_orderbook(self):
+    def get_orderbook(self, instrument):
         # Get Orderbook
-        orderbook = self.api.public.get_orderbook(market=constants.MARKET_SOL_USD)
-        return orderbook
+        orderbook = self.api.public.get_orderbook(market=instrument)
+        return orderbook.data
 
 
     def get_market_stats(self):
@@ -233,6 +234,7 @@ class Broker:
         native_position = Position(instrument=dydx_position['market'],
                                    net_position=float(dydx_position['size']),
                                    PL=dydx_position['unrealizedPnl'],
+                                   entry_price=float(dydx_position['entryPrice']),
                                    **position_units
                                    )
         return native_position
@@ -261,7 +263,32 @@ class Broker:
         """Converts an array of fills to a Trades dictionary."""
         trades = {}
         for trade in dydx_fills:
-            trades[trade['market']] = self._native_trade(trade)
+            trades[trade['id']] = self._native_trade(trade)
         return trades
         
+    
+    def get_instrument_details(self, instrument):
+        """Returns details of the instrument provided."""
+        markets = self.api.public.get_markets()
+        try:
+            details = markets.data['markets'][instrument]
+        except KeyError:
+            raise Exception(f"The requested instrument '{instrument}' is invalid.")
+        return details
+    
+
+    def _check_order_precision(self, order: Order):
+        """Enforces that an order has an allowable precision for price and size."""
+        details = self.get_instrument_details(order.instrument)
+        stepsize = float(details['stepSize'])
+        ticksize = float(details['tickSize'])
+        order.size = Decimal(str(order.size)) - Decimal(str(order.size))%Decimal(str(stepsize))
         
+        if order.order_type == 'limit':
+            order.order_limit_price = Decimal(str(order.order_limit_price)).quantize(Decimal(str(ticksize)))
+        
+        elif order.order_type == 'stop-limit':
+            order.order_limit_price = Decimal(str(order.order_limit_price)).quantize(Decimal(str(ticksize)))
+            order.order_stop_price = Decimal(str(order.order_stop_price)).quantize(Decimal(str(ticksize)))
+        
+        return order

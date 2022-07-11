@@ -568,7 +568,7 @@ class AutoPlot:
         holding_hist_source = ColumnDataSource(pd.merge(reindexed_acc_hist, 
                                                         holding_history, 
                                                         left_on='date', 
-                                                        right_on='date'))
+                                                        right_on='date').fillna(0))
         portfolio = figure(plot_width = navfig.plot_width,
                            plot_height = self._top_fig_height,
                            title = "Asset Allocation History",
@@ -606,7 +606,7 @@ class AutoPlot:
         
         # Pie chart of trades per instrument
         trades_per_instrument = [sum(trade_history.instrument == i) for i in instruments]
-        pie_data = pd.DataFrame(data={'trades': trades_per_instrument}, index=instruments)
+        pie_data = pd.DataFrame(data={'trades': trades_per_instrument}, index=instruments).fillna(0)
         pie_data['angle'] = pie_data['trades']/pie_data['trades'].sum() * 2*pi
         if no_instruments < 3:
             pie_data['color'] = Category20c[3][0:no_instruments]
@@ -631,8 +631,7 @@ class AutoPlot:
         win_metrics = ['Average Win', 'Max. Win']
         lose_metrics = ['Average Loss', 'Max. Loss']
         
-        
-        instrument_trades = [trade_history[trade_history.instrument == i] for \
+        instrument_trades = [trade_history[trade_history.instrument == i].fillna('') for \
                              i in instruments]
         total_no_trades = [len(instrument_trades[i]) for i \
                            in range(len(instruments))]
@@ -641,15 +640,15 @@ class AutoPlot:
         avg_wins = [instrument_trades[i].profit[instrument_trades[i].profit>0].mean() if total_no_trades[i] > 0 else 0 for i in range(len(instruments))]
         avg_losses = [instrument_trades[i].profit[instrument_trades[i].profit<0].mean() if total_no_trades[i] > 0 else 0 for i in range(len(instruments))]
         
-        abs_max_loss = 1.2*max(max_losses)
+        abs_max_loss = 1.2*min(max_losses)
         abs_max_win = 1.2*max(max_wins)
         
-        pldata = {'instruments': instruments,
+        pldata = pd.DataFrame({'instruments': instruments,
                   'Average Win': avg_wins,
                   'Max. Win': [max_wins[i] - avg_wins[i] for i in range(len(max_wins))],
                   'Average Loss': avg_losses,
                   'Max. Loss': [max_losses[i] - avg_losses[i] for i in range(len(max_losses))]
-                  }
+                  }).fillna(0)
         
         TOOLTIPS = [
                     ("Instrument:", "@instruments"),
@@ -703,7 +702,8 @@ class AutoPlot:
                      total_no_trades[i] > 0 else 0 for i \
                          in range(len(instruments))]
         WRsource = ColumnDataSource(pd.DataFrame(data={'win_rate': win_rates,
-                                                       'color': colors}, index=instruments))
+                                                       'color': colors}, 
+                                                       index=instruments).fillna(0))
         winrate = self._plot_bars(instruments, 'win_rate', WRsource, 
                                   fig_title='Instrument win rate (%)',
                                   hover_name='win_rate%')
@@ -714,7 +714,7 @@ class AutoPlot:
                                     code=self._autoscale_code))
         
         # Construct final figure
-        final_fig = layout([  
+        final_fig = layout([
                                    [navfig],
                                    [portfolio],
                                    [cplfig],
