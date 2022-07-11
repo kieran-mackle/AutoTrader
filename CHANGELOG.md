@@ -4,12 +4,19 @@
 ### Breaking Changes
 - Backtest `spread` is now specified in absolute price units (rather than 
   pips as previously)
+- Environment specification: paper trading can be activated by setting 
+  `environment` to `paper` (default) and live trading can be activated
+  by setting `environment` to `live`
+
 
 ### Features
 - Major backtest speed improvements: over 50% reduction in backtest time for 
   large, multi-asset backtests
 - Support for decentralised crypto exchange dYdX
 - Support for many more crypto exchanges via CCXT
+- Introduction of 'portfolio' strategies: passing data of multiple assets to 
+  a single strategy. Simply include `PORTFOLIO: True` in your strategy 
+  configuration.
 
 ### Fixes
 - Minor improvements to margin requirement calculations in backtest

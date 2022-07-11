@@ -26,6 +26,7 @@ default value are required to be specified.
 |`RISK_PC`| The percentage of the account balance to risk when determining position risk-based size.| |
 |`PARAMETERS`| A dictionary containing custom strategy parameters (see below).| |
 |`WATCHLIST`| A list of strings containing the instruments to be traded in the strategy, in the [format required](autodata-docs) by the [data feed](autotrader-configure). | | 
+| `PORTFOLIO` | The strategy is a portfolio-based strategy, requiring fata for all instrumenets in the watchlists to run. | False |
 |`INCLUDE_POSITIONS`| A boolean flag to indicate if current possitions should be passed to the strategy's `generate_signal` method. Read more [here](generate-signal-boilerplate). | False | 
 |`INCLUDE_BROKER`| A boolean flag to indicate if the broker interface and broker utilities should be passed to the strategy's `__init__` method. Read more [here](strategy-broker-access). | False |
 |`INCLUDE_STREAM`| A boolean flag to indicate if the [data stream](utils-datastream) object should be passed to the strategy's `__init__` method. | False |
