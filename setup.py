@@ -45,7 +45,8 @@ setuptools.setup(
         "importlib-resources",
         ],
     extras_require={
-        'dydx': ['dydx-v3-python'],
+        "dydx": ["dydx-v3-python"],
+        "ccxt": ["ccxt"],
         },
     setup_requires=[
             "setuptools_git",
