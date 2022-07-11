@@ -82,6 +82,9 @@ class Broker:
         # Last order and trade counts
         self._last_order_id = 0
         self._last_trade_id = 0
+
+        # Paper trading mode
+        self._paper_trading = False # Attribute not yet implemented
         
     
     def __repr__(self):

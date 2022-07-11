@@ -1169,21 +1169,25 @@ class AutoTrader:
                 instance_file_exists = self._check_instance_file(instance_str, True)
                 deploy_time = time.time()
                 while instance_file_exists:
-                    for bot in self._bots_deployed:
-                        try:
-                            bot._update(timestamp=datetime.now(timezone.utc))
-                        except KeyboardInterrupt:
-                            raise Exception("Keyboard Interrupt.")
-                        except:
-                            if int(self._verbosity) > 0:
-                                print("Error: failed to update bot running" +\
-                                      f"{bot._strategy_name} ({bot.instrument})")
-                                traceback.print_exc()
+                    try:
+                        for bot in self._bots_deployed:
+                            try:
+                                bot._update(timestamp=datetime.now(timezone.utc))
                             
-                    # Go to sleep until next update
-                    time.sleep(self._timestep.seconds - ((time.time() - \
-                                deploy_time) % self._timestep.seconds))
-                    instance_file_exists = self._check_instance_file(instance_str)
+                            except:
+                                if int(self._verbosity) > 0:
+                                    print("Error: failed to update bot running" +\
+                                        f"{bot._strategy_name} ({bot.instrument})")
+                                    traceback.print_exc()
+                                
+                        # Go to sleep until next update
+                        time.sleep(self._timestep.seconds - ((time.time() - \
+                                    deploy_time) % self._timestep.seconds))
+                        instance_file_exists = self._check_instance_file(instance_str)
+                    
+                    except KeyboardInterrupt:
+                        print("\nKilling bot(s).")
+                        break
                     
         elif self._run_mode.lower() == 'periodic':
             # Trading in periodic update mode

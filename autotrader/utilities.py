@@ -1,3 +1,4 @@
+from re import L
 import sys
 import yaml
 import numpy as np
@@ -600,6 +601,12 @@ class BacktestResults:
             backtest_results['short_trades']['short_wr'] = short_wr
         
         return backtest_results
+    
+
+    def write_to_file(self):
+        """Write the backtest results to file."""
+        # TODO - implement, allow writing virtual broker paper trade
+        # history to file
     
 
 class DataStream:
