@@ -21,24 +21,16 @@ class GetData:
     allow_dancing_bears : bool
         Allow incomplete candlesticks in data retrieval.
 
-    Methods
-    -------
-    oanda()
-        Retrieves historical price data of a instrument from Oanda.
-    yahoo()
-        Retrieves historical price data from Yahoo Finance via yfinance.
-    local()
-        Reads local price data.
     """
     
-    def __init__(self, broker_config: dict = None, 
+    def __init__(self, data_config: dict = None, 
                  allow_dancing_bears: bool = False,
                  home_currency: str = None) -> None:
         """Instantiates GetData.
 
         Parameters
         ----------
-        broker_config : dict, optional
+        data_config : dict, optional
             The configuration dictionary for the data source to be used. This 
             is created automatically in autotrader.utilities.get_config. The 
             default is None.
@@ -53,31 +45,30 @@ class GetData:
         -------
         None
             GetData will be instantiated and ready to fetch price data.
-
         """
-        if broker_config is not None:
-            if broker_config['data_source'] == 'OANDA':
-                API = broker_config["API"]
-                ACCESS_TOKEN = broker_config["ACCESS_TOKEN"]
-                port = broker_config["PORT"]
+        if data_config is not None:
+            if data_config['data_source'] == 'OANDA':
+                API = data_config["API"]
+                ACCESS_TOKEN = data_config["ACCESS_TOKEN"]
+                port = data_config["PORT"]
                 self.api = v20.Context(hostname=API, token=ACCESS_TOKEN, port=port)
-                self.ACCOUNT_ID = broker_config["ACCOUNT_ID"]
+                self.ACCOUNT_ID = data_config["ACCOUNT_ID"]
             
-            elif broker_config['data_source'] == 'IB':
-                host = broker_config['host']
-                port = broker_config['port'] 
-                client_id = broker_config['clientID'] + 1
-                read_only = broker_config['read_only']
-                account = broker_config['account']
+            elif data_config['data_source'] == 'IB':
+                host = data_config['host']
+                port = data_config['port'] 
+                client_id = data_config['clientID'] + 1
+                read_only = data_config['read_only']
+                account = data_config['account']
                 
                 self.ibapi = ib_insync.IB()
                 self.ibapi.connect(host=host, port=port, clientId=client_id, 
                                    readonly=read_only, account=account)
             
-            elif broker_config['data_source'] == 'CCXT':
-                self.ccxt_exchange = getattr(ccxt, broker_config['exchange'])()
+            elif data_config['data_source'] == 'CCXT':
+                self.ccxt_exchange = getattr(ccxt, data_config['exchange'])()
 
-            elif broker_config['data_source'] == 'dYdX':
+            elif data_config['data_source'] == 'dYdX':
                 try:
                     from dydx3 import Client
                     self.api = Client(host='https://api.dydx.exchange')
@@ -647,6 +638,13 @@ class GetData:
         return data
     
     
+    def _local_quote_data(self, data: pd.DataFrame, pair: str, granularity: str, 
+                         start_time: datetime, end_time: datetime, 
+                         count: int = None):
+        """Returns the original price data for a local data feed."""
+        return data
+        
+
     @staticmethod
     def _check_data_period(data: pd.DataFrame, start_date: datetime, 
                            end_date: datetime) -> pd.DataFrame:

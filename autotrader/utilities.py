@@ -67,7 +67,7 @@ def get_config(environment: str, global_config: dict, feed: str) -> dict:
     """
     # TODO - allow kwargs in config
     
-    if environment.lower() == 'real':
+    if environment.lower() == 'live':
         # Live trading
         if feed.upper() == 'OANDA':
             data_source     = 'OANDA'
@@ -125,6 +125,9 @@ def get_config(environment: str, global_config: dict, feed: str) -> dict:
             data_source = 'yfinance'
             config_dict = {'data_source': data_source}
             
+        elif feed.upper() == 'LOCAL':
+            config_dict = {'data_source': 'local'}
+            
         else:
             print("Unrecognised data feed. Please check config and retry.")
             
@@ -177,6 +180,9 @@ def get_config(environment: str, global_config: dict, feed: str) -> dict:
         elif feed.upper() == 'YAHOO':
             data_source = 'yfinance'
             config_dict = {'data_source': data_source}
+        
+        elif feed.upper() == 'LOCAL':
+            config_dict = {'data_source': 'local'}
             
         else:
             raise Exception(f"Unrecognised data feed: '{feed}'. " + \

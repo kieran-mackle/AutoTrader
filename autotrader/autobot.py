@@ -119,7 +119,7 @@ class AutoTraderBot:
         # Strategy shutdown routine
         self._strategy_shutdown_method = strategy_dict['shutdown_method']
         
-        # Get broker configuration 
+        # Get data feed configuration 
         if self._global_config_dict is not None:
             # Use global config dict provided
             global_config = self._global_config_dict
@@ -129,7 +129,7 @@ class AutoTraderBot:
                 global_config = read_yaml(global_config_fp)
             else:
                 global_config = None
-        broker_config = get_config(self._environment, global_config, self._feed)
+        data_config = get_config(self._environment, global_config, self._feed)
    
         # Data retrieval
         self._quote_data_file = quote_data_path     # Either str or None
@@ -143,7 +143,7 @@ class AutoTraderBot:
         portfolio = strategy_config['WATCHLIST'] if trade_portfolio else False
         
         # Fetch data
-        self._get_data = GetData(broker_config, self._allow_dancing_bears,
+        self._get_data = GetData(data_config, self._allow_dancing_bears,
                                  self._base_currency)
         
         # Create instance of data stream object
@@ -208,7 +208,6 @@ class AutoTraderBot:
     def _update(self, i: int = None, timestamp: datetime = None) -> None:
         """Update strategy with the latest data and generate a trade signal.
         
-
         Parameters
         ----------
         i : int, optional
@@ -222,7 +221,6 @@ class AutoTraderBot:
         -------
         None
             Trade signals generated will be submitted to the broker.
-
         """
         
         if self._run_mode == 'continuous':

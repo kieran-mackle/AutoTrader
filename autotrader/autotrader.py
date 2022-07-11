@@ -75,7 +75,7 @@ class AutoTrader:
         self._run_mode = 'periodic'
         self._timestep = pd.Timedelta('10s').to_pytimedelta()
         self._warmup_period = pd.Timedelta('0s').to_pytimedelta()
-        self._feed = 'yahoo'
+        self._feed = None
         self._req_liveprice = False
         
         self._notify = 0
@@ -90,7 +90,7 @@ class AutoTrader:
         self._broker = None
         self._broker_utils = None
         self._broker_verbosity = 0
-        self._environment = 'demo'
+        self._environment = 'paper'
         self._account_id = None
         
         self._strategy_configs = {}
@@ -164,10 +164,10 @@ class AutoTrader:
     
     
     def configure(self, verbosity: int = 1, broker: str = 'virtual', 
-                  feed: str = 'yahoo', req_liveprice: bool = False, 
+                  feed: str = None, req_liveprice: bool = False, 
                   notify: int = 0, home_dir: str = None, 
                   allow_dancing_bears: bool = False, account_id: str = None, 
-                  environment: str = 'demo', show_plot: bool = False,
+                  environment: str = 'paper', show_plot: bool = False,
                   jupyter_notebook: bool = False, mode: str = 'periodic',
                   update_interval: str = '10s', data_index_time: str = 'open',
                   global_config: dict = None, instance_str: str = None,
@@ -182,7 +182,11 @@ class AutoTrader:
         broker : str, optional
             The broker to connect to. The default is 'virtual'.
         feed : str, optional
-            The data feed to be used ('yahoo', 'oanda', 'ib'). The default is 'yahoo'.
+            The data feed to be used. This can be the same as the broker 
+            being used, or another data source. Options include 'yahoo', 
+            'oanda', 'ib', 'dydx', 'ccxt' or 'local'. When data is provided
+            via the add_data method, the feed is automatically set to 'local'.
+            The default is None.
         req_liveprice : bool, optional
             Request live market price from broker before placing trade, rather 
             than using the data already provided. The default is False. 
@@ -195,8 +199,8 @@ class AutoTrader:
         account_id : str, optional
             The brokerage account ID to be used. The default is None.
         environment : str, optional
-            The trading environment of this instance ('demo', 'real'). The 
-            default is 'demo'.
+            The trading environment of this instance ('paper', 'live'). The 
+            default is 'paper'.
         show_plot : bool, optional
             Automatically generate backtest chart. The default is False.
         jupyter_notebook : bool, optional
@@ -530,7 +534,9 @@ class AutoTrader:
             default is DataStream (from autotrader.utilities).
         dynamic_data : bool, optional
             A boolean flag to signal that the stream object provided should 
-            be refreshed each timestep of a backtest.
+            be refreshed each timestep of a backtest. This can be useful when
+            backtesting strategies with futures contracts, which expire and 
+            must be rolled. The default is False.
         
         Raises
         ------
@@ -643,6 +649,8 @@ class AutoTrader:
         if stream_object is not None:
             self._data_stream_object = stream_object
         
+        # Fix attributes
+        self._feed = 'local'
         self._dynamic_data = dynamic_data
     
     
@@ -1062,11 +1070,19 @@ class AutoTrader:
                 global_config = None
         
         # Check feed
-        if global_config is None and self._feed.lower() in ['oanda']:
+        if self._feed is None:
+            raise Exception("No data feed specified! Please do so using "+\
+                    "AutoTrader.configure(), or provide local data via "+\
+                    "AutoTrader.add_data().")
+
+        elif global_config is None and self._feed.lower() in ['oanda', 'ccxt', 'dydx']:
             raise Exception(f'Data feed "{self._feed}" requires global '+ \
                             'configuration. If a config file already '+ \
-                            'exists, make sure to specify the home_dir.')
-            
+                            'exists, make sure to specify the home_dir. '+\
+                            'Alternatively, provide a configuration dictionary '+\
+                            'directly via AutoTrader.configure().')
+        
+        # Get broker configuration 
         broker_config = get_config(self._environment, global_config, self._feed)
         
         if self._account_id is not None:
@@ -1088,6 +1104,7 @@ class AutoTrader:
                 print("Time: {}\n".format(datetime.now().strftime("%A, %B %d %Y, "+
                                                                   "%H:%M:%S")))
             else:
+                # TODO - improve banner
                 print("AutoTrader Livetrade")
                 print("--------------------")
                 print("Current time: {}".format(datetime.now().strftime("%A, %B %d %Y, "+
@@ -1097,7 +1114,6 @@ class AutoTrader:
         for strategy, config in self._strategy_configs.items():
             # Check for portfolio strategy
             portfolio = config['PORTFOLIO'] if 'PORTFOLIO' in config else False
-            # watchlist = ["Portfolio"] if portfolio else config['WATCHLIST']
             watchlist = [config['WATCHLIST']] if portfolio else config['WATCHLIST']
             for instrument in watchlist:
                 if portfolio:
