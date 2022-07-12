@@ -42,13 +42,16 @@ class Broker:
 
     """
     
-    def __init__(self, broker_config: dict, utils: BrokerUtils) -> None:
+    def __init__(self, broker_config: dict = None, 
+                 utils: BrokerUtils = None) -> None:
         """Initialise virtual broker. Attributes are updated by 
         AutoTrader._assign_broker.
         """
-
         # TODO - improve floating point precision, not currently realistic
-
+        if broker_config is not None:
+            self.verbosity = broker_config['verbosity']
+        else:
+            self.verbosity = 0
         self.utils = utils
         
         # Orders
@@ -74,8 +77,6 @@ class Broker:
         self.spread = 0
         self.hedging = False            # Allow simultaneous trades on opposing sides
         self.margin_closeout = 0.0      # Fraction at margin call
-        
-        self.verbosity = broker_config['verbosity']
         
         # Commissions
         self.commission_scheme = 'percentage'
@@ -134,7 +135,7 @@ class Broker:
             # Load state 
             if os.path.exists(self._picklefile):
                 self._load_state()
-
+        
     
     def get_NAV(self) -> float:
         """Returns Net Asset Value of account.
@@ -888,9 +889,10 @@ class Broker:
 
     def _load_state(self):
         """Loads the state of the broker from a pickle."""
+        verbosity = self.verbosity
         with open(self._picklefile, 'rb') as file:
             state = pickle.load(file)
-        self = state
-
-        if self.verbosity > 0:
+        self.__dict__ = state.__dict__
+        if verbosity > 0:
             print("Virtual broker state loaded from pickle.")
+        
