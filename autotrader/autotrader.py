@@ -127,6 +127,7 @@ class AutoTrader:
         self._virtual_broker_hedging = False
         self._virtual_margin_call = 0
         self._base_currency = None
+        self._vb_paper_trading = False
         
         # Optimisation Parameters
         self._optimise_mode = False
@@ -299,6 +300,9 @@ class AutoTrader:
         
         # Enforce virtual broker
         self._broker_name = 'virtual'
+
+        # Turn on virtual broker paper trading mode
+        self._vb_paper_trading = True
         
 
     def add_strategy(self, config_filename: str = None, 
@@ -1332,6 +1336,7 @@ class AutoTrader:
             if int(self._verbosity) > 0 and self._backtest_mode:
                 banner = pyfiglet.figlet_format("AutoBacktest")
                 print(banner)
+            # TODO - add configure method to virtual broker
             broker._make_deposit(self._virtual_initial_balance)
             broker.fee = self._virtual_spread
             broker.leverage = self._virtual_leverage
@@ -1340,6 +1345,7 @@ class AutoTrader:
             broker.base_currency = self._base_currency
             broker.hedging = self._virtual_broker_hedging
             broker.margin_closeout = self._virtual_margin_call
+            broker._paper_trading = self._vb_paper_trading
         
         self._broker = broker
         self._broker_utils = utils

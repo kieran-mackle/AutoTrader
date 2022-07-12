@@ -91,7 +91,7 @@ class Broker:
         self._last_trade_id = 0
 
         # Paper trading mode
-        self._paper_trading = True # TODO - implement via autotrader virtual config
+        self._paper_trading = False
         self._state = None
         self._logfile = 'papertrade_history.csv' # TODO - customisation
         self._initialise_logfile()
