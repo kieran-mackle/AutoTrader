@@ -1,6 +1,7 @@
 from __future__ import annotations
 import numpy as np
 import pandas as pd
+from datetime import datetime
 from autotrader.brokers.trading import Order, Trade, Position
 from autotrader.brokers.broker_utils import BrokerUtils
 
@@ -40,6 +41,12 @@ class Broker:
     """
     
     def __init__(self, broker_config: dict, utils: BrokerUtils) -> None:
+        """Initialise virtual broker. Attributes are updated by 
+        AutoTrader._assign_broker.
+        """
+
+        # TODO - improve floating point precision, not currently realistic
+
         self.utils = utils
         
         # Orders
@@ -84,8 +91,11 @@ class Broker:
         self._last_trade_id = 0
 
         # Paper trading mode
-        self._paper_trading = False # Attribute not yet implemented
-        
+        self._paper_trading = True # TODO - implement via autotrader virtual config
+        self._state = None
+        self._logfile = 'papertrade_history.csv' # TODO - customisation
+        self._initialise_logfile()
+
     
     def __repr__(self):
         return 'AutoTrader Virtual Broker'
@@ -527,6 +537,10 @@ class Broker:
         
         holdings = self._get_holding_allocations()
         self.holdings.append(holdings)
+
+        # Log state
+        if self._paper_trading:
+            self._log_state()
         
     
     def _close_position(self, instrument: str, candle: pd.core.series.Series, 
@@ -811,3 +825,26 @@ class Broker:
             
         return values
     
+
+    def _initialise_logfile(self):
+        """Creates the logfile."""
+        # TODO - unique naming
+        # TODO - check for existence
+        # TODO - persistence?
+        with open(self._logfile, 'w') as file:
+            file.write('time, NAV, Equity, margin_available\n') 
+
+    
+    def _log_state(self):
+        """Logs the broker state to file whenever there is a change."""
+        # Have two options: log history, and log snapshot. Probably have both.
+
+        # State = ['NAV', 'Equity', 'margin_available']
+        state = [self.NAV, self.equity, self.margin_available]
+        if state != self._state:
+            # State has changed, append to logfile
+            with open(self._logfile, "a") as file:
+                timestamp = datetime.now().strftime("%b %d %Y %H:%M:%S.%f") + ' '
+                state_str = timestamp + ', '.join([str(e) for e in state]) + '\n'
+                file.write(state_str)
+        self._state = state
