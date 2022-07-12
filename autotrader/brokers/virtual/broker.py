@@ -1,4 +1,6 @@
 from __future__ import annotations
+import os
+import pickle
 import numpy as np
 import pandas as pd
 from datetime import datetime
@@ -62,7 +64,7 @@ class Broker:
         self._trade_id_instrument = {} # mapper from order_id to instrument
         
         # Account 
-        self.home_currency = 'AUD'
+        self.base_currency = 'AUD'
         self.NAV = 0                    # Net asset value
         self.equity = 0                 # Account equity (balance)
         self.floating_pnl = 0
@@ -91,10 +93,10 @@ class Broker:
         self._last_trade_id = 0
 
         # Paper trading mode
-        self._paper_trading = False
-        self._state = None
-        self._logfile = 'papertrade_history.csv' # TODO - customisation
-        self._initialise_logfile()
+        self._paper_trading = False             # Paper trading mode boolean
+        self._state = None                      # Last state snapshot
+        self._picklefile = '.virtual_broker'    # Pickle filename
+        self._logfile = 'papertrade_history.csv' # TODO - customisation w/ instance str
 
     
     def __repr__(self):
@@ -104,6 +106,36 @@ class Broker:
     def __str__(self):
         return 'AutoTrader Virtual Broker'
     
+    
+    def _configure(self, verbosity: int = None, initial_balance: float = None, 
+                   leverage: int = None, spread: float = None, 
+                   commission: float = None, commission_scheme: str = None,
+                   hedging: bool = None, base_currency: str = None, 
+                   paper_mode: bool = None, margin_closeout: float = None):
+        """Configures the account."""
+        self.verbosity = verbosity if verbosity is not None else self.verbosity
+        self.leverage = leverage if leverage is not None else self.leverage
+        self.commission = commission if commission is not None else self.commission
+        self.commission_scheme = commission_scheme if commission_scheme is not None \
+            else self.commission_scheme
+        self.spread = spread if spread is not None else self.spread
+        self.base_currency = base_currency if base_currency is not None else \
+            self.base_currency
+        self._paper_trading = paper_mode if paper_mode is not None else \
+            self._paper_trading
+        self.margin_closeout = margin_closeout if margin_closeout is not None \
+            else self.margin_closeout
+        self.hedging = hedging if hedging is not None else self.hedging
+        
+        if initial_balance is not None:
+            self._make_deposit(initial_balance)
+
+        if self._paper_trading:
+            # Load state 
+            if os.path.exists(self._picklefile):
+                self._initialise_logfile()
+                self._load_state()
+
     
     def get_NAV(self) -> float:
         """Returns Net Asset Value of account.
@@ -541,6 +573,7 @@ class Broker:
         # Log state
         if self._paper_trading:
             self._log_state()
+            self._save_state()
         
     
     def _close_position(self, instrument: str, candle: pd.core.series.Series, 
@@ -828,16 +861,14 @@ class Broker:
 
     def _initialise_logfile(self):
         """Creates the logfile."""
-        # TODO - unique naming
-        # TODO - check for existence
-        # TODO - persistence?
         with open(self._logfile, 'w') as file:
             file.write('time, NAV, Equity, margin_available\n') 
 
     
     def _log_state(self):
         """Logs the broker state to file whenever there is a change."""
-        # Have two options: log history, and log snapshot. Probably have both.
+        if not os.path.exists(self._logfile):
+            self._initialise_logfile()
 
         # State = ['NAV', 'Equity', 'margin_available']
         state = [self.NAV, self.equity, self.margin_available]
@@ -848,3 +879,17 @@ class Broker:
                 state_str = timestamp + ', '.join([str(e) for e in state]) + '\n'
                 file.write(state_str)
         self._state = state
+    
+
+    def _save_state(self):
+        """Pickles the current state of the broker."""
+        with open(self._picklefile, 'wb') as file:
+            pickle.dump(self, file)
+
+
+    def _load_state(self):
+        """Loads the state of the broker from a pickle."""
+        with open(self._picklefile, 'rb') as file:
+            state = pickle.load(file)
+        self = state
+

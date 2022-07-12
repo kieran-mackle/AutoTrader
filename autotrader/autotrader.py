@@ -1101,6 +1101,8 @@ class AutoTrader:
         
         if int(self._verbosity) > 0:
             if self._backtest_mode:
+                banner = pyfiglet.figlet_format("AutoBacktest")
+                print(banner)
                 print("Beginning new backtest.")
 
             elif self._scan_mode:
@@ -1336,20 +1338,17 @@ class AutoTrader:
         
         if self._backtest_mode or self._virtual_livetrading:
             # Using virtual broker, initialise account
-            if int(self._verbosity) > 0 and self._backtest_mode:
-                banner = pyfiglet.figlet_format("AutoBacktest")
-                print(banner)
-            # TODO - add configure method to virtual broker
-            broker._make_deposit(self._virtual_initial_balance)
-            broker.fee = self._virtual_spread
-            broker.leverage = self._virtual_leverage
-            broker.commission = self._virtual_commission
-            broker.spread = self._virtual_spread
-            broker.base_currency = self._base_currency
-            broker.hedging = self._virtual_broker_hedging
-            broker.margin_closeout = self._virtual_margin_call
-            broker._paper_trading = self._vb_paper_trading
-        
+            broker._configure(verbosity=self._broker_verbosity,
+                              initial_balance=self._virtual_initial_balance, 
+                              leverage=self._virtual_leverage, 
+                              spread=self._virtual_spread,
+                              commission=self._virtual_commission,
+                              commission_scheme=None,
+                              hedging=self._virtual_broker_hedging, 
+                              base_currency=self._base_currency,
+                              paper_mode=self._vb_paper_trading, 
+                              margin_closeout=self._virtual_margin_call)
+
         self._broker = broker
         self._broker_utils = utils
     
