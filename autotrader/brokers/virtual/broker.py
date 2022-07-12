@@ -132,7 +132,6 @@ class Broker:
 
         if self._paper_trading:
             # Load state 
-            self._initialise_logfile()
             if os.path.exists(self._picklefile):
                 self._load_state()
 
