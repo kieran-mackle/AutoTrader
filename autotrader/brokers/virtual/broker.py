@@ -893,3 +893,5 @@ class Broker:
             state = pickle.load(file)
         self = state
 
+        if self.verbosity > 0:
+            print("Virtual broker state loaded from pickle.")
