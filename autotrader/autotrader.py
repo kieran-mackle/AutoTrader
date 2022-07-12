@@ -1191,6 +1191,9 @@ class AutoTrader:
                     
                     except KeyboardInterrupt:
                         print("\nKilling bot(s).")
+                        instance_filepath = os.path.join(self._home_dir, 'active_bots', 
+                                                         instance_str)
+                        os.remove(instance_filepath)
                         break
                     
         elif self._run_mode.lower() == 'periodic':
