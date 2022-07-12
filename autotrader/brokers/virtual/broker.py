@@ -132,8 +132,8 @@ class Broker:
 
         if self._paper_trading:
             # Load state 
+            self._initialise_logfile()
             if os.path.exists(self._picklefile):
-                self._initialise_logfile()
                 self._load_state()
 
     
@@ -570,7 +570,7 @@ class Broker:
         holdings = self._get_holding_allocations()
         self.holdings.append(holdings)
 
-        # Log state
+        # Save state
         if self._paper_trading:
             self._log_state()
             self._save_state()
