@@ -1100,19 +1100,16 @@ class AutoTrader:
         self._configure_emailing(global_config)
         
         if int(self._verbosity) > 0:
+            print(pyfiglet.figlet_format("AutoTrader", font='slant'))
             if self._backtest_mode:
-                banner = pyfiglet.figlet_format("AutoBacktest")
-                print(banner)
-                print("Beginning new backtest.")
+                print("BACKTEST MODE")
 
             elif self._scan_mode:
-                print("AutoTrader - AutoScan")
+                print("SCAN MODE")
                 print("Time: {}\n".format(datetime.now().strftime("%A, %B %d %Y, "+
                                                                   "%H:%M:%S")))
             else:
-                # TODO - improve banner
-                print("AutoTrader Livetrade")
-                print("--------------------")
+                print("LIVETRADE MODE")
                 print("Current time: {}".format(datetime.now().strftime("%A, %B %d %Y, "+
                                                                   "%H:%M:%S")))
         
