@@ -14,7 +14,8 @@ from autotrader.autoplot import AutoPlot
 from autotrader.autobot import AutoTraderBot
 from datetime import datetime, timezone
 from autotrader.utilities import (read_yaml, get_config, 
-                                  get_watchlist, DataStream, TradeAnalysis)
+                                  get_watchlist, DataStream, TradeAnalysis,
+                                  unpickle_broker)
 
 
 class AutoTrader:
@@ -877,7 +878,6 @@ class AutoTrader:
         None
             Trade results will be printed.
         """
-        
         if trade_results is None:
             trade_results = self.trade_results
             
@@ -1541,4 +1541,12 @@ class AutoTrader:
                   "will now shut down.")
         
         return instance_file_exists
-        
+
+    
+    @staticmethod
+    def papertrade_snapshot(broker_picklefile: str = '.virtual_broker'):
+        """Prints a snapshot of the virtual broker from a pickle."""
+        broker = unpickle_broker(broker_picklefile)
+        results = TradeAnalysis(broker)
+        at = AutoTrader()
+        at.print_trade_results(results)

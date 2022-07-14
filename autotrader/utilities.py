@@ -318,7 +318,6 @@ class TradeAnalysis:
         Orders which were cancelled during the trading period.
     
     """
-    
     def __init__(self, broker: Broker, instrument: str = None, 
                  process_holding_history: bool = True):
         
@@ -511,7 +510,7 @@ class TradeAnalysis:
 
     
     def summary(self):
-        
+        """Constructs a summary of trades taken."""
         trade_results = {}
         cpl = self.trade_history.profit.cumsum()
         
