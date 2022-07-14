@@ -1,6 +1,6 @@
-from re import L
 import sys
 import yaml
+import pickle
 import numpy as np
 import pandas as pd
 from datetime import datetime, timedelta
@@ -289,26 +289,33 @@ def get_streaks(trade_summary):
     return longest_winning_streak, longest_losing_streak
 
 
-class BacktestResults:
-    """AutoTrader backtest results class.
+def unpickle_broker(picklefile: str = '.virtual_broker'):
+    """Unpickles a virtual broker instance for post-processing."""
+    with open(picklefile, 'rb') as file:
+        instance = pickle.load(file)
+    return instance
+
+
+class TradeAnalysis:
+    """AutoTrader trade analysis class.
     
     Attributes
     ----------
     instruments_traded : list
-        The instruments traded during the backtest.
+        The instruments traded during the trading period.
     account_history : pd.DataFrame
-        A timeseries history of the account during the backtest.
+        A timeseries history of the account during the trading period.
     holding_history : pd.DataFrame
-        A timeseries summary of holdings during the backtest, by portfolio
+        A timeseries summary of holdings during the trading period, by portfolio
         allocation fraction.
     trade_history : pd.DataFrame
-        A timeseries history of trades taken during the backtest.
+        A timeseries history of trades taken during the trading period.
     order_history : pd.DataFrame
-        A timeseries history of orders placed during the backtest.
+        A timeseries history of orders placed during the trading period.
     open_trades : pd.DataFrame
-        Trades which remained open at the end of the backtest.
+        Trades which remained open at the end of the trading period.
     cancelled_orders : pd.DataFrame
-        Orders which were cancelled during the backtest.
+        Orders which were cancelled during the trading period.
     
     """
     
@@ -323,20 +330,20 @@ class BacktestResults:
         self.open_trades = None
         self.cancelled_orders = None
         
-        self.analyse_backtest(broker, instrument, process_holding_history)
+        self.analyse_account(broker, instrument, process_holding_history)
     
     
     def __str__(self):
-        return 'AutoTrader Backtest Results'
+        return 'AutoTrader Trade Results'
     
     
     def __repr__(self):
-        return 'AutoTrader Backtest Results'
+        return 'AutoTrader Trade Results'
         
     
-    def analyse_backtest(self, broker: Broker, instrument: str = None,
+    def analyse_account(self, broker: Broker, instrument: str = None,
                          process_holding_history: bool = True):
-        """Analyses backtest and creates summary of key details.
+        """Analyses trade account and creates summary of key details.
         """
         # Construct trade and order summaries
         all_trades = {}
@@ -349,9 +356,9 @@ class BacktestResults:
             orders = broker.get_orders(order_status=status)
             all_orders.update(orders)
         
-        trades = BacktestResults.create_trade_summary(trades=all_trades, 
+        trades = TradeAnalysis.create_trade_summary(trades=all_trades, 
                                                       instrument=instrument)
-        orders = BacktestResults.create_trade_summary(orders=all_orders, 
+        orders = TradeAnalysis.create_trade_summary(orders=all_orders, 
                                                       instrument=instrument)
         
         # Construct account history
@@ -396,7 +403,7 @@ class BacktestResults:
     @staticmethod
     def create_trade_summary(trades: dict = None, orders: dict = None, 
                              instrument: str = None) -> pd.DataFrame:
-        """Creates backtest trade summary dataframe.
+        """Creates trade summary dataframe.
         """
         
         instrument = None if isinstance(instrument, list) else instrument
@@ -505,14 +512,14 @@ class BacktestResults:
     
     def summary(self):
         
-        backtest_results = {}
+        trade_results = {}
         cpl = self.trade_history.profit.cumsum()
         
         # All trades
         no_trades = len(self.trade_history[self.trade_history['status'] == 'closed'])
-        backtest_results['no_trades'] = no_trades
-        backtest_results['start'] = self.account_history.index[0]
-        backtest_results['end'] = self.account_history.index[-1]
+        trade_results['no_trades'] = no_trades
+        trade_results['start'] = self.account_history.index[0]
+        trade_results['end'] = self.account_history.index[-1]
         
         starting_balance = self.account_history.equity[0]
         ending_balance = self.account_history.equity[-1]
@@ -520,14 +527,14 @@ class BacktestResults:
         abs_return = ending_balance - starting_balance
         pc_return = 100 * abs_return / starting_balance
         
-        backtest_results['starting_balance'] = starting_balance
-        backtest_results['ending_balance'] = ending_balance
-        backtest_results['ending_NAV'] = ending_NAV
-        backtest_results['abs_return'] = abs_return
-        backtest_results['pc_return'] = pc_return
+        trade_results['starting_balance'] = starting_balance
+        trade_results['ending_balance'] = ending_balance
+        trade_results['ending_NAV'] = ending_NAV
+        trade_results['abs_return'] = abs_return
+        trade_results['pc_return'] = pc_return
         
         if no_trades > 0:
-            backtest_results['all_trades'] = {}
+            trade_results['all_trades'] = {}
             wins = self.trade_history[self.trade_history.profit > 0]
             avg_win = np.mean(wins.profit)
             max_win = np.max(wins.profit)
@@ -542,29 +549,29 @@ class BacktestResults:
             max_drawdown = min(self.account_history.drawdown)
             total_fees = self.trade_history.fees.sum()
             
-            backtest_results['all_trades']['avg_win'] = avg_win
-            backtest_results['all_trades']['max_win'] = max_win
-            backtest_results['all_trades']['avg_loss'] = avg_loss
-            backtest_results['all_trades']['max_loss'] = max_loss
-            backtest_results['all_trades']['win_rate'] = win_rate
-            backtest_results['all_trades']['win_streak'] = longest_win_streak
-            backtest_results['all_trades']['lose_streak'] = longest_lose_streak
-            backtest_results['all_trades']['longest_trade'] = str(timedelta(seconds = int(max_trade_duration)))
-            backtest_results['all_trades']['shortest_trade'] = str(timedelta(seconds = int(min_trade_duration)))
-            backtest_results['all_trades']['avg_trade_duration'] = str(timedelta(seconds = int(avg_trade_duration)))
-            backtest_results['all_trades']['net_pl'] = cpl.values[-1]
-            backtest_results['all_trades']['max_drawdown'] = max_drawdown
-            backtest_results['all_trades']['total_fees'] = total_fees
+            trade_results['all_trades']['avg_win'] = avg_win
+            trade_results['all_trades']['max_win'] = max_win
+            trade_results['all_trades']['avg_loss'] = avg_loss
+            trade_results['all_trades']['max_loss'] = max_loss
+            trade_results['all_trades']['win_rate'] = win_rate
+            trade_results['all_trades']['win_streak'] = longest_win_streak
+            trade_results['all_trades']['lose_streak'] = longest_lose_streak
+            trade_results['all_trades']['longest_trade'] = str(timedelta(seconds = int(max_trade_duration)))
+            trade_results['all_trades']['shortest_trade'] = str(timedelta(seconds = int(min_trade_duration)))
+            trade_results['all_trades']['avg_trade_duration'] = str(timedelta(seconds = int(avg_trade_duration)))
+            trade_results['all_trades']['net_pl'] = cpl.values[-1]
+            trade_results['all_trades']['max_drawdown'] = max_drawdown
+            trade_results['all_trades']['total_fees'] = total_fees
             
         # Cancelled and open orders
-        backtest_results['no_open'] = len(self.open_trades)
-        backtest_results['no_cancelled'] = len(self.cancelled_orders)
+        trade_results['no_open'] = len(self.open_trades)
+        trade_results['no_cancelled'] = len(self.cancelled_orders)
         
         # Long trades
         long_trades = self.trade_history[self.trade_history['direction'] > 0]
         no_long = len(long_trades)
-        backtest_results['long_trades'] = {}
-        backtest_results['long_trades']['no_trades'] = no_long
+        trade_results['long_trades'] = {}
+        trade_results['long_trades']['no_trades'] = no_long
         if no_long > 0:
             long_wins = long_trades[long_trades.profit > 0]
             avg_long_win = np.mean(long_wins.profit)
@@ -574,17 +581,17 @@ class BacktestResults:
             max_long_loss = abs(np.min(long_loss.profit))
             long_wr = 100*len(long_trades[long_trades.profit > 0])/no_long
             
-            backtest_results['long_trades']['avg_long_win'] = avg_long_win
-            backtest_results['long_trades']['max_long_win'] = max_long_win 
-            backtest_results['long_trades']['avg_long_loss'] = avg_long_loss
-            backtest_results['long_trades']['max_long_loss'] = max_long_loss
-            backtest_results['long_trades']['long_wr'] = long_wr
+            trade_results['long_trades']['avg_long_win'] = avg_long_win
+            trade_results['long_trades']['max_long_win'] = max_long_win 
+            trade_results['long_trades']['avg_long_loss'] = avg_long_loss
+            trade_results['long_trades']['max_long_loss'] = max_long_loss
+            trade_results['long_trades']['long_wr'] = long_wr
             
         # Short trades
         short_trades = self.trade_history[self.trade_history['direction'] < 0]
         no_short = len(short_trades)
-        backtest_results['short_trades'] = {}
-        backtest_results['short_trades']['no_trades'] = no_short
+        trade_results['short_trades'] = {}
+        trade_results['short_trades']['no_trades'] = no_short
         if no_short > 0:
             short_wins = short_trades[short_trades.profit > 0]
             avg_short_win = np.mean(short_wins.profit)
@@ -594,17 +601,17 @@ class BacktestResults:
             max_short_loss = abs(np.min(short_loss.profit))
             short_wr = 100*len(short_trades[short_trades.profit > 0])/no_short
             
-            backtest_results['short_trades']['avg_short_win'] = avg_short_win
-            backtest_results['short_trades']['max_short_win'] = max_short_win
-            backtest_results['short_trades']['avg_short_loss'] = avg_short_loss
-            backtest_results['short_trades']['max_short_loss'] = max_short_loss
-            backtest_results['short_trades']['short_wr'] = short_wr
+            trade_results['short_trades']['avg_short_win'] = avg_short_win
+            trade_results['short_trades']['max_short_win'] = max_short_win
+            trade_results['short_trades']['avg_short_loss'] = avg_short_loss
+            trade_results['short_trades']['max_short_loss'] = max_short_loss
+            trade_results['short_trades']['short_wr'] = short_wr
         
-        return backtest_results
+        return trade_results
     
 
     def write_to_file(self):
-        """Write the backtest results to file."""
+        """Write the trade results to file."""
         # TODO - implement, allow writing virtual broker paper trade
         # history to file
     

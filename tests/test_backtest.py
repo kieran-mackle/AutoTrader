@@ -29,7 +29,7 @@ def test_macd_backtest():
                 spread=0.5*1e-4, commission=0.005, hedging=True)
     at.run()
     bot = at.get_bots_deployed()
-    bt_results = at.backtest_results.summary()
+    bt_results = at.trade_results.summary()
     
     # Test backtest results
     assert bt_results['no_trades'] == 36, "Incorrect number of trades " + \
@@ -69,7 +69,7 @@ def test_multibot_macd_backtest():
                 initial_balance=1000, leverage=30,
                 spread=0.5*1e-4, commission=0.005, hedging=True)
     at.run()
-    bt_results = at.backtest_results.summary()
+    bt_results = at.trade_results.summary()
     
     assert bt_results['no_trades'] == 68, "Incorrect number of trades"+\
         " (multi-instrument backtest)"

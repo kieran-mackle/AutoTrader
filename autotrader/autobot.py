@@ -5,7 +5,7 @@ from autotrader.comms import emailing
 from datetime import datetime, timezone
 from autotrader.autodata import GetData
 from autotrader.brokers.trading import Order
-from autotrader.utilities import read_yaml, get_config, BacktestResults
+from autotrader.utilities import read_yaml, get_config, TradeAnalysis
 
 
 class AutoTraderBot:
@@ -21,7 +21,7 @@ class AutoTraderBot:
         The OHLC quote data used by the bot.
     MTF_data : dict
         The multiple timeframe data used by the bot.
-    backtest_results : BacktestResults
+    backtest_results : TradeAnalysis
         A class containing results from the bot in backtest. This 
         is available only after a backtest and has attributes: 'data', 
         'account_history', 'trade_summary', 'indicators', 'instrument', 
@@ -184,7 +184,8 @@ class AutoTraderBot:
         # Assign strategy attributes for tick-based strategy development
         if self._backtest_mode:
             self._strategy._backtesting = True
-            self.backtest_results = None
+            # TODO - make trade_results available on livetrading (eg. paper)
+            self.trade_results = None
         if interval.split(',')[0] == 'tick':
             self._strategy._tick_data = True
         
@@ -546,16 +547,16 @@ class AutoTraderBot:
             self._broker._update_positions(bar, product)
     
     
-    def _create_backtest_results(self) -> dict:
-        """Constructs backtest summary dictionary for further processing.
+    def _create_trade_results(self) -> dict:
+        """Constructs trade summary for post-processing.
         """
-        backtest_results = BacktestResults(self._broker, self.instrument, 
+        trade_results = TradeAnalysis(self._broker, self.instrument, 
                                            self._process_holding_history)
-        backtest_results.indicators = self._strategy.indicators if \
+        trade_results.indicators = self._strategy.indicators if \
             hasattr(self._strategy, 'indicators') else None
-        backtest_results.data = self.data
-        backtest_results.interval = self._strategy_params['granularity']
-        self.backtest_results = backtest_results
+        trade_results.data = self.data
+        trade_results.interval = self._strategy_params['granularity']
+        self.trade_results = trade_results
     
     
     def _get_iteration_range(self) -> int:
@@ -563,7 +564,6 @@ class AutoTraderBot:
         the entire dataset is iterated over. For livetrading, only the latest candle
         is used. ONLY USED IN BACKTESTING NOW.
         """
-        
         start_range = self._strategy_params['period']
         end_range = len(self.data)
         
