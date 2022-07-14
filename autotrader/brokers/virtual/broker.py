@@ -41,7 +41,8 @@ class Broker:
         The commission value.
 
     """
-    
+    # TODO - add docs for new attributes
+
     def __init__(self, broker_config: dict = None, 
                  utils: BrokerUtils = None) -> None:
         """Initialise virtual broker. Attributes are updated by 
@@ -152,7 +153,6 @@ class Broker:
     def place_order(self, order: Order, **kwargs) -> None:
         """Place order with broker.
         """
-        
         # Call order to set order time
         datetime_stamp = kwargs['order_time']
         order(order_time = datetime_stamp)
@@ -572,7 +572,6 @@ class Broker:
 
         # Save state
         if self._paper_trading:
-            self._log_state()
             self._save_state()
         
     
@@ -857,28 +856,6 @@ class Broker:
             values = {None: None}
             
         return values
-    
-
-    def _initialise_logfile(self):
-        """Creates the logfile."""
-        with open(self._logfile, 'w') as file:
-            file.write('time, NAV, Equity, margin_available\n') 
-
-    
-    def _log_state(self):
-        """Logs the broker state to file whenever there is a change."""
-        if not os.path.exists(self._logfile):
-            self._initialise_logfile()
-
-        # State = ['NAV', 'Equity', 'margin_available']
-        state = [self.NAV, self.equity, self.margin_available]
-        if state != self._state:
-            # State has changed, append to logfile
-            with open(self._logfile, "a") as file:
-                timestamp = datetime.now().strftime("%b %d %Y %H:%M:%S.%f") + ' '
-                state_str = timestamp + ', '.join([str(e) for e in state]) + '\n'
-                file.write(state_str)
-        self._state = state
     
 
     def _save_state(self):
