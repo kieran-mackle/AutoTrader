@@ -514,7 +514,7 @@ class AutoTraderBot:
         """
         for order in orders:
             if self._req_liveprice:
-                liveprice_func = getattr(self._get_data, f'{self._feed.lower()}_liveprice')
+                liveprice_func = getattr(self._get_data, f'_{self._feed.lower()}_liveprice')
                 last_price = liveprice_func(order)
             else:
                 try:

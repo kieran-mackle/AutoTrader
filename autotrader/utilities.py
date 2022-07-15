@@ -714,7 +714,7 @@ class DataStream:
             # Local data filepaths provided
             if isinstance(self.data_filepaths, str):
                 # Single data filepath provided
-                data = self.get_data.local(self.data_filepaths, self.data_start, 
+                data = self.get_data._local(self.data_filepaths, self.data_start, 
                                             self.data_end)
                 multi_data = None
                 
@@ -722,14 +722,12 @@ class DataStream:
                 # Multiple data filepaths provided
                 multi_data = {}
                 if self.portfolio:
-                    # raise NotImplementedError("Locally-provided data not "+\
-                    #                           "implemented for portfolios.")
                     for instrument, filepath in self.data_filepaths.items():
-                        data = self.get_data.local(filepath, self.data_start, self.data_end)
+                        data = self.get_data._local(filepath, self.data_start, self.data_end)
                         multi_data[instrument] = data
                 else:
                     for granularity, filepath in self.data_filepaths.items():
-                        data = self.get_data.local(filepath, self.data_start, self.data_end)
+                        data = self.get_data._local(filepath, self.data_start, self.data_end)
                         multi_data[granularity] = data
                 
                 # Extract first dataset as base data (arbitrary)
@@ -738,7 +736,7 @@ class DataStream:
         else:
             # Download data
             multi_data = {}
-            data_func = getattr(self.get_data, self.feed.lower())
+            data_func = getattr(self.get_data, f"_{self.feed.lower()}")
             if self.portfolio:
                 # Portfolio strategy
                 if len(self.portfolio) > 1:
@@ -776,7 +774,7 @@ class DataStream:
         if self.quote_data_file is not None:
             if isinstance(self.quote_data_file, str):
                 # Single quote datafile
-                quote_data = self.get_data.local(self.quote_data_file, 
+                quote_data = self.get_data._local(self.quote_data_file, 
                                               self.data_start, self.data_end)
                 
             elif isinstance(quote_data, dict) and self.portfolio:
@@ -786,7 +784,7 @@ class DataStream:
                                           "implemented for portfolios.")
                 quote_data = {}
                 for instrument, path in quote_data.items():
-                    quote_data[instrument] = self.get_data.local(self.quote_data_file,  # need to specify 
+                    quote_data[instrument] = self.get_data._local(self.quote_data_file,  # need to specify 
                                                                  self.data_start, 
                                                                  self.data_end)
             else:
@@ -820,14 +818,14 @@ class DataStream:
         if self.auxdata_files is not None:
             if isinstance(self.auxdata_files, str):
                 # Single data filepath provided
-                auxdata = self.get_data.local(self.auxdata_files, self.data_start, 
+                auxdata = self.get_data._local(self.auxdata_files, self.data_start, 
                                                self.data_end)
                 
             elif isinstance(self.auxdata_files, dict):
                 # Multiple data filepaths provided
                 auxdata = {}
                 for key, filepath in self.auxdata_files.items():
-                    data = self.get_data.local(filepath, self.data_start, self.data_end)
+                    data = self.get_data._local(filepath, self.data_start, self.data_end)
                     auxdata[key] = data
         else:
             auxdata = None

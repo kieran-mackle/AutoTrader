@@ -1,5 +1,4 @@
 import time
-from jinja2 import pass_eval_context
 import pandas as pd
 from typing import Union
 from autotrader.brokers.trading import Order
@@ -11,10 +10,10 @@ class GetData:
 
     Attributes
     ----------
-    home_curreny : str
+    _home_curreny : str
         the home currency of the account (used for retrieving quote data)
     
-    allow_dancing_bears : bool
+    _allow_dancing_bears : bool
         Allow incomplete candlesticks in data retrieval.
 
     """
@@ -109,8 +108,8 @@ class GetData:
             else:
                 raise Exception(f"Unknown data source '{self._feed}'.")
             
-        self.allow_dancing_bears = allow_dancing_bears
-        self.home_currency = home_currency
+        self._allow_dancing_bears = allow_dancing_bears
+        self._home_currency = home_currency
 
     
     def __repr__(self):
@@ -126,7 +125,7 @@ class GetData:
               end_time: datetime = None, 
               *args, **kwargs) -> pd.DataFrame:
         """Unified data retrieval api."""
-        func = getattr(self, self._feed)
+        func = getattr(self, f"_{self._feed}")
         data = func(instrument, granularity=granularity, 
                     count=count, start_time=start_time,
                     end_time=end_time, *args, **kwargs)
@@ -140,7 +139,7 @@ class GetData:
         return data
 
     
-    def lvl1(self, *args, **kwargs):
+    def _lvl1(self, *args, **kwargs):
         """Unified level 1 data retrieval api."""
         raise NotImplementedError("This method is not yet implemented.")
         func = getattr(self, f'_{self._feed}_lvl1')
@@ -148,7 +147,7 @@ class GetData:
         return data
 
     
-    def oanda(self, instrument: str, granularity: str, count: int = None, 
+    def _oanda(self, instrument: str, granularity: str, count: int = None, 
               start_time: datetime = None, end_time: datetime = None) -> pd.DataFrame:
         """Retrieves historical price data of a instrument from Oanda v20 API.
 
@@ -157,7 +156,8 @@ class GetData:
         instrument : str
             The instrument to fetch data for.
         granularity : str
-            The candlestick granularity (eg. "M15", "H4", "D").
+            The candlestick granularity, specified as a TimeDelta string
+            (eg. '30s', '5min' or '1d').
         count : int, optional
             The number of candles to fetch (maximum 5000). The default is None.
         start_time : datetime, optional
@@ -191,6 +191,14 @@ class GetData:
         >>> data = GetData.oanda("EUR_USD", granularity="M15", 
                                  count=2110)
         """
+        gran_map = {5: 'S5', 10: 'S10', 15: 'S15', 30: 'S30', 
+                    60: 'M1', 120: 'M2', 240: 'M4', 300: 'M5', 
+                    600: 'M10', 900: 'M15', 1800: 'M30', 3600: 'H1',
+                    7200: 'H2', 10800: 'H3', 14400: 'H4', 
+                    21600: 'H6', 28800: 'H8', 43200: 'H12',
+                    86400: 'D', 604800: 'W', 2419200: 'M'}
+        granularity = gran_map[pd.Timedelta(granularity).total_seconds()]
+
         if count is not None:
             # either of count, start_time+count, end_time+count (or start_time+end_time+count)
             # if count is provided, count must be less than 5000
@@ -199,7 +207,7 @@ class GetData:
                 response = self.api.instrument.candles(instrument,
                                                        granularity = granularity,
                                                        count = count)
-                data = self.response_to_df(response)
+                data = self._response_to_df(response)
                 
             elif start_time is not None and end_time is None:
                 # start_time + count
@@ -208,7 +216,7 @@ class GetData:
                                                        granularity = granularity,
                                                        count = count,
                                                        fromTime = from_time)
-                data = self.response_to_df(response)
+                data = self._response_to_df(response)
             
             elif end_time is not None and start_time is None:
                 # end_time + count
@@ -217,7 +225,7 @@ class GetData:
                                              granularity = granularity,
                                              count = count,
                                              toTime = to_time)
-                data = self.response_to_df(response)
+                data = self._response_to_df(response)
                 
             else:
                 # start_time+end_time+count
@@ -239,7 +247,7 @@ class GetData:
                                                          from_time,
                                                          to_time)
                 else:
-                    data = self.response_to_df(response)
+                    data = self._response_to_df(response)
                 
         else:
             # count is None
@@ -260,12 +268,12 @@ class GetData:
                                                      from_time,
                                                      to_time)
             else:
-                data = self.response_to_df(response)
+                data = self._response_to_df(response)
 
         return data
     
     
-    def oanda_liveprice(self, order: Order, **kwargs) -> dict:
+    def _oanda_liveprice(self, order: Order, **kwargs) -> dict:
         """Returns current price (bid+ask) and home conversion factors.
         """
         response = self.api.pricing.get(accountID = self.ACCOUNT_ID, 
@@ -294,7 +302,7 @@ class GetData:
                                                granularity=granularity,
                                                fromTime=partial_from,
                                                count=max_candles)
-        data = self.response_to_df(response)
+        data = self._response_to_df(response)
         last_time = data.index[-1].timestamp()
         
         while last_time < end_time:
@@ -305,7 +313,7 @@ class GetData:
                                                    fromTime=partial_from,
                                                    count=candles)
             
-            partial_data = self.response_to_df(response)
+            partial_data = self._response_to_df(response)
             data = pd.concat([data, partial_data])
             last_time = data.index[-1].timestamp()
             
@@ -317,21 +325,29 @@ class GetData:
                           count: int = None):
         """Function to retrieve price conversion data.
         """
+        gran_map = {5: 'S5', 10: 'S10', 15: 'S15', 30: 'S30', 
+                    60: 'M1', 120: 'M2', 240: 'M4', 300: 'M5', 
+                    600: 'M10', 900: 'M15', 1800: 'M30', 3600: 'H1',
+                    7200: 'H2', 10800: 'H3', 14400: 'H4', 
+                    21600: 'H6', 28800: 'H8', 43200: 'H12',
+                    86400: 'D', 604800: 'W', 2419200: 'M'}
+        granularity = gran_map[pd.Timedelta(granularity).total_seconds()]
+
         base_currency = pair[:3]
         quote_currency = pair[-3:]
         
-        if self.home_currency is None or quote_currency == self.home_currency:
+        if self._home_currency is None or quote_currency == self._home_currency:
             # Use data as quote data
             quote_data = data
             
         else:
-            if self.home_currency == base_currency:
+            if self._home_currency == base_currency:
                 # Disturb the data by machine precision to prompt HCF calculation
                 quote_data = (1 + 1e-15) * data
                 
             else:
                 # Try download quote data
-                conversion_pair = self.home_currency + "_" + quote_currency
+                conversion_pair = self._home_currency + "_" + quote_currency
                 if conversion_pair == pair:
                     # Same instrument
                     quote_data = data
@@ -349,7 +365,7 @@ class GetData:
                         # Failed
                         try:
                             # Invert conversion pair
-                            conversion_pair = quote_currency + "_" + self.home_currency
+                            conversion_pair = quote_currency + "_" + self._home_currency
                             inverse_quote_data = self.oanda(instrument=conversion_pair,
                                                     granularity=granularity,
                                                     start_time=start_time,
@@ -371,7 +387,7 @@ class GetData:
             print(response.reason)
     
     
-    def response_to_df(self, response):
+    def _response_to_df(self, response):
         """Function to convert api response into a pandas dataframe.
         """
         try:
@@ -383,7 +399,7 @@ class GetData:
         times = []
         close_price, high_price, low_price, open_price, volume = [],[],[],[],[]
         
-        if self.allow_dancing_bears:
+        if self._allow_dancing_bears:
             # Allow all candles
             for candle in candles:
                 times.append(candle.time)
@@ -458,7 +474,7 @@ class GetData:
         return my_int
     
 
-    def yahoo(self, instrument: str, granularity: str = None, count: int = None, 
+    def _yahoo(self, instrument: str, granularity: str = None, count: int = None, 
               start_time: str = None, end_time: str = None) -> pd.DataFrame:
         """Retrieves historical price data from yahoo finance. 
 
@@ -489,7 +505,12 @@ class GetData:
 
         Intraday data cannot exceed 60 days.
         """
-        
+        gran_map = {60: '1m', 120: '2m', 300: '5m', 900: '15m', 
+                    1800: '30m', 3600: '60m', 5400: '90m', 
+                    3600: '1h', 86400: '1d', 432000: '5d', 
+                    604800: '1wk', 2419200: '1mo', 7257600: '3mo'}
+        granularity = gran_map[pd.Timedelta(granularity).total_seconds()]
+
         if count is not None and start_time is None and end_time is None:
             # Convert count to start and end dates (assumes end=now)
             end_time = datetime.now()
@@ -507,7 +528,7 @@ class GetData:
         return data
     
     
-    def yahoo_liveprice(self,):
+    def _yahoo_liveprice(self,):
         raise Exception("Live price is not available from yahoo API.")
         
     
@@ -529,7 +550,7 @@ class GetData:
             raise ConnectionError("No active connection to IB.")
     
     
-    def ib(self, instrument: str, granularity: str, count: int,
+    def _ib(self, instrument: str, granularity: str, count: int,
            start_time: datetime = None, end_time: datetime = None,
            order: Order = None, durationStr: str = '10 mins', **kwargs) -> pd.DataFrame:
         """Fetches data from IB.
@@ -593,7 +614,7 @@ class GetData:
         return df
     
     
-    def ib_liveprice(self, order: Order, snapshot: bool = False, **kwargs) -> dict:
+    def _ib_liveprice(self, order: Order, snapshot: bool = False, **kwargs) -> dict:
         """Returns current price (bid+ask) and home conversion factors.
         
         Parameters
@@ -667,7 +688,7 @@ class GetData:
     
     
     @staticmethod
-    def local(filepath: str, start_time: Union[str, datetime] = None, 
+    def _local(filepath: str, start_time: Union[str, datetime] = None, 
               end_time: Union[str, datetime] = None, utc: bool = True,
               *args, **kwargs) -> pd.DataFrame:
         """Reads and returns local price data.
@@ -715,7 +736,7 @@ class GetData:
         return data[(data.index >= start_date) & (data.index <= end_date)]
     
     
-    def ccxt(self, instrument: str, granularity: str, count: int = None, 
+    def _ccxt(self, instrument: str, granularity: str, count: int = None, 
              start_time: datetime = None, 
              end_time: datetime = None) -> pd.DataFrame:
         """Retrieves historical price data of a instrument from an exchange
@@ -810,7 +831,7 @@ class GetData:
         return data
         
 
-    def dydx(self, instrument: str, granularity: str, count: int = None, 
+    def _dydx(self, instrument: str, granularity: str, count: int = None, 
              start_time: datetime = None, end_time: datetime = None,
              *args, **kwargs) -> pd.DataFrame:
         """Retrieves historical price data of a instrument from dYdX.
@@ -833,16 +854,18 @@ class GetData:
         data : DataFrame
             The price data, as an OHLCV DataFrame.
         """
-        granularity_to_td = {'1DAY': '1day', '4HOURS': '4h', '1HOUR': '1h',
-                             '30MINS': '30min', '15MINS': '15min', 
-                             '5MINS': '5min', '1MIN': '1min'}
-        
+        gran_str = granularity
+        gran_map = {60: '1MIN', 300: '5MINS', 900: '15MINS', 
+                    1800: '30MINS', 3600: '1HOUR', 14400: '4HOURS', 
+                    86400: '1DAY',}
+        granularity = gran_map[pd.Timedelta(granularity).total_seconds()]
+
         def fetch_between_dates():
             # Fetches data between two dates
             data = []
             start = start_time
             last = start
-            timestep = pd.Timedelta(granularity_to_td[granularity])
+            timestep = pd.Timedelta(gran_str)
             while last < end_time:
                 raw_data = self.api.public.get_candles(instrument, 
                                                        resolution=granularity, 
