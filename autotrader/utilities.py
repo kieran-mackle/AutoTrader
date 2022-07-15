@@ -123,7 +123,7 @@ def get_config(environment: str, global_config: dict, feed: str) -> dict:
                            'base_currency': currency}
             
         elif feed.upper() == 'YAHOO':
-            data_source = 'yfinance'
+            data_source = 'yahoo'
             config_dict = {'data_source': data_source}
             
         elif feed.upper() == 'LOCAL':
@@ -179,7 +179,7 @@ def get_config(environment: str, global_config: dict, feed: str) -> dict:
             raise Exception("Paper trading is not supported for dYdX.")
             
         elif feed.upper() == 'YAHOO':
-            data_source = 'yfinance'
+            data_source = 'yahoo'
             config_dict = {'data_source': data_source}
         
         elif feed.upper() == 'LOCAL':
