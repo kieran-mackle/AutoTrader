@@ -5,8 +5,8 @@ from autotrader.brokers.trading import Order
 from datetime import datetime, timedelta, timezone
 
 
-class GetData:
-    """GetData class to retrieve price data.
+class AutoData:
+    """AutoData class to retrieve price data.
 
     Attributes
     ----------
@@ -21,7 +21,7 @@ class GetData:
     def __init__(self, data_config: dict = None, 
                  allow_dancing_bears: bool = False,
                  home_currency: str = None) -> None:
-        """Instantiates GetData.
+        """Instantiates AutoData.
 
         Parameters
         ----------
@@ -39,7 +39,7 @@ class GetData:
         Returns
         -------
         None
-            GetData will be instantiated and ready to fetch price data.
+            AutoData will be instantiated and ready to fetch price data.
         """
         if data_config is None:
             self._feed = 'local'
@@ -117,7 +117,7 @@ class GetData:
     
     
     def __str__(self):
-        return f'AutoTrader GetData instance ({self._feed})'
+        return f'AutoData (connected to {self._feed})'
         
 
     def fetch(self, instrument: str, granularity: str = None, 
@@ -176,20 +176,6 @@ class GetData:
             time should be provided. If neither is provided, the N most
             recent candles will be provided. If both are provided, the count
             will be ignored, and instead the dates will be used.
-        
-        Examples
-        --------
-        >>> data = GetData.oanda("EUR_USD", granularity="M15", 
-                                 start_time=from_dt, end_time=to_dt)
-            
-        >>> data = GetData.oanda("EUR_USD", granularity="M15",
-                                 start_time=from_dt, count=2110)
-        
-        >>> data = GetData.oanda("EUR_USD", granularity="M15",
-                                 end_time=to_dt, count=2110)
-        
-        >>> data = GetData.oanda("EUR_USD", granularity="M15", 
-                                 count=2110)
         """
         gran_map = {5: 'S5', 10: 'S10', 15: 'S15', 30: 'S30', 
                     60: 'M1', 120: 'M2', 240: 'M4', 300: 'M5', 
@@ -714,7 +700,7 @@ class GetData:
         
         if start_time is not None and end_time is not None:
             # Filter by date range
-            data = GetData._check_data_period(data, start_time, 
+            data = AutoData._check_data_period(data, start_time, 
                                               end_time)
             
         return data

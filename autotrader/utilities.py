@@ -642,8 +642,8 @@ class DataStream:
         The auxiliary data files.
     strategy_params : dict
         The strategy parameters.
-    get_data : GetData
-        The GetData instance.
+    get_data : AutoData
+        The AutoData instance.
     data_start : datetime
         The backtest start date.
     data_end : datetime

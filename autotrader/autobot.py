@@ -3,7 +3,7 @@ import importlib
 import pandas as pd
 from autotrader.comms import emailing
 from datetime import datetime, timezone
-from autotrader.autodata import GetData
+from autotrader.autodata import AutoData
 from autotrader.brokers.trading import Order
 from autotrader.utilities import read_yaml, get_config, TradeAnalysis
 
@@ -143,7 +143,7 @@ class AutoTraderBot:
         portfolio = strategy_config['WATCHLIST'] if trade_portfolio else False
         
         # Fetch data
-        self._get_data = GetData(data_config, self._allow_dancing_bears,
+        self._get_data = AutoData(data_config, self._allow_dancing_bears,
                                  self._base_currency)
         
         # Create instance of data stream object
