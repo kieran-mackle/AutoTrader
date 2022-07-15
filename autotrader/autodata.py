@@ -1,4 +1,5 @@
 import time
+from jinja2 import pass_eval_context
 import pandas as pd
 from typing import Union
 from autotrader.brokers.trading import Order
@@ -41,8 +42,13 @@ class GetData:
         None
             GetData will be instantiated and ready to fetch price data.
         """
-        if data_config is not None:
-            if data_config['data_source'] == 'OANDA':
+        if data_config is None:
+            self._feed = 'local'
+
+        else:
+            self._feed = data_config['data_source'].lower()
+
+            if data_config['data_source'].lower() == 'oanda':
                 API = data_config["API"]
                 ACCESS_TOKEN = data_config["ACCESS_TOKEN"]
                 port = data_config["PORT"]
@@ -55,7 +61,7 @@ class GetData:
                     raise Exception("Please install v20 to use "+\
                                     "the Oanda data feed.")
             
-            elif data_config['data_source'] == 'IB':
+            elif data_config['data_source'].lower() == 'ib':
                 host = data_config['host']
                 port = data_config['port'] 
                 client_id = data_config['clientID'] + 1
@@ -66,13 +72,14 @@ class GetData:
                     import ib_insync
                     from autotrader.brokers.ib.utils import Utils as IB_Utils
                     self.ibapi = ib_insync.IB()
+                    self.IB_Utils = IB_Utils
                     self.ibapi.connect(host=host, port=port, clientId=client_id, 
                                     readonly=read_only, account=account)
                 except ImportError:
                     raise Exception("Please install ib_insync to use "+\
                                     "the IB data feed.")
             
-            elif data_config['data_source'] == 'CCXT':
+            elif data_config['data_source'].lower() == 'ccxt':
                 try:
                     import ccxt
                     self.ccxt_exchange = getattr(ccxt, data_config['exchange'])()
@@ -80,7 +87,7 @@ class GetData:
                     raise Exception("Please install ccxt to use "+\
                                     "the CCXT data feed.")
 
-            elif data_config['data_source'] == 'dYdX':
+            elif data_config['data_source'].lower() == 'dydx':
                 try:
                     from dydx3 import Client
                     self.api = Client(host='https://api.dydx.exchange')
@@ -88,12 +95,16 @@ class GetData:
                     raise Exception("Please install dydx-v3-python to use "+\
                                     "the dydx data feed.")
             
-            elif data_config['data_source'] == 'yfinance':
+            elif data_config['data_source'].lower() == 'yahoo':
                 try:
                     import yfinance as yf
+                    self.api = yf.download
                 except ImportError:
                     raise Exception("Please install yfinance to use "+\
                                     "the Yahoo Finance data feed.")
+
+            else:
+                raise Exception(f"Unknown data source '{self._feed}'.")
             
         self.allow_dancing_bears = allow_dancing_bears
         self.home_currency = home_currency
@@ -104,9 +115,36 @@ class GetData:
     
     
     def __str__(self):
-        return 'AutoTrader GetData instance'
+        return f'AutoTrader GetData instance ({self._feed})'
         
 
+    def fetch(self, instrument: str, granularity: str = None, 
+              count: int = None, start_time: datetime = None, 
+              end_time: datetime = None, 
+              *args, **kwargs) -> pd.DataFrame:
+        """Unified data retrieval api."""
+        func = getattr(self, self._feed)
+        data = func(instrument, granularity=granularity, 
+                    count=count, start_time=start_time,
+                    end_time=end_time, *args, **kwargs)
+        return data
+
+    
+    def quote(self, *args, **kwargs):
+        """Unified quote data retrieval api."""
+        func = getattr(self, f'_{self._feed}_quote_data')
+        data = func(*args, **kwargs)
+        return data
+
+    
+    def lvl1(self, *args, **kwargs):
+        """Unified level 1 data retrieval api."""
+        raise NotImplementedError("This method is not yet implemented.")
+        func = getattr(self, f'_{self._feed}_lvl1')
+        data = func(*args, **kwargs)
+        return data
+
+    
     def oanda(self, instrument: str, granularity: str, count: int = None, 
               start_time: datetime = None, end_time: datetime = None) -> pd.DataFrame:
         """Retrieves historical price data of a instrument from Oanda v20 API.
@@ -454,10 +492,10 @@ class GetData:
             end_time = datetime.now()
             start_time = end_time - timedelta(seconds=self._granularity_to_seconds(granularity, 'yahoo')*count)
         
-        data = yf.download(tickers  = instrument, 
-                           start    = start_time, 
-                           end      = end_time,
-                           interval = granularity)
+        data = self.api(tickers = instrument, 
+                        start = start_time, 
+                        end = end_time,
+                        interval = granularity)
         
         if data.index.tzinfo is None:
             # Data is naive, add UTC timezone
@@ -491,7 +529,7 @@ class GetData:
     def ib(self, instrument: str, granularity: str, count: int,
            start_time: datetime = None, end_time: datetime = None,
            order: Order = None, durationStr: str = '10 mins', **kwargs) -> pd.DataFrame:
-        """
+        """Fetches data from IB.
 
         Parameters
         ----------
@@ -569,7 +607,7 @@ class GetData:
         
         """
         self._check_IB_connection()
-        contract = IB_Utils.build_contract(order)
+        contract = self.IB_Utils.build_contract(order)
         self.ibapi.qualifyContracts(contract)
         ticker = self.ibapi.reqMktData(contract, snapshot=snapshot)
         while ticker.last != ticker.last: self.ibapi.sleep(1)
@@ -626,18 +664,19 @@ class GetData:
     
     
     @staticmethod
-    def local(filepath: str, start_date: Union[str, datetime] = None, 
-              end_date: Union[str, datetime] = None, utc: bool = True) -> pd.DataFrame:
-        """Read local price data.
+    def local(filepath: str, start_time: Union[str, datetime] = None, 
+              end_time: Union[str, datetime] = None, utc: bool = True,
+              *args, **kwargs) -> pd.DataFrame:
+        """Reads and returns local price data.
 
         Parameters
         ----------
         filepath : str
             The absolute filepath of the local price data.
-        start_date : str | datetime, optional
+        start_time : str | datetime, optional
             The data start date. The default is None.
-        end_date : str | datetime, optional
-            The data end data. The default is None.
+        end_time : str | datetime, optional
+            The data end date. The default is None.
         utc : bool, optional
             Localise data to UTC. The default is True.
 
@@ -649,10 +688,10 @@ class GetData:
         data = pd.read_csv(filepath, index_col = 0)
         data.index = pd.to_datetime(data.index, utc=utc)
         
-        if start_date is not None and end_date is not None:
+        if start_time is not None and end_time is not None:
             # Filter by date range
-            data = GetData._check_data_period(data, start_date, 
-                                              end_date)
+            data = GetData._check_data_period(data, start_time, 
+                                              end_time)
             
         return data
     
@@ -759,15 +798,18 @@ class GetData:
         return data
     
     
-    def _ccxt_quote_data(self, data: pd.DataFrame, pair: str, granularity: str, 
-                         start_time: datetime, end_time: datetime, 
+    def _ccxt_quote_data(self, data: pd.DataFrame, pair: str = None, 
+                         granularity: str = None, 
+                         start_time: datetime = None, 
+                         end_time: datetime = None, 
                          count: int = None):
         """Returns the original price data for a CCXT data feed."""
         return data
         
 
     def dydx(self, instrument: str, granularity: str, count: int = None, 
-             start_time: datetime = None, end_time: datetime = None) -> pd.DataFrame:
+             start_time: datetime = None, end_time: datetime = None,
+             *args, **kwargs) -> pd.DataFrame:
         """Retrieves historical price data of a instrument from dYdX.
           
         Parameters
@@ -788,7 +830,6 @@ class GetData:
         data : DataFrame
             The price data, as an OHLCV DataFrame.
         """
-          
         granularity_to_td = {'1DAY': '1day', '4HOURS': '4h', '1HOUR': '1h',
                              '30MINS': '30min', '15MINS': '15min', 
                              '5MINS': '5min', '1MIN': '1min'}
