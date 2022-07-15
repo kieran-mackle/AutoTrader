@@ -102,6 +102,9 @@ class GetData:
                 except ImportError:
                     raise Exception("Please install yfinance to use "+\
                                     "the Yahoo Finance data feed.")
+            
+            elif data_config['data_source'].lower() == 'local':
+                pass
 
             else:
                 raise Exception(f"Unknown data source '{self._feed}'.")
