@@ -1,13 +1,8 @@
-import v20
 import time
-import ccxt
-import ib_insync
 import pandas as pd
-import yfinance as yf
 from typing import Union
 from autotrader.brokers.trading import Order
 from datetime import datetime, timedelta, timezone
-from autotrader.brokers.ib.utils import Utils as IB_Utils
 
 
 class GetData:
@@ -51,8 +46,14 @@ class GetData:
                 API = data_config["API"]
                 ACCESS_TOKEN = data_config["ACCESS_TOKEN"]
                 port = data_config["PORT"]
-                self.api = v20.Context(hostname=API, token=ACCESS_TOKEN, port=port)
-                self.ACCOUNT_ID = data_config["ACCOUNT_ID"]
+
+                try:
+                    import v20
+                    self.api = v20.Context(hostname=API, token=ACCESS_TOKEN, port=port)
+                    self.ACCOUNT_ID = data_config["ACCOUNT_ID"]
+                except ImportError:
+                    raise Exception("Please install v20 to use "+\
+                                    "the Oanda data feed.")
             
             elif data_config['data_source'] == 'IB':
                 host = data_config['host']
@@ -61,12 +62,23 @@ class GetData:
                 read_only = data_config['read_only']
                 account = data_config['account']
                 
-                self.ibapi = ib_insync.IB()
-                self.ibapi.connect(host=host, port=port, clientId=client_id, 
-                                   readonly=read_only, account=account)
+                try:
+                    import ib_insync
+                    from autotrader.brokers.ib.utils import Utils as IB_Utils
+                    self.ibapi = ib_insync.IB()
+                    self.ibapi.connect(host=host, port=port, clientId=client_id, 
+                                    readonly=read_only, account=account)
+                except ImportError:
+                    raise Exception("Please install ib_insync to use "+\
+                                    "the IB data feed.")
             
             elif data_config['data_source'] == 'CCXT':
-                self.ccxt_exchange = getattr(ccxt, data_config['exchange'])()
+                try:
+                    import ccxt
+                    self.ccxt_exchange = getattr(ccxt, data_config['exchange'])()
+                except ImportError:
+                    raise Exception("Please install ccxt to use "+\
+                                    "the CCXT data feed.")
 
             elif data_config['data_source'] == 'dYdX':
                 try:
@@ -74,7 +86,14 @@ class GetData:
                     self.api = Client(host='https://api.dydx.exchange')
                 except ImportError:
                     raise Exception("Please install dydx-v3-python to use "+\
-                                    "the dydx data feed and broker interface.")
+                                    "the dydx data feed.")
+            
+            elif data_config['data_source'] == 'yfinance':
+                try:
+                    import yfinance as yf
+                except ImportError:
+                    raise Exception("Please install yfinance to use "+\
+                                    "the Yahoo Finance data feed.")
             
         self.allow_dancing_bears = allow_dancing_bears
         self.home_currency = home_currency

@@ -37,7 +37,6 @@ setuptools.setup(
         "PyYAML",
         "bokeh >= 2.3.1",
         "scipy >= 1.7.1",
-        "yfinance >= 0.1.67",
         "finta >= 1.3",
         "tqdm>=4.64.0",
         "importlib-resources",
@@ -47,6 +46,7 @@ setuptools.setup(
         "ccxt": ["ccxt"],
         "oanda": ["v20 >= 3.0.25.0",],
         "ib": ["ib_insync >= 0.9.70",],
+        "yfinance": ["yfinance >= 0.1.67",],
         },
     setup_requires=[
             "setuptools_git",
