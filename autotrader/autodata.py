@@ -117,7 +117,7 @@ class AutoData:
     
     
     def __str__(self):
-        return f'AutoData (connected to {self._feed})'
+        return f'AutoData ({self._feed} feed)'
         
 
     def fetch(self, instrument: str, granularity: str = None, 
