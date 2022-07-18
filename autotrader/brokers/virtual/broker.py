@@ -973,7 +973,11 @@ class Broker:
         verbosity = self.verbosity
         with open(self._picklefile, 'rb') as file:
             state = pickle.load(file)
-        self.__dict__ = state.__dict__
+        
+        # Overwrite present state from pickle
+        for key, item in state.__dict__.items():
+            self.__dict__[key] = item
+
         if verbosity > 0:
             print("Virtual broker state loaded from pickle.")
         
