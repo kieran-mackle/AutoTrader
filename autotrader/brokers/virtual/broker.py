@@ -96,6 +96,7 @@ class Broker:
 
         # Paper trading mode
         self._paper_trading = False             # Paper trading mode boolean
+        self._autodata = None                   # AutoData instance
         self._state = None                      # Last state snapshot
         self._picklefile = '.virtual_broker'    # Pickle filename
         self._logfile = 'papertrade_history.csv' # TODO - customisation w/ instance str
@@ -611,6 +612,8 @@ class Broker:
         None
             The trade will be marked as closed.
         """
+        # TODO - use _fill order method for consistency
+
         trade = self.open_trades[instrument][trade_id]
         fill_price = trade.fill_price
         size = trade.size
@@ -856,6 +859,31 @@ class Broker:
             values = {None: None}
             
         return values
+
+    
+    def _get_orderbook(self, instrument):
+        """Returns the orderbook."""
+        def pseudo_orderbook():
+            """Creates an artificial orderbook with unlimited liquidity."""
+            midprice = 0 # from OHLC data
+            bid = midprice - self.spread
+            ask = midprice + self.spread
+            orderbook = {'bids': {'price': bid, 'size': 1e100},
+                         'asks': {'price': ask, 'size': 1e100}
+                         }
+            return orderbook
+
+        if self._paper_trading:
+            # Papertrading, try get realtime orderbook
+            try:
+                orderbook = self._autodata.L2(instrument)
+            except:
+                orderbook = pseudo_orderbook()
+        else:
+            # Backtesting, use pseudo-orderbook
+            orderbook = pseudo_orderbook()
+        
+        return orderbook
     
 
     def _save_state(self):
