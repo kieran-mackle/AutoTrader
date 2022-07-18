@@ -120,16 +120,8 @@ class AutoTraderBot:
         self._strategy_shutdown_method = strategy_dict['shutdown_method']
         
         # Get data feed configuration 
-        if self._global_config_dict is not None:
-            # Use global config dict provided
-            global_config = self._global_config_dict
-        else:
-            global_config_fp = os.path.join(self._home_dir, 'config', 'GLOBAL.yaml')
-            if os.path.isfile(global_config_fp):
-                global_config = read_yaml(global_config_fp)
-            else:
-                global_config = None
-        data_config = get_config(self._environment, global_config, self._feed)
+        data_config = get_config(self._environment, self._global_config_dict, 
+                                 self._feed)
    
         # Data retrieval
         self._quote_data_file = quote_data_path     # Either str or None
