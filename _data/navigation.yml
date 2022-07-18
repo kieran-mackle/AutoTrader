@@ -1,10 +1,10 @@
 header:
   - title: Documentation
-    url: https://py-autotrader.readthedocs.io/en/latest/index.html
+    url:https://autotrader.readthedocs.io/en/latest/
     key: Documentation
 
   - title: Tutorials
-    url: https://py-autotrader.readthedocs.io/en/latest/tutorials/walkthrough.html
+    url: https://autotrader.readthedocs.io/en/latest/tutorials/walkthrough.html
     key: Tutorials
 
   - title: Blog
