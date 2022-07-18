@@ -336,8 +336,9 @@ class AutoTrader:
         self._virtual_broker_hedging = hedging
         self._virtual_margin_call = margin_call_fraction
         
-        # Enforce virtual broker
+        # Enforce virtual broker and paper trading environment
         self._broker_name = 'virtual'
+        self._environment = 'paper'
 
         # Turn on virtual broker paper trading mode
         self._vb_paper_trading = True
