@@ -173,6 +173,7 @@ class AutoData:
 
     def L2(self, instrument, *args, **kwargs):
         """Unified level 2 data retrieval api."""
+        # TODO - enforce ordering of book on each side
         func = getattr(self, f'_{self._feed}_orderbook')
         data = func(instrument, *args, **kwargs)
         return data
