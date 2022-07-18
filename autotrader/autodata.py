@@ -1,3 +1,4 @@
+from re import L
 import time
 import pandas as pd
 from typing import Union
@@ -47,6 +48,7 @@ class AutoData:
         else:
             self._feed = data_config['data_source'].lower()
 
+            # TODO - add KeyError handling 
             if data_config['data_source'].lower() == 'oanda':
                 API = data_config["API"]
                 ACCESS_TOKEN = data_config["ACCESS_TOKEN"]
@@ -139,11 +141,40 @@ class AutoData:
         return data
 
     
-    def _lvl1(self, *args, **kwargs):
+    def L1(self, instrument, *args, **kwargs):
         """Unified level 1 data retrieval api."""
-        raise NotImplementedError("This method is not yet implemented.")
-        func = getattr(self, f'_{self._feed}_lvl1')
-        data = func(*args, **kwargs)
+        # Get orderbook
+        func = getattr(self, f'_{self._feed}_orderbook')
+        orderbook = func(instrument, *args, **kwargs)
+
+        # Construct response
+        best_bid = float(orderbook['bids'][0]['price'])
+        bid_size = float(orderbook['bids'][0]['size'])
+        best_ask = float(orderbook['asks'][0]['price'])
+        ask_size = float(orderbook['asks'][0]['size'])
+        
+        for level in orderbook['bids']:
+            if float(level['price']) > float(best_bid):
+                best_bid = level['price']
+                bid_size = level['size']
+
+        for level in orderbook['asks']:
+            if float(level['price']) < float(best_ask):
+                best_ask = level['price']
+                ask_size = level['size']
+
+        response = {'bid': best_bid,
+                    'ask': best_ask,
+                    'bid_size': bid_size,
+                    'ask_size': ask_size}
+
+        return response
+    
+
+    def L2(self, instrument, *args, **kwargs):
+        """Unified level 2 data retrieval api."""
+        func = getattr(self, f'_{self._feed}_orderbook')
+        data = func(instrument, *args, **kwargs)
         return data
 
     
@@ -275,6 +306,23 @@ class AutoData:
                  "positiveHCF": positiveHCF}
     
         return price
+    
+
+    def _oanda_orderbook(self, instrument, time=None):
+        """Returns the orderbook from Oanda."""
+        response = self.api.pricing.get(accountID=self.ACCOUNT_ID,
+                                        instruments=instrument)
+        prices = response.body['prices'][0].dict()
+
+        # Unify format
+        orderbook = {}
+        for side in ['bids', 'asks']:
+            orderbook[side] = []
+            for level in prices[side]:
+                orderbook[side].append({'price': level['price'],
+                                        'size': level['liquidity']}
+                                       )
+        return orderbook
     
     
     def _get_extended_oanda_data(self, instrument, granularity, from_time, to_time):
@@ -514,8 +562,8 @@ class AutoData:
         return data
     
     
-    def _yahoo_liveprice(self,):
-        raise Exception("Live price is not available from yahoo API.")
+    def _yahoo_orderbook(self, *args, **kwargs):
+        raise Exception("Orderbook data is not available from Yahoo Finance.")
         
     
     def _yahoo_quote_data(self, data: pd.DataFrame, pair: str, interval: str,
@@ -614,7 +662,6 @@ class AutoData:
         -------
         dict
             A dictionary containing the bid and ask prices.
-        
         """
         self._check_IB_connection()
         contract = self.IB_Utils.build_contract(order)
@@ -817,6 +864,21 @@ class AutoData:
         return data
         
 
+    def _ccxt_orderbook(self, instrument, limit=None):
+        """Returns the orderbook from a CCXT supported exchange."""
+        response = self.ccxt_exchange.fetchOrderBook(symbol=instrument)
+
+        # Unify format
+        orderbook = {}
+        for side in ['bids', 'asks']:
+            orderbook[side] = []
+            for level in response[side]:
+                orderbook[side].append({'price': level[0],
+                                        'size': level[1]}
+                                       )
+        return orderbook
+
+
     def _dydx(self, instrument: str, granularity: str, count: int = None, 
              start_time: datetime = None, end_time: datetime = None,
              *args, **kwargs) -> pd.DataFrame:
@@ -942,3 +1004,10 @@ class AutoData:
         """Returns the original price data for a dYdX data feed.
         """
         return data
+
+    
+    def _dydx_orderbook(self, instrument):
+        """Returns the orderbook from dYdX."""
+        response = self.api.public.get_orderbook(market=instrument)
+        orderbook = response.data
+        return orderbook
