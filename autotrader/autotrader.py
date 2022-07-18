@@ -133,6 +133,7 @@ class AutoTrader:
         self._virtual_margin_call = 0
         self._base_currency = None
         self._vb_paper_trading = False
+        self._virtual_broker_picklefile = None
         
         # Optimisation Parameters
         self._optimise_mode = False
@@ -282,7 +283,8 @@ class AutoTrader:
                                  maker_commission: float = None,
                                  taker_commission: float = None,
                                  leverage: int = 1, hedging: bool = False, 
-                                 margin_call_fraction: float = 0) -> None:
+                                 margin_call_fraction: float = 0,
+                                 picklefile: str = None) -> None:
         """Configures the virtual broker's initial state to allow livetrading
         on the virtual broker.
         
@@ -322,6 +324,9 @@ class AutoTrader:
         margin_call_fraction : float, optional
             The fraction of margin usage at which a margin call will occur.
             The default is 0.
+        picklefile : str, optional
+            The filename of the picklefile to load state from. If you do not 
+            wish to load from state, leave this as None. The default is None.
         """
         # Assign attributes
         self._virtual_livetrading = True
@@ -335,6 +340,7 @@ class AutoTrader:
         self._virtual_leverage = leverage
         self._virtual_broker_hedging = hedging
         self._virtual_margin_call = margin_call_fraction
+        self._virtual_broker_picklefile = picklefile
         
         # Enforce virtual broker and paper trading environment
         self._broker_name = 'virtual'
@@ -1426,7 +1432,8 @@ class AutoTrader:
                               base_currency=self._base_currency,
                               paper_mode=self._vb_paper_trading, 
                               margin_closeout=self._virtual_margin_call,
-                              autodata_config=autodata_config)
+                              autodata_config=autodata_config,
+                              picklefile=self._virtual_broker_picklefile)
 
         self._broker = broker
         self._broker_utils = utils

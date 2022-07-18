@@ -121,7 +121,7 @@ class Broker:
                    maker_commission: float = None, taker_commission: float = None,
                    hedging: bool = None, base_currency: str = None, 
                    paper_mode: bool = None, margin_closeout: float = None,
-                   autodata_config=None):
+                   autodata_config: dict = None, picklefile: str = None):
         """Configures the account."""
         self.verbosity = verbosity if verbosity is not None else self.verbosity
         self.leverage = leverage if leverage is not None else self.leverage
@@ -155,9 +155,9 @@ class Broker:
         if initial_balance is not None:
             self._make_deposit(initial_balance)
 
-        if self._paper_trading:
+        if self._paper_trading and picklefile is not None:
             # Load state 
-            if os.path.exists(self._picklefile):
+            if os.path.exists(picklefile):
                 self._load_state()
         
     
