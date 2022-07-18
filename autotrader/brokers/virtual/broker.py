@@ -76,8 +76,9 @@ class Broker:
         self.floating_pnl = 0
         self.margin_available = 0
         
-        self.leverage = 1
-        self.spread = 0
+        self.leverage = 1               # The account leverage
+        self.spread = 0                 # The bid/ask spread
+        self.spread_units = 'price'     # The units of the spread 
         self.hedging = False            # Allow simultaneous trades on opposing sides
         self.margin_closeout = 0.0      # Fraction at margin call
         
@@ -115,6 +116,7 @@ class Broker:
     
     def _configure(self, verbosity: int = None, initial_balance: float = None, 
                    leverage: int = None, spread: float = None, 
+                   spread_units: str = None,
                    commission: float = None, commission_scheme: str = None,
                    maker_commission: float = None, taker_commission: float = None,
                    hedging: bool = None, base_currency: str = None, 
@@ -127,6 +129,8 @@ class Broker:
         self.commission_scheme = commission_scheme if commission_scheme is not None \
             else self.commission_scheme
         self.spread = spread if spread is not None else self.spread
+        self.spread_units = spread_units if spread_units is not None else \
+            self.spread_units
         self.base_currency = base_currency if base_currency is not None else \
             self.base_currency
         self._paper_trading = paper_mode if paper_mode is not None else \
@@ -934,8 +938,13 @@ class Broker:
         def pseudo_orderbook(candle):
             """Creates an artificial orderbook with unlimited liquidity."""
             midprice = candle.Close
-            bid = midprice - 0.5*self.spread
-            ask = midprice + 0.5*self.spread
+            if self.spread_units == 'price':
+                bid = midprice - 0.5*self.spread
+                ask = midprice + 0.5*self.spread
+            elif self.spread_units == 'percentage':
+                bid = midprice * (1-0.5*self.spread/100)
+                ask = midprice * (1+0.5*self.spread/100)
+
             orderbook = {'bids': [{'price': bid, 'size': 1e100},],
                          'asks': [{'price': ask, 'size': 1e100},]}
             return orderbook

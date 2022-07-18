@@ -122,6 +122,7 @@ class AutoTrader:
         self._virtual_livetrading = False
         self._virtual_initial_balance = None
         self._virtual_spread = None
+        self._virtual_spread_units = None
         self._virtual_commission = None
         self._commission_scheme = None
         self._maker_commission = None
@@ -269,6 +270,7 @@ class AutoTrader:
         
     def virtual_livetrade_config(self, initial_balance: float = 1000, 
                                  spread: float = 0, commission: float = 0, 
+                                 spread_units : str = 'price',
                                  commission_scheme: str = 'percentage',
                                  maker_commission: float = None,
                                  taker_commission: float = None,
@@ -282,7 +284,13 @@ class AutoTrader:
         initial_balance : float, optional
             The initial balance of the account. The default is 1000.
         spread : float, optional
-            The bid/ask spread to use. The default is 0.
+            The bid/ask spread to use in backtest (specified in units defined
+            by the spread_units argument). The default is 0.
+        spread_units : str, optional
+            The unit of the spread specified. Options are 'price', meaning that 
+            the spread is quoted in price units, or 'percentage', meaning that 
+            the spread is quoted as a percentage of the market price. The default
+            is 'price'.
         commission : float, optional
             Trading commission as percentage per trade. The default is 0.
         commission_scheme : str, optional
@@ -312,6 +320,7 @@ class AutoTrader:
         self._virtual_livetrading = True
         self._virtual_initial_balance = initial_balance
         self._virtual_spread = spread
+        self._virtual_spread_units = spread_units
         self._virtual_commission = commission
         self._commission_scheme = commission_scheme
         self._maker_commission = maker_commission
@@ -398,6 +407,7 @@ class AutoTrader:
     
     def backtest(self, start: str = None, end: str = None, 
                  initial_balance: float = 1000, spread: float = 0, 
+                 spread_units : str = 'price',
                  commission: float = 0, commission_scheme: str = 'percentage', 
                  maker_commission: float = None,
                  taker_commission: float = None,
@@ -421,8 +431,13 @@ class AutoTrader:
         initial_balance : float, optional
             The initial balance of the account. The default is 1000.
         spread : float, optional
-            The bid/ask spread to use in backtest (specified in price units). 
-            The default is 0.
+            The bid/ask spread to use in backtest (specified in units defined
+            by the spread_units argument). The default is 0.
+        spread_units : str, optional
+            The unit of the spread specified. Options are 'price', meaning that 
+            the spread is quoted in price units, or 'percentage', meaning that 
+            the spread is quoted as a percentage of the market price (eg. 
+            spread=2 is equivalent to 2% spread). The default is 'price'.
         commission : float, optional
             Trading commission value, applied according to the commission scheme. 
             The default is 0.
@@ -478,6 +493,7 @@ class AutoTrader:
         self._data_end = end_dt
         self._virtual_initial_balance = initial_balance
         self._virtual_spread = spread
+        self._virtual_spread_units = spread_units
         self._virtual_commission = commission
         self._commission_scheme = commission_scheme
         self._maker_commission = maker_commission
@@ -1392,6 +1408,7 @@ class AutoTrader:
                               initial_balance=self._virtual_initial_balance, 
                               leverage=self._virtual_leverage, 
                               spread=self._virtual_spread,
+                              spread_units=self._virtual_spread_units,
                               commission=self._virtual_commission,
                               commission_scheme=self._commission_scheme,
                               maker_commission=self._maker_commission,
