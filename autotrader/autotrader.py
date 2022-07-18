@@ -77,6 +77,7 @@ class AutoTrader:
         self._timestep = pd.Timedelta('10s').to_pytimedelta()
         self._warmup_period = pd.Timedelta('0s').to_pytimedelta()
         self._feed = None
+        self._execution_feed = None
         self._req_liveprice = False
         
         self._notify = 0
@@ -169,7 +170,8 @@ class AutoTrader:
     
     
     def configure(self, verbosity: int = 1, broker: str = 'virtual', 
-                  feed: str = None, req_liveprice: bool = False, 
+                  feed: str = None, execution_feed: str = None,
+                  req_liveprice: bool = False, 
                   notify: int = 0, home_dir: str = None, 
                   allow_dancing_bears: bool = False, account_id: str = None, 
                   environment: str = 'paper', show_plot: bool = False,
@@ -191,6 +193,10 @@ class AutoTrader:
             being used, or another data source. Options include 'yahoo', 
             'oanda', 'ib', 'dydx', 'ccxt' or 'local'. When data is provided
             via the add_data method, the feed is automatically set to 'local'.
+            The default is None.
+        execution_feed : str, optional
+            The data feed to use for trade execution when running in paper
+            trading mode. When left as 'None', the regular feed will be used. 
             The default is None.
         req_liveprice : bool, optional
             Request live market price from broker before placing trade, rather 
@@ -249,6 +255,7 @@ class AutoTrader:
         """
         self._verbosity = verbosity
         self._feed = feed
+        self._execution_feed = execution_feed
         self._req_liveprice = req_liveprice
         self._broker_name = broker
         self._notify = notify
@@ -1399,7 +1406,8 @@ class AutoTrader:
         
         if self._backtest_mode or self._virtual_livetrading:
             # Using virtual broker, initialise account
-            autodata_config = {'feed': self._feed, 
+            feed = self._feed if self._execution_feed is None else self._execution_feed
+            autodata_config = {'feed': feed, 
                                'environment': self._environment,
                                'global_config': self._global_config_dict,
                                'allow_dancing_bears': self._allow_dancing_bears,
