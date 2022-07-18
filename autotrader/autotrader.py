@@ -123,6 +123,9 @@ class AutoTrader:
         self._virtual_initial_balance = None
         self._virtual_spread = None
         self._virtual_commission = None
+        self._commission_scheme = None
+        self._maker_commission = None
+        self._taker_commission = None
         self._virtual_leverage = None
         self._virtual_broker_hedging = False
         self._virtual_margin_call = 0
@@ -265,9 +268,12 @@ class AutoTrader:
         
         
     def virtual_livetrade_config(self, initial_balance: float = 1000, 
-                                  spread: float = 0, commission: float = 0, 
-                                  leverage: int = 1, hedging: bool = False, 
-                                  margin_call_fraction: float = 0) -> None:
+                                 spread: float = 0, commission: float = 0, 
+                                 commission_scheme: str = 'percentage',
+                                 maker_commission: float = None,
+                                 taker_commission: float = None,
+                                 leverage: int = 1, hedging: bool = False, 
+                                 margin_call_fraction: float = 0) -> None:
         """Configures the virtual broker's initial state to allow livetrading
         on the virtual broker.
         
@@ -279,6 +285,20 @@ class AutoTrader:
             The bid/ask spread to use. The default is 0.
         commission : float, optional
             Trading commission as percentage per trade. The default is 0.
+        commission_scheme : str, optional
+            The method with which to apply commissions to trades made. The options
+            are (1) 'percentage', where the percentage specified by the commission 
+            argument is applied to the notional trade value, (2) 'fixed_per_unit',
+            where the monetary value specified by the commission argument is 
+            multiplied by the number of units in the trade, and (3) 'flat', where 
+            a flat monetary value specified by the commission argument is charged
+            per trade made, regardless of size. The default is 'percentage'.
+        maker_commission : float, optional
+            The commission to charge on liquidity-making orders. The default is 
+            None, in which case the nominal commission argument will be used.
+        taker_commission: float, optional
+            The commission to charge on liquidity-taking orders. The default is 
+            None, in which case the nominal commission argument will be used.
         leverage : int, optional
             Account leverage. The default is 1.
         hedging : bool, optional
@@ -287,13 +307,15 @@ class AutoTrader:
         margin_call_fraction : float, optional
             The fraction of margin usage at which a margin call will occur.
             The default is 0.
-            
         """
         # Assign attributes
         self._virtual_livetrading = True
         self._virtual_initial_balance = initial_balance
         self._virtual_spread = spread
         self._virtual_commission = commission
+        self._commission_scheme = commission_scheme
+        self._maker_commission = maker_commission
+        self._taker_commission = taker_commission
         self._virtual_leverage = leverage
         self._virtual_broker_hedging = hedging
         self._virtual_margin_call = margin_call_fraction
@@ -376,7 +398,10 @@ class AutoTrader:
     
     def backtest(self, start: str = None, end: str = None, 
                  initial_balance: float = 1000, spread: float = 0, 
-                 commission: float = 0, leverage: int = 1,
+                 commission: float = 0, commission_scheme: str = 'percentage', 
+                 maker_commission: float = None,
+                 taker_commission: float = None,
+                 leverage: int = 1,
                  start_dt: datetime = None, end_dt: datetime = None, 
                  hedging: bool = False, margin_call_fraction: float = 0, 
                  warmup_period: str = '0s', 
@@ -399,7 +424,22 @@ class AutoTrader:
             The bid/ask spread to use in backtest (specified in price units). 
             The default is 0.
         commission : float, optional
-            Trading commission as percentage per trade. The default is 0.
+            Trading commission value, applied according to the commission scheme. 
+            The default is 0.
+        commission_scheme : str, optional
+            The method with which to apply commissions to trades made. The options
+            are (1) 'percentage', where the percentage specified by the commission 
+            argument is applied to the notional trade value, (2) 'fixed_per_unit',
+            where the monetary value specified by the commission argument is 
+            multiplied by the number of units in the trade, and (3) 'flat', where 
+            a flat monetary value specified by the commission argument is charged
+            per trade made, regardless of size. The default is 'percentage'.
+        maker_commission : float, optional
+            The commission to charge on liquidity-making orders. The default is 
+            None, in which case the nominal commission argument will be used.
+        taker_commission: float, optional
+            The commission to charge on liquidity-taking orders. The default is 
+            None, in which case the nominal commission argument will be used.
         leverage : int, optional
             Account leverage. The default is 1.
         hedging : bool, optional
@@ -439,6 +479,9 @@ class AutoTrader:
         self._virtual_initial_balance = initial_balance
         self._virtual_spread = spread
         self._virtual_commission = commission
+        self._commission_scheme = commission_scheme
+        self._maker_commission = maker_commission
+        self._taker_commission = taker_commission
         self._virtual_leverage = leverage
         self._virtual_broker_hedging = hedging
         self._virtual_margin_call = margin_call_fraction
@@ -1070,6 +1113,9 @@ class AutoTrader:
                 global_config = read_yaml(global_config_fp)
             else:
                 global_config = None
+            
+            # Assign
+            self._global_config_dict = global_config
         
         # Check feed
         if self._feed is None:
@@ -1337,16 +1383,24 @@ class AutoTrader:
         
         if self._backtest_mode or self._virtual_livetrading:
             # Using virtual broker, initialise account
+            autodata_config = {'feed': self._feed, 
+                               'environment': self._environment,
+                               'global_config': self._global_config_dict,
+                               'allow_dancing_bears': self._allow_dancing_bears,
+                               'base_currency': self._base_currency}
             broker._configure(verbosity=self._broker_verbosity,
                               initial_balance=self._virtual_initial_balance, 
                               leverage=self._virtual_leverage, 
                               spread=self._virtual_spread,
                               commission=self._virtual_commission,
-                              commission_scheme=None,
+                              commission_scheme=self._commission_scheme,
+                              maker_commission=self._maker_commission,
+                              taker_commission=self._taker_commission,
                               hedging=self._virtual_broker_hedging, 
                               base_currency=self._base_currency,
                               paper_mode=self._vb_paper_trading, 
-                              margin_closeout=self._virtual_margin_call)
+                              margin_closeout=self._virtual_margin_call,
+                              autodata_config=autodata_config)
 
         self._broker = broker
         self._broker_utils = utils

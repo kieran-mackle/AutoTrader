@@ -490,8 +490,9 @@ class AutoTraderBot:
                 order.instrument = order.instrument if order.instrument is not None else self.instrument
                 if order.order_type in ['market', 'limit', 'stop-limit', 'reduce']:
                     if not order.direction:
+                        # Order direction was not provided, delete order
                         del orders[ix]
-        
+                    
         # Perform checks
         checked_orders = check_type(orders)
         add_strategy_data(checked_orders)

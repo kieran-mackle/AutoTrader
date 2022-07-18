@@ -4,7 +4,6 @@ import pickle
 import numpy as np
 import pandas as pd
 from datetime import datetime, timedelta
-from autotrader.brokers.virtual.broker import Broker
 
 
 def read_yaml(file_path: str) -> dict:
@@ -318,7 +317,7 @@ class TradeAnalysis:
         Orders which were cancelled during the trading period.
     
     """
-    def __init__(self, broker: Broker, instrument: str = None, 
+    def __init__(self, broker, instrument: str = None, 
                  process_holding_history: bool = True):
         
         self.instruments_traded = None
@@ -340,7 +339,7 @@ class TradeAnalysis:
         return 'AutoTrader Trade Results'
         
     
-    def analyse_account(self, broker: Broker, instrument: str = None,
+    def analyse_account(self, broker, instrument: str = None,
                          process_holding_history: bool = True):
         """Analyses trade account and creates summary of key details.
         """
