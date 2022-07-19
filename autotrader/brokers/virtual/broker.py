@@ -304,6 +304,9 @@ class Broker:
     def get_trade_details(self, trade_ID: int) -> Trade:
         """Returns the trade specified by trade_ID.
         """
+        raise DeprecationWarning("This method is deprecated, and will "+\
+                "be removed in a future release. Please use the "+\
+                "get_trades method instead.")
         instrument = self._trade_id_instrument[trade_ID]
         return self.open_trades[instrument][trade_ID]
     

@@ -114,8 +114,9 @@ class Broker:
     def get_trade_details(self, trade_ID: str) -> dict:
         """Returns the details of the trade specified by trade_ID.
         """
-        raise NotImplementedError("Method 'get_trade_details' not "+\
-                                  "implemented for dYdX.")
+        raise NotImplementedError("This method is not available, and will "+\
+                "be deprecated with a future release. Please use the "+\
+                "get_trades method instead.")
     
     
     def get_positions(self, instrument: str = None, **kwargs) -> dict:

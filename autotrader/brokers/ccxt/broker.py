@@ -59,21 +59,20 @@ class Broker:
         
         # Submit order to broker
         side = 'buy' if order.direction > 0 else 'sell'
-        order = self.api.createOrder(order.instrument, order.order_type,
-                                     side, order.size, order.order_limit_price)
+        order = self.api.createOrder(symbol=order.instrument, 
+                                     type=order.order_type,
+                                     side=side, 
+                                     amount=order.size, 
+                                     price=order.order_limit_price)
         
     
     def get_orders(self, instrument: str = None, 
                    order_status: str = 'open', **kwargs) -> dict:
         """Returns orders associated with the account.
         """
-        if instrument is None:
-            raise Exception("Instrument must be specified.")
-        
         if order_status == 'open':
             # Fetch open orders (waiting to be filled)
             orders = self.api.fetchOpenOrders(instrument)
-            
             
         elif order_status == 'cancelled':
             # Fetch cancelled orders                
@@ -84,7 +83,7 @@ class Broker:
             orders = self.api.fetchClosedOrders(instrument)
         
         # Convert
-        orders = self._convert_list(orders, orders=True)
+        orders = self._convert_list(orders, item_type='order')
         
         return orders
     
@@ -93,20 +92,23 @@ class Broker:
         """Cancels order by order ID.
         """
         cancelled_order = self.api.cancelOrder(order_id)
+        return cancelled_order
     
     
     def get_trades(self, instrument: str = None, **kwargs) -> dict:
         """Returns the open trades held by the account. 
         """
         trades_list = self.api.fetchMyTrades(instrument)
-        trades = self._convert_list(trades_list, trades=True)
+        trades = self._convert_list(trades_list, item_type='trade')
         return trades
     
     
     def get_trade_details(self, trade_ID: str) -> dict:
         """Returns the details of the trade specified by trade_ID.
         """
-        pass
+        raise NotImplementedError("This method is not available, and will "+\
+                "be deprecated with a future release. Please use the "+\
+                "get_trades method instead.")
     
     
     def get_positions(self, instrument: str = None, **kwargs) -> dict:
@@ -122,9 +124,13 @@ class Broker:
         open_positions : dict
             A dictionary containing details of the open positions.
         """
-        positions = self.api.fetchPosition(instrument, params=kwargs)
-        
-        # TODO - convert positions to native Positions
+        if instrument is None:
+            positions = self.api.fetchPositions(symbols=None, params=kwargs)
+            positions = self._convert_list(positions, item_type='position')
+        else:
+            position = self.api.fetchPosition(instrument, params=kwargs)
+            positions = self._native_position(position)
+            # TODO - what should the struct output look like?
         
         return positions
     
@@ -168,10 +174,21 @@ class Broker:
         
         return native_trade
     
+
+    def _native_position(self, position):
+        """Returns a CCXT position structure as a native 
+        AutoTrader Position."""
+        native_position = Position(instrument=position['symbol'],
+                                   net_position=position['contracts'],
+                                   PL=position['unrealizedPnl'],
+                                   entry_price=position['entryPrice'],
+                                   )
+        return native_position
     
-    def _convert_list(self, items, orders: bool = False, trades: bool = False):
+    
+    def _convert_list(self, items, item_type='order'):
         """Converts a list of trades or orders to a dictionary."""
-        native_func = '_native_order' if orders else '_native_trade'
+        native_func = f'_native_{item_type}'
         converted = {}
         for item in items:
             native = getattr(self, native_func)(item)
