@@ -242,7 +242,7 @@ class Broker:
         else:
             # Either move order to open_orders or leave in pending, depending on type
             immediate_orders = ['close', 'reduce', 'modify']
-            if order.order_type in immediate_orders:
+            if order.order_type in immediate_orders or self._paper_trading:
                 # Move to open orders
                 self._move_order(order, from_dict='pending_orders',
                                     to_dict='open_orders', new_status='open')

@@ -269,6 +269,10 @@ class AutoTraderBot:
                         
                     self._broker.place_order(order, order_time=order_time)
             
+            if self._virtual_livetrading:
+                # Update virtual broker again to trigger any orders
+                self._update_virtual_broker(current_bars)
+
             if int(self._verbosity) > 1:
                 current_time = current_bars[list(current_bars.keys())[0]].name.strftime('%b %d %Y %H:%M:%S')
                 if len(orders) > 0:
