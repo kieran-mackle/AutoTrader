@@ -372,6 +372,33 @@ class Broker:
         return self.margin_available
     
     
+    def _trade_through_book(self, instrument, direction, size, 
+                            candle=None):
+        """Returns an average fill price by filling an order through
+        the orderbook."""
+        # TODO - implement fill or kill for limit orders?
+
+        # Get order book
+        book = self._get_orderbook(instrument, candle)
+
+        # Work through the order book
+        units_to_fill = size
+        side = 'bids' if direction < 0 else 'asks'
+        fill_prices = []
+        fill_sizes = []
+        while units_to_fill > 0:
+            # Consume liquidity
+            for level in book[side]:
+                units_consumed = min(units_to_fill, float(level['size']))
+                fill_prices.append(float(level['price']))
+                fill_sizes.append(units_consumed)
+                units_to_fill -= units_consumed
+
+        avg_fill_price = sum([fill_sizes[i]*fill_prices[i] for i \
+                in range(len(fill_prices))])/sum(fill_sizes)
+        return avg_fill_price
+
+
     def _fill_order(self, instrument: str, order_id: int, 
                     candle: pd.core.series.Series, 
                     limit_price: float = None) -> None:
@@ -389,28 +416,6 @@ class Broker:
         If hedging is enabled, trades can be opened against one another, and
         will be treated in isolation. 
         """
-        # TODO - implement fill or kill for limit orders?
-        def calc_avg_fill(instrument, candle):
-            # Get order book
-            book = self._get_orderbook(instrument, candle)
-
-            # Work through the order book
-            units_to_fill = order.size
-            side = 'bids' if order.direction < 0 else 'asks'
-            fill_prices = []
-            fill_sizes = []
-            while units_to_fill > 0:
-                # Consume liquidity
-                for level in book[side]:
-                    units_consumed = min(units_to_fill, float(level['size']))
-                    fill_prices.append(float(level['price']))
-                    fill_sizes.append(units_consumed)
-                    units_to_fill -= units_consumed
-
-            avg_fill_price = sum([fill_sizes[i]*fill_prices[i] for i \
-                   in range(len(fill_prices))])/sum(fill_sizes)
-            return avg_fill_price
-
         # Get current order from ID
         order = self.open_orders[instrument][order_id]
         
@@ -446,7 +451,7 @@ class Broker:
         if margin_required < self.margin_available:
             # Enough margin in account to fill order, determine average fill price
             avg_fill_price = order.order_limit_price if order.order_limit_price is not None \
-                    else calc_avg_fill(instrument, candle)
+                else self._trade_through_book(instrument, order.direction, order.size, candle)
 
             if close_existing_position:
                 # Close the open position before proceeding
@@ -688,6 +693,14 @@ class Broker:
         
         # Account for missing inputs
         exit_price = trade.last_price if not exit_price else exit_price
+        if self._paper_trading:
+            try:
+                # TODO - this implies market order
+                # Note negative direction as it is 'closing' the trade
+                exit_price = self._trade_through_book(instrument, 
+                                -direction, size, candle)
+            except:
+                pass
         
         # Update portfolio with profit/loss
         gross_PL = direction*size*(exit_price - fill_price)*HCF
@@ -741,7 +754,6 @@ class Broker:
                     # Reduce this trade
                     if units_to_reduce >= trade.size:
                         # Entire trade must be closed
-                        # TODO - use orderbook
                         last_price = trade.last_price
                         self._close_trade(instrument, trade_id=trade_id, 
                                           exit_price=last_price)
