@@ -19,7 +19,7 @@ def test_macd_backtest():
     home_dir = os.path.abspath(os.path.dirname(__file__))
     
     at = AutoTrader()
-    at.configure(verbosity=0, show_plot=True)
+    at.configure(verbosity=0, show_plot=False)
     at.add_strategy(config_dict=config, strategy=SimpleMACD)
     at.plot_settings(show_cancelled=False)
     at.add_data({'EUR_USD': 'EUR_USD_H4.csv'}, 

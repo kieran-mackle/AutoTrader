@@ -330,7 +330,6 @@ class Broker:
         open_positions : dict
             A dictionary containing details of the open positions.
         """
-
         if instrument:
             # instrument provided
             instruments = [instrument]
