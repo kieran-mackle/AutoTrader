@@ -25,9 +25,6 @@ class Broker:
         
         self.base_currency = config['base_currency']
         
-        # trades = self.get_trades('XBTUSD')
-        db = 0
-        
     
     def __repr__(self):
         return f'AutoTrader-{self.exchange[0].upper()}'+\
@@ -58,12 +55,19 @@ class Broker:
         order()
         
         # Submit order to broker
-        side = 'buy' if order.direction > 0 else 'sell'
-        order = self.api.createOrder(symbol=order.instrument, 
-                                     type=order.order_type,
-                                     side=side, 
-                                     amount=order.size, 
-                                     price=order.order_limit_price)
+        if order.order_type == 'modify':
+            placed_order = self._modify_order(order)
+        elif order.order_type in ['close', 'reduce', ]:
+            raise NotImplementedError(f"Order type '{order.order_type}' has not "+
+                "been implemented for CCXT yet.")
+        else:
+            side = 'buy' if order.direction > 0 else 'sell'
+            placed_order = self.api.createOrder(symbol=order.instrument, 
+                                        type=order.order_type,
+                                        side=side, 
+                                        amount=order.size, 
+                                        price=order.order_limit_price)
+        return placed_order
         
     
     def get_orders(self, instrument: str = None, 
@@ -113,6 +117,11 @@ class Broker:
     
     def get_positions(self, instrument: str = None, **kwargs) -> dict:
         """Gets the current positions open on the account.
+
+        Note that not all exchanges exhibit the same behaviour, and
+        so caution must be taken when interpreting results. It is recommended
+        to use the api directly and test with the exchange you plan to use
+        to valid functionality.
         
         Parameters
         ----------
@@ -123,15 +132,29 @@ class Broker:
         -------
         open_positions : dict
             A dictionary containing details of the open positions.
+        
         """
         if instrument is None:
-            positions = self.api.fetchPositions(symbols=None, params=kwargs)
-            positions = self._convert_list(positions, item_type='position')
+            # Get all positions
+            if self.api.has['fetchPositions']:
+                positions = self.api.fetchPositions(symbols=None, params=kwargs)
+                positions = self._convert_list(positions, item_type='position')
+            else:
+                raise Exception(f"Exchange {self.exchange} does not have "+
+                    "fetchPositions method.")
         else:
-            position = self.api.fetchPosition(instrument, params=kwargs)
-            positions = self._native_position(position)
-            # TODO - what should the struct output look like?
-        
+            # Get position in instrument provided
+            if self.api.has['fetchPosition']:
+                position = self.api.fetchPosition(instrument, params=kwargs)
+                positions = self._native_position(position)
+            elif self.api.has['fetchPositions']:
+                positions = self.api.fetchPositions(symbols=None, params=kwargs)
+                positions = self._convert_list(positions, item_type='position')
+                positions = {instrument: positions[instrument]}
+            else:
+                raise Exception(f"Exchange {self.exchange} does not have "+
+                    "fetchPosition method.")
+
         return positions
     
     
@@ -177,7 +200,8 @@ class Broker:
 
     def _native_position(self, position):
         """Returns a CCXT position structure as a native 
-        AutoTrader Position."""
+        AutoTrader Position.
+        """
         native_position = Position(instrument=position['symbol'],
                                    net_position=position['contracts'],
                                    PL=position['unrealizedPnl'],
@@ -189,16 +213,22 @@ class Broker:
     def _convert_list(self, items, item_type='order'):
         """Converts a list of trades or orders to a dictionary."""
         native_func = f'_native_{item_type}'
+        id_key = 'instrument' if item_type == 'position' else 'id'
         converted = {}
         for item in items:
             native = getattr(self, native_func)(item)
-            converted[native.id] = native
+            converted[getattr(native, id_key)] = native
         return converted
     
     
-    def _modify_order(self, order, old_order_id):
-        # TODO - implement for self.api.editOrder
+    def _modify_order(self, order):
+        """Modify the size, type and price of an existing order."""
+        # TODO - support changing order_type, not sure how it will be carried
         side = 'buy' if order.direction > 0 else 'sell'
-        modified_order = self.api.editOrder(old_order_id, order.instrument,
-                                            order.order_type, side, order.size,
-                                            order.order_limit_price)
+        modified_order = self.api.editOrder(id=order.related_orders[0], 
+                                            symbol=order.instrument,
+                                            side=side,
+                                            type=None, 
+                                            amount=order.size,
+                                            price=order.order_limit_price)
+        return modified_order
