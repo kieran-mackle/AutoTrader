@@ -386,13 +386,17 @@ class Broker:
         side = 'bids' if direction < 0 else 'asks'
         fill_prices = []
         fill_sizes = []
+        level_no = 0
         while units_to_fill > 0:
             # Consume liquidity
-            for level in book[side]:
-                units_consumed = min(units_to_fill, float(level['size']))
-                fill_prices.append(float(level['price']))
-                fill_sizes.append(units_consumed)
-                units_to_fill -= units_consumed
+            level = book[side][level_no]
+            units_consumed = min(units_to_fill, float(level['size']))
+            fill_prices.append(float(level['price']))
+            fill_sizes.append(units_consumed)
+
+            # Iterate
+            level_no += 1
+            units_to_fill -= units_consumed
 
         avg_fill_price = sum([fill_sizes[i]*fill_prices[i] for i \
                 in range(len(fill_prices))])/sum(fill_sizes)
