@@ -84,6 +84,7 @@ class AutoData:
             elif data_config['data_source'].lower() == 'ccxt':
                 try:
                     import ccxt
+                    self._ccxt_exchange = data_config['exchange']
                     self.api = getattr(ccxt, data_config['exchange'])()
                 except ImportError:
                     raise Exception("Please install ccxt to use "+\
@@ -120,7 +121,8 @@ class AutoData:
     
     
     def __str__(self):
-        return f'AutoData ({self._feed} feed)'
+        feed_str = self._ccxt_exchange if self._feed == 'ccxt' else self._feed
+        return f'AutoData ({feed_str} feed)'
         
 
     def fetch(self, instrument: str, granularity: str = None, 
