@@ -44,6 +44,7 @@ class AutoData:
         """
         if data_config is None:
             self._feed = 'local'
+            self.api = None
 
         else:
             self._feed = data_config['data_source'].lower()
@@ -105,7 +106,7 @@ class AutoData:
                                     "the Yahoo Finance data feed.")
             
             elif data_config['data_source'].lower() == 'local':
-                pass
+                self.api = None
 
             else:
                 raise Exception(f"Unknown data source '{self._feed}'.")
