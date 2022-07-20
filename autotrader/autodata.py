@@ -72,9 +72,9 @@ class AutoData:
                 try:
                     import ib_insync
                     from autotrader.brokers.ib.utils import Utils as IB_Utils
-                    self.ibapi = ib_insync.IB()
+                    self.api = ib_insync.IB()
                     self.IB_Utils = IB_Utils
-                    self.ibapi.connect(host=host, port=port, clientId=client_id, 
+                    self.api.connect(host=host, port=port, clientId=client_id, 
                                     readonly=read_only, account=account)
                 except ImportError:
                     raise Exception("Please install ib_insync to use "+\
@@ -83,7 +83,7 @@ class AutoData:
             elif data_config['data_source'].lower() == 'ccxt':
                 try:
                     import ccxt
-                    self.ccxt_exchange = getattr(ccxt, data_config['exchange'])()
+                    self.api = getattr(ccxt, data_config['exchange'])()
                 except ImportError:
                     raise Exception("Please install ccxt to use "+\
                                     "the CCXT data feed.")
@@ -579,8 +579,8 @@ class AutoData:
     def _check_IB_connection(self):
         """Checks if there is an active connection to IB.
         """
-        self.ibapi.sleep(0)
-        connected = self.ibapi.isConnected()
+        self.api.sleep(0)
+        connected = self.api.isConnected()
         if not connected:
             raise ConnectionError("No active connection to IB.")
     
@@ -630,7 +630,7 @@ class AutoData:
         dt = ''
         barsList = []
         while True:
-            bars = self.ibapi.reqHistoricalData(
+            bars = self.api.reqHistoricalData(
                 contract,
                 endDateTime=dt,
                 durationStr=durationStr,
@@ -645,7 +645,7 @@ class AutoData:
         
         # Convert bars to DataFrame
         allBars = [b for bars in reversed(barsList) for b in bars]
-        df = self.ibapi.util.df(allBars)
+        df = self.api.util.df(allBars)
         return df
     
     
@@ -666,10 +666,10 @@ class AutoData:
         """
         self._check_IB_connection()
         contract = self.IB_Utils.build_contract(order)
-        self.ibapi.qualifyContracts(contract)
-        ticker = self.ibapi.reqMktData(contract, snapshot=snapshot)
-        while ticker.last != ticker.last: self.ibapi.sleep(1)
-        self.ibapi.cancelMktData(contract)
+        self.api.qualifyContracts(contract)
+        ticker = self.api.reqMktData(contract, snapshot=snapshot)
+        while ticker.last != ticker.last: self.api.sleep(1)
+        self.api.cancelMktData(contract)
         price = {"ask": ticker.ask,
                  "bid": ticker.bid,
                  "negativeHCF": 1,
@@ -804,10 +804,10 @@ class AutoData:
             
             data = []
             while start_ts <= end_ts:
-                raw_data = self.ccxt_exchange.fetchOHLCV(instrument, 
-                                                         timeframe=granularity, 
-                                                         since=start_ts,
-                                                         limit=count)
+                raw_data = self.api.fetchOHLCV(instrument, 
+                                               timeframe=granularity, 
+                                               since=start_ts,
+                                               limit=count)
                 # Append data
                 data += raw_data
                 
@@ -822,16 +822,16 @@ class AutoData:
         if count is not None:
             if start_time is None and end_time is None:
                 # Fetch N most recent candles
-                raw_data = self.ccxt_exchange.fetchOHLCV(instrument, 
-                                                         timeframe=granularity, 
-                                                         limit=count)
+                raw_data = self.api.fetchOHLCV(instrument, 
+                                               timeframe=granularity, 
+                                               limit=count)
             elif start_time is not None and end_time is None:
                 # Fetch N candles since start_time
                 start_ts = None if start_time is None else int(start_time.timestamp()*1000) 
-                raw_data = self.ccxt_exchange.fetchOHLCV(instrument, 
-                                                         timeframe=granularity, 
-                                                         since=start_ts,
-                                                         limit=count)
+                raw_data = self.api.fetchOHLCV(instrument, 
+                                               timeframe=granularity, 
+                                               since=start_ts,
+                                               limit=count)
             elif end_time is not None and start_time is None:
                 raise Exception("Fetching data from end_time and count is "+\
                                 "not yet supported.")
@@ -867,7 +867,7 @@ class AutoData:
 
     def _ccxt_orderbook(self, instrument, limit=None):
         """Returns the orderbook from a CCXT supported exchange."""
-        response = self.ccxt_exchange.fetchOrderBook(symbol=instrument)
+        response = self.api.fetchOrderBook(symbol=instrument)
 
         # Unify format
         orderbook = {}
