@@ -185,10 +185,15 @@ class AutoData:
 
     def L2(self, instrument=None, *args, **kwargs):
         """Unified level 2 data retrieval api."""
-        # TODO - enforce ordering of book on each side
         func = getattr(self, f'_{self._feed}_orderbook')
         data = func(instrument, *args, **kwargs)
         return data
+
+    
+    def trades(self, instrument, *args, **kwargs):
+        func = getattr(self, f'_{self._feed}_trades')
+        trades = func(instrument, *args, **kwargs)
+        return trades
 
     
     def _oanda(self, instrument: str, granularity: str, count: int = None, 
@@ -925,6 +930,23 @@ class AutoData:
                                         'size': level[1]}
                                        )
         return orderbook
+    
+
+    def _ccxt_trades(self, instrument):
+        """Returns public trades from a CCXT exchange."""
+        ccxt_trades = self.api.fetchTrades(instrument)
+
+        # Convert to standard form
+        trades = []
+        for trade in ccxt_trades:
+            unified_trade = {'direction': 1 if trade['side']=='buy' else -1,
+                             'price': float(trade['price']),
+                             'size': float(trade['amount']),
+                             'time': datetime.fromtimestamp(trade['timestamp']/1000)
+                            }
+            trades.append(unified_trade)
+
+        return trades
 
 
     def _dydx(self, instrument: str, granularity: str, count: int = None, 
@@ -1059,3 +1081,22 @@ class AutoData:
         response = self.api.public.get_orderbook(market=instrument)
         orderbook = response.data
         return orderbook
+
+
+    def _dydx_trades(self, instrument):
+        """Returns public trades from dYdX."""
+        response = self.api.public.get_trades(instrument)
+        dydx_trades = response.data['trades']
+
+        # Convert to standard form
+        trades = []
+        for trade in dydx_trades:
+            unified_trade = {'direction': 1 if trade['side']=='BUY' else -1,
+                             'price': float(trade['price']),
+                             'size': float(trade['size']),
+                             'time': datetime.strptime(trade['createdAt'], 
+                                                '%Y-%m-%dT%H:%M:%S.%fZ')
+                            }
+            trades.append(unified_trade)
+
+        return trades
