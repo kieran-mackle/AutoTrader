@@ -777,22 +777,30 @@ class AutoData:
     
     def _local_orderbook(self, instrument=None, *args, **kwargs):
         """Returns an artificial orderbook based on the last bar of 
-        local price data."""
-        # Unpack kwargs
+        local price data.
+        
+        Parameters
+        ----------
+        instrument : str, optional
+            The filename (absolute, or relative if data_dir was provided with
+            data_config dictionary) of the instrument data. Only required if
+            'midprice' argument is not provided.
+        midprice : float, optional
+            The midprice to use as a reference price.
+        """
         spread_units = kwargs['spread_units'] if 'spread_units' in kwargs \
             else self._spread_units
         spread = kwargs['spread'] if 'spread' in kwargs \
             else self._spread
         
-        # Get latest candle
-        if 'candle' in kwargs:
-            candle = kwargs['candle']
+        # Get latest price
+        if 'midprice' in kwargs:
+            midprice = kwargs['midprice']
         else:
             # Load from OHLC data
             data = self._local(instrument)
-            candle = data.iloc[-1]
+            midprice = data.iloc[-1].Close
 
-        midprice = candle.Close
         if spread_units == 'price':
             bid = midprice - 0.5*spread
             ask = midprice + 0.5*spread
