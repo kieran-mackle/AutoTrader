@@ -158,6 +158,21 @@ class Broker:
         return positions
     
     
+    def get_orderbook(self, instrument: str) -> dict:
+        """Returns the orderbook"""
+        response = self.api.fetchOrderBook(symbol=instrument)
+
+        # Unify format
+        orderbook = {}
+        for side in ['bids', 'asks']:
+            orderbook[side] = []
+            for level in response[side]:
+                orderbook[side].append({'price': level[0],
+                                        'size': level[1]}
+                                       )
+        return orderbook
+
+    
     def _native_order(self, order):
         """Returns a CCXT order as a native AutoTrader Order."""
         direction = 1 if order['side'] == 'buy' else -1
