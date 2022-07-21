@@ -115,7 +115,7 @@ if __name__ == "__main__":
     home_dir = os.getcwd()
     
     at = AutoTrader()
-    at.configure(verbosity=1, show_plot=False)
+    at.configure(verbosity=1, show_plot=True)
     at.add_strategy(config_dict=config, strategy=SimpleMACD)
     at.plot_settings(show_cancelled=False)
     at.add_data({'EUR_USD': 'EUR_USD_H4.csv'}, 

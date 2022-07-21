@@ -533,7 +533,7 @@ class AutoTraderBot:
                 order_price = last_price['ask']
                 HCF = last_price['positiveHCF']
             
-            # Call order with price and time
+            # Call order with price
             order(broker=self._broker, order_price=order_price, HCF=HCF)
     
     

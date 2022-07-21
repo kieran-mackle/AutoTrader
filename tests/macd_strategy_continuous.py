@@ -137,7 +137,7 @@ if __name__ == "__main__":
                 end = '1/3/2022',
                 initial_balance=1000,
                 leverage=30,
-                spread=0.5,
+                spread=0.5*1e-4,
                 commission=0.005)
     at.run()
     

@@ -239,6 +239,9 @@ class Broker:
         order.id = self._get_new_order_id()
         self._order_id_instrument[order.id] = order.instrument
         
+        # TODO - for limit orders, when papertrading with orderbook,
+        # check that the limit order does not cross the book
+
         # Move order to pending_orders dict
         order.status = 'pending'
         try:
@@ -253,6 +256,7 @@ class Broker:
             self.cancel_order(order.id, reason, 'pending_orders')
         else:
             # Move order to open_orders or leave in pending
+            # TODO - is this logic applicable? Consider update order in autobot
             immediate_orders = ['close', 'reduce', 'modify']
             if order.order_type in immediate_orders or self._paper_trading:
                 # Move to open orders
@@ -265,11 +269,14 @@ class Broker:
         """Returns orders."""
         all_orders = getattr(self, order_status+'_orders')
         if instrument:
+            # Return orders for instrument specified
             try:
                 orders = all_orders[instrument]
             except KeyError:
+                # There are currently no orders for this instrument
                 orders = {}
         else:
+            # Return all orders
             orders = {}
             for instr, instr_orders in all_orders.items():
                 orders.update(instr_orders)
@@ -423,18 +430,21 @@ class Broker:
                 self._modify_order(order)
             
             elif order.order_type == 'close':
-                related_order = order.related_orders
-                self._close_position(order.instrument, candle, 
-                                     candle.Close, trade_id = related_order)
+                # Market close trade/position
+                self._close_position(instrument=order.instrument,
+                                     trade_id=order.related_orders,
+                                     order_type='market')
                 self._move_order(order)
                 
             elif order.order_type == 'reduce':
-                self._reduce_position(order)
+                # Market reduce position
+                self._reduce_position(order, exit_time=candle.name)
                 self._move_order(order)
                 
             # Check for limit orders
             if order.order_type == 'limit':
                 # Limit order type
+                # TODO - use flag for when updating from live trades 
                 if order.direction > 0:
                     if candle.Low < order.order_limit_price:
                         self._fill_order(order, candle)
@@ -442,9 +452,6 @@ class Broker:
                     if candle.High > order.order_limit_price:
                         self._fill_order(order, candle)
         
-        # Update margin available after any order changes 
-        self._update_margin(instrument, candle)
-
         # Update open trades
         open_trades = self.get_trades(instrument).copy()
         for trade_id, trade in open_trades.items():
@@ -476,14 +483,13 @@ class Broker:
             tp_ref = getattr(candle, 'High' if trade.direction > 0 else 'Low')
             if trade.stop_loss and trade.direction*(sl_ref - trade.stop_loss) < 0:
                 # Stop loss hit
-                self._close_trade(instrument, trade_id=trade_id, 
-                                  exit_price=trade.stop_loss, candle=candle,
+                self._close_trade(instrument=instrument, trade_id=trade_id, 
+                                  exit_price=trade.stop_loss, exit_time=candle.name,
                                   order_type='limit')
             elif trade.take_profit and trade.direction*(tp_ref - trade.take_profit) > 0:
                 # Take Profit hit
-                self._close_trade(instrument, trade_id=trade_id, 
-                                  exit_price=trade.take_profit, candle=candle,
-                                  order_type='market')
+                self._close_trade(instrument=instrument, trade_id=trade_id, 
+                                  exit_price=trade.take_profit, exit_time=candle.name)
             else:
                 # Position is still open, update value of holding
                 trade.last_price = candle.Close
@@ -511,7 +517,8 @@ class Broker:
             self._save_state()
         
     
-    def _fill_order(self, order, candle):
+    def _fill_order(self, order: Order, candle: pd.Series = None, 
+                    trade_price: float = None, trade_size: float = None):
         """Attempts to fill an order.
         
         Notes
@@ -526,6 +533,9 @@ class Broker:
         If hedging is enabled, trades can be opened against one another, and
         will be treated in isolation. 
         """
+        # TODO - implement partial fills using trade_price and trade_size 
+        # (might) only need trade_size, since trade_price should equal 
+        # the limit price
         # Check order against current position
         close_existing_position = False
         if not self.hedging:
@@ -545,26 +555,31 @@ class Broker:
 
                     else:
                         # Simply reduce the current position
-                        self._reduce_position(order)
+                        self._reduce_position(order=order, exit_time=candle.name)
                         self._move_order(order)
                         return
         
         # Calculate margin requirements
-        current_price = candle.Open
-        position_value = order.size * current_price * order.HCF # Net position
+        reference_price = order.order_limit_price if order.order_type == 'limit' else candle.Open
+        position_value = order.size * reference_price * order.HCF # Net position
         margin_required = self._calculate_margin(position_value)
         
         if margin_required < self.margin_available:
             # Enough margin in account to fill order, determine average fill price
-            avg_fill_price = order.order_limit_price if order.order_limit_price is \
-                not None else self._trade_through_book(order.instrument, 
-                                                       order.direction,
-                                                       order.size, 
-                                                       candle)
+            avg_fill_price = order.order_limit_price if order.order_type == 'limit' \
+                else self._trade_through_book(instrument=order.instrument, 
+                                              direction=order.direction,
+                                              size=order.size, 
+                                              reference_price=candle.Open)
 
             if close_existing_position:
                 # Close the open position before proceeding
-                self._close_position(order.instrument, candle, avg_fill_price)
+                # Note: limit order type is enforced since spread is already
+                # accounted for in avg_fill price
+                self._close_position(instrument=order.instrument, 
+                                     exit_price=avg_fill_price,
+                                     exit_time=candle.name,
+                                     order_type='limit')
 
             # Mark order as filled
             trade_id = self._get_new_trade_id()
@@ -613,27 +628,44 @@ class Broker:
     
     
     def _close_position(self, instrument: str, 
-                        candle: pd.core.series.Series, 
-                        exit_price: float, 
-                        trade_id=None) -> None:
-        """Closes position in instrument.
+                        exit_price: float = None, 
+                        exit_time: datetime = None,
+                        trade_id: int = None,
+                        order_type: str = 'market') -> None:
+        """Market closes the position (or single trade) of an instrument.
+
+        Parameters
+        -----------
+        instrument : str
+            The name of the instrument.
+        exit_price : float, optional
+            The exit price. The default is None.
+        exit_time : datetime, optional
+            The position exit time. The default is None.
+        trade_id : int, optional
+            The ID of the trade to close out. The default is None.
+        order_type : str, optional
+            The type of order used to close the position. The default 
+            is 'market'.
         """
         if trade_id:
-            # single trade specified to close
-            self._close_trade(instrument, trade_id=trade_id, 
-                              exit_price=exit_price, candle=candle)
+            # Single trade specified to close
+            self._close_trade(instrument=instrument, trade_id=trade_id,
+                              order_type=order_type, exit_price=exit_price,
+                              exit_time=exit_time)
         else:
             # Close all positions for instrument
             open_trades = self.open_trades[instrument].copy()
             for trade_id, trade in open_trades.items():
-                self._close_trade(instrument, trade_id=trade_id, 
-                                  exit_price=exit_price, candle=candle)
+                self._close_trade(instrument, trade_id=trade_id,
+                                  order_type=order_type, exit_price=exit_price,
+                                  exit_time=exit_time)
     
     
     def _close_trade(self, instrument: str, 
                      trade_id: int = None, 
                      exit_price: float = None,
-                     candle: pd.core.series.Series = None,
+                     exit_time: datetime = None,
                      order_type: str = 'market') -> None:
         """Closes trade by order number.
 
@@ -643,37 +675,37 @@ class Broker:
             The trade id. The default is None.
         exit_price : float, optional
             The trade exit price. The default is None.
-        candle : pd.core.series.Series, optional
-            Slice of OHLC data. The default is None.
+        exit_time : datetime, optional
+            The trade exit time. The default is None.
         order_type : str, optional
-            The order type being used to close the trade, used when
-            calculating commissions. The default is 'market'. 
+            The order type used to calculate commissions. The default
+            is 'market'.
 
         Returns
         -------
         None
-            The trade will be marked as closed.
+            The trade will be marked as closed and the appropriate
+            commission will be charged for the trade.
         """
         # Get trade to be closed
         trade = self.open_trades[instrument][trade_id]
         fill_price = trade.fill_price
         size = trade.size
         direction = trade.direction
-        HCF = trade.HCF
-        
-        # Account for missing inputs
-        # TODO - consider order_type
-        exit_price = trade.last_price if not exit_price else exit_price
-        if self._paper_trading:
-            try:
-                # Note negative direction as it is 'closing' the trade
-                exit_price = self._trade_through_book(instrument, 
-                                -direction, size, candle)
-            except:
-                pass
+
+        reference_price = exit_price if exit_price is not None else trade.last_price
+        if order_type == 'limit':
+            # Use exit price provided
+            exit_price = reference_price
+        else:
+            # Exit price provided as reference for midprice
+            exit_price = self._trade_through_book(instrument=instrument, 
+                                                  direction=-direction, 
+                                                  size=size, 
+                                                  reference_price=reference_price)
         
         # Update portfolio with profit/loss
-        gross_PL = direction*size*(exit_price - fill_price)*HCF
+        gross_PL = direction*size*(exit_price - fill_price)*trade.HCF
         commission = self._calculate_commissions(price=exit_price, 
                                                  units=size, 
                                                  HCF=trade.HCF,
@@ -685,10 +717,7 @@ class Broker:
         trade.balance = self.equity
         trade.exit_price = exit_price
         trade.fees = commission
-        if candle is None:
-            trade.exit_time = trade.last_time
-        else:
-            trade.exit_time = candle.name 
+        trade.exit_time = exit_time if exit_time is not None else trade.last_time
         trade.status = 'closed'
         
         # Add trade to closed positions
@@ -702,9 +731,10 @@ class Broker:
         self._add_funds(net_profit)
     
     
-    def _reduce_position(self, order: Order) -> None:
+    def _reduce_position(self, order: Order,
+                         exit_time: datetime = None) -> None:
         """Reduces the position of the specified instrument using the 
-        order. 
+        original order. 
         
         The direction of the order is used to specify whether 
         to reduce long or short units. 
@@ -725,24 +755,34 @@ class Broker:
                     # Reduce this trade
                     if units_to_reduce >= trade.size:
                         # Entire trade must be closed
-                        last_price = trade.last_price
-                        self._close_trade(instrument, trade_id=trade_id, 
-                                          exit_price=last_price)
+                        self._close_trade(instrument=instrument, 
+                                          trade_id=trade_id,
+                                          exit_price=order.order_limit_price,
+                                          exit_time=exit_time,
+                                          order_type=order.order_type)
                         
                         # Update units_to_reduce
                         units_to_reduce -= abs(trade.size)
                         
                     else:
                         # Partially close trade
-                        self._partial_trade_close(instrument, trade_id, 
-                                                  units_to_reduce)
+                        self._partial_trade_close(instrument=instrument, 
+                                                  trade_id=trade_id, 
+                                                  units=units_to_reduce,
+                                                  exit_price=order.order_limit_price,
+                                                  exit_time=exit_time,
+                                                  order_type=order.order_type)
                         
                         # Update units_to_reduce
                         units_to_reduce = 0
                     
     
-    def _partial_trade_close(self, instrument: str, trade_id: int, 
-                             units: float) -> None:
+    def _partial_trade_close(self, instrument: str, 
+                             trade_id: int, 
+                             units: float, 
+                             exit_price: float = None,
+                             exit_time: datetime = None,
+                             order_type: str = 'market') -> None:
         """Partially closes a trade.
         
         The original trade ID remains, but the trade size may be reduced. The
@@ -757,20 +797,36 @@ class Broker:
 
         # Add partial trade to open trades, then close it
         self.open_trades[instrument][partial_trade_id] = partial_trade
-        self._close_trade(instrument, partial_trade_id)
+        self._close_trade(instrument=instrument, 
+                          trade_id=partial_trade_id,
+                          exit_price=exit_price,
+                          exit_time=exit_time,
+                          order_type=order_type)
 
         # Keep track of partial trade id instrument for reference
         self._trade_id_instrument[partial_trade_id] = instrument
         
     
     def _trade_through_book(self, instrument, direction, size, 
-                            candle=None):
+                            reference_price=None):
         """Returns an average fill price by filling an order through
-        the orderbook."""
-        # TODO - implement fill or kill for limit orders?
-
+        the orderbook.
+        
+        Parameters
+        -----------
+        instrument : str
+            The instrument to fetch the orderbook for.
+        direction : int
+            The direction of the trade (1 for long, -1 for short). Used
+            to specify either bid or ask prices. 
+        size : float
+            The size of the trade.
+        reference_price : float, optional
+            The reference price to use if artificially creating an 
+            orderbook.
+        """
         # Get order book
-        book = self.get_orderbook(instrument, candle)
+        book = self.get_orderbook(instrument, reference_price)
 
         # Work through the order book
         units_to_fill = size
@@ -871,8 +927,6 @@ class Broker:
         self.margin_available = self.NAV - margin_used
         
         # Check for margin call
-        # TODO - due to ordering of updates, margin call could occur on the last
-        # instrument, just by chance...
         if self.leverage > 1 and self.margin_available/self.NAV < self.margin_closeout:
             # Margin call
             if self.verbosity > 0:
@@ -930,7 +984,7 @@ class Broker:
     def _margin_call(self, instrument: str, candle: pd.core.series.Series):
         """Closes open positions.
         """
-        self._close_position(instrument, candle, candle.Close)
+        self._close_position(instrument=instrument, exit_time=candle.name)
     
     
     def _get_holding_allocations(self):
@@ -950,21 +1004,37 @@ class Broker:
         return values
 
     
-    def get_orderbook(self, instrument, candle = None):
+    def get_orderbook(self, instrument: str, midprice: float = None):
         """Returns the orderbook."""
+        # Get public orderbook
         if self._paper_trading:
             # Papertrading, try get realtime orderbook
             orderbook = self._autodata.L2(instrument, 
                                           spread_units=self.spread_units,
                                           spread=self.spread)
         else:
-            # Backtesting, use pseudo-orderbook
-            orderbook = self._autodata.L2(spread_units=self.spread_units,
-                                          spread=self.spread,
-                                          candle=candle)
+            # Backtesting, use local pseudo-orderbook
+            orderbook = self._autodata._local_orderbook(spread_units=self.spread_units,
+                        spread=self.spread, midprice=midprice)
+
+        # TODO - Add local orders to the book?
         
         return orderbook
     
+
+    def _add_orders_to_book(self, instrument, orderbook):
+        """Adds local orders to the orderbook."""
+        # TODO - implement
+        orders = self.get_orders(instrument)
+        for order in orders:
+            if order.order_type == 'limit':
+                side = 'bids' if order.direction > 0 else 'asks'
+
+                # Add to the book
+                orderbook[side]
+
+        return orderbook
+
 
     def _save_state(self):
         """Pickles the current state of the broker."""
@@ -986,6 +1056,17 @@ class Broker:
             print("Virtual broker state loaded from pickle.")
         
 
-    def _public_trade(self, instrument, direction, size):
-        """Uses a public trade to update the orderbook."""
-        pass
+    def _public_trade(self, instrument, trade_direction, trade_price, trade_size):
+        """Uses a public trade to update virtual orders."""
+        open_orders = self.get_orders(instrument).copy()
+        for order_id, order in open_orders.items():
+            if order.order_type == 'limit':
+                if order.direction != trade_direction:
+                    if trade_price == order.order_limit_price:
+                        # Fill as much as possible
+                        # TODO - partial order fills
+                        # TODO - order price precision for instrument ...
+                        # Tru use Decimal(order.order_limit_price).quantize(trade_price)
+                        self._fill_order(order, trade_price=trade_price, 
+                                         trade_size=trade_size)
+                    
