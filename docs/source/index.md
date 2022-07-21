@@ -17,15 +17,21 @@ If you are still deciding if AutoTrader is for you, check out the [features](fea
 see what is on offer. Otherwise, head on over to the [Getting Started](getting-started) guide.
 
 
+## Supported Exchanges
+With AutoTrader `v0.7.0`, you can access over 100 cryptocurrency exchanges thanks to the integration
+with [CCXT](https://github.com/ccxt/ccxt).
+
+| Exchange | Asset classes | Integration status | Docs page |
+| -------- | ------------- | ------------------ | --------- |
+| [Oanda](https://www.oanda.com/)    | Forex CFDs    | Complete | [link](oanda-module-docs)|
+| [Interactive Brokers](https://www.interactivebrokers.com/en/home.php) | Many | In progress | [link](ib-module-docs) |
+| [dYdX](https://dydx.exchange/) | Cryptocurrencies | Complete | [link](dydx-module-docs) |
+| [CCXT](https://github.com/ccxt/ccxt) | Cryptocurrencies | In progress | [link](ccxt-module-docs) |
+
+
+
 ## Latest Changes
-AutoTrader `v0.6.0` has been released! This release has too many new features to list here, so 
-check out the [changelog](changelog) for more details. Major changes include:
-- Support for Interactive Brokers
-- Introduction of `Order`, `Trade` and `Position` objects
-- Continuous update mode
-- Greater flexibility in deploying trading bots (ability to add strategy class object, add DataStream object
-  for custom data pipelines)
-- Tests and templates added
+AutoTrader `v0.7.0` has been released! Make sure to check out the [changelog](changelog) when upgrading details on the breaking changes. 
 
 
 ## Contact
