@@ -153,13 +153,16 @@ class Broker:
             else self.commission
 
         if autodata_config is not None:
-            # Instantiate AutoData
+            # Instantiate AutoData from config
             data_config = get_config(autodata_config['environment'], 
                                      autodata_config['global_config'], 
                                      autodata_config['feed'])
             self._autodata = AutoData(data_config, 
                                       autodata_config['allow_dancing_bears'], 
                                       autodata_config['base_currency'])
+        else:
+            # Create local data instance
+            self._autodata = AutoData()
         
         # Initialise balance
         if initial_balance is not None:
@@ -949,29 +952,16 @@ class Broker:
     
     def _get_orderbook(self, instrument, candle = None):
         """Returns the orderbook."""
-        def pseudo_orderbook(candle):
-            """Creates an artificial orderbook with unlimited liquidity."""
-            midprice = candle.Close
-            if self.spread_units == 'price':
-                bid = midprice - 0.5*self.spread
-                ask = midprice + 0.5*self.spread
-            elif self.spread_units == 'percentage':
-                bid = midprice * (1-0.5*self.spread/100)
-                ask = midprice * (1+0.5*self.spread/100)
-
-            orderbook = {'bids': [{'price': bid, 'size': 1e100},],
-                         'asks': [{'price': ask, 'size': 1e100},]}
-            return orderbook
-
         if self._paper_trading:
             # Papertrading, try get realtime orderbook
-            try:
-                orderbook = self._autodata.L2(instrument)
-            except:
-                orderbook = pseudo_orderbook(candle)
+            orderbook = self._autodata.L2(instrument, 
+                                          spread_units=self.spread_units,
+                                          spread=self.spread)
         else:
             # Backtesting, use pseudo-orderbook
-            orderbook = pseudo_orderbook(candle)
+            orderbook = self._autodata.L2(spread_units=self.spread_units,
+                                          spread=self.spread,
+                                          candle=candle)
         
         return orderbook
     

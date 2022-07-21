@@ -153,7 +153,7 @@ class AutoData:
         return data
 
     
-    def L1(self, instrument, *args, **kwargs):
+    def L1(self, instrument=None, *args, **kwargs):
         """Unified level 1 data retrieval api."""
         # Get orderbook
         func = getattr(self, f'_{self._feed}_orderbook')
@@ -183,7 +183,7 @@ class AutoData:
         return response
     
 
-    def L2(self, instrument, *args, **kwargs):
+    def L2(self, instrument=None, *args, **kwargs):
         """Unified level 2 data retrieval api."""
         # TODO - enforce ordering of book on each side
         func = getattr(self, f'_{self._feed}_orderbook')
@@ -770,7 +770,7 @@ class AutoData:
         return data
 
     
-    def _local_orderbook(self, instrument, *args, **kwargs):
+    def _local_orderbook(self, instrument=None, *args, **kwargs):
         """Returns an artificial orderbook based on the last bar of 
         local price data."""
         # Unpack kwargs
@@ -778,10 +778,14 @@ class AutoData:
             else self._spread_units
         spread = kwargs['spread'] if 'spread' in kwargs \
             else self._spread
-
-        # Load OHLC data and extract last candle
-        data = self._local(instrument)
-        candle = data.iloc[-1]
+        
+        # Get latest candle
+        if 'candle' in kwargs:
+            candle = kwargs['candle']
+        else:
+            # Load from OHLC data
+            data = self._local(instrument)
+            candle = data.iloc[-1]
 
         midprice = candle.Close
         if spread_units == 'price':
