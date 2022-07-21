@@ -42,11 +42,19 @@ class AutoData:
         None
             AutoData will be instantiated and ready to fetch price data.
         """
-        if data_config is None:
+        def configure_local_feed(data_config):
+            """Configures the attributes for a local data feed."""
             self._feed = 'local'
             self.api = None
-            self._data_directory = None
+            self._data_directory = data_config['data_dir'] if 'data_dir' in \
+                    data_config else None
+            self._spread_units = data_config['spread_units'] if 'spread_units' in \
+                    data_config else 'percentage'
+            self._spread = data_config['spread'] if 'spread' in \
+                    data_config else 1
 
+        if data_config is None:
+            configure_local_feed({})
         else:
             self._feed = data_config['data_source'].lower()
 
@@ -108,9 +116,7 @@ class AutoData:
                                     "the Yahoo Finance data feed.")
             
             elif data_config['data_source'].lower() == 'local':
-                self.api = None
-                self._data_directory = data_config['data_dir'] if 'data_dir' in \
-                    data_config else None
+                configure_local_feed(data_config)
 
             else:
                 raise Exception(f"Unknown data source '{self._feed}'.")
@@ -762,6 +768,33 @@ class AutoData:
                                               end_time)
             
         return data
+
+    
+    def _local_orderbook(self, instrument, *args, **kwargs):
+        """Returns an artificial orderbook based on the last bar of 
+        local price data."""
+        # Unpack kwargs
+        spread_units = kwargs['spread_units'] if 'spread_units' in kwargs \
+            else self._spread_units
+        spread = kwargs['spread'] if 'spread' in kwargs \
+            else self._spread
+
+        # Load OHLC data and extract last candle
+        data = self._local(instrument)
+        candle = data.iloc[-1]
+
+        midprice = candle.Close
+        if spread_units == 'price':
+            bid = midprice - 0.5*spread
+            ask = midprice + 0.5*spread
+        elif spread_units == 'percentage':
+            bid = midprice * (1-0.5*spread/100)
+            ask = midprice * (1+0.5*spread/100)
+        
+        # TODO - ability to add levels 
+        orderbook = {'bids': [{'price': bid, 'size': 1e100},],
+                         'asks': [{'price': ask, 'size': 1e100},]}
+        return orderbook
     
     
     def _local_quote_data(self, data: pd.DataFrame, pair: str, granularity: str, 
