@@ -140,7 +140,7 @@ class AutoData:
         return data
 
     
-    def quote(self, *args, **kwargs):
+    def _quote(self, *args, **kwargs):
         """Unified quote data retrieval api."""
         func = getattr(self, f'_{self._feed}_quote_data')
         data = func(*args, **kwargs)
