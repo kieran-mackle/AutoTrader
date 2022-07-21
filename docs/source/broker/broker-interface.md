@@ -9,6 +9,8 @@ Orders, Trades and Positions <trading>
 Virtual Broker <virtual-broker>
 Oanda <oanda>
 Interactive Brokers <ib>
+dYdX <dydx>
+CCXT <ccxt>
 Broker Utilities <utils>
 ```
 
