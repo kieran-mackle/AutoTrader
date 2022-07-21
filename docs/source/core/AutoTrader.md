@@ -114,8 +114,6 @@ The name of the instance file can be customised using the `instance_str` argumen
 
 
 
-
-
 (autotrader-config-methods)=
 ## Configuration Methods
 The following methods are used to configure the active instance of AutoTrader.
@@ -143,6 +141,10 @@ local data file(s), you should always call the `configure` method prior to speci
 
 (autotrader-virtual-livetrade-config)=
 ### Virtual Livetrade Configuration
+If you wish to paper trade your strategy without connecting to any broker, you can simply plug into the
+[virtual broker](virtual-broker-docs). Of course, you will need to have a live price feed feeding your 
+strategy to get the most up-to-date data. Given that, simply configure your 'virtual account' using the
+`virtual_livetrade_config` method.
 
 ```{eval-rst}
 .. automethod:: autotrader.autotrader.AutoTrader.virtual_livetrade_config
@@ -231,10 +233,10 @@ multiplie-timeframe strategies.
 
 
 
-### Print Backtest Results
+### Print Trade Results
 
 ```{eval-rst}
-.. automethod:: autotrader.autotrader.AutoTrader.print_backtest_results
+.. automethod:: autotrader.autotrader.AutoTrader.print_trade_results
 ```
 
 

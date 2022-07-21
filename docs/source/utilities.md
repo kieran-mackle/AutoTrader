@@ -30,10 +30,10 @@
 .. autofunction:: autotrader.utilities.get_watchlist
 ```
 
-(utils-backtest-results)=
-## BacktestResults Class
+(utils-trade-results)=
+## TradeAnalysis Class
 ```{eval-rst}
-.. autoclass:: autotrader.utilities.BacktestResults
+.. autoclass:: autotrader.utilities.TradeAnalysis
    :members:
 ```
 
