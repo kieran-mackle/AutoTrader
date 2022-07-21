@@ -120,6 +120,8 @@ provided along with a `stop_distance`, the stop loss will be set at the price de
 only specify one.
 
 
+Note that for the purpose of calculating trading fees, stop loss orders are treated as `limit` order type (liquidity providing).
+
 #### Limit Stop Loss
 `stop_type='limit'`
 
@@ -136,6 +138,10 @@ the stop loss distance (in [pips](https://www.investopedia.com/ask/answers/06/pi
 Read more about trailing stop loss orders [here](https://www.investopedia.com/terms/t/trailingstop.asp).
 
 
+
+### Take Profit Orders
+Take-profit orders can be attached to an order using the `take_profit` or `take_price` attribute. Note that take profit orders
+are treated as `market` order type (liquidity consuming) when calculating trading costs.
 
 
 (trade-object)=
