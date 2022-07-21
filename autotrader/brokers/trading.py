@@ -285,8 +285,8 @@ class Order:
                 # Calculate size based on target trade value
                 self.size = round(self.target_value / working_price / HCF, self.size_precision)
             elif self.base_size is not None:
+                # Size provided in base units, need to convert it
                 self.size = round(self.base_size/HCF, self.size_precision)
-                
             else:
                 # Size not provided, need to calculate it
                 amount_risked = amount_risked if amount_risked else \

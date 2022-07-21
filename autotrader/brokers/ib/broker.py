@@ -261,10 +261,10 @@ class Broker:
         dict
             The details of the trade.
         """
-        raise NotImplementedError("This method is not available.")
-        # self._check_connection()
-        # TODO - implement (?)
-        # return {}
+        raise NotImplementedError("This method is not available, and will "+\
+                "be deprecated with a future release. Please use the "+\
+                "get_trades method instead.")
+        
     
     
     def get_positions(self, instrument: str = None, **kwargs) -> dict:

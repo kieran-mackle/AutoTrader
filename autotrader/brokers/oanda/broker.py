@@ -177,7 +177,9 @@ class Broker:
         """Returns the details of the trade specified by trade_ID.
         WARNING: THIS METHOD HAS BEEN MADE REDUNDANT BY 'get_trades' METHOD.
         """
-        
+        raise DeprecationWarning("This method is deprecated, and will "+\
+                "be removed in a future release. Please use the "+\
+                "get_trades method instead.")
         response = self.api.trade.list(accountID=self.ACCOUNT_ID, ids=int(trade_ID))
         trade = response.body['trades'][0]
         

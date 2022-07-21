@@ -14,7 +14,8 @@ from autotrader.autoplot import AutoPlot
 from autotrader.autobot import AutoTraderBot
 from datetime import datetime, timezone
 from autotrader.utilities import (read_yaml, get_config, 
-                                  get_watchlist, DataStream, BacktestResults)
+                                  get_watchlist, DataStream, TradeAnalysis,
+                                  unpickle_broker)
 
 
 class AutoTrader:
@@ -42,20 +43,18 @@ class AutoTrader:
         Returns the AutoTrader trading bots deployed in the active instance.
     plot_backtest(bot=None)
         Plots backtest results of a trading Bot.
-    plot_multibot_backtest(backtest_results=None)
+    plot_multibot_backtest(trade_results=None)
         Plots backtest results for multiple trading bots.
     multibot_backtest_analysis(bots=None)
         Analyses backtest results of multiple trading bots.
-    print_backtest_results(backtest_results)
-        Prints backtest results.
-    print_multibot_backtest_results(backtest_results=None)
+    print_trade_results(trade_results)
+        Prints trade results.
+    print_multibot_trade_results(trade_results=None)
         Prints a multi-bot backtest results.
     
     References
     ----------
     Author: Kieran Mackle
-    
-    Version: 0.6.0
     
     Homepage: https://kieran-mackle.github.io/AutoTrader/
     
@@ -66,6 +65,8 @@ class AutoTrader:
         """AutoTrader initialisation. Called when creating new AutoTrader 
         instance.
         """
+        # Public attributes
+        self.trade_results = None
         
         self._home_dir = None
         self._verbosity = 1
@@ -75,7 +76,8 @@ class AutoTrader:
         self._run_mode = 'periodic'
         self._timestep = pd.Timedelta('10s').to_pytimedelta()
         self._warmup_period = pd.Timedelta('0s').to_pytimedelta()
-        self._feed = 'yahoo'
+        self._feed = None
+        self._execution_feed = None
         self._req_liveprice = False
         
         self._notify = 0
@@ -90,7 +92,7 @@ class AutoTrader:
         self._broker = None
         self._broker_utils = None
         self._broker_verbosity = 0
-        self._environment = 'demo'
+        self._environment = 'paper'
         self._account_id = None
         
         self._strategy_configs = {}
@@ -104,7 +106,6 @@ class AutoTrader:
         self._backtest_mode = False
         self._data_start = None
         self._data_end = None
-        self.backtest_results = None
         self._process_holding_history = True
         
         # Local Data Parameters
@@ -122,11 +123,17 @@ class AutoTrader:
         self._virtual_livetrading = False
         self._virtual_initial_balance = None
         self._virtual_spread = None
+        self._virtual_spread_units = None
         self._virtual_commission = None
+        self._commission_scheme = None
+        self._maker_commission = None
+        self._taker_commission = None
         self._virtual_leverage = None
         self._virtual_broker_hedging = False
         self._virtual_margin_call = 0
         self._base_currency = None
+        self._vb_paper_trading = False
+        self._virtual_broker_picklefile = None
         
         # Optimisation Parameters
         self._optimise_mode = False
@@ -164,10 +171,11 @@ class AutoTrader:
     
     
     def configure(self, verbosity: int = 1, broker: str = 'virtual', 
-                  feed: str = 'yahoo', req_liveprice: bool = False, 
+                  feed: str = None, execution_feed: str = None,
+                  req_liveprice: bool = False, 
                   notify: int = 0, home_dir: str = None, 
                   allow_dancing_bears: bool = False, account_id: str = None, 
-                  environment: str = 'demo', show_plot: bool = False,
+                  environment: str = 'paper', show_plot: bool = False,
                   jupyter_notebook: bool = False, mode: str = 'periodic',
                   update_interval: str = '10s', data_index_time: str = 'open',
                   global_config: dict = None, instance_str: str = None,
@@ -182,7 +190,15 @@ class AutoTrader:
         broker : str, optional
             The broker to connect to. The default is 'virtual'.
         feed : str, optional
-            The data feed to be used ('yahoo', 'oanda', 'ib'). The default is 'yahoo'.
+            The data feed to be used. This can be the same as the broker 
+            being used, or another data source. Options include 'yahoo', 
+            'oanda', 'ib', 'dydx', 'ccxt' or 'local'. When data is provided
+            via the add_data method, the feed is automatically set to 'local'.
+            The default is None.
+        execution_feed : str, optional
+            The data feed to use for trade execution when running in paper
+            trading mode. When left as 'None', the regular feed will be used. 
+            The default is None.
         req_liveprice : bool, optional
             Request live market price from broker before placing trade, rather 
             than using the data already provided. The default is False. 
@@ -195,10 +211,10 @@ class AutoTrader:
         account_id : str, optional
             The brokerage account ID to be used. The default is None.
         environment : str, optional
-            The trading environment of this instance ('demo', 'real'). The 
-            default is 'demo'.
+            The trading environment of this instance ('paper', 'live'). The 
+            default is 'paper'.
         show_plot : bool, optional
-            Automatically generate backtest chart. The default is False.
+            Automatically generate trade chart. The default is False.
         jupyter_notebook : bool, optional
             Set to True when running in Jupyter notebook environment. The 
             default is False.
@@ -240,6 +256,7 @@ class AutoTrader:
         """
         self._verbosity = verbosity
         self._feed = feed
+        self._execution_feed = execution_feed
         self._req_liveprice = req_liveprice
         self._broker_name = broker
         self._notify = notify
@@ -260,9 +277,14 @@ class AutoTrader:
         
         
     def virtual_livetrade_config(self, initial_balance: float = 1000, 
-                                  spread: float = 0, commission: float = 0, 
-                                  leverage: int = 1, hedging: bool = False, 
-                                  margin_call_fraction: float = 0) -> None:
+                                 spread: float = 0, commission: float = 0, 
+                                 spread_units : str = 'price',
+                                 commission_scheme: str = 'percentage',
+                                 maker_commission: float = None,
+                                 taker_commission: float = None,
+                                 leverage: int = 1, hedging: bool = False, 
+                                 margin_call_fraction: float = 0,
+                                 picklefile: str = None) -> None:
         """Configures the virtual broker's initial state to allow livetrading
         on the virtual broker.
         
@@ -271,9 +293,29 @@ class AutoTrader:
         initial_balance : float, optional
             The initial balance of the account. The default is 1000.
         spread : float, optional
-            The bid/ask spread to use. The default is 0.
+            The bid/ask spread to use in backtest (specified in units defined
+            by the spread_units argument). The default is 0.
+        spread_units : str, optional
+            The unit of the spread specified. Options are 'price', meaning that 
+            the spread is quoted in price units, or 'percentage', meaning that 
+            the spread is quoted as a percentage of the market price. The default
+            is 'price'.
         commission : float, optional
             Trading commission as percentage per trade. The default is 0.
+        commission_scheme : str, optional
+            The method with which to apply commissions to trades made. The options
+            are (1) 'percentage', where the percentage specified by the commission 
+            argument is applied to the notional trade value, (2) 'fixed_per_unit',
+            where the monetary value specified by the commission argument is 
+            multiplied by the number of units in the trade, and (3) 'flat', where 
+            a flat monetary value specified by the commission argument is charged
+            per trade made, regardless of size. The default is 'percentage'.
+        maker_commission : float, optional
+            The commission to charge on liquidity-making orders. The default is 
+            None, in which case the nominal commission argument will be used.
+        taker_commission: float, optional
+            The commission to charge on liquidity-taking orders. The default is 
+            None, in which case the nominal commission argument will be used.
         leverage : int, optional
             Account leverage. The default is 1.
         hedging : bool, optional
@@ -282,19 +324,30 @@ class AutoTrader:
         margin_call_fraction : float, optional
             The fraction of margin usage at which a margin call will occur.
             The default is 0.
-            
+        picklefile : str, optional
+            The filename of the picklefile to load state from. If you do not 
+            wish to load from state, leave this as None. The default is None.
         """
         # Assign attributes
         self._virtual_livetrading = True
         self._virtual_initial_balance = initial_balance
         self._virtual_spread = spread
+        self._virtual_spread_units = spread_units
         self._virtual_commission = commission
+        self._commission_scheme = commission_scheme
+        self._maker_commission = maker_commission
+        self._taker_commission = taker_commission
         self._virtual_leverage = leverage
         self._virtual_broker_hedging = hedging
         self._virtual_margin_call = margin_call_fraction
+        self._virtual_broker_picklefile = picklefile
         
-        # Enforce virtual broker
+        # Enforce virtual broker and paper trading environment
         self._broker_name = 'virtual'
+        self._environment = 'paper'
+
+        # Turn on virtual broker paper trading mode
+        self._vb_paper_trading = True
         
 
     def add_strategy(self, config_filename: str = None, 
@@ -368,7 +421,11 @@ class AutoTrader:
     
     def backtest(self, start: str = None, end: str = None, 
                  initial_balance: float = 1000, spread: float = 0, 
-                 commission: float = 0, leverage: int = 1,
+                 spread_units : str = 'price',
+                 commission: float = 0, commission_scheme: str = 'percentage', 
+                 maker_commission: float = None,
+                 taker_commission: float = None,
+                 leverage: int = 1,
                  start_dt: datetime = None, end_dt: datetime = None, 
                  hedging: bool = False, margin_call_fraction: float = 0, 
                  warmup_period: str = '0s', 
@@ -388,10 +445,30 @@ class AutoTrader:
         initial_balance : float, optional
             The initial balance of the account. The default is 1000.
         spread : float, optional
-            The bid/ask spread to use in backtest (specified in price units). 
-            The default is 0.
+            The bid/ask spread to use in backtest (specified in units defined
+            by the spread_units argument). The default is 0.
+        spread_units : str, optional
+            The unit of the spread specified. Options are 'price', meaning that 
+            the spread is quoted in price units, or 'percentage', meaning that 
+            the spread is quoted as a percentage of the market price (eg. 
+            spread=2 is equivalent to 2% spread). The default is 'price'.
         commission : float, optional
-            Trading commission as percentage per trade. The default is 0.
+            Trading commission value, applied according to the commission scheme. 
+            The default is 0.
+        commission_scheme : str, optional
+            The method with which to apply commissions to trades made. The options
+            are (1) 'percentage', where the percentage specified by the commission 
+            argument is applied to the notional trade value, (2) 'fixed_per_unit',
+            where the monetary value specified by the commission argument is 
+            multiplied by the number of units in the trade, and (3) 'flat', where 
+            a flat monetary value specified by the commission argument is charged
+            per trade made, regardless of size. The default is 'percentage'.
+        maker_commission : float, optional
+            The commission to charge on liquidity-making orders. The default is 
+            None, in which case the nominal commission argument will be used.
+        taker_commission: float, optional
+            The commission to charge on liquidity-taking orders. The default is 
+            None, in which case the nominal commission argument will be used.
         leverage : int, optional
             Account leverage. The default is 1.
         hedging : bool, optional
@@ -430,7 +507,11 @@ class AutoTrader:
         self._data_end = end_dt
         self._virtual_initial_balance = initial_balance
         self._virtual_spread = spread
+        self._virtual_spread_units = spread_units
         self._virtual_commission = commission
+        self._commission_scheme = commission_scheme
+        self._maker_commission = maker_commission
+        self._taker_commission = taker_commission
         self._virtual_leverage = leverage
         self._virtual_broker_hedging = hedging
         self._virtual_margin_call = margin_call_fraction
@@ -530,7 +611,9 @@ class AutoTrader:
             default is DataStream (from autotrader.utilities).
         dynamic_data : bool, optional
             A boolean flag to signal that the stream object provided should 
-            be refreshed each timestep of a backtest.
+            be refreshed each timestep of a backtest. This can be useful when
+            backtesting strategies with futures contracts, which expire and 
+            must be rolled. The default is False.
         
         Raises
         ------
@@ -643,6 +726,8 @@ class AutoTrader:
         if stream_object is not None:
             self._data_stream_object = stream_object
         
+        # Fix attributes
+        self._feed = 'local'
         self._dynamic_data = dynamic_data
     
     
@@ -853,49 +938,48 @@ class AutoTrader:
         return bots
         
     
-    def print_backtest_results(self, backtest_results: BacktestResults = None) -> None:
-        """Prints backtest results.
+    def print_trade_results(self, trade_results: TradeAnalysis = None) -> None:
+        """Prints trade results.
 
         Parameters
         ----------
-        backtest_results : BacktestResults
-            The backtest results class object.
+        trade_results : TradeAnalysis
+            The trade analysis results class object.
 
         Returns
         -------
         None
-            Backtest results will be printed.
+            Trade results will be printed.
         """
-        
-        if backtest_results is None:
-            backtest_results = self.backtest_results
+        if trade_results is None:
+            trade_results = self.trade_results
             
-        backtest_summary = backtest_results.summary()
-        start_date = backtest_summary['start'].strftime("%b %d %Y %H:%M:%S")
-        end_date = backtest_summary['end'].strftime("%b %d %Y %H:%M:%S")
-        duration = backtest_summary['end'] - backtest_summary['start']
+        trade_summary = trade_results.summary()
+        start_date = trade_summary['start'].strftime("%b %d %Y %H:%M:%S")
+        end_date = trade_summary['end'].strftime("%b %d %Y %H:%M:%S")
+        duration = trade_summary['end'] - trade_summary['start']
         
-        starting_balance = backtest_summary['starting_balance']
-        ending_balance = backtest_summary['ending_balance']
-        ending_NAV = backtest_summary['ending_NAV']
-        abs_return = backtest_summary['abs_return']
-        pc_return = backtest_summary['pc_return']
+        starting_balance = trade_summary['starting_balance']
+        ending_balance = trade_summary['ending_balance']
+        ending_NAV = trade_summary['ending_NAV']
+        abs_return = trade_summary['abs_return']
+        pc_return = trade_summary['pc_return']
         
-        no_trades = backtest_summary['no_trades']
+        no_trades = trade_summary['no_trades']
         if no_trades > 0:
-            win_rate = backtest_summary['all_trades']['win_rate']
-            max_drawdown = backtest_summary['all_trades']['max_drawdown']
-            max_win = backtest_summary['all_trades']['max_win']
-            avg_win = backtest_summary['all_trades']['avg_win']
-            max_loss = backtest_summary['all_trades']['max_loss']
-            avg_loss = backtest_summary['all_trades']['avg_loss']
-            longest_win_streak = backtest_summary['all_trades']['win_streak']
-            longest_lose_streak = backtest_summary['all_trades']['lose_streak']
-            total_fees = backtest_summary['all_trades']['total_fees']
+            win_rate = trade_summary['all_trades']['win_rate']
+            max_drawdown = trade_summary['all_trades']['max_drawdown']
+            max_win = trade_summary['all_trades']['max_win']
+            avg_win = trade_summary['all_trades']['avg_win']
+            max_loss = trade_summary['all_trades']['max_loss']
+            avg_loss = trade_summary['all_trades']['avg_loss']
+            longest_win_streak = trade_summary['all_trades']['win_streak']
+            longest_lose_streak = trade_summary['all_trades']['lose_streak']
+            total_fees = trade_summary['all_trades']['total_fees']
             
         
         print("\n----------------------------------------------")
-        print("               Backtest Results")
+        print("               Trading Results")
         print("----------------------------------------------")
         print("Start date:              {}".format(start_date))
         print("End date:                {}".format(end_date))
@@ -908,7 +992,7 @@ class AutoTrader:
         if no_trades > 0:
             print("Total no. trades:        {}".format(no_trades))
             print("Total fees:              ${}".format(round(total_fees, 3)))
-            print("Backtest win rate:       {}%".format(round(win_rate, 1)))
+            print("Trade win rate:          {}%".format(round(win_rate, 1)))
             print("Maximum drawdown:        {}%".format(round(max_drawdown*100, 2)))
             print("Max win:                 ${}".format(round(max_win, 2)))
             print("Average win:             ${}".format(round(avg_win, 2)))
@@ -916,13 +1000,13 @@ class AutoTrader:
             print("Average loss:            -${}".format(round(avg_loss, 2)))
             print("Longest win streak:      {} trades".format(longest_win_streak))
             print("Longest losing streak:   {} trades".format(longest_lose_streak))
-            print("Average trade duration:  {}".format(backtest_summary['all_trades']['avg_trade_duration']))
+            print("Average trade duration:  {}".format(trade_summary['all_trades']['avg_trade_duration']))
             
         else:
             print("\n No trades closed.")
         
-        no_open = backtest_summary['no_open']
-        no_cancelled = backtest_summary['no_cancelled']
+        no_open = trade_summary['no_open']
+        no_cancelled = trade_summary['no_cancelled']
         
         if no_open > 0:
             print("Trades still open:       {}".format(no_open))
@@ -930,15 +1014,15 @@ class AutoTrader:
             print("Cancelled orders:        {}".format(no_cancelled))
         
         # Long trades
-        no_long = backtest_summary['long_trades']['no_trades']
+        no_long = trade_summary['long_trades']['no_trades']
         print("\n            Summary of long trades")
         print("----------------------------------------------")
         if no_long > 0:
-            avg_long_win = backtest_summary['long_trades']['avg_long_win']
-            max_long_win = backtest_summary['long_trades']['max_long_win']
-            avg_long_loss = backtest_summary['long_trades']['avg_long_loss']
-            max_long_loss = backtest_summary['long_trades']['max_long_loss']
-            long_wr = backtest_summary['long_trades']['long_wr']
+            avg_long_win = trade_summary['long_trades']['avg_long_win']
+            max_long_win = trade_summary['long_trades']['max_long_win']
+            avg_long_loss = trade_summary['long_trades']['avg_long_loss']
+            max_long_loss = trade_summary['long_trades']['max_long_loss']
+            long_wr = trade_summary['long_trades']['long_wr']
             
             print("Number of long trades:   {}".format(no_long))
             print("Long win rate:           {}%".format(round(long_wr, 1)))
@@ -950,15 +1034,15 @@ class AutoTrader:
             print("There were no long trades.")
           
         # Short trades
-        no_short = backtest_summary['short_trades']['no_trades']
+        no_short = trade_summary['short_trades']['no_trades']
         print("\n             Summary of short trades")
         print("----------------------------------------------")
         if no_short > 0:
-            avg_short_win = backtest_summary['short_trades']['avg_short_win']
-            max_short_win = backtest_summary['short_trades']['max_short_win']
-            avg_short_loss = backtest_summary['short_trades']['avg_short_loss']
-            max_short_loss = backtest_summary['short_trades']['max_short_loss']
-            short_wr = backtest_summary['short_trades']['short_wr']
+            avg_short_win = trade_summary['short_trades']['avg_short_win']
+            max_short_win = trade_summary['short_trades']['max_short_win']
+            avg_short_loss = trade_summary['short_trades']['avg_short_loss']
+            max_short_loss = trade_summary['short_trades']['max_short_loss']
+            short_wr = trade_summary['short_trades']['short_wr']
             
             print("Number of short trades:  {}".format(no_short))
             print("short win rate:          {}%".format(round(short_wr, 1)))
@@ -971,10 +1055,10 @@ class AutoTrader:
             print("There were no short trades.")
         
         # Check for multiple instruments
-        if len(backtest_results.instruments_traded) > 1:
+        if len(trade_results.instruments_traded) > 1:
             # Mutliple instruments traded
-            instruments = backtest_results.instruments_traded
-            trade_history = backtest_results.trade_history
+            instruments = trade_results.instruments_traded
+            trade_history = trade_results.trade_history
             
             total_no_trades = []
             max_wins = []
@@ -1008,12 +1092,12 @@ class AutoTrader:
 
     
     def plot_backtest(self, bot=None) -> None:
-        """Plots backtest results of an AutoTrader Bot.
+        """Plots trade results of an AutoTrader Bot.
         
         Parameters
         ----------
         bot : AutoTrader bot instance, optional
-            AutoTrader bot class containing backtest results. The default 
+            AutoTrader bot class containing trade results. The default 
             is None.
 
         Returns
@@ -1021,19 +1105,18 @@ class AutoTrader:
         None
             A chart will be generated and shown.
         """
-        
         def portfolio_plot():
             ap = self._instantiate_autoplot()
-            ap._plot_multibot_backtest(self.backtest_results)
+            ap._plot_multibot_backtest(self.trade_results)
         
         def single_instrument_plot(bot):
             data = bot._check_strategy_for_plot_data(self._use_strat_plot_data)
             ap = self._instantiate_autoplot(data)
-            ap.plot(backtest_dict=bot.backtest_results)
+            ap.plot(backtest_dict=bot.trade_results)
         
         if bot is None:
             # No bot has been provided, select automatically
-            if len(self.backtest_results.instruments_traded) > 1 or \
+            if len(self.trade_results.instruments_traded) > 1 or \
                 len(self._bots_deployed) > 1 or self._plot_portolio_chart:
                 # Multi-bot backtest
                 portfolio_plot()
@@ -1060,13 +1143,24 @@ class AutoTrader:
                 global_config = read_yaml(global_config_fp)
             else:
                 global_config = None
+            
+            # Assign
+            self._global_config_dict = global_config
         
         # Check feed
-        if global_config is None and self._feed.lower() in ['oanda']:
+        if self._feed is None:
+            raise Exception("No data feed specified! Please do so using "+\
+                    "AutoTrader.configure(), or provide local data via "+\
+                    "AutoTrader.add_data().")
+
+        elif global_config is None and self._feed.lower() in ['oanda', 'ccxt', 'dydx']:
             raise Exception(f'Data feed "{self._feed}" requires global '+ \
                             'configuration. If a config file already '+ \
-                            'exists, make sure to specify the home_dir.')
-            
+                            'exists, make sure to specify the home_dir. '+\
+                            'Alternatively, provide a configuration dictionary '+\
+                            'directly via AutoTrader.configure().')
+        
+        # Get broker configuration 
         broker_config = get_config(self._environment, global_config, self._feed)
         
         if self._account_id is not None:
@@ -1080,16 +1174,16 @@ class AutoTrader:
         self._configure_emailing(global_config)
         
         if int(self._verbosity) > 0:
+            print(pyfiglet.figlet_format("AutoTrader", font='slant'))
             if self._backtest_mode:
-                print("Beginning new backtest.")
+                print("BACKTEST MODE")
 
             elif self._scan_mode:
-                print("AutoTrader - AutoScan")
+                print("SCAN MODE")
                 print("Time: {}\n".format(datetime.now().strftime("%A, %B %d %Y, "+
                                                                   "%H:%M:%S")))
             else:
-                print("AutoTrader Livetrade")
-                print("--------------------")
+                print("LIVETRADE MODE")
                 print("Current time: {}".format(datetime.now().strftime("%A, %B %d %Y, "+
                                                                   "%H:%M:%S")))
         
@@ -1097,7 +1191,6 @@ class AutoTrader:
         for strategy, config in self._strategy_configs.items():
             # Check for portfolio strategy
             portfolio = config['PORTFOLIO'] if 'PORTFOLIO' in config else False
-            # watchlist = ["Portfolio"] if portfolio else config['WATCHLIST']
             watchlist = [config['WATCHLIST']] if portfolio else config['WATCHLIST']
             for instrument in watchlist:
                 if portfolio:
@@ -1153,19 +1246,28 @@ class AutoTrader:
                 instance_file_exists = self._check_instance_file(instance_str, True)
                 deploy_time = time.time()
                 while instance_file_exists:
-                    for bot in self._bots_deployed:
-                        try:
-                            bot._update(timestamp=datetime.now(timezone.utc))
-                        except:
-                            if int(self._verbosity) > 0:
-                                print("Error: failed to update bot running" +\
-                                      f"{bot._strategy_name} ({bot.instrument})")
-                                traceback.print_exc()
+                    try:
+                        for bot in self._bots_deployed:
+                            try:
+                                bot._update(timestamp=datetime.now(timezone.utc))
                             
-                    # Go to sleep until next update
-                    time.sleep(self._timestep.seconds - ((time.time() - \
-                                deploy_time) % self._timestep.seconds))
-                    instance_file_exists = self._check_instance_file(instance_str)
+                            except:
+                                if int(self._verbosity) > 0:
+                                    print("Error: failed to update bot running" +\
+                                        f"{bot._strategy_name} ({bot.instrument})")
+                                    traceback.print_exc()
+                                
+                        # Go to sleep until next update
+                        time.sleep(self._timestep.seconds - ((time.time() - \
+                                    deploy_time) % self._timestep.seconds))
+                        instance_file_exists = self._check_instance_file(instance_str)
+                    
+                    except KeyboardInterrupt:
+                        print("\nKilling bot(s).")
+                        instance_filepath = os.path.join(self._home_dir, 'active_bots', 
+                                                         instance_str)
+                        os.remove(instance_filepath)
+                        break
                     
         elif self._run_mode.lower() == 'periodic':
             # Trading in periodic update mode
@@ -1192,19 +1294,19 @@ class AutoTrader:
         # Run instance shut-down routine
         if self._backtest_mode:
             # Create overall backtest results
-            self.backtest_results = BacktestResults(self._broker, 
+            self.trade_results = TradeAnalysis(self._broker, 
                         process_holding_history=self._process_holding_history)
             
-            # Create backtest results for each bot
+            # Create trade results for each bot
             for bot in self._bots_deployed:
-                bot._create_backtest_results()
+                bot._create_trade_results()
             
             if int(self._verbosity) > 0:
                 print("Backtest complete (runtime " + \
                       f"{round((backtest_end_time - backtest_start_time), 3)} s).")
-                self.print_backtest_results()
+                self.print_trade_results()
                 
-            if self._show_plot and len(self.backtest_results.trade_history) > 0:
+            if self._show_plot and len(self.trade_results.trade_history) > 0:
                 self.plot_backtest()
         
         elif self._scan_mode and self._show_plot:
@@ -1221,10 +1323,14 @@ class AutoTrader:
                 self._broker._disconnect()
             
             elif self._virtual_livetrading:
-                # TODO - write broker stats to file (trade summary and so on)
-                # look to AutoTraderBot._create_backtest_results for process
-                pass
-        
+                # Paper trade through virtual broker
+                papertrade_results = TradeAnalysis(self._broker, 
+                        process_holding_history=self._process_holding_history)
+                self.print_trade_results(papertrade_results)
+                print("\nNote: the instance of the virtual broker has "+\
+                      "been pickled and can be unpickled using the "+\
+                      "`unpickle_broker` utility.")
+
 
     def _clear_strategies(self) -> None:
         """Removes all strategies saved in autotrader instance.
@@ -1307,18 +1413,28 @@ class AutoTrader:
         
         if self._backtest_mode or self._virtual_livetrading:
             # Using virtual broker, initialise account
-            if int(self._verbosity) > 0 and self._backtest_mode:
-                banner = pyfiglet.figlet_format("AutoBacktest")
-                print(banner)
-            broker._make_deposit(self._virtual_initial_balance)
-            broker.fee = self._virtual_spread
-            broker.leverage = self._virtual_leverage
-            broker.commission = self._virtual_commission
-            broker.spread = self._virtual_spread
-            broker.base_currency = self._base_currency
-            broker.hedging = self._virtual_broker_hedging
-            broker.margin_closeout = self._virtual_margin_call
-        
+            feed = self._feed if self._execution_feed is None else self._execution_feed
+            autodata_config = {'feed': feed, 
+                               'environment': self._environment,
+                               'global_config': self._global_config_dict,
+                               'allow_dancing_bears': self._allow_dancing_bears,
+                               'base_currency': self._base_currency}
+            broker._configure(verbosity=self._broker_verbosity,
+                              initial_balance=self._virtual_initial_balance, 
+                              leverage=self._virtual_leverage, 
+                              spread=self._virtual_spread,
+                              spread_units=self._virtual_spread_units,
+                              commission=self._virtual_commission,
+                              commission_scheme=self._commission_scheme,
+                              maker_commission=self._maker_commission,
+                              taker_commission=self._taker_commission,
+                              hedging=self._virtual_broker_hedging, 
+                              base_currency=self._base_currency,
+                              paper_mode=self._vb_paper_trading, 
+                              margin_closeout=self._virtual_margin_call,
+                              autodata_config=autodata_config,
+                              picklefile=self._virtual_broker_picklefile)
+
         self._broker = broker
         self._broker_utils = utils
     
@@ -1415,8 +1531,8 @@ class AutoTrader:
         self._main()
         
         try:
-            backtest_results = self.backtest_results.summary()
-            objective = -backtest_results['all_trades']['ending_NAV']
+            trade_results = self.trade_results.summary()
+            objective = -trade_results['all_trades']['ending_NAV']
         except:
             objective = 1000
                               
@@ -1438,7 +1554,7 @@ class AutoTrader:
     
     def _normalise_bot_data(self) -> None:
         """Function to normalise the data of mutliple bots so that their
-        indexes are equal, allowing backtesting.
+        indexes are equal, allowing backtesting in periodic update mode.
         """
         
         # Construct list of bot data
@@ -1512,4 +1628,12 @@ class AutoTrader:
                   "will now shut down.")
         
         return instance_file_exists
-        
+
+    
+    @staticmethod
+    def papertrade_snapshot(broker_picklefile: str = '.virtual_broker'):
+        """Prints a snapshot of the virtual broker from a pickle."""
+        broker = unpickle_broker(broker_picklefile)
+        results = TradeAnalysis(broker)
+        at = AutoTrader()
+        at.print_trade_results(results)

@@ -1,44 +1,34 @@
-import v20
+from re import L
 import time
-import ib_insync
 import pandas as pd
-import yfinance as yf
 from typing import Union
 from autotrader.brokers.trading import Order
 from datetime import datetime, timedelta, timezone
-from autotrader.brokers.ib.utils import Utils as IB_Utils
 
 
-class GetData:
-    """GetData class to retrieve price data.
+class AutoData:
+    """AutoData class to retrieve price data.
 
     Attributes
     ----------
-    home_curreny : str
+    _home_curreny : str
         the home currency of the account (used for retrieving quote data)
     
-    allow_dancing_bears : bool
+    _allow_dancing_bears : bool
         Allow incomplete candlesticks in data retrieval.
 
-    Methods
-    -------
-    oanda()
-        Retrieves historical price data of a instrument from Oanda.
-    yahoo()
-        Retrieves historical price data from Yahoo Finance via yfinance.
-    local()
-        Reads local price data.
     """
     
-    def __init__(self, broker_config: dict = None, 
+    def __init__(self, data_config: dict = None, 
                  allow_dancing_bears: bool = False,
                  home_currency: str = None) -> None:
-        """Instantiates GetData.
+        """Instantiates AutoData.
 
         Parameters
         ----------
-        broker_config : dict, optional
-            The configuration dictionary for the broker to be used. The 
+        data_config : dict, optional
+            The configuration dictionary for the data source to be used. This 
+            is created automatically in autotrader.utilities.get_config. The 
             default is None.
         allow_dancing_bears : bool, optional
             A flag to allow incomplete bars to be returned in the data. The 
@@ -50,41 +40,146 @@ class GetData:
         Returns
         -------
         None
-            GetData will be instantiated and ready to fetch price data.
-
+            AutoData will be instantiated and ready to fetch price data.
         """
-        if broker_config is not None:
-            if broker_config['data_source'] == 'OANDA':
-                API = broker_config["API"]
-                ACCESS_TOKEN = broker_config["ACCESS_TOKEN"]
-                port = broker_config["PORT"]
-                self.api = v20.Context(hostname=API, token=ACCESS_TOKEN, port=port)
-                self.ACCOUNT_ID = broker_config["ACCOUNT_ID"]
+        if data_config is None:
+            self._feed = 'local'
+
+        else:
+            self._feed = data_config['data_source'].lower()
+
+            # TODO - add KeyError handling 
+            if data_config['data_source'].lower() == 'oanda':
+                API = data_config["API"]
+                ACCESS_TOKEN = data_config["ACCESS_TOKEN"]
+                port = data_config["PORT"]
+
+                try:
+                    import v20
+                    self.api = v20.Context(hostname=API, token=ACCESS_TOKEN, port=port)
+                    self.ACCOUNT_ID = data_config["ACCOUNT_ID"]
+                except ImportError:
+                    raise Exception("Please install v20 to use "+\
+                                    "the Oanda data feed.")
             
-            elif broker_config['data_source'] == 'IB':
-                host = broker_config['host']
-                port = broker_config['port'] 
-                client_id = broker_config['clientID'] + 1
-                read_only = broker_config['read_only']
-                account = broker_config['account']
+            elif data_config['data_source'].lower() == 'ib':
+                host = data_config['host']
+                port = data_config['port'] 
+                client_id = data_config['clientID'] + 1
+                read_only = data_config['read_only']
+                account = data_config['account']
                 
-                self.ibapi = ib_insync.IB()
-                self.ibapi.connect(host=host, port=port, clientId=client_id, 
-                                   readonly=read_only, account=account)
+                try:
+                    import ib_insync
+                    from autotrader.brokers.ib.utils import Utils as IB_Utils
+                    self.ibapi = ib_insync.IB()
+                    self.IB_Utils = IB_Utils
+                    self.ibapi.connect(host=host, port=port, clientId=client_id, 
+                                    readonly=read_only, account=account)
+                except ImportError:
+                    raise Exception("Please install ib_insync to use "+\
+                                    "the IB data feed.")
             
-            elif broker_config['data_source'] == 'dYdX':
+            elif data_config['data_source'].lower() == 'ccxt':
+                try:
+                    import ccxt
+                    self.ccxt_exchange = getattr(ccxt, data_config['exchange'])()
+                except ImportError:
+                    raise Exception("Please install ccxt to use "+\
+                                    "the CCXT data feed.")
+
+            elif data_config['data_source'].lower() == 'dydx':
                 try:
                     from dydx3 import Client
                     self.api = Client(host='https://api.dydx.exchange')
                 except ImportError:
                     raise Exception("Please install dydx-v3-python to use "+\
-                                    "the dydx data feed and broker interface.")
+                                    "the dydx data feed.")
             
-        self.allow_dancing_bears = allow_dancing_bears
-        self.home_currency = home_currency
+            elif data_config['data_source'].lower() == 'yahoo':
+                try:
+                    import yfinance as yf
+                    self.api = yf.download
+                except ImportError:
+                    raise Exception("Please install yfinance to use "+\
+                                    "the Yahoo Finance data feed.")
+            
+            elif data_config['data_source'].lower() == 'local':
+                pass
+
+            else:
+                raise Exception(f"Unknown data source '{self._feed}'.")
+            
+        self._allow_dancing_bears = allow_dancing_bears
+        self._home_currency = home_currency
+
+    
+    def __repr__(self):
+        return self.__str__()
+    
+    
+    def __str__(self):
+        return f'AutoData ({self._feed} feed)'
         
 
-    def oanda(self, instrument: str, granularity: str, count: int = None, 
+    def fetch(self, instrument: str, granularity: str = None, 
+              count: int = None, start_time: datetime = None, 
+              end_time: datetime = None, 
+              *args, **kwargs) -> pd.DataFrame:
+        """Unified data retrieval api."""
+        func = getattr(self, f"_{self._feed}")
+        data = func(instrument, granularity=granularity, 
+                    count=count, start_time=start_time,
+                    end_time=end_time, *args, **kwargs)
+        return data
+
+    
+    def quote(self, *args, **kwargs):
+        """Unified quote data retrieval api."""
+        func = getattr(self, f'_{self._feed}_quote_data')
+        data = func(*args, **kwargs)
+        return data
+
+    
+    def L1(self, instrument, *args, **kwargs):
+        """Unified level 1 data retrieval api."""
+        # Get orderbook
+        func = getattr(self, f'_{self._feed}_orderbook')
+        orderbook = func(instrument, *args, **kwargs)
+
+        # Construct response
+        best_bid = float(orderbook['bids'][0]['price'])
+        bid_size = float(orderbook['bids'][0]['size'])
+        best_ask = float(orderbook['asks'][0]['price'])
+        ask_size = float(orderbook['asks'][0]['size'])
+        
+        for level in orderbook['bids']:
+            if float(level['price']) > float(best_bid):
+                best_bid = level['price']
+                bid_size = level['size']
+
+        for level in orderbook['asks']:
+            if float(level['price']) < float(best_ask):
+                best_ask = level['price']
+                ask_size = level['size']
+
+        response = {'bid': best_bid,
+                    'ask': best_ask,
+                    'bid_size': bid_size,
+                    'ask_size': ask_size}
+
+        return response
+    
+
+    def L2(self, instrument, *args, **kwargs):
+        """Unified level 2 data retrieval api."""
+        # TODO - enforce ordering of book on each side
+        func = getattr(self, f'_{self._feed}_orderbook')
+        data = func(instrument, *args, **kwargs)
+        return data
+
+    
+    def _oanda(self, instrument: str, granularity: str, count: int = None, 
               start_time: datetime = None, end_time: datetime = None) -> pd.DataFrame:
         """Retrieves historical price data of a instrument from Oanda v20 API.
 
@@ -93,7 +188,8 @@ class GetData:
         instrument : str
             The instrument to fetch data for.
         granularity : str
-            The candlestick granularity (eg. "M15", "H4", "D").
+            The candlestick granularity, specified as a TimeDelta string
+            (eg. '30s', '5min' or '1d').
         count : int, optional
             The number of candles to fetch (maximum 5000). The default is None.
         start_time : datetime, optional
@@ -112,21 +208,15 @@ class GetData:
             time should be provided. If neither is provided, the N most
             recent candles will be provided. If both are provided, the count
             will be ignored, and instead the dates will be used.
-        
-        Examples
-        --------
-        >>> data = GetData.oanda("EUR_USD", granularity="M15", 
-                                 start_time=from_dt, end_time=to_dt)
-            
-        >>> data = GetData.oanda("EUR_USD", granularity="M15",
-                                 start_time=from_dt, count=2110)
-        
-        >>> data = GetData.oanda("EUR_USD", granularity="M15",
-                                 end_time=to_dt, count=2110)
-        
-        >>> data = GetData.oanda("EUR_USD", granularity="M15", 
-                                 count=2110)
         """
+        gran_map = {5: 'S5', 10: 'S10', 15: 'S15', 30: 'S30', 
+                    60: 'M1', 120: 'M2', 240: 'M4', 300: 'M5', 
+                    600: 'M10', 900: 'M15', 1800: 'M30', 3600: 'H1',
+                    7200: 'H2', 10800: 'H3', 14400: 'H4', 
+                    21600: 'H6', 28800: 'H8', 43200: 'H12',
+                    86400: 'D', 604800: 'W', 2419200: 'M'}
+        granularity = gran_map[pd.Timedelta(granularity).total_seconds()]
+
         if count is not None:
             # either of count, start_time+count, end_time+count (or start_time+end_time+count)
             # if count is provided, count must be less than 5000
@@ -135,7 +225,7 @@ class GetData:
                 response = self.api.instrument.candles(instrument,
                                                        granularity = granularity,
                                                        count = count)
-                data = self.response_to_df(response)
+                data = self._response_to_df(response)
                 
             elif start_time is not None and end_time is None:
                 # start_time + count
@@ -144,7 +234,7 @@ class GetData:
                                                        granularity = granularity,
                                                        count = count,
                                                        fromTime = from_time)
-                data = self.response_to_df(response)
+                data = self._response_to_df(response)
             
             elif end_time is not None and start_time is None:
                 # end_time + count
@@ -153,7 +243,7 @@ class GetData:
                                              granularity = granularity,
                                              count = count,
                                              toTime = to_time)
-                data = self.response_to_df(response)
+                data = self._response_to_df(response)
                 
             else:
                 # start_time+end_time+count
@@ -175,7 +265,7 @@ class GetData:
                                                          from_time,
                                                          to_time)
                 else:
-                    data = self.response_to_df(response)
+                    data = self._response_to_df(response)
                 
         else:
             # count is None
@@ -196,12 +286,12 @@ class GetData:
                                                      from_time,
                                                      to_time)
             else:
-                data = self.response_to_df(response)
+                data = self._response_to_df(response)
 
         return data
     
     
-    def oanda_liveprice(self, order: Order, **kwargs) -> dict:
+    def _oanda_liveprice(self, order: Order, **kwargs) -> dict:
         """Returns current price (bid+ask) and home conversion factors.
         """
         response = self.api.pricing.get(accountID = self.ACCOUNT_ID, 
@@ -218,6 +308,23 @@ class GetData:
     
         return price
     
+
+    def _oanda_orderbook(self, instrument, time=None):
+        """Returns the orderbook from Oanda."""
+        response = self.api.pricing.get(accountID=self.ACCOUNT_ID,
+                                        instruments=instrument)
+        prices = response.body['prices'][0].dict()
+
+        # Unify format
+        orderbook = {}
+        for side in ['bids', 'asks']:
+            orderbook[side] = []
+            for level in prices[side]:
+                orderbook[side].append({'price': level['price'],
+                                        'size': level['liquidity']}
+                                       )
+        return orderbook
+    
     
     def _get_extended_oanda_data(self, instrument, granularity, from_time, to_time):
         """Returns historical data between a date range."""
@@ -230,7 +337,7 @@ class GetData:
                                                granularity=granularity,
                                                fromTime=partial_from,
                                                count=max_candles)
-        data = self.response_to_df(response)
+        data = self._response_to_df(response)
         last_time = data.index[-1].timestamp()
         
         while last_time < end_time:
@@ -241,7 +348,7 @@ class GetData:
                                                    fromTime=partial_from,
                                                    count=candles)
             
-            partial_data = self.response_to_df(response)
+            partial_data = self._response_to_df(response)
             data = pd.concat([data, partial_data])
             last_time = data.index[-1].timestamp()
             
@@ -249,25 +356,33 @@ class GetData:
     
     
     def _oanda_quote_data(self, data: pd.DataFrame, pair: str, granularity: str, 
-                         start_time: datetime, end_time: datetime, 
-                         count: int = None):
+                          start_time: datetime, end_time: datetime, 
+                          count: int = None):
         """Function to retrieve price conversion data.
         """
+        gran_map = {5: 'S5', 10: 'S10', 15: 'S15', 30: 'S30', 
+                    60: 'M1', 120: 'M2', 240: 'M4', 300: 'M5', 
+                    600: 'M10', 900: 'M15', 1800: 'M30', 3600: 'H1',
+                    7200: 'H2', 10800: 'H3', 14400: 'H4', 
+                    21600: 'H6', 28800: 'H8', 43200: 'H12',
+                    86400: 'D', 604800: 'W', 2419200: 'M'}
+        granularity = gran_map[pd.Timedelta(granularity).total_seconds()]
+
         base_currency = pair[:3]
         quote_currency = pair[-3:]
         
-        if self.home_currency is None or quote_currency == self.home_currency:
+        if self._home_currency is None or quote_currency == self._home_currency:
             # Use data as quote data
             quote_data = data
             
         else:
-            if self.home_currency == base_currency:
+            if self._home_currency == base_currency:
                 # Disturb the data by machine precision to prompt HCF calculation
                 quote_data = (1 + 1e-15) * data
                 
             else:
                 # Try download quote data
-                conversion_pair = self.home_currency + "_" + quote_currency
+                conversion_pair = self._home_currency + "_" + quote_currency
                 if conversion_pair == pair:
                     # Same instrument
                     quote_data = data
@@ -285,7 +400,7 @@ class GetData:
                         # Failed
                         try:
                             # Invert conversion pair
-                            conversion_pair = quote_currency + "_" + self.home_currency
+                            conversion_pair = quote_currency + "_" + self._home_currency
                             inverse_quote_data = self.oanda(instrument=conversion_pair,
                                                     granularity=granularity,
                                                     start_time=start_time,
@@ -307,7 +422,7 @@ class GetData:
             print(response.reason)
     
     
-    def response_to_df(self, response):
+    def _response_to_df(self, response):
         """Function to convert api response into a pandas dataframe.
         """
         try:
@@ -319,7 +434,7 @@ class GetData:
         times = []
         close_price, high_price, low_price, open_price, volume = [],[],[],[],[]
         
-        if self.allow_dancing_bears:
+        if self._allow_dancing_bears:
             # Allow all candles
             for candle in candles:
                 times.append(candle.time)
@@ -394,7 +509,7 @@ class GetData:
         return my_int
     
 
-    def yahoo(self, instrument: str, granularity: str = None, count: int = None, 
+    def _yahoo(self, instrument: str, granularity: str = None, count: int = None, 
               start_time: str = None, end_time: str = None) -> pd.DataFrame:
         """Retrieves historical price data from yahoo finance. 
 
@@ -425,16 +540,21 @@ class GetData:
 
         Intraday data cannot exceed 60 days.
         """
-        
+        gran_map = {60: '1m', 120: '2m', 300: '5m', 900: '15m', 
+                    1800: '30m', 3600: '60m', 5400: '90m', 
+                    3600: '1h', 86400: '1d', 432000: '5d', 
+                    604800: '1wk', 2419200: '1mo', 7257600: '3mo'}
+        granularity = gran_map[pd.Timedelta(granularity).total_seconds()]
+
         if count is not None and start_time is None and end_time is None:
             # Convert count to start and end dates (assumes end=now)
             end_time = datetime.now()
             start_time = end_time - timedelta(seconds=self._granularity_to_seconds(granularity, 'yahoo')*count)
         
-        data = yf.download(tickers  = instrument, 
-                           start    = start_time, 
-                           end      = end_time,
-                           interval = granularity)
+        data = self.api(tickers = instrument, 
+                        start = start_time, 
+                        end = end_time,
+                        interval = granularity)
         
         if data.index.tzinfo is None:
             # Data is naive, add UTC timezone
@@ -443,13 +563,13 @@ class GetData:
         return data
     
     
-    def yahoo_liveprice(self,):
-        raise Exception("Live price is not available from yahoo API.")
+    def _yahoo_orderbook(self, *args, **kwargs):
+        raise Exception("Orderbook data is not available from Yahoo Finance.")
         
     
     def _yahoo_quote_data(self, data: pd.DataFrame, pair: str, interval: str,
-                         from_date: datetime, to_date: datetime, 
-                         count: int = None):
+                          from_date: datetime, to_date: datetime, 
+                          count: int = None):
         """Returns nominal price data - quote conversion not supported for 
         Yahoo finance API.
         """
@@ -465,10 +585,10 @@ class GetData:
             raise ConnectionError("No active connection to IB.")
     
     
-    def ib(self, instrument: str, granularity: str, count: int,
+    def _ib(self, instrument: str, granularity: str, count: int,
            start_time: datetime = None, end_time: datetime = None,
            order: Order = None, durationStr: str = '10 mins', **kwargs) -> pd.DataFrame:
-        """
+        """Fetches data from IB.
 
         Parameters
         ----------
@@ -529,7 +649,7 @@ class GetData:
         return df
     
     
-    def ib_liveprice(self, order: Order, snapshot: bool = False, **kwargs) -> dict:
+    def _ib_liveprice(self, order: Order, snapshot: bool = False, **kwargs) -> dict:
         """Returns current price (bid+ask) and home conversion factors.
         
         Parameters
@@ -543,10 +663,9 @@ class GetData:
         -------
         dict
             A dictionary containing the bid and ask prices.
-        
         """
         self._check_IB_connection()
-        contract = IB_Utils.build_contract(order)
+        contract = self.IB_Utils.build_contract(order)
         self.ibapi.qualifyContracts(contract)
         ticker = self.ibapi.reqMktData(contract, snapshot=snapshot)
         while ticker.last != ticker.last: self.ibapi.sleep(1)
@@ -603,18 +722,19 @@ class GetData:
     
     
     @staticmethod
-    def local(filepath: str, start_date: Union[str, datetime] = None, 
-              end_date: Union[str, datetime] = None, utc: bool = True) -> pd.DataFrame:
-        """Read local price data.
+    def _local(filepath: str, start_time: Union[str, datetime] = None, 
+              end_time: Union[str, datetime] = None, utc: bool = True,
+              *args, **kwargs) -> pd.DataFrame:
+        """Reads and returns local price data.
 
         Parameters
         ----------
         filepath : str
             The absolute filepath of the local price data.
-        start_date : str | datetime, optional
+        start_time : str | datetime, optional
             The data start date. The default is None.
-        end_date : str | datetime, optional
-            The data end data. The default is None.
+        end_time : str | datetime, optional
+            The data end date. The default is None.
         utc : bool, optional
             Localise data to UTC. The default is True.
 
@@ -626,14 +746,21 @@ class GetData:
         data = pd.read_csv(filepath, index_col = 0)
         data.index = pd.to_datetime(data.index, utc=utc)
         
-        if start_date is not None and end_date is not None:
+        if start_time is not None and end_time is not None:
             # Filter by date range
-            data = GetData._check_data_period(data, start_date, 
-                                              end_date)
+            data = AutoData._check_data_period(data, start_time, 
+                                              end_time)
             
         return data
     
     
+    def _local_quote_data(self, data: pd.DataFrame, pair: str, granularity: str, 
+                         start_time: datetime, end_time: datetime, 
+                         count: int = None):
+        """Returns the original price data for a local data feed."""
+        return data
+        
+
     @staticmethod
     def _check_data_period(data: pd.DataFrame, start_date: datetime, 
                            end_date: datetime) -> pd.DataFrame:
@@ -643,122 +770,233 @@ class GetData:
         return data[(data.index >= start_date) & (data.index <= end_date)]
     
     
-    def dydx(self, instrument: str, granularity: str, count: int = None, 
+    def _ccxt(self, instrument: str, granularity: str, count: int = None, 
              start_time: datetime = None, 
              end_time: datetime = None) -> pd.DataFrame:
-      """Retrieves historical price data of a instrument from dYdX.
-      
-      Parameters
-      ----------
-      instrument : str
-          The instrument/market to fetch data for.
-      granularity : str
-          The candlestick granularity (1DAY, 4HOURS, 1HOUR, 30MINS, 15MINS, 
-                                       5MINS, or 1MIN).
-      count : int, optional
-          The number of candles to fetch (maximum of 100). The default is None.
-      start_time : datetime, optional
-          The data start time. The default is None.
-      end_time : datetime, optional
-          The data end time. The default is None.
-      Returns
-      -------
-      data : DataFrame
-          The price data, as an OHLCV DataFrame.
-      """
-      
-      granularity_to_td = {'1DAY': '1day', '4HOURS': '4h', '1HOUR': '1h',
-                           '30MINS': '30min', '15MINS': '15min', 
-                           '5MINS': '5min', '1MIN': '1min'}
-      
-      def fetch_between_dates():
-          # Fetches data between two dates
-          data = []
-          start = start_time
-          last = start
-          timestep = pd.Timedelta(granularity_to_td[granularity])
-          while last < end_time:
-              raw_data = self.api.public.get_candles(instrument, 
-                                                     resolution=granularity, 
-                                                     to_iso=start.isoformat(),
-                                                     ).data['candles']
-              # Append data
-              data += raw_data[::-1]
-              
-              # Increment end time
-              last = datetime.strptime(data[-1]['updatedAt'], 
-                                              '%Y-%m-%dT%H:%M:%S.%fZ')
-              start = last + 100*timestep
-              
-              if len(raw_data) > 0:
-                  # Sleep to prevent API rate-limiting
-                  time.sleep(0.1)
-              else:
-                  start = end_time
-              
-          return data
-      
-      def fetch_count(N):
-          count = min(100, N)
-          raw_data = self.api.public.get_candles(instrument, 
-                                                 resolution=granularity, 
-                                                 limit=count).data['candles']
-          data = raw_data[::-1]
-          first_time = datetime.strptime(data[0]['updatedAt'], 
-                                         '%Y-%m-%dT%H:%M:%S.%fZ')
-          while len(data) < N:
-              count = min(100, N-len(data))
-              raw_data = self.api.public.get_candles(instrument, 
-                                                     resolution=granularity, 
-                                                     to_iso=first_time.isoformat(),
-                                                     limit=count).data['candles']
-              # Append data
-              data += raw_data[::-1]
-              first_time = datetime.strptime(raw_data[-1]['updatedAt'], 
-                                             '%Y-%m-%dT%H:%M:%S.%fZ')
-              time.sleep(0.1)
-              
-          return data
+        """Retrieves historical price data of a instrument from an exchange
+        instance of the CCXT package.
+
+        Parameters
+        ----------
+        instrument : str
+            The instrument to fetch data for.
+        granularity : str
+            The candlestick granularity (eg. "1m", "15m", "1h", "1d").
+        count : int, optional
+            The number of candles to fetch (maximum 5000). The default is None.
+        start_time : datetime, optional
+            The data start time. The default is None.
+        end_time : datetime, optional
+            The data end time. The default is None.
+
+        Returns
+        -------
+        data : DataFrame
+            The price data, as an OHLCV DataFrame.
+
+        """
+        
+        def fetch_between_dates():
+            # Fetches data between two dates
+            count = 1000
+            start_ts = int(start_time.timestamp()*1000)
+            end_ts = int(end_time.timestamp()*1000)
+            
+            data = []
+            while start_ts <= end_ts:
+                raw_data = self.ccxt_exchange.fetchOHLCV(instrument, 
+                                                         timeframe=granularity, 
+                                                         since=start_ts,
+                                                         limit=count)
+                # Append data
+                data += raw_data
+                
+                # Increment start_ts
+                start_ts = raw_data[-1][0]
+                
+                # Sleep for API limit
+                time.sleep(1)
+                
+            return data
+            
+        if count is not None:
+            if start_time is None and end_time is None:
+                # Fetch N most recent candles
+                raw_data = self.ccxt_exchange.fetchOHLCV(instrument, 
+                                                         timeframe=granularity, 
+                                                         limit=count)
+            elif start_time is not None and end_time is None:
+                # Fetch N candles since start_time
+                start_ts = None if start_time is None else int(start_time.timestamp()*1000) 
+                raw_data = self.ccxt_exchange.fetchOHLCV(instrument, 
+                                                         timeframe=granularity, 
+                                                         since=start_ts,
+                                                         limit=count)
+            elif end_time is not None and start_time is None:
+                raise Exception("Fetching data from end_time and count is "+\
+                                "not yet supported.")
+            else:
+                raw_data = fetch_between_dates()
+                
+        else:
+            # Count is None
+            try:
+                assert start_time is not None and end_time is not None
+                raw_data = fetch_between_dates()
+                
+            except AssertionError:
+                raise Exception("When no count is provided, both start_time "+\
+                                "and end_time must be provided.")
+        
+        # Process data 
+        data = pd.DataFrame(raw_data, columns=['time','Open','High','Low',
+                                                'Close','Volume']).set_index('time')
+        data.index = pd.to_datetime(data.index, unit='ms')
+        
+        return data
+    
+    
+    def _ccxt_quote_data(self, data: pd.DataFrame, pair: str = None, 
+                         granularity: str = None, 
+                         start_time: datetime = None, 
+                         end_time: datetime = None, 
+                         count: int = None):
+        """Returns the original price data for a CCXT data feed."""
+        return data
+        
+
+    def _ccxt_orderbook(self, instrument, limit=None):
+        """Returns the orderbook from a CCXT supported exchange."""
+        response = self.ccxt_exchange.fetchOrderBook(symbol=instrument)
+
+        # Unify format
+        orderbook = {}
+        for side in ['bids', 'asks']:
+            orderbook[side] = []
+            for level in response[side]:
+                orderbook[side].append({'price': level[0],
+                                        'size': level[1]}
+                                       )
+        return orderbook
+
+
+    def _dydx(self, instrument: str, granularity: str, count: int = None, 
+             start_time: datetime = None, end_time: datetime = None,
+             *args, **kwargs) -> pd.DataFrame:
+        """Retrieves historical price data of a instrument from dYdX.
           
-      if count is not None:
-          if start_time is None and end_time is None:
-              # Fetch N most recent candles
-              raw_data = fetch_count(count)
-          elif start_time is not None and end_time is None:
-              # Fetch N candles since start_time
-              raw_data = self.api.public.get_candles(market=instrument, 
-                                                     resolution=granularity, 
-                                                     from_iso=start_time.isoformat(),
-                                                     limit=count).data['candles'][::-1]
-          elif end_time is not None and start_time is None:
-              raw_data = self.api.public.get_candles(market=instrument, 
-                                                     resolution=granularity, 
-                                                     to_iso=end_time.isoformat(),
-                                                     limit=count).data['candles'][::-1]
-          else:
-              raw_data = fetch_between_dates()
-              
-      else:
-          # Count is None
-          try:
-              assert start_time is not None and end_time is not None
-              raw_data = fetch_between_dates()
-              
-          except AssertionError:
-              raise Exception("When no count is provided, both start_time "+\
-                              "and end_time must be provided.")
-      
-      # Process data 
-      data = pd.DataFrame(raw_data)
-      data.rename(columns={'open': 'Open', 'high': 'High', 
-                   'low': 'Low', 'close': 'Close'}, inplace=True)
-      data.index = pd.to_datetime(data['updatedAt'], format='%Y-%m-%dT%H:%M:%S.%fZ')
-      data.drop(['startedAt', 'updatedAt', 'market', 'resolution'], axis=1, 
-                inplace=True)
-      data = data.apply(pd.to_numeric, errors='ignore')
-      data.drop_duplicates(inplace=True)
-      data.sort_index(inplace=True)
-      return data
+        Parameters
+        ----------
+        instrument : str
+            The instrument/market to fetch data for.
+        granularity : str
+            The candlestick granularity (1DAY, 4HOURS, 1HOUR, 30MINS, 15MINS, 
+                                         5MINS, or 1MIN).
+        count : int, optional
+            The number of candles to fetch (maximum of 100). The default is None.
+        start_time : datetime, optional
+            The data start time. The default is None.
+        end_time : datetime, optional
+            The data end time. The default is None.
+        Returns
+        -------
+        data : DataFrame
+            The price data, as an OHLCV DataFrame.
+        """
+        gran_str = granularity
+        gran_map = {60: '1MIN', 300: '5MINS', 900: '15MINS', 
+                    1800: '30MINS', 3600: '1HOUR', 14400: '4HOURS', 
+                    86400: '1DAY',}
+        granularity = gran_map[pd.Timedelta(granularity).total_seconds()]
+
+        def fetch_between_dates():
+            # Fetches data between two dates
+            data = []
+            start = start_time
+            last = start
+            timestep = pd.Timedelta(gran_str)
+            while last < end_time:
+                raw_data = self.api.public.get_candles(instrument, 
+                                                       resolution=granularity, 
+                                                       to_iso=start.isoformat(),
+                                                       ).data['candles']
+                # Append data
+                data += raw_data[::-1]
+                
+                # Increment end time
+                last = datetime.strptime(data[-1]['updatedAt'], 
+                                                '%Y-%m-%dT%H:%M:%S.%fZ')
+                start = last + 100*timestep
+                
+                if len(raw_data) > 0:
+                    # Sleep to prevent API rate-limiting
+                    time.sleep(0.1)
+                else:
+                    start = end_time
+                
+            return data
+        
+        def fetch_count(N):
+            count = min(100, N)
+            raw_data = self.api.public.get_candles(instrument, 
+                                                   resolution=granularity, 
+                                                   limit=count).data['candles']
+            data = raw_data[::-1]
+            first_time = datetime.strptime(data[0]['updatedAt'], 
+                                           '%Y-%m-%dT%H:%M:%S.%fZ')
+            while len(data) < N:
+                count = min(100, N-len(data))
+                raw_data = self.api.public.get_candles(instrument, 
+                                                       resolution=granularity, 
+                                                       to_iso=first_time.isoformat(),
+                                                       limit=count).data['candles']
+                # Append data
+                data += raw_data[::-1]
+                first_time = datetime.strptime(raw_data[-1]['updatedAt'], 
+                                               '%Y-%m-%dT%H:%M:%S.%fZ')
+                time.sleep(0.1)
+                
+            return data
+            
+        if count is not None:
+            if start_time is None and end_time is None:
+                # Fetch N most recent candles
+                raw_data = fetch_count(count)
+            elif start_time is not None and end_time is None:
+                # Fetch N candles since start_time
+                raw_data = self.api.public.get_candles(market=instrument, 
+                                                       resolution=granularity, 
+                                                       from_iso=start_time.isoformat(),
+                                                       limit=count).data['candles'][::-1]
+            elif end_time is not None and start_time is None:
+                raw_data = self.api.public.get_candles(market=instrument, 
+                                                       resolution=granularity, 
+                                                       to_iso=end_time.isoformat(),
+                                                       limit=count).data['candles'][::-1]
+            else:
+                raw_data = fetch_between_dates()
+                
+        else:
+            # Count is None
+            try:
+                assert start_time is not None and end_time is not None
+                raw_data = fetch_between_dates()
+                
+            except AssertionError:
+                raise Exception("When no count is provided, both start_time "+\
+                                "and end_time must be provided.")
+        
+        # Process data 
+        data = pd.DataFrame(raw_data)
+        data.rename(columns={'open': 'Open', 'high': 'High', 
+                     'low': 'Low', 'close': 'Close'}, inplace=True)
+        data.index = pd.to_datetime(data['updatedAt'], format='%Y-%m-%dT%H:%M:%S.%fZ')
+        data.drop(['startedAt', 'updatedAt', 'market', 'resolution'], axis=1, 
+                  inplace=True)
+        data = data.apply(pd.to_numeric, errors='ignore')
+        data.drop_duplicates(inplace=True)
+        data.sort_index(inplace=True)
+        return data
 
 
     def _dydx_quote_data(self, data: pd.DataFrame, pair: str, granularity: str, 
@@ -767,3 +1005,10 @@ class GetData:
         """Returns the original price data for a dYdX data feed.
         """
         return data
+
+    
+    def _dydx_orderbook(self, instrument):
+        """Returns the orderbook from dYdX."""
+        response = self.api.public.get_orderbook(market=instrument)
+        orderbook = response.data
+        return orderbook

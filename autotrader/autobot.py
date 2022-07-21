@@ -3,9 +3,9 @@ import importlib
 import pandas as pd
 from autotrader.comms import emailing
 from datetime import datetime, timezone
-from autotrader.autodata import GetData
+from autotrader.autodata import AutoData
 from autotrader.brokers.trading import Order
-from autotrader.utilities import read_yaml, get_config, BacktestResults
+from autotrader.utilities import read_yaml, get_config, TradeAnalysis
 
 
 class AutoTraderBot:
@@ -21,7 +21,7 @@ class AutoTraderBot:
         The OHLC quote data used by the bot.
     MTF_data : dict
         The multiple timeframe data used by the bot.
-    backtest_results : BacktestResults
+    backtest_results : TradeAnalysis
         A class containing results from the bot in backtest. This 
         is available only after a backtest and has attributes: 'data', 
         'account_history', 'trade_summary', 'indicators', 'instrument', 
@@ -119,17 +119,9 @@ class AutoTraderBot:
         # Strategy shutdown routine
         self._strategy_shutdown_method = strategy_dict['shutdown_method']
         
-        # Get broker configuration 
-        if self._global_config_dict is not None:
-            # Use global config dict provided
-            global_config = self._global_config_dict
-        else:
-            global_config_fp = os.path.join(self._home_dir, 'config', 'GLOBAL.yaml')
-            if os.path.isfile(global_config_fp):
-                global_config = read_yaml(global_config_fp)
-            else:
-                global_config = None
-        broker_config = get_config(self._environment, global_config, self._feed)
+        # Get data feed configuration 
+        data_config = get_config(self._environment, self._global_config_dict, 
+                                 self._feed)
    
         # Data retrieval
         self._quote_data_file = quote_data_path     # Either str or None
@@ -143,7 +135,7 @@ class AutoTraderBot:
         portfolio = strategy_config['WATCHLIST'] if trade_portfolio else False
         
         # Fetch data
-        self._get_data = GetData(broker_config, self._allow_dancing_bears,
+        self._get_data = AutoData(data_config, self._allow_dancing_bears,
                                  self._base_currency)
         
         # Create instance of data stream object
@@ -184,7 +176,8 @@ class AutoTraderBot:
         # Assign strategy attributes for tick-based strategy development
         if self._backtest_mode:
             self._strategy._backtesting = True
-            self.backtest_results = None
+            # TODO - make trade_results available on livetrading (eg. paper)
+            self.trade_results = None
         if interval.split(',')[0] == 'tick':
             self._strategy._tick_data = True
         
@@ -208,7 +201,6 @@ class AutoTraderBot:
     def _update(self, i: int = None, timestamp: datetime = None) -> None:
         """Update strategy with the latest data and generate a trade signal.
         
-
         Parameters
         ----------
         i : int, optional
@@ -222,7 +214,6 @@ class AutoTraderBot:
         -------
         None
             Trade signals generated will be submitted to the broker.
-
         """
         
         if self._run_mode == 'continuous':
@@ -278,6 +269,10 @@ class AutoTraderBot:
                         
                     self._broker.place_order(order, order_time=order_time)
             
+            if self._virtual_livetrading:
+                # Update virtual broker again to trigger any orders
+                self._update_virtual_broker(current_bars)
+
             if int(self._verbosity) > 1:
                 current_time = current_bars[list(current_bars.keys())[0]].name.strftime('%b %d %Y %H:%M:%S')
                 if len(orders) > 0:
@@ -499,8 +494,9 @@ class AutoTraderBot:
                 order.instrument = order.instrument if order.instrument is not None else self.instrument
                 if order.order_type in ['market', 'limit', 'stop-limit', 'reduce']:
                     if not order.direction:
+                        # Order direction was not provided, delete order
                         del orders[ix]
-        
+                    
         # Perform checks
         checked_orders = check_type(orders)
         add_strategy_data(checked_orders)
@@ -515,7 +511,7 @@ class AutoTraderBot:
         """
         for order in orders:
             if self._req_liveprice:
-                liveprice_func = getattr(self._get_data, f'{self._feed.lower()}_liveprice')
+                liveprice_func = getattr(self._get_data, f'_{self._feed.lower()}_liveprice')
                 last_price = liveprice_func(order)
             else:
                 try:
@@ -548,16 +544,16 @@ class AutoTraderBot:
             self._broker._update_positions(bar, product)
     
     
-    def _create_backtest_results(self) -> dict:
-        """Constructs backtest summary dictionary for further processing.
+    def _create_trade_results(self) -> dict:
+        """Constructs trade summary for post-processing.
         """
-        backtest_results = BacktestResults(self._broker, self.instrument, 
+        trade_results = TradeAnalysis(self._broker, self.instrument, 
                                            self._process_holding_history)
-        backtest_results.indicators = self._strategy.indicators if \
+        trade_results.indicators = self._strategy.indicators if \
             hasattr(self._strategy, 'indicators') else None
-        backtest_results.data = self.data
-        backtest_results.interval = self._strategy_params['granularity']
-        self.backtest_results = backtest_results
+        trade_results.data = self.data
+        trade_results.interval = self._strategy_params['granularity']
+        self.trade_results = trade_results
     
     
     def _get_iteration_range(self) -> int:
@@ -565,7 +561,6 @@ class AutoTraderBot:
         the entire dataset is iterated over. For livetrading, only the latest candle
         is used. ONLY USED IN BACKTESTING NOW.
         """
-        
         start_range = self._strategy_params['period']
         end_range = len(self.data)
         

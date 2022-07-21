@@ -66,12 +66,6 @@ class Broker:
         pass
     
     
-    def get_trade_details(self, trade_ID: str) -> dict:
-        """Returns the details of the trade specified by trade_ID.
-        """
-        pass
-    
-    
     def get_positions(self, instrument: str = None, **kwargs) -> dict:
         """Gets the current positions open on the account.
         
