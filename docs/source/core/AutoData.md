@@ -1,94 +1,61 @@
 (autodata-docs)=
 # AutoData
 
-AutoData is the automated data retrieval module of AutoTrader. It enables fetching both historical and live 
-price data from the [supported brokers](supported-brokers). You can also use AutoData to load locally stored
-data. As with the [broker interface](broker-interface) of AutoTrader, the methods of AutoData are standardised
-as much as possible, to make switching brokers a seamless process.
+AutoData is the unified data retrieval module of AutoTrader. It enables fetching historical and live 
+price data from the feeds of the [supported brokers](supported-brokers). You can also use AutoData to load locally stored
+data.
 
-The AutoData module contains the class `GetData`. There are two public methods for each supported 
-[data feed](autotrader-configure). The first is used to fetch historical price data, and so returns a Pandas
-DataFrame of the Open, High, Low and Close prices. The second is used to fetch the live price of an instrument,
-and returns the current bid and ask prices in a dictionary. If the feed supports it, the home conversion factors
-will also be returned.
+The `autodata.py` module contains the class `AutoData`. This class has three public methods:
+1. `fetch`: to fetch historical OHLC data
+2. `L1`: to get a snapshot of level 1 data
+3. `L2`: to get a snapshot of level 2 data
 
 
-## GetData Class
-AutoData's class `GetData` is optionally initialised with a broker configuration dictionary, the output of 
-the utility function [`get_config`](utils-get-config). This dictionary contains all the essential information 
-related to the API being used for data feeds and trading actions, and is automatically constructed from the 
-[global configuration](global-config).
+## AutoData Class
+The `AutoData` class is optionally initialised with a broker configuration dictionary (either manually 
+constructed, or the output of the utility function [`get_config`](utils-get-config). This dictionary 
+contains any authentication information related to the data feed being used.
 
-
-
-
-## Yahoo Finance API
-`feed = 'yahoo'`
-
-```{warning}
-Data from Yahoo Finance is lagged. Decide if this is appropriate to use for your strategy.
-```
+### Fetch historical OHLC data
 
 ```{eval-rst}
-.. automethod:: autotrader.autodata.GetData.yahoo
+.. automethod:: autotrader.autodata.AutoData.fetch
 ```
+
+
+### Get level 1 data
 
 ```{eval-rst}
-.. automethod:: autotrader.autodata.GetData.yahoo_liveprice
+.. automethod:: autotrader.autodata.AutoData.L1
 ```
 
-
-## Oanda v20 REST API
-`feed = 'oanda'`
+### Get level 2 data
 
 ```{eval-rst}
-.. automethod:: autotrader.autodata.GetData.oanda
+.. automethod:: autotrader.autodata.AutoData.L2
 ```
 
 
-```{eval-rst}
-.. automethod:: autotrader.autodata.GetData.oanda_liveprice
-```
+### Accessing exchange endpoints
+
+api attribute to allow accessing the unique API endpoints directly.
 
 
-## Interactive Brokers
-`feed = 'ib'`
+Granularities for all brokers can now be entered using a single unified format, according 
+to pandas timestamp formatting. More intuitive and easier.
 
-```{eval-rst}
-.. automethod:: autotrader.autodata.GetData.ib
-```
+Make sure to update strategy config docs, since the granularity format is now feed independent.
 
 
-```{eval-rst}
-.. automethod:: autotrader.autodata.GetData.ib_liveprice
-```
+
+
 
 
 ## Using Locally-Stored Data
 When the [`add_data`](autotrader-add-data) method of AutoTrader is called, local data will be used in the 
 active instance. In this case, the `local` method of `GetData` will be called.
 
-```{eval-rst}
-.. automethod:: autotrader.autodata.GetData.local
-```
-
-Since there is no API to get the bid and ask price from when using local data, the private method 
-`_pseudo_liveprice` is used. 
-
-
-
-
-(autodata-candle-granularity)=
-## Feed-Specific Parameter Formats
-The format of the instrument and granularity strings provided to the methods of `GetData` are 
-specific to the data feed being used. Refer to the websites of the feed being used for more
-information.
-
-
-| Feed | Example Instrument | Example granularity |
-|------|--------------------|---------------------|
-|yahoo | ['EURUSD=X'](https://finance.yahoo.com/quote/EURUSD=X/) | '30m' |
-|oanda | ['EUR_USD'](https://developer.oanda.com/rest-live-v20/primitives-df/#InstrumentName) | ['M30'](https://developer.oanda.com/rest-live-v20/instrument-df/) |
+When using a local data feed, the `instrument` argument must correspond to the data filepath.
 
 
 
@@ -99,14 +66,15 @@ also be called to fetch price data manually. The code snippet below can be used 
 price data for EUR/USD from Yahoo finance.
 
 ```python
-from autotrader.lib.autodata import GetData
+from autotrader import AutoData
 
-# Instantiate GetData class
-get_data = GetData()
+# Instantiate AutoData
+data_config = {'data_source': 'yahoo'}
+datafeed = AutoData(data_config)
 
 # Get price data for EUR/USD
 instrument = 'EURUSD=X'
-data = get_data.yahoo(instrument, '1h', 
+data = datafeed.fetch(instrument, granularity='1h', 
                       start_time='2020-01-01', 
                       end_time='2020-08-01')
 ```
