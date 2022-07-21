@@ -1,4 +1,4 @@
-from re import L
+import os
 import time
 import pandas as pd
 from typing import Union
@@ -45,6 +45,7 @@ class AutoData:
         if data_config is None:
             self._feed = 'local'
             self.api = None
+            self._data_directory = None
 
         else:
             self._feed = data_config['data_source'].lower()
@@ -108,6 +109,8 @@ class AutoData:
             
             elif data_config['data_source'].lower() == 'local':
                 self.api = None
+                self._data_directory = data_config['data_dir'] if 'data_dir' in \
+                    data_config else None
 
             else:
                 raise Exception(f"Unknown data source '{self._feed}'.")
@@ -724,16 +727,17 @@ class AutoData:
         return price
     
     
-    @staticmethod
-    def _local(filepath: str, start_time: Union[str, datetime] = None, 
+    def _local(self, instrument: str, start_time: Union[str, datetime] = None, 
               end_time: Union[str, datetime] = None, utc: bool = True,
               *args, **kwargs) -> pd.DataFrame:
         """Reads and returns local price data.
 
         Parameters
         ----------
-        filepath : str
-            The absolute filepath of the local price data.
+        instrument : str
+            Either the absolute filepath of the local price data file, or, if 
+            a data directory was provided in the data_config dictionary, simply
+            the name of the data file.
         start_time : str | datetime, optional
             The data start date. The default is None.
         end_time : str | datetime, optional
@@ -746,6 +750,9 @@ class AutoData:
         data : pd.DataFrame
             The price data, as an OHLC DataFrame.
         """
+        filepath = instrument if self._data_directory is None else \
+            os.path.join(self._data_directory, instrument)
+
         data = pd.read_csv(filepath, index_col = 0)
         data.index = pd.to_datetime(data.index, utc=utc)
         
