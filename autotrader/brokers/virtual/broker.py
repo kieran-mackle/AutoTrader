@@ -770,7 +770,7 @@ class Broker:
         # TODO - implement fill or kill for limit orders?
 
         # Get order book
-        book = self._get_orderbook(instrument, candle)
+        book = self.get_orderbook(instrument, candle)
 
         # Work through the order book
         units_to_fill = size
@@ -950,7 +950,7 @@ class Broker:
         return values
 
     
-    def _get_orderbook(self, instrument, candle = None):
+    def get_orderbook(self, instrument, candle = None):
         """Returns the orderbook."""
         if self._paper_trading:
             # Papertrading, try get realtime orderbook
@@ -985,3 +985,7 @@ class Broker:
         if verbosity > 0:
             print("Virtual broker state loaded from pickle.")
         
+
+    def _public_trade(self, instrument, direction, size):
+        """Uses a public trade to update the orderbook."""
+        pass
