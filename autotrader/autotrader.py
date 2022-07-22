@@ -163,7 +163,7 @@ class AutoTrader:
         
     
     def __repr__(self):
-        return f'AutoTrader instance in {self._feed} {self._environment} environment'
+        return f'AutoTrader instance'
     
     
     def __str__(self):
