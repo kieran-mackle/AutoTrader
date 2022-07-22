@@ -137,7 +137,12 @@ class Order:
     def __repr__(self):
         if self.size is not None:
             direction = 'long' if self.direction > 0 else 'short'
-            return f'{round(self.size,3)} unit {direction} {self.instrument} {self.order_type} order'
+            if self.order_type == 'limit':
+                extra = f' @ {self.order_limit_price}'
+            else:
+                extra = ''
+            return f'{round(self.size,3)} unit {direction} {self.instrument} '+\
+                f'{self.order_type} order' + extra
         else:
             return self.__str__()
         
