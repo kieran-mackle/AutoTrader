@@ -322,7 +322,7 @@ class Broker:
                     ref_price = order.order_stop_price if order.order_stop_price \
                         is not None else order.order_price
                 invalid_order = order.direction*(ref_price - order.order_limit_price) < 0
-                reason = f"Invalid limit price for {order} "+\
+                reason = f"Invalid limit price for {order.__repr__()} "+\
                             f"(reference price: {ref_price}, "+\
                             f"limit price: {order.order_limit_price})"
         except:
@@ -354,7 +354,7 @@ class Broker:
             
             # Print
             if self.verbosity > 0:
-                print("Order recieved: ", order)
+                print("Order recieved: ", order.__repr__())
         
     
     def get_orders(self, instrument: str = None, 
@@ -1238,6 +1238,12 @@ class Broker:
 
     def _save_state(self):
         """Pickles the current state of the broker."""
+        try:
+            # Remove old picklefile (if it exists)
+            os.remove(self._picklefile)
+        except:
+            pass
+
         with open(self._picklefile, 'wb') as file:
             pickle.dump(self, file)
 
@@ -1245,15 +1251,18 @@ class Broker:
     def _load_state(self):
         """Loads the state of the broker from a pickle."""
         verbosity = self.verbosity
-        with open(self._picklefile, 'rb') as file:
-            state = pickle.load(file)
-        
-        # Overwrite present state from pickle
-        for key, item in state.__dict__.items():
-            self.__dict__[key] = item
+        try:
+            with open(self._picklefile, 'rb') as file:
+                state = pickle.load(file)
+            
+            # Overwrite present state from pickle
+            for key, item in state.__dict__.items():
+                self.__dict__[key] = item
 
-        if verbosity > 0:
-            print("Virtual broker state loaded from pickle.")
+            if verbosity > 0:
+                print("Virtual broker state loaded from pickle.")
+        except:
+            print("Failed to load virtual broker state.")
         
 
     def _public_trade(self, instrument: str, 
