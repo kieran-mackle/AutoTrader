@@ -133,21 +133,70 @@ class Broker:
     
     
     def configure(self, verbosity: int = None, 
-                   initial_balance: float = None, 
-                   leverage: int = None, 
-                   spread: float = None, 
-                   spread_units: str = None,
-                   commission: float = None, 
-                   commission_scheme: str = None,
-                   maker_commission: float = None, 
-                   taker_commission: float = None,
-                   hedging: bool = None, 
-                   base_currency: str = None, 
-                   paper_mode: bool = None, 
-                   margin_closeout: float = None,
-                   autodata_config: dict = None, 
-                   picklefile: str = None):
-        """Configures the account."""
+                  initial_balance: float = None, 
+                  leverage: int = None, 
+                  spread: float = None, 
+                  spread_units: str = None,
+                  commission: float = None, 
+                  commission_scheme: str = None,
+                  maker_commission: float = None, 
+                  taker_commission: float = None,
+                  hedging: bool = None, 
+                  base_currency: str = None, 
+                  paper_mode: bool = None, 
+                  margin_closeout: float = None,
+                  autodata_config: dict = None, 
+                  picklefile: str = None):
+        """Configures the broker and account settings.
+        
+        Parameters
+        ----------
+        verbosity : int, optional
+            The verbosity of the broker. The default is 0.
+        initial_balance : float, optional
+            The initial balance of the account, specified in the 
+            base currency. The default is 0.
+        leverage : int, optional
+            The leverage available. The default is 1.
+        spread : float, optional
+            The bid/ask spread to use in backtest (specified in units defined
+            by the spread_units argument). The default is 0.
+        spread_units : str, optional
+            The unit of the spread specified. Options are 'price', meaning that 
+            the spread is quoted in price units, or 'percentage', meaning that 
+            the spread is quoted as a percentage of the market price. The default
+            is 'price'.
+        commission : float, optional
+            Trading commission as percentage per trade. The default is 0.
+        commission_scheme : str, optional
+            The method with which to apply commissions to trades made. The options
+            are (1) 'percentage', where the percentage specified by the commission 
+            argument is applied to the notional trade value, (2) 'fixed_per_unit',
+            where the monetary value specified by the commission argument is 
+            multiplied by the number of units in the trade, and (3) 'flat', where 
+            a flat monetary value specified by the commission argument is charged
+            per trade made, regardless of size. The default is 'percentage'.
+        maker_commission : float, optional
+            The commission to charge on liquidity-making orders. The default is 
+            None, in which case the nominal commission argument will be used.
+        taker_commission: float, optional
+            The commission to charge on liquidity-taking orders. The default is 
+            None, in which case the nominal commission argument will be used.
+        hedging : bool, optional
+            Allow hedging in the virtual broker (opening simultaneous 
+            trades in oposing directions). The default is False.
+        base_currency : str, optional
+            The base currency of the account. The default is AUD.
+        paper_mode : bool, optional
+            A boolean flag to indicate if the broker is in paper trade mode.
+            The default is False.
+        margin_closeout : float, optional
+            The fraction of margin usage at which a margin call will occur.
+            The default is 0.
+        picklefile : str, optional
+            The filename of the picklefile to load state from. If you do not 
+            wish to load from state, leave this as None. The default is None.
+        """
         self.verbosity = verbosity if verbosity is not None else self.verbosity
         self.leverage = leverage if leverage is not None else self.leverage
         self.commission = commission if commission is not None else self.commission
@@ -175,9 +224,8 @@ class Broker:
             data_config = get_config(autodata_config['environment'], 
                                      autodata_config['global_config'], 
                                      autodata_config['feed'])
-            self._autodata = AutoData(data_config, 
-                                      autodata_config['allow_dancing_bears'], 
-                                      autodata_config['base_currency'])
+            self._autodata = AutoData(data_config, **autodata_config)
+            
         else:
             # Create local data instance
             self._autodata = AutoData()

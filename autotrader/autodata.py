@@ -21,7 +21,7 @@ class AutoData:
     
     def __init__(self, data_config: dict = None, 
                  allow_dancing_bears: bool = False,
-                 home_currency: str = None) -> None:
+                 home_currency: str = None, *args, **kwargs) -> None:
         """Instantiates AutoData.
 
         Parameters
