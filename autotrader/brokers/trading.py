@@ -22,6 +22,15 @@ class Order:
     target_value : float
         The target value of the resulting trade, specified in the home 
         currency of the account.
+    order_limit_price : float
+        The limit price of the order (for 'limit' and 'stop-limit' order
+        types).
+    order_stop_price : float
+        The stop price of the order (for 'stop-limit' order types).
+    order_price : float
+        The price of the instrument when the order was placed.
+    order_time : datetime
+        The time at which the order was placed.
     stop_loss : float
         The price to set the stop-loss at.
     stop_distance : float
@@ -65,6 +74,8 @@ class Order:
         self.instrument = instrument
         self.direction = direction
         self.order_type = order_type
+
+        # Optional arguments
         self.size = None
         self.base_size = None
         self.target_value = None
