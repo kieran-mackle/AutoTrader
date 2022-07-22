@@ -4,7 +4,7 @@ import pickle
 import numpy as np
 import pandas as pd
 from decimal import Decimal
-from datetime import datetime
+from datetime import date, datetime
 from autotrader.autodata import AutoData
 from autotrader.utilities import get_config
 from autotrader.brokers.broker_utils import BrokerUtils
@@ -144,6 +144,7 @@ class Broker:
                   hedging: bool = None, 
                   base_currency: str = None, 
                   paper_mode: bool = None, 
+                  public_trade_access: bool = None,
                   margin_closeout: float = None,
                   autodata_config: dict = None, 
                   picklefile: str = None):
@@ -190,6 +191,9 @@ class Broker:
         paper_mode : bool, optional
             A boolean flag to indicate if the broker is in paper trade mode.
             The default is False.
+        public_trade_access : bool, optional
+            A boolean flag to signal if public trades are being used to update
+            limit orders. The default is False.
         margin_closeout : float, optional
             The fraction of margin usage at which a margin call will occur.
             The default is 0.
@@ -209,6 +213,8 @@ class Broker:
             self.base_currency
         self._paper_trading = paper_mode if paper_mode is not None else \
             self._paper_trading
+        self._public_trade_access = public_trade_access if public_trade_access is \
+            not None else self._public_trade_access
         self.margin_closeout = margin_closeout if margin_closeout is not None \
             else self.margin_closeout
         self.hedging = hedging if hedging is not None else self.hedging
@@ -254,7 +260,8 @@ class Broker:
     def place_order(self, order: Order, **kwargs) -> None:
         """Place order with broker."""
         # Call order to set order time
-        datetime_stamp = kwargs['order_time']
+        datetime_stamp = kwargs['order_time'] if 'order_time' in \
+            kwargs else datetime.now()
         order(order_time = datetime_stamp)
 
         if order.order_type == 'limit' or order.order_type == 'stop-limit':
@@ -300,20 +307,30 @@ class Broker:
             # Invalid order size
             reason = "Invalid order size (must be non-zero)."
             invalid_order = True
+        
+        # Check limit order does not cross book
+        try:
+            if order.order_type in ['limit']:
+                if self._paper_trading:
+                    # Get live midprice
+                    orderbook = self.get_orderbook(order.instrument)
+                    ref_price = (float(orderbook['bids'][0]['price']) + \
+                        float(orderbook['asks'][0]['price']))/2
+                else:
+                    # Use order / stop price
+                    ref_price = order.order_stop_price if order.order_stop_price \
+                        is not None else order.order_price
+                invalid_order = order.direction*(ref_price - order.order_limit_price) < 0
+                reason = f"Invalid limit price for {order} "+\
+                            f"(reference price: {ref_price}, "+\
+                            f"limit price: {order.order_limit_price})"
+        except:
+            pass
 
         # Assign order ID
         order.id = self._get_new_order_id()
         self._order_id_instrument[order.id] = order.instrument
         
-        # Check limit order does not cross book
-        if order.order_type in ['limit']:
-            ref_price = order.order_stop_price if order.order_stop_price \
-                is not None else order.order_price
-            invalid_order = order.direction*(ref_price - order.order_limit_price) > 0
-            reason = "Invalid limit price for {order}. "+\
-                        f"(reference price: {ref_price}, "+\
-                        f"limit price: {order.order_limit_price})"
-
         # Move order to pending_orders dict
         order.status = 'pending'
         try:
@@ -507,6 +524,11 @@ class Broker:
         trade : optional
             A public trade, used to update virtual limit orders.
         """
+        # TODO - allow updating using single price instead of a candle
+        # or maybe better, using bid and ask prices
+        # TODO - also allow just calling this method with instrument for 
+        # paper trading. Then just get the bid and ask prices
+
         # Open pending orders
         pending_orders = self.get_orders(instrument, 'pending').copy()
         for order_id, order in pending_orders.items():
@@ -726,6 +748,9 @@ class Broker:
                                                      HCF=order.HCF,
                                                      order_type=order.order_type)
             self._add_funds(commission)
+
+            if self.verbosity > 0:
+                print(f"Order filled: {order}")
 
         else:
             # Cancel order
@@ -1165,6 +1190,7 @@ class Broker:
                       trade_size: float,
                       trade_time: datetime):
         """Uses a public trade to update virtual orders."""
+        # TODO - work towards using Trade object
         trade_units_remaining = trade_size
         open_orders = self.get_orders(instrument).copy()
         for order_id, order in open_orders.items():
