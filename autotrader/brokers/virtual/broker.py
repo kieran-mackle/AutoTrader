@@ -3,6 +3,7 @@ import os
 import pickle
 import numpy as np
 import pandas as pd
+from decimal import Decimal
 from datetime import datetime
 from autotrader.autodata import AutoData
 from autotrader.utilities import get_config
@@ -15,35 +16,51 @@ class Broker:
 
     Attributes
     ----------
-    orders : dict
-        A dictionary containing Orders submitted.
-    trades : dict
-        A dictionary containing all trades.
+    verbosity : int
+        The verbosity of the broker.
+    pending_orders : dict
+        A dictionary containing pending orders.
+    open_orders : dict
+        A dictionary containing open orders yet to be filled.
+    filled_orders : dict
+        A dictionary containing filled orders.
+    cancelled_orders : dict
+        A dictionary containing cancelled orders.
+    open_trades : dict
+        A dictionary containing currently open trades (fills).
+    closed_trades : dict
+        A dictionary containing closed trades.
+    base_currency : str
+        The base currency of the account. The default is 'AUD'.
+    NAV : float
+        The net asset value of the account.
+    equity : float
+        The account equity balance.
+    floating_pnl : float
+        The floating PnL.
+    margin_available : float
+        The margin available on the account.
     leverage : int
         The account leverage.
     spread : float
         The average spread to use when opening and closing trades.
-    margin_available : float
-        The margin available on the account.
-    equity : float
-        The account equity balance.
+    spread_units : str
+        The units of the spread (eg. 'price' or 'percentage'). The default
+        is 'price'.
     hedging : bool
         Flag whethere hedging is enabled on the account. The default is False.
-    home_currency : str
-        The default is 'AUD'.
-    NAV : float
-        The net asset value of the account.
-    floating_pnl : float
-        The floating PnL.
-    verbosity : int
-        The verbosity of the broker.
+    margin_closeout : float
+        The fraction of margin available at margin call. The default is 0.
     commission_scheme : str
-        The default is 'percentage'.
+        The commission scheme being used ('percentage', 'fixed_per_unit'
+        or 'flat'). The default is 'percentage'.
     commission : float
-        The commission value.
-
+        The commission value associated with the commission scheme.
+    maker_commission : float
+        The commission value associated with liquidity making orders.
+    taker_commission : float
+        The commission value associated with liquidity taking orders.
     """
-    # TODO - add docs for new attributes
 
     def __init__(self, broker_config: dict = None, 
                  utils: BrokerUtils = None) -> None:
@@ -58,8 +75,8 @@ class Broker:
         self.utils = utils
         
         # Orders
-        self.pending_orders = {}
-        self.open_orders = {}
+        self.pending_orders = {}       # {instrument: {id: Order}}
+        self.open_orders = {}          # {instrument: {id: Order}}
         self.filled_orders = {}
         self.cancelled_orders = {}
         self._order_id_instrument = {} # mapper from order_id to instrument
@@ -417,7 +434,8 @@ class Broker:
         for order_id, order in open_orders.items():
             if order.order_type == 'market':
                 # Market order type - proceed to fill
-                self._fill_order(order, candle)
+                self._fill_order(order=order, fill_time=candle.name,
+                                 reference_price=candle.Open)
             
             elif order.order_type == 'stop-limit':
                 # Check if order_stop_price has been reached yet
@@ -447,10 +465,12 @@ class Broker:
                 # TODO - use flag for when updating from live trades 
                 if order.direction > 0:
                     if candle.Low < order.order_limit_price:
-                        self._fill_order(order, candle)
+                        self._fill_order(order=order, fill_time=candle.name,
+                                 reference_price=order.order_limit_price)
                 else:
                     if candle.High > order.order_limit_price:
-                        self._fill_order(order, candle)
+                        self._fill_order(order=order, fill_time=candle.name,
+                                 reference_price=order.order_limit_price)
         
         # Update open trades
         open_trades = self.get_trades(instrument).copy()
@@ -517,8 +537,10 @@ class Broker:
             self._save_state()
         
     
-    def _fill_order(self, order: Order, candle: pd.Series = None, 
-                    trade_price: float = None, trade_size: float = None):
+    def _fill_order(self, order: Order,
+                    fill_time: datetime = None, 
+                    reference_price : float = None,
+                    trade_size: float = None):
         """Attempts to fill an order.
         
         Notes
@@ -533,9 +555,19 @@ class Broker:
         If hedging is enabled, trades can be opened against one another, and
         will be treated in isolation. 
         """
-        # TODO - implement partial fills using trade_price and trade_size 
-        # (might) only need trade_size, since trade_price should equal 
-        # the limit price
+        if trade_size is not None:
+            # Fill limit order with trade_size provided
+            if trade_size < order.size:
+                # Create new order as portion to be filled 
+                order = Order._partial_fill(order=order, units_filled=trade_size)
+
+                # Assign new order ID
+                order.id = self._get_new_order_id()
+                self._order_id_instrument[order.id] = order.instrument
+
+                # Move new order to open_orders
+                self.open_orders[order.instrument][order.id] = order
+
         # Check order against current position
         close_existing_position = False
         if not self.hedging:
@@ -555,12 +587,11 @@ class Broker:
 
                     else:
                         # Simply reduce the current position
-                        self._reduce_position(order=order, exit_time=candle.name)
+                        self._reduce_position(order=order, exit_time=fill_time)
                         self._move_order(order)
                         return
         
         # Calculate margin requirements
-        reference_price = order.order_limit_price if order.order_type == 'limit' else candle.Open
         position_value = order.size * reference_price * order.HCF # Net position
         margin_required = self._calculate_margin(position_value)
         
@@ -570,7 +601,7 @@ class Broker:
                 else self._trade_through_book(instrument=order.instrument, 
                                               direction=order.direction,
                                               size=order.size, 
-                                              reference_price=candle.Open)
+                                              reference_price=reference_price)
 
             if close_existing_position:
                 # Close the open position before proceeding
@@ -578,7 +609,7 @@ class Broker:
                 # accounted for in avg_fill price
                 self._close_position(instrument=order.instrument, 
                                      exit_price=avg_fill_price,
-                                     exit_time=candle.name,
+                                     exit_time=fill_time,
                                      order_type='limit')
 
             # Mark order as filled
@@ -587,8 +618,7 @@ class Broker:
             trade = Trade(order)
             trade.id = trade_id
             trade.fill_price = avg_fill_price
-            trade.last_price = candle.Close
-            trade.time_filled = candle.name
+            trade.time_filled = fill_time
             trade.margin_required = margin_required
             trade.value = position_value
             try:
@@ -909,7 +939,7 @@ class Broker:
             size = trade.size
             HCF = trade.HCF
             last_price = trade.last_price
-            trade_value = abs(size) * last_price * HCF
+            trade_value = abs(size) * last_price * HCF if last_price else trade.value
             margin_required = self._calculate_margin(trade_value)
             margin_used += margin_required
             
@@ -1056,17 +1086,27 @@ class Broker:
             print("Virtual broker state loaded from pickle.")
         
 
-    def _public_trade(self, instrument, trade_direction, trade_price, trade_size):
+    def _public_trade(self, instrument: str, 
+                      trade_direction: int, 
+                      trade_price: float, 
+                      trade_size: float,
+                      trade_time: datetime):
         """Uses a public trade to update virtual orders."""
+        trade_units_remaining = trade_size
         open_orders = self.get_orders(instrument).copy()
         for order_id, order in open_orders.items():
             if order.order_type == 'limit':
                 if order.direction != trade_direction:
-                    if trade_price == order.order_limit_price:
+                    # Buy trade for sell orders, Sell trade for buy orders
+                    order_price = Decimal(str(order.order_limit_price)).quantize(Decimal(str(trade_price)))
+                    if trade_price == order_price and trade_units_remaining > 0:
                         # Fill as much as possible
-                        # TODO - partial order fills
-                        # TODO - order price precision for instrument ...
-                        # Tru use Decimal(order.order_limit_price).quantize(trade_price)
-                        self._fill_order(order, trade_price=trade_price, 
-                                         trade_size=trade_size)
+                        trade_units_consumed = min(trade_units_remaining, order.size)
+                        self._fill_order(order=order, 
+                                         fill_time=trade_time,
+                                         reference_price=order.order_limit_price,
+                                         trade_size=trade_units_consumed)
+                        
+                        # Update trade_units_remaining
+                        trade_units_remaining -= trade_units_consumed
                     

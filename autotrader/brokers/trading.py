@@ -300,7 +300,27 @@ class Order:
                                                       stop_distance=self.stop_distance)
                 else:
                     self.size = sizing
-            
+    
+
+    @classmethod
+    def _partial_fill(cls, order: Order, units_filled: float) -> Order:
+        """Partially fills the order."""
+        # Instantiate new order
+        order_to_be_filled = cls()
+        
+        # Inherit attributes from base order
+        for attribute, value in order.__dict__.items():
+            setattr(order_to_be_filled, attribute, value)
+        
+        # Reset ID
+        order_to_be_filled.id = None
+
+        # Transfer units
+        order_to_be_filled.size = units_filled
+        order.size -= units_filled
+
+        return order_to_be_filled
+
     
     def _check_precision(self,):
         # TODO - implement
