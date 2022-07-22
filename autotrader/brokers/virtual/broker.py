@@ -663,7 +663,7 @@ class Broker:
                                     reference_price=order.order_limit_price)
                 else:
                     # Update limit orders based on trade feed
-                    self._public_trade(instrument, trade)
+                    if trade is not None: self._public_trade(instrument, trade)
         
         # Update open trades
         open_trades = self.get_trades(instrument).copy()
