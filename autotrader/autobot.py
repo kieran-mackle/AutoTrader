@@ -541,7 +541,7 @@ class AutoTraderBot:
         """Updates virtual broker with latest price data.
         """
         for product, bar in current_bars.items():
-            self._broker._update_positions(bar, product)
+            self._broker._update_positions(instrument=product, candle=bar)
     
     
     def _create_trade_results(self) -> dict:
