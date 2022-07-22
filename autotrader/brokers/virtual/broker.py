@@ -118,6 +118,7 @@ class Broker:
 
         # Paper trading mode
         self._paper_trading = False             # Paper trading mode boolean
+        self._public_trade_access = False       # Use public trades to update orders
         self._autodata = None                   # AutoData instance
         self._state = None                      # Last state snapshot
         self._picklefile = '.virtual_broker'    # Pickle filename
@@ -279,7 +280,6 @@ class Broker:
             self.cancel_order(order.id, reason, 'pending_orders')
         else:
             # Move order to open_orders or leave in pending
-            # TODO - is this logic applicable? Consider update order in autobot
             immediate_orders = ['close', 'reduce', 'modify']
             if order.order_type in immediate_orders or self._paper_trading:
                 # Move to open orders
@@ -424,9 +424,18 @@ class Broker:
         return self.margin_available
     
     
-    def _update_positions(self, candle: pd.core.series.Series, 
-                          instrument: str) -> None:
+    def _update_positions(self, candle: pd.Series, 
+                          instrument: str, trade=None) -> None:
         """Updates orders and open positions based on the latest candle.
+
+        Parameters
+        ----------
+        candle : pd.Series
+            An OHLC candle used to update orders and trades.
+        instrument : str
+            The name of the instrument being updated.
+        trade : optional
+            A public trade, used to update virtual limit orders.
         """
         # Open pending orders
         pending_orders = self.get_orders(instrument, 'pending').copy()
@@ -468,15 +477,21 @@ class Broker:
             # Check for limit orders
             if order.order_type == 'limit':
                 # Limit order type
-                # TODO - use flag for when updating from live trades 
-                if order.direction > 0:
-                    if candle.Low < order.order_limit_price:
-                        self._fill_order(order=order, fill_time=candle.name,
-                                 reference_price=order.order_limit_price)
+                if not self._public_trade_access:
+                    # Update limit orders based on candles
+                    if order.direction > 0:
+                        if candle.Low < order.order_limit_price:
+                            self._fill_order(order=order, fill_time=candle.name,
+                                    reference_price=order.order_limit_price)
+                    else:
+                        if candle.High > order.order_limit_price:
+                            self._fill_order(order=order, fill_time=candle.name,
+                                    reference_price=order.order_limit_price)
                 else:
-                    if candle.High > order.order_limit_price:
-                        self._fill_order(order=order, fill_time=candle.name,
-                                 reference_price=order.order_limit_price)
+                    # Using trades to update limit orders
+                    # Include optional trade arg to _update_positions, then
+                    # if trade: self._public_trade(trade details)
+                    pass
         
         # Update open trades
         open_trades = self.get_trades(instrument).copy()
