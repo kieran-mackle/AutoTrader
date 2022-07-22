@@ -1,6 +1,7 @@
 from __future__ import annotations
 import os
 import pickle
+from more_itertools import last
 import numpy as np
 import pandas as pd
 from decimal import Decimal
@@ -511,28 +512,111 @@ class Broker:
         return orderbook
     
 
-    def _update_positions(self, candle: pd.Series, 
-                          instrument: str, trade=None) -> None:
-        """Updates orders and open positions based on the latest candle.
+    def _update_positions(self, instrument: str, candle: pd.Series = None, 
+                          L1: dict = None, trade: dict = None) -> None:
+        """Updates orders and open positions based on the latest data.
 
         Parameters
         ----------
-        candle : pd.Series
-            An OHLC candle used to update orders and trades.
         instrument : str
             The name of the instrument being updated.
-        trade : optional
+        candle : pd.Series
+            An OHLC candle used to update orders and trades.
+        L1 : dict, optional
+            A dictionary a containing level 1 price snapshot to update
+            the positions with. This dictionary must have the keys 
+            'bid', 'ask', 'bid_size' and 'ask_size'.
+        trade : dict, optional
             A public trade, used to update virtual limit orders.
         """
-        # TODO - allow updating using single price instead of a candle
-        # or maybe better, using bid and ask prices
-        # TODO - also allow just calling this method with instrument for 
-        # paper trading. Then just get the bid and ask prices
+        def stop_trigger_condition(order_stop_price, order_direction):
+            """Returns True if the order stop price has been triggered
+            else False."""
+            if L1 is not None:
+                # Use L1 data to trigger
+                reference_price = L1['bid'] if order_direction > 0 else L1['ask']
+                triggered = order_direction*(reference_price-order_stop_price) > 0
+                
+            else:
+                # Use OHLC data to trigger
+                triggered = candle.Low < order.order_stop_price < candle.High
+            return triggered
+
+        def get_last_price(trade_direction):
+            """Returns the last reference price for a trade. If the 
+            trade is long, this will refer to the ask price. If short,
+            this refers to the bid price."""
+            if L1 is not None:
+                last_price = L1['ask'] if trade_direction > 0 else L1['bid']
+            else:
+                last_price = candle.Close
+            return last_price
+
+        def get_market_ref_price(order_direction):
+            """Returns the reference price for a market order."""
+            if L1 is not None:
+                reference_price = L1['bid'] if order_direction > 0 else L1['ask']
+            else:
+                reference_price = candle.Open
+            return reference_price
+
+        def get_new_stop(trade_direction, distance):
+            """Returns the new stop loss for a trailing SL order."""
+            if L1 is not None:
+                ref_price = L1['ask'] if trade_direction > 0 else L1['bid']
+            else:
+                ref_price = candle.High if trade_direction > 0 else candle.Low
+            new_stop = ref_price - trade_direction*distance
+            return new_stop
+        
+        def get_sl_tp_ref_prices(trade_direction):
+            """Returns the SL and TP reference prices."""
+            if L1 is not None:
+                sl_ref = L1['ask'] if trade_direction > 0 else L1['bid']
+                tp_ref = sl_ref
+            else:
+                sl_ref = getattr(candle, 'Low' if trade_direction > 0 else 'High')
+                tp_ref = getattr(candle, 'High' if trade_direction > 0 else 'Low')
+            return sl_ref, tp_ref
+        
+        def limit_trigger_condition(order_direction, order_limit_price):
+            """Returns True if the order limit price has been triggered
+            else False."""
+            if L1 is not None:
+                # Use L1 data to trigger (based on midprice)
+                ref_price = (L1['bid'] + L1['ask'])/2
+            else:
+                # Use OHLC data to trigger
+                ref_price = candle.Low if order_direction > 0 else candle.High
+            triggered = order_direction*(ref_price - order_limit_price) <= 0
+            return triggered
+
+        # Check for data availability
+        if L1 is not None:
+            # Using L1 data to update
+            latest_time = datetime.now()
+            bid = L1['bid']
+            ask = L1['ask']
+            mid = (bid+ask)/2
+
+        elif candle is not None:
+            # Using OHLC data to update
+            latest_time = candle.name
+        
+        else:
+            # No new price data
+            if trade is None:
+                # No trade either, exit
+                return
+            else:
+                # Public trade recieved, only update limit orders
+                self._public_trade(instrument, trade)
+                return
 
         # Open pending orders
         pending_orders = self.get_orders(instrument, 'pending').copy()
         for order_id, order in pending_orders.items():
-            if candle.name > order.order_time:
+            if latest_time > order.order_time:
                 self._move_order(order, from_dict='pending_orders',
                                  to_dict='open_orders', new_status='open')
         
@@ -541,12 +625,13 @@ class Broker:
         for order_id, order in open_orders.items():
             if order.order_type == 'market':
                 # Market order type - proceed to fill
-                self._fill_order(order=order, fill_time=candle.name,
-                                 reference_price=candle.Open)
+                reference_price = get_market_ref_price(order.direction)
+                self._fill_order(order=order, fill_time=latest_time,
+                                 reference_price=reference_price)
             
             elif order.order_type == 'stop-limit':
                 # Check if order_stop_price has been reached yet
-                if candle.Low < order.order_stop_price < candle.High:
+                if stop_trigger_condition(order.order_stop_price, order.direction):
                     # order_stop_price has been reached, change order type to 'limit'
                     order.order_type = 'limit'
             
@@ -563,27 +648,22 @@ class Broker:
                 
             elif order.order_type == 'reduce':
                 # Market reduce position
-                self._reduce_position(order, exit_time=candle.name)
+                self._reduce_position(order, exit_time=latest_time)
                 self._move_order(order)
                 
             # Check for limit orders
             if order.order_type == 'limit':
                 # Limit order type
                 if not self._public_trade_access:
-                    # Update limit orders based on candles
-                    if order.direction > 0:
-                        if candle.Low < order.order_limit_price:
-                            self._fill_order(order=order, fill_time=candle.name,
-                                    reference_price=order.order_limit_price)
-                    else:
-                        if candle.High > order.order_limit_price:
-                            self._fill_order(order=order, fill_time=candle.name,
+                    # Update limit orders based on price feed
+                    triggered = limit_trigger_condition(order.direction, 
+                                                        order.order_limit_price)
+                    if triggered:
+                        self._fill_order(order=order, fill_time=latest_time,
                                     reference_price=order.order_limit_price)
                 else:
-                    # Using trades to update limit orders
-                    # Include optional trade arg to _update_positions, then
-                    # if trade: self._public_trade(trade details)
-                    pass
+                    # Update limit orders based on trade feed
+                    self._public_trade(instrument, trade)
         
         # Update open trades
         open_trades = self.get_trades(instrument).copy()
@@ -598,40 +678,32 @@ class Broker:
                     distance = abs(trade.fill_price - trade.stop_loss)
                     trade.stop_distance = distance / trade.pip_value
                     
-                if trade.direction > 0:
-                    # long position, stop loss only moves up
-                    new_stop = candle.High - distance
-                    if new_stop > trade.stop_loss:
-                        self._update_stop_loss(instrument, trade_id, new_stop, 
-                                               new_stop_type='trailing')
-                else:
-                    # short position, stop loss only moves down
-                    new_stop = candle.Low + distance
-                    if new_stop < trade.stop_loss:
-                        self._update_stop_loss(instrument, trade_id, new_stop, 
+                # Update price of stop loss
+                new_stop = get_new_stop(trade.direction, distance)
+                if trade.direction*(new_stop - trade.stop_loss) > 0:
+                    self._update_stop_loss(instrument, trade_id, new_stop, 
                                                new_stop_type='trailing')
             
             # Check if SL or TP have been hit
-            sl_ref = getattr(candle, 'Low' if trade.direction > 0 else 'High')
-            tp_ref = getattr(candle, 'High' if trade.direction > 0 else 'Low')
+            sl_ref, tp_ref = get_sl_tp_ref_prices(trade.direction)
             if trade.stop_loss and trade.direction*(sl_ref - trade.stop_loss) < 0:
                 # Stop loss hit
                 self._close_trade(instrument=instrument, trade_id=trade_id, 
-                                  exit_price=trade.stop_loss, exit_time=candle.name,
+                                  exit_price=trade.stop_loss, exit_time=latest_time,
                                   order_type='limit')
             elif trade.take_profit and trade.direction*(tp_ref - trade.take_profit) > 0:
                 # Take Profit hit
                 self._close_trade(instrument=instrument, trade_id=trade_id, 
-                                  exit_price=trade.take_profit, exit_time=candle.name)
+                                  exit_price=trade.take_profit, exit_time=latest_time)
             else:
                 # Position is still open, update value of holding
-                trade.last_price = candle.Close
-                trade.last_time = candle.name
+                trade.last_price = get_last_price(trade.direction)
+                trade.last_time = latest_time
                 trade.unrealised_PL = trade.direction*trade.size * \
                     (trade.last_price - trade.fill_price)*trade.HCF
                     
         # Update floating pnl and margin available 
-        self._update_margin(instrument, candle)
+        self._update_margin(instrument=instrument, latest_time=latest_time)
         
         # Update open position value
         self.NAV = self.equity + self.floating_pnl
@@ -640,7 +712,7 @@ class Broker:
         self._NAV_hist.append(self.NAV)
         self._equity_hist.append(self.equity)
         self._margin_hist.append(self.margin_available)
-        self._time_hist.append(candle.name)
+        self._time_hist.append(latest_time)
         
         holdings = self._get_holding_allocations()
         self.holdings.append(holdings)
@@ -1045,7 +1117,7 @@ class Broker:
     
     
     def _update_margin(self, instrument: str = None, 
-                       candle: pd.core.series.Series = None) -> None:
+                       latest_time: datetime = None) -> None:
         """Updates margin available in account.
         """
         margin_used = 0
@@ -1077,7 +1149,7 @@ class Broker:
             # Margin call
             if self.verbosity > 0:
                 print("MARGIN CALL: closing all positions.")
-            self._margin_call(instrument, candle)
+            self._margin_call(instrument, latest_time)
 
     
     def _modify_order(self, order: Order) -> None:
@@ -1127,10 +1199,10 @@ class Broker:
         return self._last_trade_id
     
     
-    def _margin_call(self, instrument: str, candle: pd.core.series.Series):
+    def _margin_call(self, instrument: str, latest_time: datetime):
         """Closes open positions.
         """
-        self._close_position(instrument=instrument, exit_time=candle.name)
+        self._close_position(instrument=instrument, exit_time=latest_time)
     
     
     def _get_holding_allocations(self):
@@ -1185,12 +1257,14 @@ class Broker:
         
 
     def _public_trade(self, instrument: str, 
-                      trade_direction: int, 
-                      trade_price: float, 
-                      trade_size: float,
-                      trade_time: datetime):
+                      trade: dict):
         """Uses a public trade to update virtual orders."""
-        # TODO - work towards using Trade object
+        # TODO - use a Trade object
+        trade_direction = trade['direction']
+        trade_price = trade['price']
+        trade_size = trade['size']
+        trade_time = trade['time']
+
         trade_units_remaining = trade_size
         open_orders = self.get_orders(instrument).copy()
         for order_id, order in open_orders.items():
