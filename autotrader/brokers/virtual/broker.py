@@ -132,7 +132,7 @@ class Broker:
         return 'AutoTrader Virtual Broker'
     
     
-    def _configure(self, verbosity: int = None, 
+    def configure(self, verbosity: int = None, 
                    initial_balance: float = None, 
                    leverage: int = None, 
                    spread: float = None, 
@@ -285,6 +285,10 @@ class Broker:
                 # Move to open orders
                 self._move_order(order, from_dict='pending_orders',
                                     to_dict='open_orders', new_status='open')
+            
+            # Print
+            if self.verbosity > 0:
+                print("Order recieved: ", order)
         
     
     def get_orders(self, instrument: str = None, 

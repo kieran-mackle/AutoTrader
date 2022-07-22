@@ -1419,7 +1419,7 @@ class AutoTrader:
                                'global_config': self._global_config_dict,
                                'allow_dancing_bears': self._allow_dancing_bears,
                                'base_currency': self._base_currency}
-            broker._configure(verbosity=self._broker_verbosity,
+            broker.configure(verbosity=self._broker_verbosity,
                               initial_balance=self._virtual_initial_balance, 
                               leverage=self._virtual_leverage, 
                               spread=self._virtual_spread,
