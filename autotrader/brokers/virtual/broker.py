@@ -256,8 +256,14 @@ class Broker:
         order.id = self._get_new_order_id()
         self._order_id_instrument[order.id] = order.instrument
         
-        # TODO - for limit orders, when papertrading with orderbook,
-        # check that the limit order does not cross the book
+        # Check limit order does not cross book
+        if order.order_type in ['limit']:
+            ref_price = order.order_stop_price if order.order_stop_price \
+                is not None else order.order_price
+            invalid_order = order.direction*(ref_price - order.order_limit_price) > 0
+            reason = "Invalid limit price for {order}. "+\
+                        f"(reference price: {ref_price}, "+\
+                        f"limit price: {order.order_limit_price})"
 
         # Move order to pending_orders dict
         order.status = 'pending'
