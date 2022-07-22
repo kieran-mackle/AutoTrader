@@ -225,7 +225,7 @@ class Broker:
                                      autodata_config['global_config'], 
                                      autodata_config['feed'])
             self._autodata = AutoData(data_config, **autodata_config)
-            
+
         else:
             # Create local data instance
             self._autodata = AutoData()
@@ -476,6 +476,24 @@ class Broker:
         return self.margin_available
     
     
+    def get_orderbook(self, instrument: str, midprice: float = None):
+        """Returns the orderbook."""
+        # Get public orderbook
+        if self._paper_trading:
+            # Papertrading, try get realtime orderbook
+            orderbook = self._autodata.L2(instrument, 
+                                          spread_units=self.spread_units,
+                                          spread=self.spread)
+        else:
+            # Backtesting, use local pseudo-orderbook
+            orderbook = self._autodata._local_orderbook(spread_units=self.spread_units,
+                        spread=self.spread, midprice=midprice)
+
+        # TODO - Add local orders to the book?
+        
+        return orderbook
+    
+
     def _update_positions(self, candle: pd.Series, 
                           instrument: str, trade=None) -> None:
         """Updates orders and open positions based on the latest candle.
@@ -1107,24 +1125,6 @@ class Broker:
         return values
 
     
-    def get_orderbook(self, instrument: str, midprice: float = None):
-        """Returns the orderbook."""
-        # Get public orderbook
-        if self._paper_trading:
-            # Papertrading, try get realtime orderbook
-            orderbook = self._autodata.L2(instrument, 
-                                          spread_units=self.spread_units,
-                                          spread=self.spread)
-        else:
-            # Backtesting, use local pseudo-orderbook
-            orderbook = self._autodata._local_orderbook(spread_units=self.spread_units,
-                        spread=self.spread, midprice=midprice)
-
-        # TODO - Add local orders to the book?
-        
-        return orderbook
-    
-
     def _add_orders_to_book(self, instrument, orderbook):
         """Adds local orders to the orderbook."""
         # TODO - implement

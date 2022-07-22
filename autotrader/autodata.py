@@ -326,7 +326,7 @@ class AutoData:
         return price
     
 
-    def _oanda_orderbook(self, instrument, time=None):
+    def _oanda_orderbook(self, instrument, time=None, *args, **kwargs):
         """Returns the orderbook from Oanda."""
         response = self.api.pricing.get(accountID=self.ACCOUNT_ID,
                                         instruments=instrument)
@@ -925,7 +925,7 @@ class AutoData:
         return data
         
 
-    def _ccxt_orderbook(self, instrument, limit=None):
+    def _ccxt_orderbook(self, instrument, limit=None, *args, **kwargs):
         """Returns the orderbook from a CCXT supported exchange."""
         response = self.api.fetchOrderBook(symbol=instrument)
 
@@ -1084,7 +1084,7 @@ class AutoData:
         return data
 
     
-    def _dydx_orderbook(self, instrument):
+    def _dydx_orderbook(self, instrument, *args, **kwargs):
         """Returns the orderbook from dYdX."""
         response = self.api.public.get_orderbook(market=instrument)
         orderbook = response.data
