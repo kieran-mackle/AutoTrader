@@ -125,11 +125,13 @@ class Broker:
 
     
     def __repr__(self):
-        return 'AutoTrader Virtual Broker'
+        data_feed = self._autodata._feed
+        return f'AutoTrader Virtual Broker ({data_feed} data feed)'
     
     
     def __str__(self):
-        return 'AutoTrader Virtual Broker'
+        data_feed = self._autodata._feed
+        return f'AutoTrader Virtual Broker ({data_feed} data feed)'
     
     
     def configure(self, verbosity: int = None, 

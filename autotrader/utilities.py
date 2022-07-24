@@ -132,8 +132,12 @@ def get_config(environment: str, global_config: dict, feed: str) -> dict:
         elif feed.upper() == 'LOCAL':
             config_dict = {'data_source': 'local'}
             
+        elif feed.upper() == 'NONE':
+            config_dict = {'data_source': 'none'}
+
         else:
-            print("Unrecognised data feed. Please check config and retry.")
+            raise Exception(f"Unrecognised data feed: '{feed}'. " + \
+                  "Please check global config and retry.")
             
     else:
         # Paper trading
@@ -187,7 +191,10 @@ def get_config(environment: str, global_config: dict, feed: str) -> dict:
         
         elif feed.upper() == 'LOCAL':
             config_dict = {'data_source': 'local'}
-            
+        
+        elif feed.upper() == 'NONE':
+            config_dict = {'data_source': 'none'}
+
         else:
             raise Exception(f"Unrecognised data feed: '{feed}'. " + \
                   "Please check global config and retry.")
@@ -831,13 +838,17 @@ class DataStream:
         
         # Correct any data mismatches
         if self.portfolio:
+            # Portfolio strategy
             for instrument in multi_data:
                 matched_data, matched_quote_data = self.match_quote_data(multi_data[instrument], 
                                                                          quote_data[instrument])
                 multi_data[instrument] = matched_data
                 quote_data[instrument] = matched_quote_data
         else:
-            data, quote_data = self.match_quote_data(data, quote_data)
+            # Single instrument data strategy
+            if data is not None:
+                # Data is not None (in case of 'none' data feed)
+                data, quote_data = self.match_quote_data(data, quote_data)
         
         return data, multi_data, quote_data, auxdata
         

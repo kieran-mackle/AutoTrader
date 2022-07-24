@@ -192,7 +192,7 @@ class AutoTrader:
         feed : str, optional
             The data feed to be used. This can be the same as the broker 
             being used, or another data source. Options include 'yahoo', 
-            'oanda', 'ib', 'dydx', 'ccxt' or 'local'. When data is provided
+            'oanda', 'ib', 'dydx', 'ccxt', 'local' or 'none'. When data is provided
             via the add_data method, the feed is automatically set to 'local'.
             The default is None.
         req_liveprice : bool, optional

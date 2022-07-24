@@ -53,7 +53,7 @@ class AutoData:
             self._spread = data_config['spread'] if 'spread' in \
                     data_config else 1
 
-        if data_config is None:
+        if not data_config:
             configure_local_feed({})
         else:
             self._feed = data_config['data_source'].lower()
@@ -117,6 +117,10 @@ class AutoData:
             
             elif data_config['data_source'].lower() == 'local':
                 configure_local_feed(data_config)
+            
+            elif data_config['data_source'].lower() == 'none':
+                # No data feed required
+                self.api = None
 
             else:
                 raise Exception(f"Unknown data source '{self._feed}'.")
@@ -1109,3 +1113,14 @@ class AutoData:
             trades.append(unified_trade)
 
         return trades
+    
+
+    def _none(self, *args, **kwargs):
+        """Dummy method for none 'data' feed"""
+        return None
+    
+    def _none_quote_data(self, *args, **kwargs):
+        return None
+
+    def _none_orderbook(self, *args, **kwargs):
+        return None

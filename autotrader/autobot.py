@@ -127,6 +127,10 @@ class AutoTraderBot:
         self._quote_data_file = quote_data_path     # Either str or None
         self._data_filepaths = data_dict            # Either str or dict, or None
         self._auxdata_files = auxdata               # Either str or dict, or None
+
+        if self._feed == 'none':
+            # None data-feed being used, allow duplicate bars 
+            self._allow_duplicate_bars = True
         
         # Check for portfolio strategy
         trade_portfolio = strategy_config['PORTFOLIO'] if 'PORTFOLIO' in \
@@ -136,7 +140,7 @@ class AutoTraderBot:
         
         # Fetch data
         self._get_data = AutoData(data_config, self._allow_dancing_bears,
-                                 self._base_currency)
+                                  self._base_currency)
         
         # Create instance of data stream object
         stream_attributes = {"data_filepaths": self._data_filepaths,
@@ -274,7 +278,10 @@ class AutoTraderBot:
                 self._update_virtual_broker(current_bars)
 
             if int(self._verbosity) > 1:
-                current_time = current_bars[list(current_bars.keys())[0]].name.strftime('%b %d %Y %H:%M:%S')
+                try:
+                    current_time = current_bars[list(current_bars.keys())[0]].name.strftime('%b %d %Y %H:%M:%S')
+                except:
+                    current_time = datetime.now().strftime('%b %d %Y %H:%M:%S')
                 if len(orders) > 0:
                     for order in orders:
                         direction = 'long' if order.direction > 0 else 'short'
@@ -392,7 +399,7 @@ class AutoTraderBot:
         data, multi_data, quote_data, auxdata = self.Stream.refresh(timestamp=timestamp)
         
         # Check data returned is valid
-        if len(data) == 0:
+        if self._feed != 'none' and len(data) == 0:
             raise Exception("Error retrieving data.")
         
         # Data assignment
@@ -744,6 +751,12 @@ class AutoTraderBot:
                 if len(strat_data) < no_bars:
                     sufficient_data = False
             
+            elif original_strat_data is None:
+                # Using none data
+                strat_data = None
+                current_bars = {}
+                sufficient_data = True 
+
             else:
                 raise Exception("Unrecognised data type. Cannot process.")
             
@@ -778,6 +791,12 @@ class AutoTraderBot:
             quote_data = self._check_ohlc_data(self.quote_data, timestamp, 
                                                indexing, no_bars)
             processed_quote_data = {self.instrument: quote_data}
+        
+        elif self.quote_data is None:
+            # Using 'none' data feed
+            quote_bars = current_bars
+            return strat_data, current_bars, quote_bars, sufficient_data
+
         else:
             raise Exception("Unrecognised data type. Cannot process.")
         
