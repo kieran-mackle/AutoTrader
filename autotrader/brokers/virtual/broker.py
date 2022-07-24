@@ -1,7 +1,6 @@
 from __future__ import annotations
 import os
 import pickle
-from more_itertools import last
 import numpy as np
 import pandas as pd
 from decimal import Decimal
@@ -122,7 +121,7 @@ class Broker:
         self._public_trade_access = False       # Use public trades to update orders
         self._autodata = None                   # AutoData instance
         self._state = None                      # Last state snapshot
-        self._picklefile = '.virtual_broker'    # Pickle filename
+        self._picklefile = None                 # Pickle filename
 
     
     def __repr__(self):
@@ -242,7 +241,7 @@ class Broker:
             self._make_deposit(initial_balance)
 
         # Check for pickled state
-        if self._paper_trading and picklefile is not None:
+        if self._paper_trading and self._picklefile is not None:
             # Load state 
             if os.path.exists(picklefile):
                 self._load_state()
@@ -544,10 +543,10 @@ class Broker:
 
         def get_last_price(trade_direction):
             """Returns the last reference price for a trade. If the 
-            trade is long, this will refer to the ask price. If short,
-            this refers to the bid price."""
+            trade is long, this will refer to the bid price. If short,
+            this refers to the ask price."""
             if L1 is not None:
-                last_price = L1['ask'] if trade_direction > 0 else L1['bid']
+                last_price = L1['bid'] if trade_direction > 0 else L1['ask']
             else:
                 last_price = candle.Close
             return last_price
@@ -595,9 +594,6 @@ class Broker:
         if L1 is not None:
             # Using L1 data to update
             latest_time = datetime.now()
-            bid = L1['bid']
-            ask = L1['ask']
-            mid = (bid+ask)/2
 
         elif candle is not None:
             # Using OHLC data to update
@@ -718,9 +714,24 @@ class Broker:
         self.holdings.append(holdings)
 
         # Save state
-        if self._paper_trading:
+        if self._paper_trading and self._picklefile is not None:
             self._save_state()
         
+    
+    def _update_all(self):
+        """Convenience method to update all open positions when paper trading."""
+        # Update orders
+        orders = self.open_orders
+        for instrument in orders:
+            l1 = self._autodata.L1(instrument=instrument)
+            self._update_positions(instrument=instrument, L1=l1)
+
+        # Update positions
+        positions = self.get_positions()
+        for instrument in positions:
+            l1 = self._autodata.L1(instrument=instrument)
+            self._update_positions(instrument=instrument, L1=l1)
+
     
     def _fill_order(self, order: Order,
                     fill_time: datetime = None, 
@@ -774,6 +785,8 @@ class Broker:
                         # Simply reduce the current position
                         self._reduce_position(order=order, exit_time=fill_time)
                         self._move_order(order)
+                        if self.verbosity > 0:
+                            print(f"Order filled: {order}")
                         return
         
         # Calculate margin requirements
@@ -1241,8 +1254,8 @@ class Broker:
         try:
             # Remove old picklefile (if it exists)
             os.remove(self._picklefile)
-        except:
-            pass
+        except Exception as e:
+            print(e)
 
         with open(self._picklefile, 'wb') as file:
             pickle.dump(self, file)
