@@ -197,7 +197,7 @@ class AutoData:
 
     
     def _oanda(self, instrument: str, granularity: str, count: int = None, 
-              start_time: datetime = None, end_time: datetime = None) -> pd.DataFrame:
+               start_time: datetime = None, end_time: datetime = None) -> pd.DataFrame:
         """Retrieves historical price data of a instrument from Oanda v20 API.
 
         Parameters
@@ -527,7 +527,7 @@ class AutoData:
     
 
     def _yahoo(self, instrument: str, granularity: str = None, count: int = None, 
-              start_time: str = None, end_time: str = None) -> pd.DataFrame:
+               start_time: str = None, end_time: str = None) -> pd.DataFrame:
         """Retrieves historical price data from yahoo finance. 
 
         Parameters
@@ -603,8 +603,9 @@ class AutoData:
     
     
     def _ib(self, instrument: str, granularity: str, count: int,
-           start_time: datetime = None, end_time: datetime = None,
-           order: Order = None, durationStr: str = '10 mins', **kwargs) -> pd.DataFrame:
+            start_time: datetime = None, end_time: datetime = None,
+            order: Order = None, durationStr: str = '10 mins', 
+            *args, **kwargs) -> pd.DataFrame:
         """Fetches data from IB.
 
         Parameters
@@ -739,8 +740,8 @@ class AutoData:
     
     
     def _local(self, instrument: str, start_time: Union[str, datetime] = None, 
-              end_time: Union[str, datetime] = None, utc: bool = True,
-              *args, **kwargs) -> pd.DataFrame:
+               end_time: Union[str, datetime] = None, utc: bool = True,
+               *args, **kwargs) -> pd.DataFrame:
         """Reads and returns local price data.
 
         Parameters
@@ -958,8 +959,8 @@ class AutoData:
 
 
     def _dydx(self, instrument: str, granularity: str, count: int = None, 
-             start_time: datetime = None, end_time: datetime = None,
-             *args, **kwargs) -> pd.DataFrame:
+              start_time: datetime = None, end_time: datetime = None,
+              *args, **kwargs) -> pd.DataFrame:
         """Retrieves historical price data of a instrument from dYdX.
           
         Parameters
