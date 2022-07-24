@@ -911,3 +911,24 @@ class DataStream:
         return bars
     
     
+class TradeWatcher:
+	"""Watches trade snapshots to detect new trades."""
+	def __init__(self):
+		self.last_trade_time = None
+		self.latest_trades = []
+
+	def update(self, trades):
+		"""Updates the trades being monitored for change."""
+		if trades[0]['time'] != self.last_trade_time:
+			# Trade update
+			self.last_trade_time = trades[0]['time']
+
+			for trade in trades:
+				if trade['time'] != self.last_trade_time: break
+				self.latest_trades.append(trade)
+	
+	def get_latest_trades(self):
+        """Returns the latest (unseen) trades."""
+		latest_trades = self.latest_trades
+		self.latest_trades = []
+		return latest_trades
