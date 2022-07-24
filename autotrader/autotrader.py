@@ -8,11 +8,12 @@ import traceback
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
+from threading import Thread
 from ast import literal_eval
 from scipy.optimize import brute
+from datetime import datetime, timezone
 from autotrader.autoplot import AutoPlot
 from autotrader.autobot import AutoTraderBot
-from datetime import datetime, timezone
 from autotrader.utilities import (read_yaml, get_config, 
                                   get_watchlist, DataStream, TradeAnalysis,
                                   unpickle_broker)
@@ -88,7 +89,8 @@ class AutoTrader:
         # Livetrade Parameters
         self._check_data_alignment = True
         self._allow_dancing_bears = False
-        
+        self._maintain_broker_thread = False
+
         self._broker = None
         self._broker_utils = None
         self._broker_verbosity = 0
@@ -120,7 +122,7 @@ class AutoTrader:
         self._allow_duplicate_bars = False
         
         # Virtual Broker Parameters
-        self._virtual_livetrading = False
+        self._papertrading = False
         self._virtual_initial_balance = None
         self._virtual_spread = None
         self._virtual_spread_units = None
@@ -132,7 +134,6 @@ class AutoTrader:
         self._virtual_broker_hedging = False
         self._virtual_margin_call = 0
         self._base_currency = None
-        self._vb_paper_trading = False
         self._virtual_broker_picklefile = None
         
         # Optimisation Parameters
@@ -171,8 +172,7 @@ class AutoTrader:
     
     
     def configure(self, verbosity: int = 1, broker: str = 'virtual', 
-                  feed: str = None, execution_feed: str = None,
-                  req_liveprice: bool = False, 
+                  feed: str = None, req_liveprice: bool = False, 
                   notify: int = 0, home_dir: str = None, 
                   allow_dancing_bears: bool = False, account_id: str = None, 
                   environment: str = 'paper', show_plot: bool = False,
@@ -194,10 +194,6 @@ class AutoTrader:
             being used, or another data source. Options include 'yahoo', 
             'oanda', 'ib', 'dydx', 'ccxt' or 'local'. When data is provided
             via the add_data method, the feed is automatically set to 'local'.
-            The default is None.
-        execution_feed : str, optional
-            The data feed to use for trade execution when running in paper
-            trading mode. When left as 'None', the regular feed will be used. 
             The default is None.
         req_liveprice : bool, optional
             Request live market price from broker before placing trade, rather 
@@ -256,7 +252,6 @@ class AutoTrader:
         """
         self._verbosity = verbosity
         self._feed = feed
-        self._execution_feed = execution_feed
         self._req_liveprice = req_liveprice
         self._broker_name = broker
         self._notify = notify
@@ -276,80 +271,6 @@ class AutoTrader:
         self._base_currency = home_currency
         
         
-    def virtual_livetrade_config(self, initial_balance: float = 1000, 
-                                 spread: float = 0, commission: float = 0, 
-                                 spread_units : str = 'price',
-                                 commission_scheme: str = 'percentage',
-                                 maker_commission: float = None,
-                                 taker_commission: float = None,
-                                 leverage: int = 1, hedging: bool = False, 
-                                 margin_call_fraction: float = 0,
-                                 picklefile: str = None) -> None:
-        """Configures the virtual broker's initial state to allow livetrading
-        on the virtual broker.
-        
-        Parameters
-        ----------
-        initial_balance : float, optional
-            The initial balance of the account. The default is 1000.
-        spread : float, optional
-            The bid/ask spread to use in backtest (specified in units defined
-            by the spread_units argument). The default is 0.
-        spread_units : str, optional
-            The unit of the spread specified. Options are 'price', meaning that 
-            the spread is quoted in price units, or 'percentage', meaning that 
-            the spread is quoted as a percentage of the market price. The default
-            is 'price'.
-        commission : float, optional
-            Trading commission as percentage per trade. The default is 0.
-        commission_scheme : str, optional
-            The method with which to apply commissions to trades made. The options
-            are (1) 'percentage', where the percentage specified by the commission 
-            argument is applied to the notional trade value, (2) 'fixed_per_unit',
-            where the monetary value specified by the commission argument is 
-            multiplied by the number of units in the trade, and (3) 'flat', where 
-            a flat monetary value specified by the commission argument is charged
-            per trade made, regardless of size. The default is 'percentage'.
-        maker_commission : float, optional
-            The commission to charge on liquidity-making orders. The default is 
-            None, in which case the nominal commission argument will be used.
-        taker_commission: float, optional
-            The commission to charge on liquidity-taking orders. The default is 
-            None, in which case the nominal commission argument will be used.
-        leverage : int, optional
-            Account leverage. The default is 1.
-        hedging : bool, optional
-            Allow hedging in the virtual broker (opening simultaneous 
-            trades in oposing directions). The default is False.
-        margin_call_fraction : float, optional
-            The fraction of margin usage at which a margin call will occur.
-            The default is 0.
-        picklefile : str, optional
-            The filename of the picklefile to load state from. If you do not 
-            wish to load from state, leave this as None. The default is None.
-        """
-        # Assign attributes
-        self._virtual_livetrading = True
-        self._virtual_initial_balance = initial_balance
-        self._virtual_spread = spread
-        self._virtual_spread_units = spread_units
-        self._virtual_commission = commission
-        self._commission_scheme = commission_scheme
-        self._maker_commission = maker_commission
-        self._taker_commission = taker_commission
-        self._virtual_leverage = leverage
-        self._virtual_broker_hedging = hedging
-        self._virtual_margin_call = margin_call_fraction
-        self._virtual_broker_picklefile = picklefile
-        
-        # Enforce virtual broker and paper trading environment
-        self._broker_name = 'virtual'
-        self._environment = 'paper'
-
-        # Turn on virtual broker paper trading mode
-        self._vb_paper_trading = True
-        
-
     def add_strategy(self, config_filename: str = None, 
                      config_dict: dict = None, strategy = None,
                      shutdown_method: str = None) -> None:
@@ -419,6 +340,88 @@ class AutoTrader:
             self._strategy_classes[strategy.__name__] = strategy
             
     
+    def papertrade(self, verbosity: int = 0,
+                   initial_balance: float = 1000, 
+                   spread: float = 0, commission: float = 0, 
+                   spread_units : str = 'price',
+                   commission_scheme: str = 'percentage',
+                   maker_commission: float = None,
+                   taker_commission: float = None,
+                   leverage: int = 1, hedging: bool = False, 
+                   margin_call_fraction: float = 0,
+                   picklefile: str = None,
+                   exchange: str = None) -> None:
+        """Configures the virtual broker's initial state to allow livetrading
+        on the virtual broker.
+        
+        Parameters
+        ----------
+        verbosity : int, optional
+            The verbosity of the broker. The default is 0.
+        initial_balance : float, optional
+            The initial balance of the account. The default is 1000.
+        spread : float, optional
+            The bid/ask spread to use in backtest (specified in units defined
+            by the spread_units argument). The default is 0.
+        spread_units : str, optional
+            The unit of the spread specified. Options are 'price', meaning that 
+            the spread is quoted in price units, or 'percentage', meaning that 
+            the spread is quoted as a percentage of the market price. The default
+            is 'price'.
+        commission : float, optional
+            Trading commission as percentage per trade. The default is 0.
+        commission_scheme : str, optional
+            The method with which to apply commissions to trades made. The options
+            are (1) 'percentage', where the percentage specified by the commission 
+            argument is applied to the notional trade value, (2) 'fixed_per_unit',
+            where the monetary value specified by the commission argument is 
+            multiplied by the number of units in the trade, and (3) 'flat', where 
+            a flat monetary value specified by the commission argument is charged
+            per trade made, regardless of size. The default is 'percentage'.
+        maker_commission : float, optional
+            The commission to charge on liquidity-making orders. The default is 
+            None, in which case the nominal commission argument will be used.
+        taker_commission: float, optional
+            The commission to charge on liquidity-taking orders. The default is 
+            None, in which case the nominal commission argument will be used.
+        leverage : int, optional
+            Account leverage. The default is 1.
+        hedging : bool, optional
+            Allow hedging in the virtual broker (opening simultaneous 
+            trades in oposing directions). The default is False.
+        margin_call_fraction : float, optional
+            The fraction of margin usage at which a margin call will occur.
+            The default is 0.
+        picklefile : str, optional
+            The filename of the picklefile to load state from. If you do not 
+            wish to load from state, leave this as None. The default is None.
+        exchange : str, optional
+            The name of the exchange to use for execution. This gets passed to 
+            an instance of AutoData to update prices and use the realtime 
+            orderbook for virtual order execution. This is equivalent to the
+            execution_feed.
+        """
+        # Assign attributes
+        self._broker_verbosity = verbosity
+        self._papertrading = True
+        self._virtual_initial_balance = initial_balance
+        self._virtual_spread = spread
+        self._virtual_spread_units = spread_units
+        self._virtual_commission = commission
+        self._commission_scheme = commission_scheme
+        self._maker_commission = maker_commission
+        self._taker_commission = taker_commission
+        self._virtual_leverage = leverage
+        self._virtual_broker_hedging = hedging
+        self._virtual_margin_call = margin_call_fraction
+        self._virtual_broker_picklefile = picklefile
+        self._execution_feed = exchange
+        
+        # Enforce virtual broker and paper trading environment
+        self._broker_name = 'virtual'
+        self._environment = 'paper'
+
+
     def backtest(self, start: str = None, end: str = None, 
                  initial_balance: float = 1000, spread: float = 0, 
                  spread_units : str = 'price',
@@ -787,7 +790,7 @@ class AutoTrader:
             # Scan watchlist has not overwritten strategy watchlist
             self._update_strategy_watchlist()
         
-        if len(self._strategy_configs) == 0:
+        if len(self._strategy_configs) == 0 and not self._papertrading:
             print("Error: no strategy has been provided. Do so by using the" +\
                   " 'add_strategy' method of AutoTrader.")
             sys.exit(0)
@@ -818,16 +821,19 @@ class AutoTrader:
                 print("Please set backtest parameters to run optimisation.")
         else:
             if not self._backtest_mode and self._broker_name == 'virtual':
-                if not self._virtual_livetrading:
+                if not self._papertrading:
                     raise Exception("Live-trade mode requires setting the "+\
                                     "broker. Please do so using the "+\
                                     "AutoTrader configure method. If you "+\
                                     "would like to use the virtual broker "+\
                                     "for sandbox livetrading, please "+\
                                     "configure the virtual broker account "+\
-                                    "with the virtual_livetrade_config method.")
-                
+                                    "with the papertrade method.")
+            
+            # Run main 
             self._main()
+
+            if self._papertrading: return self._broker
     
     
     def plot_settings(self, max_indis_over: int = 3, max_indis_below: int = 2,
@@ -1149,11 +1155,12 @@ class AutoTrader:
         
         # Check feed
         if self._feed is None:
-            raise Exception("No data feed specified! Please do so using "+\
-                    "AutoTrader.configure(), or provide local data via "+\
-                    "AutoTrader.add_data().")
+            if not self._execution_feed:
+                raise Exception("No data feed specified! Please do so using "+\
+                        "AutoTrader.configure(), or provide local data via "+\
+                        "AutoTrader.add_data().")
 
-        elif global_config is None and self._feed.lower() in ['oanda', 'ccxt', 'dydx']:
+        elif global_config is None and self._feed.lower() in ['oanda', 'ib']:
             raise Exception(f'Data feed "{self._feed}" requires global '+ \
                             'configuration. If a config file already '+ \
                             'exists, make sure to specify the home_dir. '+\
@@ -1177,13 +1184,13 @@ class AutoTrader:
             print(pyfiglet.figlet_format("AutoTrader", font='slant'))
             if self._backtest_mode:
                 print("BACKTEST MODE")
-
-            elif self._scan_mode:
-                print("SCAN MODE")
-                print("Time: {}\n".format(datetime.now().strftime("%A, %B %d %Y, "+
-                                                                  "%H:%M:%S")))
             else:
-                print("LIVETRADE MODE")
+                if self._scan_mode:
+                    print("SCAN MODE")
+                elif self._papertrading:
+                    print("PAPERTRADE MODE")
+                else:
+                    print("LIVETRADE MODE")
                 print("Current time: {}".format(datetime.now().strftime("%A, %B %d %Y, "+
                                                                   "%H:%M:%S")))
         
@@ -1217,119 +1224,82 @@ class AutoTrader:
                 
         if int(self._verbosity) > 0 and self._backtest_mode:
             print("\nTrading...\n")
-            backtest_start_time = timeit.default_timer()
+            self._backtest_start_time = timeit.default_timer()
             
         # Begin trading
-        if self._run_mode.lower() == 'continuous':
-            # Running in continuous update mode
-            if self._backtest_mode:
-                # Backtesting
-                end_time = self._data_end # datetime
-                timestamp = self._data_start + self._warmup_period # datetime
-                pbar = tqdm(total=int((self._data_end - timestamp).total_seconds()),
-                            position=0, leave=True)
-                while timestamp <= end_time:
-                    # Update each bot with latest data to generate signal
-                    for bot in self._bots_deployed:
-                        bot._update(timestamp=timestamp)
-                        
-                    # Iterate through time
-                    timestamp += self._timestep
-                    pbar.update(self._timestep.total_seconds())
-                pbar.close()
-                
-            else:
-                # Live trading
-                instance_id = self._get_instance_id()
-                instance_str = f"autotrader_instance_{instance_id}" if \
-                    self._instance_str is None else self._instance_str
-                instance_file_exists = self._check_instance_file(instance_str, True)
-                deploy_time = time.time()
-                while instance_file_exists:
-                    try:
-                        for bot in self._bots_deployed:
-                            try:
-                                bot._update(timestamp=datetime.now(timezone.utc))
-                            
-                            except:
-                                if int(self._verbosity) > 0:
-                                    print("Error: failed to update bot running" +\
-                                        f"{bot._strategy_name} ({bot.instrument})")
-                                    traceback.print_exc()
-                                
-                        # Go to sleep until next update
-                        time.sleep(self._timestep.seconds - ((time.time() - \
-                                    deploy_time) % self._timestep.seconds))
-                        instance_file_exists = self._check_instance_file(instance_str)
-                    
-                    except KeyboardInterrupt:
-                        print("\nKilling bot(s).")
-                        instance_filepath = os.path.join(self._home_dir, 'active_bots', 
-                                                         instance_str)
-                        os.remove(instance_filepath)
-                        break
-                    
-        elif self._run_mode.lower() == 'periodic':
-            # Trading in periodic update mode
-            if self._backtest_mode:
-                # Backtesting
-                self._check_bot_data()
-                start_range, end_range = self._bots_deployed[0]._get_iteration_range()
-                for i in range(start_range, end_range):
-                    # Update each bot with latest data to generate signal
-                    for bot in self._bots_deployed:
-                        bot._update(i=i)
-                        
-            else:
-                # Live trading
-                bot._update(i=-1) # Process most recent signal
-        
-        if int(self._verbosity) > 0 and self._backtest_mode:
-            backtest_end_time = timeit.default_timer()
-        
-        # Run strategy-specific shutdown routines
-        for bot in self._bots_deployed:
-            bot._strategy_shutdown()
-            
-        # Run instance shut-down routine
-        if self._backtest_mode:
-            # Create overall backtest results
-            self.trade_results = TradeAnalysis(self._broker, 
-                        process_holding_history=self._process_holding_history)
-            
-            # Create trade results for each bot
-            for bot in self._bots_deployed:
-                bot._create_trade_results()
-            
-            if int(self._verbosity) > 0:
-                print("Backtest complete (runtime " + \
-                      f"{round((backtest_end_time - backtest_start_time), 3)} s).")
-                self.print_trade_results()
-                
-            if self._show_plot and len(self.trade_results.trade_history) > 0:
-                self.plot_backtest()
-        
-        elif self._scan_mode and self._show_plot:
-            # Show plots for scanned instruments
-            for bot in self._bots_deployed:
-                ap = self._instantiate_autoplot(bot.data)
-                ap.plot(indicators = bot.strategy.indicators, 
-                        instrument = bot.instrument)
-                time.sleep(0.3)
-        
+        if len(self._bots_deployed) == 0:
+            # No strategy was added; manual trading
+            broker_thread = Thread(target=self._manualtrade)
+            broker_thread.start()
+
         else:
-            # Live trade complete, run livetrade specific shutdown routines
-            if self._broker_name.lower() == 'ib':
-                self._broker._disconnect()
-            
-            elif self._virtual_livetrading:
-                # Paper trade through virtual broker
-                papertrade_results = TradeAnalysis(self._broker, 
-                        process_holding_history=self._process_holding_history)
-                self.print_trade_results(papertrade_results)
-                print("\nNote: the instance of the virtual broker has "+\
-                      "been pickled and can be unpickled using the "+\
-                      "`unpickle_broker` utility.")
+            # Automated trading
+            if self._run_mode.lower() == 'continuous':
+                # Running in continuous update mode
+                if self._backtest_mode:
+                    # Backtesting
+                    end_time = self._data_end # datetime
+                    timestamp = self._data_start + self._warmup_period # datetime
+                    pbar = tqdm(total=int((self._data_end - timestamp).total_seconds()),
+                                position=0, leave=True)
+                    while timestamp <= end_time:
+                        # Update each bot with latest data to generate signal
+                        for bot in self._bots_deployed:
+                            bot._update(timestamp=timestamp)
+                            
+                        # Iterate through time
+                        timestamp += self._timestep
+                        pbar.update(self._timestep.total_seconds())
+                    pbar.close()
+                    
+                else:
+                    # Live trading
+                    instance_id = self._get_instance_id()
+                    instance_str = f"autotrader_instance_{instance_id}" if \
+                        self._instance_str is None else self._instance_str
+                    instance_file_exists = self._check_instance_file(instance_str, True)
+                    deploy_time = time.time()
+                    while instance_file_exists:
+                        try:
+                            for bot in self._bots_deployed:
+                                try:
+                                    bot._update(timestamp=datetime.now(timezone.utc))
+                                
+                                except:
+                                    if int(self._verbosity) > 0:
+                                        print("Error: failed to update bot running" +\
+                                            f"{bot._strategy_name} ({bot.instrument})")
+                                        traceback.print_exc()
+                                    
+                            # Go to sleep until next update
+                            time.sleep(self._timestep.seconds - ((time.time() - \
+                                        deploy_time) % self._timestep.seconds))
+                            instance_file_exists = self._check_instance_file(instance_str)
+                        
+                        except KeyboardInterrupt:
+                            print("\nKilling bot(s).")
+                            instance_filepath = os.path.join(self._home_dir, 'active_bots', 
+                                                            instance_str)
+                            os.remove(instance_filepath)
+                            break
+                        
+            elif self._run_mode.lower() == 'periodic':
+                # Trading in periodic update mode
+                if self._backtest_mode:
+                    # Backtesting
+                    self._check_bot_data()
+                    start_range, end_range = self._bots_deployed[0]._get_iteration_range()
+                    for i in range(start_range, end_range):
+                        # Update each bot with latest data to generate signal
+                        for bot in self._bots_deployed:
+                            bot._update(i=i)
+                            
+                else:
+                    # Live trading
+                    bot._update(i=-1) # Process most recent signal
+        
+            # Run shutdown routines
+            self.shutdown()
 
 
     def _clear_strategies(self) -> None:
@@ -1411,7 +1381,7 @@ class AutoTrader:
         utils = utils_module.Utils()
         broker = broker_module.Broker(broker_config, utils)
         
-        if self._backtest_mode or self._virtual_livetrading:
+        if self._backtest_mode or self._papertrading:
             # Using virtual broker, initialise account
             feed = self._feed if self._execution_feed is None else self._execution_feed
             autodata_config = {'feed': feed, 
@@ -1430,7 +1400,7 @@ class AutoTrader:
                               taker_commission=self._taker_commission,
                               hedging=self._virtual_broker_hedging, 
                               base_currency=self._base_currency,
-                              paper_mode=self._vb_paper_trading, 
+                              paper_mode=self._papertrading, 
                               margin_closeout=self._virtual_margin_call,
                               autodata_config=autodata_config,
                               picklefile=self._virtual_broker_picklefile)
@@ -1628,6 +1598,84 @@ class AutoTrader:
                   "will now shut down.")
         
         return instance_file_exists
+    
+
+    def _manualtrade(self):
+        """Runs the broker updates when manual trading."""
+    	# Check trading environment
+        if self._papertrading:
+            # Toggle broker monitoring on
+            print("Running virtual broker updates.")
+            self._maintain_broker_thread = True
+            while self._maintain_broker_thread:
+                try:
+                    self._broker._update_all()
+                    time.sleep(1)
+                except Exception as e:
+                    print(e)
+            else:
+                print("Broker thread killed.")
+
+
+    def shutdown(self):
+        """Shutdown the active AutoTrader instance."""
+
+        if int(self._verbosity) > 0 and self._backtest_mode:
+            backtest_end_time = timeit.default_timer()
+
+        # Kill broker update thread
+        self._maintain_broker_thread = False
+
+        # Run strategy-specific shutdown routines
+        for bot in self._bots_deployed:
+            bot._strategy_shutdown()
+            
+        # Run instance shut-down routine
+        if self._backtest_mode:
+            # Create overall backtest results
+            self.trade_results = TradeAnalysis(self._broker, 
+                        process_holding_history=self._process_holding_history)
+            
+            # Create trade results for each bot
+            for bot in self._bots_deployed:
+                bot._create_trade_results()
+            
+            if int(self._verbosity) > 0:
+                print("Backtest complete (runtime " + \
+                      f"{round((backtest_end_time - self._backtest_start_time), 3)} s).")
+                self.print_trade_results()
+                
+            if self._show_plot and len(self.trade_results.trade_history) > 0:
+                self.plot_backtest()
+        
+        elif self._scan_mode and self._show_plot:
+            # Show plots for scanned instruments
+            for bot in self._bots_deployed:
+                ap = self._instantiate_autoplot(bot.data)
+                ap.plot(indicators = bot.strategy.indicators, 
+                        instrument = bot.instrument)
+                time.sleep(0.3)
+        
+        else:
+            # Live trade complete, run livetrade specific shutdown routines
+            if self._broker_name.lower() == 'ib':
+                self._broker._disconnect()
+            
+            elif self._papertrading:
+                # Paper trade through virtual broker
+                papertrade_results = TradeAnalysis(self._broker, 
+                        process_holding_history=self._process_holding_history)
+                self.print_trade_results(papertrade_results)
+
+                if self._virtual_broker_picklefile:
+                    print("\nNote: the instance of the virtual broker has "+\
+                        "been pickled and can be unpickled using the "+\
+                        "`unpickle_broker` utility.")
+
+
+    def _trade_update_loop(self):
+        """Runs the trade update loop."""
+        pass
 
     
     @staticmethod

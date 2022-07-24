@@ -66,7 +66,11 @@ def get_config(environment: str, global_config: dict, feed: str) -> dict:
         The AutoTrader configuration dictionary.
     """
     # TODO - allow kwargs in config
-    
+
+    # Check feed
+    if feed is None:
+        return {}
+
     if environment.lower() == 'live':
         # Live trading
         if feed.upper() == 'OANDA':

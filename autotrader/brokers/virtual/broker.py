@@ -721,6 +721,15 @@ class Broker:
     
     def _update_all(self):
         """Convenience method to update all open positions when paper trading."""
+        # TODO - update public trades too 
+        # Get latest trades
+        # trades = broker._autodata.trades(symbol)
+        # tw.update(trades)
+
+        # # Update broker trades
+        # for trade in tw.get_latest_trades():
+        # 	broker._update_positions(instrument=symbol, trade=trade)
+
         # Update orders
         orders = self.open_orders
         for instrument in orders:

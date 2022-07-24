@@ -233,7 +233,7 @@ class AutoTraderBot:
         
         if sufficient_data and new_data:
             # There is a sufficient amount of data, and it includes new data
-            if self._backtest_mode or self._virtual_livetrading:
+            if self._backtest_mode or self._papertrading:
                 # Update virtual broker with latest price bars
                 self._update_virtual_broker(current_bars)
             
@@ -269,7 +269,7 @@ class AutoTraderBot:
                         
                     self._broker.place_order(order, order_time=order_time)
             
-            if self._virtual_livetrading:
+            if self._papertrading:
                 # Update virtual broker again to trigger any orders
                 self._update_virtual_broker(current_bars)
 
