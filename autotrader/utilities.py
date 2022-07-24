@@ -520,20 +520,22 @@ class TradeAnalysis:
         # All trades
         no_trades = len(self.trade_history[self.trade_history['status'] == 'closed'])
         trade_results['no_trades'] = no_trades
-        trade_results['start'] = self.account_history.index[0]
-        trade_results['end'] = self.account_history.index[-1]
-        
-        starting_balance = self.account_history.equity[0]
-        ending_balance = self.account_history.equity[-1]
-        ending_NAV = self.account_history.NAV[-1]
-        abs_return = ending_balance - starting_balance
-        pc_return = 100 * abs_return / starting_balance
-        
-        trade_results['starting_balance'] = starting_balance
-        trade_results['ending_balance'] = ending_balance
-        trade_results['ending_NAV'] = ending_NAV
-        trade_results['abs_return'] = abs_return
-        trade_results['pc_return'] = pc_return
+
+        if len(self.account_history) > 0:
+            trade_results['start'] = self.account_history.index[0]
+            trade_results['end'] = self.account_history.index[-1]
+            
+            starting_balance = self.account_history.equity[0]
+            ending_balance = self.account_history.equity[-1]
+            ending_NAV = self.account_history.NAV[-1]
+            abs_return = ending_balance - starting_balance
+            pc_return = 100 * abs_return / starting_balance
+            
+            trade_results['starting_balance'] = starting_balance
+            trade_results['ending_balance'] = ending_balance
+            trade_results['ending_NAV'] = ending_NAV
+            trade_results['abs_return'] = abs_return
+            trade_results['pc_return'] = pc_return
         
         if no_trades > 0:
             trade_results['all_trades'] = {}
@@ -610,12 +612,6 @@ class TradeAnalysis:
             trade_results['short_trades']['short_wr'] = short_wr
         
         return trade_results
-    
-
-    def write_to_file(self):
-        """Write the trade results to file."""
-        # TODO - implement, allow writing virtual broker paper trade
-        # history to file
     
 
 class DataStream:
@@ -910,25 +906,26 @@ class DataStream:
         
         return bars
     
-    
+
 class TradeWatcher:
-	"""Watches trade snapshots to detect new trades."""
-	def __init__(self):
-		self.last_trade_time = None
-		self.latest_trades = []
+    """Watches trade snapshots to detect new trades."""
+    def __init__(self) -> None:
+        self.last_trade_time = None
+        self.latest_trades = []
+    
+    def update(self, trades):
+        """Updates the trades being monitored for change."""
+        if trades[0]['time'] != self.last_trade_time:
+            # Trade update
+            self.last_trade_time = trades[0]['time']
 
-	def update(self, trades):
-		"""Updates the trades being monitored for change."""
-		if trades[0]['time'] != self.last_trade_time:
-			# Trade update
-			self.last_trade_time = trades[0]['time']
-
-			for trade in trades:
-				if trade['time'] != self.last_trade_time: break
-				self.latest_trades.append(trade)
-	
-	def get_latest_trades(self):
+            for trade in trades:
+                if trade['time'] != self.last_trade_time: break
+                self.latest_trades.append(trade)
+    
+    def get_latest_trades(self):
         """Returns the latest (unseen) trades."""
-		latest_trades = self.latest_trades
-		self.latest_trades = []
-		return latest_trades
+        latest_trades = self.latest_trades
+        self.latest_trades = []
+        return latest_trades
+
