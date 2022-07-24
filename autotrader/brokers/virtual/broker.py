@@ -218,6 +218,7 @@ class Broker:
         self.margin_closeout = margin_closeout if margin_closeout is not None \
             else self.margin_closeout
         self.hedging = hedging if hedging is not None else self.hedging
+        self._picklefile = picklefile if picklefile is not None else self._picklefile
 
         # Assign commissions for making and taking liquidity
         self.maker_commission = maker_commission if maker_commission is not None \
@@ -1254,8 +1255,8 @@ class Broker:
         try:
             # Remove old picklefile (if it exists)
             os.remove(self._picklefile)
-        except Exception as e:
-            print(e)
+        except:
+            pass
 
         with open(self._picklefile, 'wb') as file:
             pickle.dump(self, file)
