@@ -79,15 +79,19 @@ def get_broker_config(global_config: dict, broker: str,
                     'read_only': global_config['read_only'] if 'read_only' in global_config else False}
     
     elif broker.lower() == 'dydx':
-        eth_address = global_config['dYdX']['ETH_ADDRESS'] if 'ETH_ADDRESS' \
-            in global_config['dYdX'] else None
-        eth_private_key = global_config['dYdX']['ETH_PRIV_KEY'] if 'ETH_PRIV_KEY' \
-            in global_config['dYdX'] else None
-        config = {'data_source': 'dYdX',
-                  'API_KEY': global_config['dYdX']['API_KEYS'],
-                  'STARK_KEYS': global_config['dYdX']['STARK_KEYS'],
-                  'ETH_ADDR': eth_address,
-                  'ETH_PRIV_KEY': eth_private_key}
+        try:
+            eth_address = global_config['dYdX']['ETH_ADDRESS']
+            eth_private_key = global_config['dYdX']['ETH_PRIV_KEY']
+            config = {'data_source': 'dYdX',
+                      'ETH_ADDRESS': eth_address,
+                      'ETH_PRIV_KEY': eth_private_key}
+        except KeyError:
+            raise Exception("Using dYdX for trading requires authentication via "+\
+                "the global configuration. Please make sure you provide the "+\
+                "following keys:\n ETH_ADDRESS: your ETH address "+\
+                "\n ETH_PRIV_KEY: your ETH private key."+\
+                "These must all be provided under the 'dYdX' key.")
+
         
     elif broker.lower() == 'ccxt':
         try:

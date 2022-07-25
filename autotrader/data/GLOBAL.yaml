@@ -11,5 +11,3 @@ CCXT:
 dYdX:
   ETH_ADDRESS: 0xxxxx
   ETH_PRIV_KEY: xxxxx
-  API_KEYS: xxxxx
-  STARK_KEYS: xxxx

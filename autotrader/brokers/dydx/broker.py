@@ -13,14 +13,19 @@ class Broker:
         
         self.utils = utils if utils is not None else BrokerUtils()
         
-        # Unpack config and connect to broker-side API
+        # Unpack config to obtain STARK and API keys 
+        client = Client(host='http://localhost:8080', eth_private_key=config['ETH_PRIV_KEY'])
+        STARK_KEYS = client.onboarding.derive_stark_key(config['ETH_ADDRESS'])
+        API_KEY = client.onboarding.recover_default_api_key_credentials(config['ETH_ADDRESS'])
+
+        # Connect to dYdX API
         self.api = Client(host='https://api.dydx.exchange',
-                api_key_credentials=config['API_KEY'],
-                stark_private_key=config['STARK_KEYS']['private_key'],
-                stark_public_key=config['STARK_KEYS']['public_key'],
-                stark_public_key_y_coordinate=config['STARK_KEYS']['public_key_y_coordinate'],
+                api_key_credentials=API_KEY,
+                stark_private_key=STARK_KEYS['private_key'],
+                stark_public_key=STARK_KEYS['public_key'],
+                stark_public_key_y_coordinate=STARK_KEYS['public_key_y_coordinate'],
                 eth_private_key=config['ETH_PRIV_KEY'],
-                default_ethereum_address=config['ETH_ADDR']
+                default_ethereum_address=config['ETH_ADDRESS']
                 )
         
     
