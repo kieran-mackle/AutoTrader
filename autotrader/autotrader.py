@@ -821,11 +821,14 @@ class AutoTrader:
         
         # Preliminary checks complete, continue
         if self._optimise_mode:
+            # Run optimisation
             if self._backtest_mode:
                 self._run_optimise()
             else:
                 print("Please set backtest parameters to run optimisation.")
+
         else:
+            # Trading
             if not self._backtest_mode and self._broker_name == 'virtual':
                 # Not in backtest mode, yet virtual broker is selected 
                 if not self._papertrading:
@@ -868,7 +871,16 @@ class AutoTrader:
                                 'exists, make sure to specify the home_dir. '+\
                                 'Alternatively, provide a configuration dictionary '+\
                                 'directly via AutoTrader.configure().')
-                                
+            
+            # Check global config requirements
+            if sum([self._backtest_mode, self._scan_mode]) == 0 and \
+                global_config is None:
+                # Livetrade mode without global_config
+                raise Exception("No global configuration found (required for "+\
+                    "livetrading). Either provide a global configuration dictionary "+\
+                    "via the configure method, or create a GLOBAL.yaml file in your "+\
+                    "config/ directory.")
+
             # All checks passed, proceed to run main
             self._main()
 

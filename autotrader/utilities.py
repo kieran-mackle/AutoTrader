@@ -79,13 +79,13 @@ def get_broker_config(global_config: dict, broker: str,
                     'read_only': global_config['read_only'] if 'read_only' in global_config else False}
     
     elif broker.lower() == 'dydx':
-        eth_address = global_config['ETH_ADDRESS'] if 'ETH_ADDRESS' \
-            in global_config else None
-        eth_private_key = global_config['ETH_PRIV_KEY'] if 'ETH_PRIV_KEY' \
-            in global_config else None
+        eth_address = global_config['dYdX']['ETH_ADDRESS'] if 'ETH_ADDRESS' \
+            in global_config['dYdX'] else None
+        eth_private_key = global_config['dYdX']['ETH_PRIV_KEY'] if 'ETH_PRIV_KEY' \
+            in global_config['dYdX'] else None
         config = {'data_source': 'dYdX',
-                  'API_KEY': global_config['API_KEYS'],
-                  'STARK_KEYS': global_config['STARK_KEYS'],
+                  'API_KEY': global_config['dYdX']['API_KEYS'],
+                  'STARK_KEYS': global_config['dYdX']['STARK_KEYS'],
                   'ETH_ADDR': eth_address,
                   'ETH_PRIV_KEY': eth_private_key}
         
@@ -111,7 +111,7 @@ def get_broker_config(global_config: dict, broker: str,
     
     elif broker.lower() == 'virtual':
         config = {}
-        
+
     else:
         raise Exception(f"No configuration available for {broker}.")
             
