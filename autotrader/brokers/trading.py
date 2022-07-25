@@ -67,8 +67,16 @@ class Order:
         is '0.015'.
 
     """
-    def __init__(self, instrument: str = None, direction: int = None,
-                 order_type: str = 'market', **kwargs) -> Order:
+    def __init__(self, instrument: str = None, 
+                 direction: int = None,
+                 order_type: str = 'market',
+                 size: float = None,
+                 order_limit_price: float = None,
+                 order_stop_price: float = None,
+                 stop_loss: float = None,
+                 stop_type: str = None,
+                 take_profit: float = None,
+                 **kwargs) -> Order:
         
         # Required attributes
         self.instrument = instrument
@@ -76,23 +84,25 @@ class Order:
         self.order_type = order_type
 
         # Optional arguments
-        self.size = None
+        self.size = size
         self.base_size = None
         self.target_value = None
         self.size_precision = 2
         self.order_price = None
         self.order_time = None
-        self.order_limit_price = None
-        self.order_stop_price = None
+        self.order_limit_price = order_limit_price
+        self.order_stop_price = order_stop_price
         self.pip_value = None
         
         self.HCF = 1
         
-        self.stop_type = None
-        self.stop_loss = None
+        # Stop loss arguments
+        self.stop_type = stop_type
+        self.stop_loss = stop_loss
         self.stop_distance = None
         
-        self.take_profit = None
+        # Take profit arguments
+        self.take_profit = take_profit
         self.take_distance = None
         
         self.related_orders = None
@@ -370,6 +380,60 @@ class Order:
         return Order(**order_dict)
 
 
+class LimitOrder(Order):
+    """Limit order type."""
+    def __init__(self, instrument: str = None, 
+                 direction: int = None,
+                 size: float = None,
+                 order_limit_price: float = None,
+                 **kwargs):
+        # Create base Order
+        super().__init__(instrument=instrument,
+                         direction=direction,
+                         size=size, 
+                         order_limit_price=order_limit_price, 
+                         **kwargs)
+
+        # Enfore order type
+        self.order_type = 'limit'
+
+
+class MarketOrder(Order):
+    """Market order type."""
+    def __init__(self, instrument: str = None, 
+                 direction: int = None,
+                 size: float = None,
+                 **kwargs):
+        # Create base Order
+        super().__init__(instrument=instrument,
+                         direction=direction,
+                         size=size, 
+                         **kwargs)
+
+        # Enfore order type
+        self.order_type = 'market'
+
+
+class StopLimitOrder(Order):
+    """Stop-limit order type."""
+    def __init__(self, instrument: str = None, 
+                 direction: int = None,
+                 size: float = None,
+                 order_limit_price: float = None,
+                 order_stop_price: float = None,
+                 **kwargs):
+        # Create base Order
+        super().__init__(instrument=instrument,
+                         direction=direction,
+                         size=size, 
+                         order_limit_price=order_limit_price, 
+                         order_stop_price=order_stop_price,
+                         **kwargs)
+
+        # Enfore order type
+        self.order_type = 'stop-limit'
+
+
 class Trade(Order):
     """AutoTrader Trade.
     
@@ -554,9 +618,3 @@ class Position:
         objects as a dictionary.
         """
         return self.__dict__
-
-
-if __name__ == '__main__':
-    order_signal_dict = {'instrument': 'EUR_USD','order_type': 'market', 
-                         'direction': 1, 'stop_loss': 1.22342}
-    o = Order._from_dict(order_signal_dict)
