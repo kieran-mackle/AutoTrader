@@ -8,15 +8,13 @@ class Broker:
     def __init__(self, config: dict, utils: BrokerUtils = None) -> None:
         """AutoTrader Broker Class constructor.
         """
-        
-        self.utils = utils if utils is not None else BrokerUtils()
-        
         # Unpack config and connect to broker-side API
         self.exchange = config['exchange']
         exchange_instance = getattr(ccxt, self.exchange)
         self.api = exchange_instance({'apiKey': config['api_key'],
                                       'secret': config['secret']})
-        
+        self.utils = utils if utils is not None else BrokerUtils()
+
         # Load markets
         markets = self.api.load_markets()
         

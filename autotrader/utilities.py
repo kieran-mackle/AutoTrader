@@ -41,166 +41,135 @@ def write_yaml(data: dict, filepath: str) -> None:
     with open(filepath, 'w') as outfile:
         yaml.dump(data, outfile, default_flow_style=False)
         
-    
-def get_config(environment: str, global_config: dict, feed: str) -> dict:
-    """Returns the configuration dictionary based on the requested 
-    environment.
 
+def get_broker_config(global_config: dict, broker: str, 
+                      environment: str = 'paper') -> dict:
+    """Returns a broker configuration dictionary.
+    
     Parameters
     ----------
+    global_config : dict
+        The global configuration dictionary.
+    broker : str
+        The name of the broker/exchange. 
     environment : str
         The trading evironment ('demo' or 'real').
+    
+    """
+    supported_brokers = ['oanda', 'ib', 'ccxt', 'dydx', 'virtual']
+    if broker.lower() not in supported_brokers:
+        raise Exception(f"Unsupported broker: '{broker}'")
+    
+    if environment.lower() not in ['live', 'paper']:
+        raise Exception("Trading environment can either be 'live' or 'paper'.")
+
+    # Live trading
+    if broker.lower() == 'oanda':
+        api_key = 'LIVE_API' if environment.lower() == 'live' else 'PRACTICE_API'
+        config = {'API': global_config['OANDA'][api_key], 
+                    'ACCESS_TOKEN': global_config['OANDA']['ACCESS_TOKEN'], 
+                    'ACCOUNT_ID': global_config['OANDA']['DEFAULT_ACCOUNT_ID'], 
+                    'PORT': global_config['OANDA']['PORT']}
+        
+    elif broker.lower() == 'ib':
+        config = {'host': global_config['host'] if 'host' in global_config else '127.0.0.1',
+                    'port': global_config['port'] if 'port' in global_config else 7497,
+                    'clientID': global_config['clientID'] if 'clientID' in global_config else 1,
+                    'account': global_config['account'] if 'account' in global_config else '',
+                    'read_only': global_config['read_only'] if 'read_only' in global_config else False}
+    
+    elif broker.lower() == 'dydx':
+        eth_address = global_config['ETH_ADDRESS'] if 'ETH_ADDRESS' \
+            in global_config else None
+        eth_private_key = global_config['ETH_PRIV_KEY'] if 'ETH_PRIV_KEY' \
+            in global_config else None
+        config = {'data_source': 'dYdX',
+                  'API_KEY': global_config['API_KEYS'],
+                  'STARK_KEYS': global_config['STARK_KEYS'],
+                  'ETH_ADDR': eth_address,
+                  'ETH_PRIV_KEY': eth_private_key}
+        
+    elif broker.lower() == 'ccxt':
+        try:
+            config = global_config['CCXT']
+            api_key = config['api_key'] if 'api_key' in config else None
+            secret = config['secret'] if 'secret' in config else None
+            currency = config['base_currency'] if 'base_currency' in config else 'USDT'
+            sandbox_mode = False if environment.lower() == 'live' else True
+            config = {'exchange': config['exchange'],
+                     'api_key': api_key,
+                     'secret': secret,
+                     'sandbox_mode': sandbox_mode,
+                     'base_currency': currency}
+        except KeyError:
+            raise Exception("Using CCXT for trading requires authentication via "+\
+                "the global configuration. Please make sure you provide the "+\
+                "following keys:\n exchange: ccxt exchange name "+\
+                "\n api_key: the exchange-specific api key\n secret: the exchange-"+\
+                "specific api secret\n base_currency: your account's base currency.\n"+\
+                "These must all be provided under a 'CCXT' key.")
+    
+    elif broker.lower() == 'virtual':
+        config = {}
+        
+    else:
+        raise Exception(f"No configuration available for {broker}.")
+            
+    return config
+
+
+def get_data_config(feed: str, global_config: dict = None) -> dict:
+    """Returns a configuration dictionary for AutoData.
+    Parameters
+    ----------
     global_config : dict
         The global configuration dictionary.
     feed : str
-        The data feed.
-
-    Raises
-    ------
-    Exception
-        When an unrecognised data feed is provided.
-
-    Returns
-    -------
-    dict
-        The AutoTrader configuration dictionary.
+        The name of the data feed.
     """
-    # TODO - allow kwargs in config
-
     # Check feed
-    if feed is None:
-        return {}
+    supported_feeds = ['oanda', 'ib', 'ccxt', 'dydx', 
+                       'yahoo', 'local', 'none']
+    if feed.lower() not in supported_feeds:
+        raise Exception(f"Unsupported data feed: '{feed}'")
 
-    if environment.lower() == 'live':
-        # Live trading
-        if feed.upper() == 'OANDA':
-            data_source     = 'OANDA'
-            api             = global_config['OANDA']['LIVE_API']
-            access_token    = global_config['OANDA']['ACCESS_TOKEN']
-            account_id      = global_config['OANDA']['DEFAULT_ACCOUNT_ID']
-            port            = global_config['OANDA']['PORT']
-            
-            config_dict = {'data_source': data_source,
-                           'API': api, 
-                           'ACCESS_TOKEN': access_token, 
-                           'ACCOUNT_ID': account_id, 
-                           'PORT': port}
-            
-        elif feed.upper() == 'IB':
-            # TODO - check port for live trading
-            data_source = 'IB'
-            host = global_config['host'] if 'host' in global_config else '127.0.0.1'
-            port = global_config['port'] if 'port' in global_config else 7497
-            client_id = global_config['clientID'] if 'clientID' in global_config else 1
-            read_only = global_config['read_only'] if 'read_only' in global_config else False
-            account = global_config['account'] if 'account' in global_config else ''
-            
-            config_dict = {'data_source': data_source,
-                           'host': host,
-                           'port': port,
-                           'clientID': client_id,
-                           'account': account,
-                           'read_only': read_only}
-        
-        elif feed.upper() == 'DYDX':
-            eth_address = global_config['ETH_ADDRESS'] if 'ETH_ADDRESS' \
-                in global_config else None
-            eth_private_key = global_config['ETH_PRIV_KEY'] if 'ETH_PRIV_KEY' \
-                in global_config else None
-            config_dict = {'data_source': 'dYdX',
-                           'API_KEY': global_config['API_KEYS'],
-                           'STARK_KEYS': global_config['STARK_KEYS'],
-                           'ETH_ADDR': eth_address,
-                           'ETH_PRIV_KEY': eth_private_key}
-            
-        elif feed.upper() == 'CCXT':
-            config = global_config['CCXT']
-            api_key = config['api_key'] if 'api_key' in config else None
-            secret = config['secret'] if 'secret' in config else None
-            currency = config['base_currency'] if 'base_currency' in config else 'USDT'
-            config_dict = {'data_source': 'CCXT',
-                           'exchange': config['exchange'],
-                           'api_key': api_key,
-                           'secret': secret,
-                           'sandbox_mode': False,
-                           'base_currency': currency}
-            
-        elif feed.upper() == 'YAHOO':
-            data_source = 'yahoo'
-            config_dict = {'data_source': data_source}
-            
-        elif feed.upper() == 'LOCAL':
-            config_dict = {'data_source': 'local'}
-            
-        elif feed.upper() == 'NONE':
-            config_dict = {'data_source': 'none'}
+    # Check for required authentication
+    auth_feeds = ['oanda', 'ib']
+    if feed.lower() in auth_feeds and global_config is None:
+        raise Exception(f"Data feed '{feed}' requires authentication. "+\
+            "Please provide authentication details in the global config.")
 
-        else:
-            raise Exception(f"Unrecognised data feed: '{feed}'. " + \
-                  "Please check global config and retry.")
-            
-    else:
-        # Paper trading
-        if feed.upper() == 'OANDA':
-            data_source     = 'OANDA'
-            api             = global_config['OANDA']['PRACTICE_API']
-            access_token    = global_config['OANDA']['ACCESS_TOKEN']
-            account_id      = global_config['OANDA']['DEFAULT_ACCOUNT_ID']
-            port            = global_config['OANDA']['PORT']
-            
-            config_dict = {'data_source': data_source,
-                           'API': api, 
-                           'ACCESS_TOKEN': access_token, 
-                           'ACCOUNT_ID': account_id, 
-                           'PORT': port}
-            
-        elif feed.upper() == 'IB':
-            # TODO - check port for paper trading
-            data_source = 'IB'
-            host = global_config['host'] if 'host' in global_config else '127.0.0.1'
-            port = global_config['port'] if 'port' in global_config else 7497
-            client_id = global_config['clientID'] if 'clientID' in global_config else 1
-            read_only = global_config['read_only'] if 'read_only' in global_config else False
-            account = global_config['account'] if 'account' in global_config else ''
-            
-            config_dict = {'data_source': data_source,
-                           'host': host,
-                           'port': port,
-                           'clientID': client_id,
-                           'account': account,
-                           'read_only': read_only}
-        
-        elif feed.upper() == 'CCXT':
-            config = global_config['CCXT']
-            api_key = config['api_key'] if 'api_key' in config else None
-            secret = config['secret'] if 'secret' in config else None
-            currency = config['base_currency'] if 'base_currency' in config else 'USDT'
-            config_dict = {'data_source': 'CCXT',
-                           'exchange': config['exchange'],
-                           'api_key': api_key,
-                           'secret': secret,
-                           'sandbox_mode': True,
-                           'base_currency': currency}
-            
-        elif feed.upper() == 'DYDX':
-            config_dict = {'data_source': 'dYdX'}
-            
-        elif feed.upper() == 'YAHOO':
-            data_source = 'yahoo'
-            config_dict = {'data_source': data_source}
-        
-        elif feed.upper() == 'LOCAL':
-            config_dict = {'data_source': 'local'}
-        
-        elif feed.upper() == 'NONE':
-            config_dict = {'data_source': 'none'}
+    # Construct configuration dict
+    config = {'data_source': feed.lower()}
 
-        else:
-            raise Exception(f"Unrecognised data feed: '{feed}'. " + \
-                  "Please check global config and retry.")
+    if feed.lower() == 'oanda':
+        config['API'] = global_config['OANDA']['LIVE_API']
+        config['ACCESS_TOKEN'] = global_config['OANDA']['ACCESS_TOKEN']
+        config['PORT'] = global_config['OANDA']['PORT']
+        
+    elif feed.lower() == 'ib':
+        config['host'] = global_config['host'] if 'host' in global_config else '127.0.0.1'
+        config['port'] = global_config['port'] if 'port' in global_config else 7497
+        config['clientID'] = global_config['clientID'] if 'clientID' in global_config else 1
+        config['account'] = global_config['account'] if 'account' in global_config else ''
+        config['read_only'] = global_config['read_only'] if 'read_only' in global_config else False
     
-    return config_dict
-    
+    elif feed.lower() == 'ccxt':
+        try:
+            if 'feed_exchange' in global_config['CCXT']:
+                # Use data feed exchange
+                config['exchange'] = global_config['CCXT']['feed_exchange']
+            else:
+                # Use default exchange
+                config['exchange'] = global_config['CCXT']['exchange']
+
+        except KeyError:
+            raise Exception("CCXT requires specification of the "+\
+                    "exchange name. Please do so using key 'feed_exchange' "+\
+                    "or 'exchange' in a dictionary under key 'CCXT'.")
+
+    return config
+
 
 def get_watchlist(index, feed):
     """Returns a watchlist of instruments. 

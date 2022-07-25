@@ -6,7 +6,7 @@ import pandas as pd
 from decimal import Decimal
 from datetime import date, datetime
 from autotrader.autodata import AutoData
-from autotrader.utilities import get_config
+from autotrader.utilities import get_data_config
 from autotrader.brokers.broker_utils import BrokerUtils
 from autotrader.brokers.trading import Order, Trade, Position
 
@@ -230,9 +230,8 @@ class Broker:
 
         if autodata_config is not None:
             # Instantiate AutoData from config
-            data_config = get_config(autodata_config['environment'], 
-                                     autodata_config['global_config'], 
-                                     autodata_config['feed'])
+            data_config = get_data_config(global_config=autodata_config['global_config'], 
+                                          feed=autodata_config['feed'])
             self._autodata = AutoData(data_config, **autodata_config)
 
         else:

@@ -5,7 +5,7 @@ from autotrader.comms import emailing
 from datetime import datetime, timezone
 from autotrader.autodata import AutoData
 from autotrader.brokers.trading import Order
-from autotrader.utilities import read_yaml, get_config, TradeAnalysis
+from autotrader.utilities import read_yaml, get_data_config, TradeAnalysis
 
 
 class AutoTraderBot:
@@ -120,8 +120,8 @@ class AutoTraderBot:
         self._strategy_shutdown_method = strategy_dict['shutdown_method']
         
         # Get data feed configuration 
-        data_config = get_config(self._environment, self._global_config_dict, 
-                                 self._feed)
+        data_config = get_data_config(feed=self._feed, 
+                        global_config=self._global_config_dict)
    
         # Data retrieval
         self._quote_data_file = quote_data_path     # Either str or None

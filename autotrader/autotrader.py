@@ -14,9 +14,13 @@ from scipy.optimize import brute
 from datetime import datetime, timezone
 from autotrader.autoplot import AutoPlot
 from autotrader.autobot import AutoTraderBot
-from autotrader.utilities import (read_yaml, get_config, 
-                                  get_watchlist, DataStream, TradeAnalysis,
-                                  unpickle_broker)
+from autotrader.utilities import (read_yaml, 
+                                 get_broker_config, 
+                                 get_data_config,
+                                 get_watchlist, 
+                                 DataStream, 
+                                 TradeAnalysis,
+                                 unpickle_broker)
 
 
 class AutoTrader:
@@ -790,10 +794,11 @@ class AutoTrader:
             # Scan watchlist has not overwritten strategy watchlist
             self._update_strategy_watchlist()
         
-        if len(self._strategy_configs) == 0 and not self._papertrading:
-            print("Error: no strategy has been provided. Do so by using the" +\
+        # Check for added strategies
+        if len(self._strategy_configs) == 0 and not self._papertrading and \
+            int(self._verbosity) > 1:
+            print("Warning: no strategy has been provided. Do so by using the" +\
                   " 'add_strategy' method of AutoTrader.")
-            sys.exit(0)
             
         if sum([self._backtest_mode, self._scan_mode]) > 1:
             print("Error: backtest mode and scan mode are both set to True," +\
@@ -813,7 +818,8 @@ class AutoTrader:
                       "future. The backtest end date will be adjsuted to "+ \
                       "the current time.")
                 self._data_end = datetime.now(tz=timezone.utc)
-            
+        
+        # Preliminary checks complete, continue
         if self._optimise_mode:
             if self._backtest_mode:
                 self._run_optimise()
@@ -821,7 +827,9 @@ class AutoTrader:
                 print("Please set backtest parameters to run optimisation.")
         else:
             if not self._backtest_mode and self._broker_name == 'virtual':
+                # Not in backtest mode, yet virtual broker is selected 
                 if not self._papertrading:
+                    # Not papertrading either
                     raise Exception("Live-trade mode requires setting the "+\
                                     "broker. Please do so using the "+\
                                     "AutoTrader configure method. If you "+\
@@ -830,10 +838,42 @@ class AutoTrader:
                                     "configure the virtual broker account "+\
                                     "with the papertrade method.")
             
-            # Run main
+            # Load global (account) configuration
+            if self._global_config_dict is not None:
+                # Use global config dict provided
+                global_config = self._global_config_dict
+            else:
+                # Try load from file
+                global_config_fp = os.path.join(self._home_dir, 'config', 'GLOBAL.yaml')
+                if os.path.isfile(global_config_fp):
+                    global_config = read_yaml(global_config_fp)
+                else:
+                    global_config = None
+                
+                # Assign
+                self._global_config_dict = global_config
+            
+            # Check data feed requirements
+            if self._feed is None:
+                # No data feed specified
+                if self._backtest_mode:
+                    raise Exception("No data feed specified! Please do so using "+\
+                            "AutoTrader.configure(feed=), or provide local data via "+\
+                            "AutoTrader.add_data().")
+
+            elif global_config is None and self._feed.lower() in ['oanda', 'ib']:
+                # No global configuration provided, but data feed requires authentication
+                raise Exception(f'Data feed "{self._feed}" requires global '+ \
+                                'configuration. If a config file already '+ \
+                                'exists, make sure to specify the home_dir. '+\
+                                'Alternatively, provide a configuration dictionary '+\
+                                'directly via AutoTrader.configure().')
+                                
+            # All checks passed, proceed to run main
             self._main()
 
-            if self._papertrading: 
+            if self._papertrading or len(self._bots_deployed) == 0:
+                # Return broker instance
                 self.broker = self._broker
                 return self._broker
     
@@ -1144,37 +1184,10 @@ class AutoTrader:
     def _main(self) -> None:
         """Run AutoTrader with configured settings.
         """
-        # Load configuration
-        if self._global_config_dict is not None:
-            # Use global config dict provided
-            global_config = self._global_config_dict
-        else:
-            # Try load from file
-            global_config_fp = os.path.join(self._home_dir, 'config', 'GLOBAL.yaml')
-            if os.path.isfile(global_config_fp):
-                global_config = read_yaml(global_config_fp)
-            else:
-                global_config = None
-            
-            # Assign
-            self._global_config_dict = global_config
-        
-        # Check feed
-        if self._feed is None:
-            if not self._execution_feed:
-                raise Exception("No data feed specified! Please do so using "+\
-                        "AutoTrader.configure(), or provide local data via "+\
-                        "AutoTrader.add_data().")
-
-        elif global_config is None and self._feed.lower() in ['oanda', 'ib']:
-            raise Exception(f'Data feed "{self._feed}" requires global '+ \
-                            'configuration. If a config file already '+ \
-                            'exists, make sure to specify the home_dir. '+\
-                            'Alternatively, provide a configuration dictionary '+\
-                            'directly via AutoTrader.configure().')
-        
         # Get broker configuration 
-        broker_config = get_config(self._environment, global_config, self._feed)
+        broker_config = get_broker_config(global_config=self._global_config_dict, 
+                                          broker=self._broker_name,
+                                          environment=self._environment)
         
         if self._account_id is not None:
             # Overwrite default account in global config
@@ -1184,7 +1197,7 @@ class AutoTrader:
         broker_config['verbosity'] = self._broker_verbosity
         
         self._assign_broker(broker_config)
-        self._configure_emailing(global_config)
+        self._configure_emailing(self._global_config_dict)
         
         if int(self._verbosity) > 0:
             print(pyfiglet.figlet_format("AutoTrader", font='slant'))
@@ -1196,7 +1209,8 @@ class AutoTrader:
                 elif self._papertrading:
                     print("PAPERTRADE MODE")
                 else:
-                    print("LIVETRADE MODE")
+                    extra_str = '' if len(self._bots_deployed) > 0 else ' (manual trade)'
+                    print("LIVETRADE MODE"+extra_str)
                 print("Current time: {}".format(datetime.now().strftime("%A, %B %d %Y, "+
                                                                   "%H:%M:%S")))
         
