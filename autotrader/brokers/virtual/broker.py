@@ -383,11 +383,12 @@ class Broker:
         """Cancels the order."""
         instrument = self._order_id_instrument[order_id]
         from_dict = getattr(self, from_dict)[instrument]
-        
+        cancel_reason = reason if reason is not None else "User cancelled."
+
         if instrument not in self.cancelled_orders: 
             self.cancelled_orders[instrument] = {}
         self.cancelled_orders[instrument][order_id] = from_dict.pop(order_id)
-        self.cancelled_orders[instrument][order_id].reason = reason
+        self.cancelled_orders[instrument][order_id].reason = cancel_reason
         self.cancelled_orders[instrument][order_id].status = 'cancelled'
         
         if self.verbosity > 0 and reason:
