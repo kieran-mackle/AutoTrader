@@ -192,7 +192,8 @@ class AutoTrader:
         verbosity : int, optional
             The verbosity of AutoTrader (0, 1, 2). The default is 1.
         broker : str, optional
-            The broker to connect to. The default is 'virtual'.
+            The broker to connect to for trade execution. The default is 
+            'virtual'.
         feed : str, optional
             The data feed to be used. This can be the same as the broker 
             being used, or another data source. Options include 'yahoo', 
@@ -880,13 +881,19 @@ class AutoTrader:
                                 'directly via AutoTrader.configure().')
             
             # Check global config requirements
-            if sum([self._backtest_mode, self._scan_mode]) == 0 and \
-                global_config is None:
-                # Livetrade mode without global_config
-                raise Exception("No global configuration found (required for "+\
-                    "livetrading). Either provide a global configuration dictionary "+\
-                    "via the configure method, or create a GLOBAL.yaml file in your "+\
-                    "config/ directory.")
+            if sum([self._backtest_mode, self._scan_mode]) == 0:
+                # Livetrade mode 
+                if global_config is None:
+                    # No global_config
+                    raise Exception("No global configuration found (required for "+\
+                        "livetrading). Either provide a global configuration dictionary "+\
+                        "via the configure method, or create a GLOBAL.yaml file in your "+\
+                        "config/ directory.")
+                
+                # Check broker
+                supported_exchanges = ['virtual', 'oanda', 'ib', 'ccxt', 'dydx']
+                if self._broker_name.split(':')[0].lower() not in supported_exchanges:
+                    raise Exception(f"Unsupported broker requested: {self._broker_name}")
 
             # All checks passed, proceed to run main
             self._main()
@@ -1337,8 +1344,9 @@ class AutoTrader:
         """Configures and assigns appropriate broker for trading.
         """
         # Import relevant broker and utilities modules
-        broker_module = importlib.import_module(f'autotrader.brokers.{self._broker_name}.broker')
-        utils_module = importlib.import_module(f'autotrader.brokers.{self._broker_name}.utils')
+        broker_name = self._broker_name.lower().split(':')[0]
+        broker_module = importlib.import_module(f'autotrader.brokers.{broker_name}.broker')
+        utils_module = importlib.import_module(f'autotrader.brokers.{broker_name}.utils')
         
         # Create broker and utils instances
         utils = utils_module.Utils()

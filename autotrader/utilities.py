@@ -56,6 +56,11 @@ def get_broker_config(global_config: dict, broker: str,
         The trading evironment ('demo' or 'real').
     
     """
+    # Check for CCXT
+    if broker.split(':')[0].lower() == 'ccxt':
+        gconf_key = broker
+        broker, exchange = broker.lower().split(':')
+        
     supported_brokers = ['oanda', 'ib', 'ccxt', 'dydx', 'virtual']
     if broker.lower() not in supported_brokers:
         raise Exception(f"Unsupported broker: '{broker}'")
@@ -80,8 +85,8 @@ def get_broker_config(global_config: dict, broker: str,
     
     elif broker.lower() == 'dydx':
         try:
-            eth_address = global_config['dYdX']['ETH_ADDRESS']
-            eth_private_key = global_config['dYdX']['ETH_PRIV_KEY']
+            eth_address = global_config['DYDX']['ETH_ADDRESS']
+            eth_private_key = global_config['DYDX']['ETH_PRIV_KEY']
             config = {'data_source': 'dYdX',
                       'ETH_ADDRESS': eth_address,
                       'ETH_PRIV_KEY': eth_private_key}
@@ -92,15 +97,14 @@ def get_broker_config(global_config: dict, broker: str,
                 "\n ETH_PRIV_KEY: your ETH private key."+\
                 "These must all be provided under the 'dYdX' key.")
 
-        
     elif broker.lower() == 'ccxt':
         try:
-            config = global_config['CCXT']
+            config = global_config[gconf_key.upper()]
             api_key = config['api_key'] if 'api_key' in config else None
             secret = config['secret'] if 'secret' in config else None
             currency = config['base_currency'] if 'base_currency' in config else 'USDT'
             sandbox_mode = False if environment.lower() == 'live' else True
-            config = {'exchange': config['exchange'],
+            config = {'exchange': exchange,
                      'api_key': api_key,
                      'secret': secret,
                      'sandbox_mode': sandbox_mode,
@@ -108,10 +112,11 @@ def get_broker_config(global_config: dict, broker: str,
         except KeyError:
             raise Exception("Using CCXT for trading requires authentication via "+\
                 "the global configuration. Please make sure you provide the "+\
-                "following keys:\n exchange: ccxt exchange name "+\
-                "\n api_key: the exchange-specific api key\n secret: the exchange-"+\
-                "specific api secret\n base_currency: your account's base currency.\n"+\
-                "These must all be provided under a 'CCXT' key.")
+                "details in the following format:\n"+\
+                "CCXT:EXCHANGE_NAME:\n"+\
+                '  api_key: "xxxx" (the exchange-specific api key)\n'+\
+                '  secret: "xxxx" (the exchange-specific api secret)\n'+\
+                "  base_currency: USDT (your account's base currency)\n")
     
     elif broker.lower() == 'virtual':
         config = {}
@@ -131,6 +136,10 @@ def get_data_config(feed: str, global_config: dict = None) -> dict:
     feed : str
         The name of the data feed.
     """
+    # Check for CCXT
+    if feed.split(':')[0].lower() == 'ccxt':
+        feed, exchange = feed.lower().split(':')
+
     # Check feed
     supported_feeds = ['oanda', 'ib', 'ccxt', 'dydx', 
                        'yahoo', 'local', 'none']
@@ -159,18 +168,7 @@ def get_data_config(feed: str, global_config: dict = None) -> dict:
         config['read_only'] = global_config['read_only'] if 'read_only' in global_config else False
     
     elif feed.lower() == 'ccxt':
-        try:
-            if 'feed_exchange' in global_config['CCXT']:
-                # Use data feed exchange
-                config['exchange'] = global_config['CCXT']['feed_exchange']
-            else:
-                # Use default exchange
-                config['exchange'] = global_config['CCXT']['exchange']
-
-        except KeyError:
-            raise Exception("CCXT requires specification of the "+\
-                    "exchange name. Please do so using key 'feed_exchange' "+\
-                    "or 'exchange' in a dictionary under key 'CCXT'.")
+        config['exchange'] = exchange
 
     return config
 

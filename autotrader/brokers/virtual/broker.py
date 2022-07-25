@@ -126,12 +126,13 @@ class Broker:
     
     def __repr__(self):
         data_feed = self._autodata._feed
+        if data_feed == 'ccxt':
+            data_feed = self._autodata._ccxt_exchange
         return f'AutoTrader Virtual Broker ({data_feed} data feed)'
     
     
     def __str__(self):
-        data_feed = self._autodata._feed
-        return f'AutoTrader Virtual Broker ({data_feed} data feed)'
+        return self.__repr__()
     
     
     def configure(self, verbosity: int = None, 
