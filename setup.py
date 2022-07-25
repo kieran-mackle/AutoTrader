@@ -53,7 +53,7 @@ setuptools.setup(
             "setuptools_git",
             "setuptools_scm",
         ],
-    package_data={'': ['data/*.js']},
+    package_data={'': ['data/*.js', 'data/GLOBAL.yaml']},
     entry_points={
         'console_scripts': [
             'autotrader = autotrader.bin.cli:cli',
