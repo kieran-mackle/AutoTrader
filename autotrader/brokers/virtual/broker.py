@@ -590,7 +590,7 @@ class Broker:
             else:
                 # Use OHLC data to trigger
                 ref_price = candle.Low if order_direction > 0 else candle.High
-            triggered = order_direction*(ref_price - order_limit_price) <= 0
+            triggered = order_direction*(ref_price - float(order_limit_price)) <= 0
             return triggered
 
         # Check for data availability
@@ -743,6 +743,18 @@ class Broker:
         for instrument in positions:
             l1 = self._autodata.L1(instrument=instrument)
             self._update_positions(instrument=instrument, L1=l1)
+    
+    
+    def _update_instrument(self, instrument):
+        """Convenience method to update a single instrument when paper 
+        trading."""
+        # Update orders
+        orders = self.get_orders(instrument=instrument)
+        positions = self.get_positions(instrument=instrument)
+        if len(orders) + len(positions) > 0:
+            # Update instrument
+            l1 = self._autodata.L1(instrument=instrument)
+            self._update_positions(instrument=instrument, L1=l1)
 
     
     def _fill_order(self, order: Order,
@@ -802,7 +814,7 @@ class Broker:
                         return
         
         # Calculate margin requirements
-        position_value = order.size * reference_price * order.HCF # Net position
+        position_value = order.size * float(reference_price) * order.HCF # Net position
         margin_required = self._calculate_margin(position_value)
         
         if margin_required < self.margin_available:
@@ -827,7 +839,7 @@ class Broker:
             self._trade_id_instrument[trade_id] = order.instrument # Track ID-instrument pair
             trade = Trade(order)
             trade.id = trade_id
-            trade.fill_price = avg_fill_price
+            trade.fill_price = float(avg_fill_price)
             trade.time_filled = fill_time
             trade.margin_required = margin_required
             trade.value = position_value
@@ -948,7 +960,7 @@ class Broker:
                                                   reference_price=reference_price)
         
         # Update portfolio with profit/loss
-        gross_PL = direction*size*(exit_price - fill_price)*trade.HCF
+        gross_PL = direction*size*(float(exit_price) - float(fill_price))*trade.HCF
         commission = self._calculate_commissions(price=exit_price, 
                                                  units=size, 
                                                  HCF=trade.HCF,
@@ -1105,7 +1117,7 @@ class Broker:
 
         if self.commission_scheme == 'percentage':
             # Commission charged as percentage of trade value
-            trade_value = abs(units)*price*HCF
+            trade_value = abs(units)*float(price)*HCF
             commission  = (commission_val/100) * trade_value
         
         elif self.commission_scheme == 'fixed_per_unit':

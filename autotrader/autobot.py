@@ -269,7 +269,10 @@ class AutoTraderBot:
                     try:
                         order_time = current_bars[order.instrument].name
                     except:
-                        order_time = current_bars[order.data_name].name
+                        if self._feed == 'none':
+                            order_time = datetime.now()
+                        else:
+                            order_time = current_bars[order.data_name].name
                         
                     self._broker.place_order(order, order_time=order_time)
             
@@ -516,39 +519,49 @@ class AutoTraderBot:
                         quote_bars: dict) -> None:
         """Passes price data to order to populate missing fields.
         """
-        for order in orders:
-            if self._req_liveprice:
-                liveprice_func = getattr(self._get_data, f'_{self._feed.lower()}_liveprice')
-                last_price = liveprice_func(order)
-            else:
-                try:
-                    last_price = self._get_data._pseduo_liveprice(last=current_bars[order.instrument].Close,
-                                                                  quote_price=quote_bars[order.instrument].Close)
-                except:
-                    last_price = self._get_data._pseduo_liveprice(last=current_bars[order.data_name].Close,
-                                                                  quote_price=quote_bars[order.data_name].Close)
-            
-            if order.order_type not in ['close', 'reduce', 'modify']:
-                if order.direction < 0:
-                    order_price = last_price['bid']
-                    HCF = last_price['negativeHCF']
+        if self._feed != 'none':
+            # Cannot qualify orders without a data feed, continue otherwise
+            for order in orders:
+                if self._req_liveprice:
+                    liveprice_func = getattr(self._get_data, f'_{self._feed.lower()}_liveprice')
+                    last_price = liveprice_func(order)
                 else:
+                    try:
+                        last_price = self._get_data._pseduo_liveprice(last=current_bars[order.instrument].Close,
+                                                                    quote_price=quote_bars[order.instrument].Close)
+                    except:
+                        last_price = self._get_data._pseduo_liveprice(last=current_bars[order.data_name].Close,
+                                                                    quote_price=quote_bars[order.data_name].Close)
+                
+                if order.order_type not in ['close', 'reduce', 'modify']:
+                    if order.direction < 0:
+                        order_price = last_price['bid']
+                        HCF = last_price['negativeHCF']
+                    else:
+                        order_price = last_price['ask']
+                        HCF = last_price['positiveHCF']
+                else:
+                    # Close, reduce or modify order type, provide dummy inputs
                     order_price = last_price['ask']
                     HCF = last_price['positiveHCF']
-            else:
-                # Close, reduce or modify order type, provide dummy inputs
-                order_price = last_price['ask']
-                HCF = last_price['positiveHCF']
-            
-            # Call order with price
-            order(broker=self._broker, order_price=order_price, HCF=HCF)
+                
+                # Call order with price
+                order(broker=self._broker, order_price=order_price, HCF=HCF)
     
     
     def _update_virtual_broker(self, current_bars: dict) -> None:
         """Updates virtual broker with latest price data.
         """
-        for product, bar in current_bars.items():
-            self._broker._update_positions(instrument=product, candle=bar)
+        # TODO - the conditional here should allow specifically updating by L1,
+        # not only when feed=none
+        if self._feed == 'none':
+            # None data feed provided, use L1 to update
+            self._broker._update_instrument(self.instrument)
+
+        else:
+            # Using OHLC data feed
+            for product, bar in current_bars.items():
+                self._broker._update_positions(instrument=product, candle=bar)
     
     
     def _create_trade_results(self) -> dict:
