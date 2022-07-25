@@ -15,12 +15,11 @@ from datetime import datetime, timezone
 from autotrader.autoplot import AutoPlot
 from autotrader.autobot import AutoTraderBot
 from autotrader.utilities import (read_yaml, 
-                                 get_broker_config, 
-                                 get_data_config,
-                                 get_watchlist, 
-                                 DataStream, 
-                                 TradeAnalysis,
-                                 unpickle_broker)
+                                  get_broker_config, 
+                                  get_watchlist, 
+                                  DataStream, 
+                                  TradeAnalysis,
+                                  unpickle_broker)
 
 
 class AutoTrader:
@@ -139,6 +138,7 @@ class AutoTrader:
         self._virtual_margin_call = 0
         self._base_currency = None
         self._virtual_broker_picklefile = None
+        self._broker_refresh_freq = '1s'
         
         # Optimisation Parameters
         self._optimise_mode = False
@@ -346,15 +346,18 @@ class AutoTrader:
     
     def papertrade(self, verbosity: int = 0,
                    initial_balance: float = 1000, 
-                   spread: float = 0, commission: float = 0, 
+                   spread: float = 0, 
+                   commission: float = 0, 
                    spread_units : str = 'price',
                    commission_scheme: str = 'percentage',
                    maker_commission: float = None,
                    taker_commission: float = None,
-                   leverage: int = 1, hedging: bool = False, 
+                   leverage: int = 1, 
+                   hedging: bool = False, 
                    margin_call_fraction: float = 0,
                    picklefile: str = None,
-                   exchange: str = None) -> None:
+                   exchange: str = None,
+                   refresh_freq: str = '1s') -> None:
         """Configures the virtual broker's initial state to allow livetrading
         on the virtual broker.
         
@@ -404,6 +407,9 @@ class AutoTrader:
             an instance of AutoData to update prices and use the realtime 
             orderbook for virtual order execution. This is equivalent to the
             execution_feed.
+        refresh_freq : str, optional
+            The timeperiod to sleep for in between updates of the virtual broker
+            data feed. The default is 1s.
         """
         # Assign attributes
         self._broker_verbosity = verbosity
@@ -420,6 +426,7 @@ class AutoTrader:
         self._virtual_margin_call = margin_call_fraction
         self._virtual_broker_picklefile = picklefile
         self._execution_feed = exchange
+        self._broker_refresh_freq = refresh_freq
         
         # Enforce virtual broker and paper trading environment
         self._broker_name = 'virtual'
@@ -1563,10 +1570,11 @@ class AutoTrader:
             # Toggle broker monitoring on
             print("Running virtual broker updates.")
             self._maintain_broker_thread = True
+            sleep_time = pd.Timedelta(self._broker_refresh_freq).total_seconds()
             while self._maintain_broker_thread:
                 try:
                     self._broker._update_all()
-                    time.sleep(1)
+                    time.sleep(sleep_time)
                 except Exception as e:
                     print(e)
             else:
