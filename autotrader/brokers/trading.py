@@ -380,6 +380,20 @@ class Order:
         return Order(**order_dict)
 
 
+class MarketOrder(Order):
+    """Market order type."""
+    def __init__(self, instrument: str = None, 
+                 direction: int = None,
+                 size: float = None,
+                 **kwargs):
+        # Create base Order
+        super().__init__(instrument=instrument,
+                         direction=direction,
+                         order_type='market',
+                         size=size, 
+                         **kwargs)
+
+                         
 class LimitOrder(Order):
     """Limit order type."""
     def __init__(self, instrument: str = None, 
@@ -390,28 +404,10 @@ class LimitOrder(Order):
         # Create base Order
         super().__init__(instrument=instrument,
                          direction=direction,
+                         order_type='limit',
                          size=size, 
                          order_limit_price=order_limit_price, 
                          **kwargs)
-
-        # Enfore order type
-        self.order_type = 'limit'
-
-
-class MarketOrder(Order):
-    """Market order type."""
-    def __init__(self, instrument: str = None, 
-                 direction: int = None,
-                 size: float = None,
-                 **kwargs):
-        # Create base Order
-        super().__init__(instrument=instrument,
-                         direction=direction,
-                         size=size, 
-                         **kwargs)
-
-        # Enfore order type
-        self.order_type = 'market'
 
 
 class StopLimitOrder(Order):
@@ -425,13 +421,11 @@ class StopLimitOrder(Order):
         # Create base Order
         super().__init__(instrument=instrument,
                          direction=direction,
+                         order_type='stop-limit',
                          size=size, 
                          order_limit_price=order_limit_price, 
                          order_stop_price=order_stop_price,
                          **kwargs)
-
-        # Enfore order type
-        self.order_type = 'stop-limit'
 
 
 class Trade(Order):
