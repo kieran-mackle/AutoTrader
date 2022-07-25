@@ -1228,84 +1228,8 @@ class AutoTrader:
                                     quote_data_path, auxdata, self)
                 self._bots_deployed.append(bot)
                 
-        if int(self._verbosity) > 0 and self._backtest_mode:
-            print("\nTrading...\n")
-            self._backtest_start_time = timeit.default_timer()
-            
         # Begin trading
-        if len(self._bots_deployed) == 0:
-            # No strategy was added; manual trading
-            broker_thread = Thread(target=self._manualtrade)
-            broker_thread.start()
-
-        else:
-            # Automated trading
-            if self._run_mode.lower() == 'continuous':
-                # Running in continuous update mode
-                if self._backtest_mode:
-                    # Backtesting
-                    end_time = self._data_end # datetime
-                    timestamp = self._data_start + self._warmup_period # datetime
-                    pbar = tqdm(total=int((self._data_end - timestamp).total_seconds()),
-                                position=0, leave=True)
-                    while timestamp <= end_time:
-                        # Update each bot with latest data to generate signal
-                        for bot in self._bots_deployed:
-                            bot._update(timestamp=timestamp)
-                            
-                        # Iterate through time
-                        timestamp += self._timestep
-                        pbar.update(self._timestep.total_seconds())
-                    pbar.close()
-                    
-                else:
-                    # Live trading
-                    instance_id = self._get_instance_id()
-                    instance_str = f"autotrader_instance_{instance_id}" if \
-                        self._instance_str is None else self._instance_str
-                    instance_file_exists = self._check_instance_file(instance_str, True)
-                    deploy_time = time.time()
-                    while instance_file_exists:
-                        try:
-                            for bot in self._bots_deployed:
-                                try:
-                                    bot._update(timestamp=datetime.now(timezone.utc))
-                                
-                                except:
-                                    if int(self._verbosity) > 0:
-                                        print("Error: failed to update bot running" +\
-                                            f"{bot._strategy_name} ({bot.instrument})")
-                                        traceback.print_exc()
-                                    
-                            # Go to sleep until next update
-                            time.sleep(self._timestep.seconds - ((time.time() - \
-                                        deploy_time) % self._timestep.seconds))
-                            instance_file_exists = self._check_instance_file(instance_str)
-                        
-                        except KeyboardInterrupt:
-                            print("\nKilling bot(s).")
-                            instance_filepath = os.path.join(self._home_dir, 'active_bots', 
-                                                            instance_str)
-                            os.remove(instance_filepath)
-                            break
-                        
-            elif self._run_mode.lower() == 'periodic':
-                # Trading in periodic update mode
-                if self._backtest_mode:
-                    # Backtesting
-                    self._check_bot_data()
-                    start_range, end_range = self._bots_deployed[0]._get_iteration_range()
-                    for i in range(start_range, end_range):
-                        # Update each bot with latest data to generate signal
-                        for bot in self._bots_deployed:
-                            bot._update(i=i)
-                            
-                else:
-                    # Live trading
-                    bot._update(i=-1) # Process most recent signal
-        
-            # Run shutdown routines
-            self.shutdown()
+        self._trade_update_loop()
 
 
     def _clear_strategies(self) -> None:
@@ -1676,13 +1600,90 @@ class AutoTrader:
 
                 if self._virtual_broker_picklefile:
                     print("\nNote: the instance of the virtual broker has "+\
-                        "been pickled and can be unpickled using the "+\
-                        "`unpickle_broker` utility.")
+                          f"been pickled to '{self._virtual_broker_picklefile}', "+\
+                          "and can be unpickled using the "+\
+                          "`unpickle_broker` utility.")
 
 
     def _trade_update_loop(self):
-        """Runs the trade update loop."""
-        pass
+        """Runs the mode-dependent trade update loop."""
+        if int(self._verbosity) > 0 and self._backtest_mode:
+            print("\nTrading...\n")
+            self._backtest_start_time = timeit.default_timer()
+            
+        if len(self._bots_deployed) == 0:
+            # No strategy was added; manual trading
+            broker_thread = Thread(target=self._manualtrade)
+            broker_thread.start()
+
+        else:
+            # Automated trading
+            if self._run_mode.lower() == 'continuous':
+                # Running in continuous update mode
+                if self._backtest_mode:
+                    # Backtesting
+                    end_time = self._data_end # datetime
+                    timestamp = self._data_start + self._warmup_period # datetime
+                    pbar = tqdm(total=int((self._data_end - timestamp).total_seconds()),
+                                position=0, leave=True)
+                    while timestamp <= end_time:
+                        # Update each bot with latest data to generate signal
+                        for bot in self._bots_deployed:
+                            bot._update(timestamp=timestamp)
+                            
+                        # Iterate through time
+                        timestamp += self._timestep
+                        pbar.update(self._timestep.total_seconds())
+                    pbar.close()
+                    
+                else:
+                    # Live trading
+                    instance_id = self._get_instance_id()
+                    instance_str = f"autotrader_instance_{instance_id}" if \
+                        self._instance_str is None else self._instance_str
+                    instance_file_exists = self._check_instance_file(instance_str, True)
+                    deploy_time = time.time()
+                    while instance_file_exists:
+                        try:
+                            for bot in self._bots_deployed:
+                                try:
+                                    bot._update(timestamp=datetime.now(timezone.utc))
+                                
+                                except:
+                                    if int(self._verbosity) > 0:
+                                        print("Error: failed to update bot running" +\
+                                            f"{bot._strategy_name} ({bot.instrument})")
+                                        traceback.print_exc()
+                                    
+                            # Go to sleep until next update
+                            time.sleep(self._timestep.seconds - ((time.time() - \
+                                        deploy_time) % self._timestep.seconds))
+                            instance_file_exists = self._check_instance_file(instance_str)
+                        
+                        except KeyboardInterrupt:
+                            print("\nKilling bot(s).")
+                            instance_filepath = os.path.join(self._home_dir, 'active_bots', 
+                                                            instance_str)
+                            os.remove(instance_filepath)
+                            break
+                        
+            elif self._run_mode.lower() == 'periodic':
+                # Trading in periodic update mode
+                if self._backtest_mode:
+                    # Backtesting
+                    self._check_bot_data()
+                    start_range, end_range = self._bots_deployed[0]._get_iteration_range()
+                    for i in range(start_range, end_range):
+                        # Update each bot with latest data to generate signal
+                        for bot in self._bots_deployed:
+                            bot._update(i=i)
+                            
+                else:
+                    # Live trading
+                    bot._update(i=-1) # Process most recent signal
+        
+            # Run shutdown routines
+            self.shutdown()
 
     
     @staticmethod
