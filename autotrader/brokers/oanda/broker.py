@@ -1,4 +1,10 @@
-import v20
+from sympy import Mod
+
+
+try:
+    import v20
+except ImportError:
+    raise Exception("Please use 'pip install v20' to trade using Oanda v20 API.")
 import sys
 import time
 import datetime
