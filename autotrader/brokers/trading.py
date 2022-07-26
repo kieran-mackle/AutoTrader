@@ -53,8 +53,6 @@ class Order:
         The base currency of the order (IB only).
     secType : str
         The security type (IB only).
-    exchange : str
-        The exchange on which the instrument is listed (IB only).
     contract_month : str
         The contract month string (IB only).
     localSymbol : str
@@ -65,7 +63,8 @@ class Order:
     limit_fee : str, optional
         The maximum fee to accept as a percentage (dYdX only). The default
         is '0.015'.
-
+    exchange : str
+        The exchange to which the order should be submitted.
     """
     def __init__(self, instrument: str = None, 
                  direction: int = None,
@@ -93,8 +92,10 @@ class Order:
         self.order_limit_price = order_limit_price
         self.order_stop_price = order_stop_price
         self.pip_value = None
-        
         self.HCF = 1
+
+        # Multi-exchange handling
+        self.exchange = None
         
         # Stop loss arguments
         self.stop_type = stop_type
@@ -112,7 +113,6 @@ class Order:
         # IB attributes
         self.currency = None
         self.secType = None
-        self.exchange = None
         self.contract_month = None
         self.localSymbol = None
         
