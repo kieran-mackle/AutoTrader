@@ -1681,7 +1681,8 @@ class AutoTrader:
                 picklefile_list = [config['picklefile'] if config['picklefile'] is not None \
                     else '' for _, config in self._virtual_broker_config.items()]
                 picklefiles = '\n '.join(picklefile_list)
-                if picklefiles != '':
+                check_str = picklefiles.strip().split('\n')
+                if len(check_str) > 1 or check_str[0] != '':
                     print(f"\nThe following pickle files have been created:\n {picklefiles}"+\
                           "\nUse the `unpickle_broker` utility to access these.")
 
