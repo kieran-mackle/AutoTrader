@@ -24,8 +24,8 @@ def test_macd_backtest():
     at.plot_settings(show_cancelled=False)
     at.add_data({'EUR_USD': 'EUR_USD_H4.csv'}, 
                 data_directory=os.path.join(home_dir, 'data'))
-    at.backtest(start = '1/1/2021', end = '1/1/2022',
-                initial_balance=1000, leverage=30,
+    at.backtest(start = '1/1/2021', end = '1/1/2022')
+    at.virtual_account_config(initial_balance=1000, leverage=30,
                 spread=0.5*1e-4, commission=0.005, hedging=True)
     at.run()
     bot = at.get_bots_deployed()
@@ -65,8 +65,8 @@ def test_multibot_macd_backtest():
     at.add_data({'EUR_USD': 'EUR_USD_H4.csv',
                   'EUR_USD2': 'EUR_USD_H4.csv'}, 
                 data_directory=os.path.join(home_dir, 'data'))
-    at.backtest(start = '1/1/2021', end = '1/1/2022',
-                initial_balance=1000, leverage=30,
+    at.backtest(start = '1/1/2021', end = '1/1/2022')
+    at.virtual_account_config(initial_balance=1000, leverage=30,
                 spread=0.5*1e-4, commission=0.005, hedging=True)
     at.run()
     bt_results = at.trade_results.summary()

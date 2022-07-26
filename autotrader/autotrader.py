@@ -339,21 +339,22 @@ class AutoTrader:
             self._strategy_classes[strategy.__name__] = strategy
             
     
-    def papertrade(self, verbosity: int = 0,
-                   initial_balance: float = 1000, 
-                   spread: float = 0, 
-                   commission: float = 0, 
-                   spread_units : str = 'price',
-                   commission_scheme: str = 'percentage',
-                   maker_commission: float = None,
-                   taker_commission: float = None,
-                   leverage: int = 1, 
-                   hedging: bool = False, 
-                   margin_call_fraction: float = 0,
-                   picklefile: str = None,
-                   exchange: str = None,
-                   refresh_freq: str = '1s',
-                   home_currency: str = None) -> None:
+    def virtual_account_config(self, verbosity: int = 0,
+                                initial_balance: float = 1000, 
+                                spread: float = 0, 
+                                commission: float = 0, 
+                                spread_units : str = 'price',
+                                commission_scheme: str = 'percentage',
+                                maker_commission: float = None,
+                                taker_commission: float = None,
+                                leverage: int = 1, 
+                                hedging: bool = False, 
+                                margin_call_fraction: float = 0,
+                                picklefile: str = None,
+                                exchange: str = None,
+                                refresh_freq: str = '1s',
+                                home_currency: str = None,
+                                papertrade: bool = True) -> None:
         """Configures the virtual broker's initial state to allow livetrading
         on the virtual broker. If you wish to create multiple virtual broker
         instances, call this method for each virtual account.
@@ -408,8 +409,13 @@ class AutoTrader:
             data feed. The default is 1s.
         home_currency : str, optional
             The home currency of the account. The default is None.
+        papertrade : bool, optional
+            A boolean to flag when the account is to be used for papertrading
+            (real-time trading on paper). The default is True.
         """
-        # TODO - all of the below need to be specific to the exchange instance
+
+        # TODO - allow specifying spread dictionary to have custom spreads for 
+        # different products
 
         # Enforce virtual broker and paper trading environment
         if exchange is not None:
@@ -422,7 +428,7 @@ class AutoTrader:
 
         self._broker_name += broker_name + ', '
         self._environment = 'paper'
-        self._papertrading = True
+        self._papertrading = False if self._backtest_mode else papertrade
         self._broker_refresh_freq = refresh_freq
 
         # Construct configuration dictionary
@@ -454,14 +460,7 @@ class AutoTrader:
 
 
     def backtest(self, start: str = None, end: str = None, 
-                 initial_balance: float = 1000, spread: float = 0, 
-                 spread_units : str = 'price',
-                 commission: float = 0, commission_scheme: str = 'percentage', 
-                 maker_commission: float = None,
-                 taker_commission: float = None,
-                 leverage: int = 1,
                  start_dt: datetime = None, end_dt: datetime = None, 
-                 hedging: bool = False, margin_call_fraction: float = 0, 
                  warmup_period: str = '0s', 
                  process_holding_history: bool = True) -> None:
         """Configures settings for backtesting.
@@ -476,41 +475,6 @@ class AutoTrader:
             Datetime object corresponding to start time. The default is None.
         end_dt : datetime, optional
             Datetime object corresponding to end time. The default is None.
-        initial_balance : float, optional
-            The initial balance of the account. The default is 1000.
-        spread : float, optional
-            The bid/ask spread to use in backtest (specified in units defined
-            by the spread_units argument). The default is 0.
-        spread_units : str, optional
-            The unit of the spread specified. Options are 'price', meaning that 
-            the spread is quoted in price units, or 'percentage', meaning that 
-            the spread is quoted as a percentage of the market price (eg. 
-            spread=2 is equivalent to 2% spread). The default is 'price'.
-        commission : float, optional
-            Trading commission value, applied according to the commission scheme. 
-            The default is 0.
-        commission_scheme : str, optional
-            The method with which to apply commissions to trades made. The options
-            are (1) 'percentage', where the percentage specified by the commission 
-            argument is applied to the notional trade value, (2) 'fixed_per_unit',
-            where the monetary value specified by the commission argument is 
-            multiplied by the number of units in the trade, and (3) 'flat', where 
-            a flat monetary value specified by the commission argument is charged
-            per trade made, regardless of size. The default is 'percentage'.
-        maker_commission : float, optional
-            The commission to charge on liquidity-making orders. The default is 
-            None, in which case the nominal commission argument will be used.
-        taker_commission: float, optional
-            The commission to charge on liquidity-taking orders. The default is 
-            None, in which case the nominal commission argument will be used.
-        leverage : int, optional
-            Account leverage. The default is 1.
-        hedging : bool, optional
-            Allow hedging in the virtual broker (opening simultaneous 
-            trades in oposing directions). The default is False.
-        margin_call_fraction : float, optional
-            The fraction of margin usage at which a margin call will occur.
-            The default is 0.
         warmup_period : str, optional
             A string describing the warmup period to be used. This is 
             equivalent to the minimum period of time required to collect 
@@ -527,9 +491,6 @@ class AutoTrader:
             example, both start and end arguments must be provided together, 
             or alternatively, start_dt and end_dt must both be provided.
         """
-        # TODO - allow specifying spread dictionary to have custom spreads for 
-        # different products
-        
         # Convert start and end strings to datetime objects
         if start_dt is None and end_dt is None:
             start_dt = datetime.strptime(start + '+0000', '%d/%m/%Y%z')
@@ -539,21 +500,8 @@ class AutoTrader:
         self._backtest_mode = True
         self._data_start = start_dt
         self._data_end = end_dt
-        self._virtual_initial_balance = initial_balance
-        self._virtual_spread = spread
-        self._virtual_spread_units = spread_units
-        self._virtual_commission = commission
-        self._commission_scheme = commission_scheme
-        self._maker_commission = maker_commission
-        self._taker_commission = taker_commission
-        self._virtual_leverage = leverage
-        self._virtual_broker_hedging = hedging
-        self._virtual_margin_call = margin_call_fraction
         self._warmup_period = pd.Timedelta(warmup_period).to_pytimedelta()
         self._process_holding_history = process_holding_history
-        
-        # Enforce virtual broker
-        self._broker_name = 'virtual'
         
     
     def optimise(self, opt_params: list, bounds: list, Ns: int = 4,
@@ -845,7 +793,12 @@ class AutoTrader:
                       "future. The backtest end date will be adjsuted to "+ \
                       "the current time.")
                 self._data_end = datetime.now(tz=timezone.utc)
-        
+            
+            # Check if the broker has been configured
+            if len(self._virtual_broker_config) == 0:
+                # Virtual broker has not been configured yet, assume default
+                self.virtual_account_config(papertrade=False)
+
         # Preliminary checks complete, continue
         if self._optimise_mode:
             # Run optimisation
@@ -866,7 +819,7 @@ class AutoTrader:
                                     "would like to use the virtual broker "+\
                                     "for papertrading, please "+\
                                     "configure the virtual broker account(s) "+\
-                                    "with the papertrade method.")
+                                    "with the virtual_account_config method.")
             
             # Remove any trailing commas in self._broker_name
             self._broker_name = self._broker_name.strip().strip(',')
