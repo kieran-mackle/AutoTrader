@@ -341,6 +341,14 @@ class TradeAnalysis:
                          process_holding_history: bool = True):
         """Analyses trade account and creates summary of key details.
         """
+        # TODO - handle multiple broker instances. Enforce broker input 
+        # as dict, then iterate over and aggregate history. Will need to
+        # see how plotting gets impacted.
+        # Will also want to keep the history from each of the broker instances,
+        # for individual analysis.
+
+        # for broker_name, broker in broker_instances.items():
+
         # Construct trade and order summaries
         all_trades = {}
         for status in ['open', 'closed']:
@@ -386,6 +394,13 @@ class TradeAnalysis:
         account_history = account_history[~account_history.index.duplicated(keep='last')]
         account_history['drawdown'] = account_history.NAV/account_history.NAV.cummax() - 1
         
+
+        # Save results for this broker instance
+        # broker_results[broker_name] = {  <attributes below>  }
+
+        # Aggregate across broker instances
+
+
         # Assign attributes
         self.instruments_traded = list(orders.instrument.unique())
         self.account_history = account_history

@@ -526,6 +526,7 @@ class AutoTraderBot:
                     if not order.direction:
                         # Order direction was not provided, delete order
                         del orders[ix]
+                        continue
             
                 # Check that an exchange has been specified
                 if order.exchange is None:
