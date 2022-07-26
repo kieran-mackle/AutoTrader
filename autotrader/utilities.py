@@ -66,7 +66,7 @@ def get_broker_config(global_config: dict, broker: str,
             broker_key = broker
             broker, exchange = broker.lower().split(':')
         elif broker.split(':')[0].lower() == 'virtual':
-            broker_key = broker
+            broker_key = ':'.join(broker.split(':')[1:])
             broker = 'virtual'
         else:
             broker_key = broker

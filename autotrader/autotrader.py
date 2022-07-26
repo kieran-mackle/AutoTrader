@@ -131,6 +131,7 @@ class AutoTrader:
         
         # Virtual Broker Parameters
         self._virtual_broker_config = {}
+        self._virtual_tradeable_instruments = {} # Instruments tradeable mapper
         self._broker_refresh_freq = '1s'
         
         # Optimisation Parameters
@@ -352,6 +353,7 @@ class AutoTrader:
                                 margin_call_fraction: float = 0,
                                 picklefile: str = None,
                                 exchange: str = None,
+                                tradeable_instruments: list = None,
                                 refresh_freq: str = '1s',
                                 home_currency: str = None,
                                 papertrade: bool = True) -> None:
@@ -404,6 +406,12 @@ class AutoTrader:
             The name of the exchange to use for execution. This gets passed to 
             an instance of AutoData to update prices and use the realtime 
             orderbook for virtual order execution.
+        tradeable_instruments : list, optional
+            A list containing strings of the instruments tradeable through the 
+            exchange specified. This is used to determine which exchange orders
+            should be submitted to when trading across multiple exchanges. This
+            should account for all instruments provided in the watchlist. The 
+            default is None.
         refresh_freq : str, optional
             The timeperiod to sleep for in between updates of the virtual broker
             data feed. The default is 1s.
@@ -419,17 +427,20 @@ class AutoTrader:
 
         # Enforce virtual broker and paper trading environment
         if exchange is not None:
-            split_exchange = exchange.lower().split(':')
-            exchange_name = split_exchange[0] if split_exchange[0] != 'ccxt' else split_exchange[1]
-            broker_name = f'virtual:{exchange_name}'
+            broker_name = exchange
         else:
             # TODO - catch attempt to create multiple instances with same exchange
             broker_name = 'virtual'
 
-        self._broker_name += broker_name + ', '
+        if broker_name not in self._broker_name:
+            self._broker_name += broker_name + ', '
+
         self._environment = 'paper'
         self._papertrading = False if self._backtest_mode else papertrade
         self._broker_refresh_freq = refresh_freq
+
+        if tradeable_instruments is not None:
+            self._virtual_tradeable_instruments[broker_name] = tradeable_instruments
 
         # Construct configuration dictionary
         config = {
@@ -865,6 +876,10 @@ class AutoTrader:
                         "via the configure method, or create a GLOBAL.yaml file in your "+\
                         "config/ directory.")
                 
+                if self._broker_name == '':
+                    raise Exception("Please specify the brokers you would like to "+\
+                        "trade with via the configure method.")
+
                 # Check broker
                 supported_exchanges = ['virtual', 'oanda', 'ib', 'ccxt', 'dydx']
                 inputted_brokers = self._broker_name.lower().replace(' ','').split(',')
@@ -1189,9 +1204,20 @@ class AutoTrader:
         """
         self._multiple_brokers = len(self._broker_name.split(',')) > 1
 
+        # Check tradeable instruments
+        if self._multiple_brokers and len(self._virtual_tradeable_instruments) != \
+            len(self._broker_name.split(',')) and self._backtest_mode:
+            raise Exception("Please define the tradeable instruments for "+\
+                "each virtual account configured.")
+
         # Get broker configuration 
+        if self._backtest_mode or self._papertrading:
+            names_list = [f'virtual:{i}' for i in self._broker_name.split(',')]
+            broker_names = ','.join(names_list)
+        else:
+            broker_names = self._broker_name
         broker_config = get_broker_config(global_config=self._global_config_dict, 
-                                          broker=self._broker_name,
+                                          broker=broker_names,
                                           environment=self._environment)
         
         if self._account_id is not None:
@@ -1212,21 +1238,6 @@ class AutoTrader:
         
         self._assign_broker(broker_config)
         self._configure_emailing(self._global_config_dict)
-        
-        if int(self._verbosity) > 0:
-            print(pyfiglet.figlet_format("AutoTrader", font='slant'))
-            if self._backtest_mode:
-                print("BACKTEST MODE")
-            else:
-                if self._scan_mode:
-                    print("SCAN MODE")
-                elif self._papertrading:
-                    print("PAPERTRADE MODE")
-                else:
-                    extra_str = '' if len(self._bots_deployed) > 0 else ' (manual trade)'
-                    print("LIVETRADE MODE"+extra_str)
-                print("Current time: {}".format(datetime.now().strftime("%A, %B %d %Y, "+
-                                                                  "%H:%M:%S")))
         
         # Assign trading bots to each strategy
         for strategy, config in self._strategy_configs.items():
@@ -1255,7 +1266,22 @@ class AutoTrader:
                                     self._broker, self._data_start, data_dict, 
                                     quote_data_path, auxdata, self)
                 self._bots_deployed.append(bot)
-                
+        
+        if int(self._verbosity) > 0:
+            print(pyfiglet.figlet_format("AutoTrader", font='slant'))
+            if self._backtest_mode:
+                print("BACKTEST MODE")
+            else:
+                if self._scan_mode:
+                    print("SCAN MODE")
+                elif self._papertrading:
+                    print("PAPERTRADE MODE")
+                else:
+                    extra_str = '' if len(self._bots_deployed) > 0 else ' (manual trade)'
+                    print("LIVETRADE MODE"+extra_str)
+                print("Current time: {}".format(datetime.now().strftime("%A, %B %d %Y, "+
+                                                                  "%H:%M:%S")))
+        
         # Begin trading
         self._trade_update_loop()
 
@@ -1341,7 +1367,10 @@ class AutoTrader:
         brokers_utils = {}
         for broker_key, config in broker_config.items():
             # Import relevant broker and utilities modules
-            broker_name = broker_key.lower().split(':')[0]
+            if self._backtest_mode or self._papertrading:
+                broker_name = 'virtual'
+            else:
+                broker_name = broker_key.lower().split(':')[0]
             broker_module = importlib.import_module(f'autotrader.brokers.{broker_name}.broker')
             utils_module = importlib.import_module(f'autotrader.brokers.{broker_name}.utils')
             

@@ -74,6 +74,28 @@ class AutoTraderBot:
         # Assign local attributes
         self.instrument = instrument
         self._broker = broker
+
+        # Check for muliple brokers and construct mapper
+        if self._multiple_brokers:
+            # Trading across multiple venues
+            self._brokers = self._broker
+            self._instrument_to_broker = {}
+            for broker_name, tradeable_instruments in self._virtual_tradeable_instruments.items():
+                for instrument in tradeable_instruments:
+                    self._instrument_to_broker[instrument] = self._brokers[broker_name]
+
+            # TODO - check that length of self._instrument_to_broker matches 
+            # length of self.instruments, if not, some will not be updated.
+
+        else:
+            # Trading through a single broker
+            self._brokers = {self._broker_name: self._broker}
+
+            # Map instruments to broker
+            self._instrument_to_broker = {}
+            instruments = [instrument] if isinstance(instrument, str) else instrument
+            for instrument in instruments:
+                self._instrument_to_broker[instrument] = self._broker
         
         # Unpack strategy parameters and assign to strategy_params
         strategy_config = strategy_dict['config']
@@ -160,7 +182,7 @@ class AutoTraderBot:
         
         # Instantiate Strategy
         strategy_inputs = {'parameters': params, 'data': self._strat_data,
-                           'instrument': instrument}
+                           'instrument': self.instrument}
         
         if strategy_config['INCLUDE_BROKER']:
             strategy_inputs['broker'] = self._broker
@@ -180,14 +202,13 @@ class AutoTraderBot:
         # Assign strategy attributes for tick-based strategy development
         if self._backtest_mode:
             self._strategy._backtesting = True
-            # TODO - make trade_results available on livetrading (eg. paper)
             self.trade_results = None
         if interval.split(',')[0] == 'tick':
             self._strategy._tick_data = True
         
         if int(self._verbosity) > 0:
-                print(f"\nAutoTraderBot assigned to trade {instrument}",
-                      f"with {self._broker_name} broker using {strategy_config['NAME']}.")
+            print(f"\nAutoTraderBot assigned to trade {self.instrument}",
+                    f"with {self._broker_name} broker using {strategy_config['NAME']}.")
     
     
     def __repr__(self):
@@ -242,12 +263,7 @@ class AutoTraderBot:
                 self._update_virtual_broker(current_bars)
             
             # Get strategy orders
-            if self._strategy_params['INCLUDE_POSITIONS']:
-                current_position = self._broker.get_positions(self.instrument)
-                strategy_orders = self._strategy.generate_signal(strat_object, 
-                                            current_position=current_position)
-            else:
-                strategy_orders = self._strategy.generate_signal(strat_object)
+            strategy_orders = self._strategy.generate_signal(strat_object)
             
             # Check and qualify orders
             orders = self._check_orders(strategy_orders)
@@ -273,8 +289,9 @@ class AutoTraderBot:
                             order_time = datetime.now()
                         else:
                             order_time = current_bars[order.data_name].name
-                        
-                    self._broker.place_order(order, order_time=order_time)
+                    
+                    # Submit order to relevant exchange
+                    self._brokers[order.exchange].place_order(order, order_time=order_time)
             
             if self._papertrading:
                 # Update virtual broker again to trigger any orders
@@ -299,7 +316,7 @@ class AutoTraderBot:
             # Check for orders placed and/or scan hits
             if int(self._notify) > 0 and not self._backtest_mode:
                 for order in orders:
-                    self._broker_utils.write_to_order_summary(order, 
+                    self._broker_utils[order.exchange].write_to_order_summary(order, 
                                                               self._order_summary_fp)
                 
                 if int(self._notify) > 1 and \
@@ -500,12 +517,26 @@ class AutoTraderBot:
                 order._risk_pc = self._strategy_params['risk_pc']
                 
         def check_order_details(orders: list) -> None:
+            # Check details for order type have been provided
             for ix, order in enumerate(orders):
                 order.instrument = order.instrument if order.instrument is not None else self.instrument
                 if order.order_type in ['market', 'limit', 'stop-limit', 'reduce']:
                     if not order.direction:
                         # Order direction was not provided, delete order
                         del orders[ix]
+            
+                # Check that an exchange has been specified
+                if order.exchange is None:
+                    # Exchange not specified
+                    if self._multiple_brokers:
+                        # Trading across multiple venues
+                        raise Exception("The exchange to which an order is to be "+\
+                            "submitted must be specified when trading across "+\
+                            "multiple venues. Please include the 'exchange' "+\
+                            "argument when creating an order.")
+                    else:
+                        # Trading on single venue, auto fill
+                        order.exchange = self._broker_name
                     
         # Perform checks
         checked_orders = check_type(orders)
@@ -546,7 +577,7 @@ class AutoTraderBot:
                     HCF = last_price['positiveHCF']
                 
                 # Call order with price
-                order(broker=self._broker, order_price=order_price, HCF=HCF)
+                order(broker=self._brokers[order.exchange], order_price=order_price, HCF=HCF)
     
     
     def _update_virtual_broker(self, current_bars: dict) -> None:
@@ -556,17 +587,21 @@ class AutoTraderBot:
         # not only when feed=none
         if self._feed == 'none':
             # None data feed provided, use L1 to update
-            self._broker._update_instrument(self.instrument)
+            for instrument, broker in self._instrument_to_broker.items():
+                broker._update_instrument(instrument)
 
         else:
             # Using OHLC data feed
             for product, bar in current_bars.items():
-                self._broker._update_positions(instrument=product, candle=bar)
+                broker = self._instrument_to_broker[product]
+                broker._update_positions(instrument=product, candle=bar)
     
     
     def _create_trade_results(self) -> dict:
         """Constructs trade summary for post-processing.
         """
+        # TODO - handle multiple brokers in Trade analysis, then pass in 
+        # the dict of broker instances
         trade_results = TradeAnalysis(self._broker, self.instrument, 
                                            self._process_holding_history)
         trade_results.indicators = self._strategy.indicators if \
