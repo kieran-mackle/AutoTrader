@@ -51,80 +51,96 @@ def get_broker_config(global_config: dict, broker: str,
     global_config : dict
         The global configuration dictionary.
     broker : str
-        The name of the broker/exchange. 
+        The name(s) of the broker/exchange. Specify multiple exchanges using
+        comma separation.
     environment : str
         The trading evironment ('demo' or 'real').
     
     """
-    # Check for CCXT
-    if broker.split(':')[0].lower() == 'ccxt':
-        gconf_key = broker
-        broker, exchange = broker.lower().split(':')
+    all_config = {}
+    inputted_brokers = broker.lower().replace(' ','').split(',')
+
+    for broker in inputted_brokers:
+        # Check for CCXT
+        if broker.split(':')[0].lower() == 'ccxt':
+            broker_key = broker
+            broker, exchange = broker.lower().split(':')
+        elif broker.split(':')[0].lower() == 'virtual':
+            broker_key = broker
+            broker = 'virtual'
+        else:
+            broker_key = broker
+
+        supported_brokers = ['oanda', 'ib', 'ccxt', 'dydx', 'virtual']
+        if broker.lower() not in supported_brokers:
+            raise Exception(f"Unsupported broker: '{broker}'")
         
-    supported_brokers = ['oanda', 'ib', 'ccxt', 'dydx', 'virtual']
-    if broker.lower() not in supported_brokers:
-        raise Exception(f"Unsupported broker: '{broker}'")
-    
-    if environment.lower() not in ['live', 'paper']:
-        raise Exception("Trading environment can either be 'live' or 'paper'.")
+        if environment.lower() not in ['live', 'paper']:
+            raise Exception("Trading environment can either be 'live' or 'paper'.")
 
-    # Live trading
-    if broker.lower() == 'oanda':
-        api_key = 'LIVE_API' if environment.lower() == 'live' else 'PRACTICE_API'
-        config = {'API': global_config['OANDA'][api_key], 
-                    'ACCESS_TOKEN': global_config['OANDA']['ACCESS_TOKEN'], 
-                    'ACCOUNT_ID': global_config['OANDA']['DEFAULT_ACCOUNT_ID'], 
-                    'PORT': global_config['OANDA']['PORT']}
-        
-    elif broker.lower() == 'ib':
-        config = {'host': global_config['host'] if 'host' in global_config else '127.0.0.1',
-                    'port': global_config['port'] if 'port' in global_config else 7497,
-                    'clientID': global_config['clientID'] if 'clientID' in global_config else 1,
-                    'account': global_config['account'] if 'account' in global_config else '',
-                    'read_only': global_config['read_only'] if 'read_only' in global_config else False}
-    
-    elif broker.lower() == 'dydx':
-        try:
-            eth_address = global_config['DYDX']['ETH_ADDRESS']
-            eth_private_key = global_config['DYDX']['ETH_PRIV_KEY']
-            config = {'data_source': 'dYdX',
-                      'ETH_ADDRESS': eth_address,
-                      'ETH_PRIV_KEY': eth_private_key}
-        except KeyError:
-            raise Exception("Using dYdX for trading requires authentication via "+\
-                "the global configuration. Please make sure you provide the "+\
-                "following keys:\n ETH_ADDRESS: your ETH address "+\
-                "\n ETH_PRIV_KEY: your ETH private key."+\
-                "These must all be provided under the 'dYdX' key.")
-
-    elif broker.lower() == 'ccxt':
-        try:
-            config = global_config[gconf_key.upper()]
-            api_key = config['api_key'] if 'api_key' in config else None
-            secret = config['secret'] if 'secret' in config else None
-            currency = config['base_currency'] if 'base_currency' in config else 'USDT'
-            sandbox_mode = False if environment.lower() == 'live' else True
-            config = {'exchange': exchange,
-                     'api_key': api_key,
-                     'secret': secret,
-                     'sandbox_mode': sandbox_mode,
-                     'base_currency': currency}
-        except KeyError:
-            raise Exception("Using CCXT for trading requires authentication via "+\
-                "the global configuration. Please make sure you provide the "+\
-                "details in the following format:\n"+\
-                "CCXT:EXCHANGE_NAME:\n"+\
-                '  api_key: "xxxx" (the exchange-specific api key)\n'+\
-                '  secret: "xxxx" (the exchange-specific api secret)\n'+\
-                "  base_currency: USDT (your account's base currency)\n")
-    
-    elif broker.lower() == 'virtual':
-        config = {}
-
-    else:
-        raise Exception(f"No configuration available for {broker}.")
+        # Live trading
+        if broker.lower() == 'oanda':
+            api_key = 'LIVE_API' if environment.lower() == 'live' else 'PRACTICE_API'
+            config = {'API': global_config['OANDA'][api_key], 
+                        'ACCESS_TOKEN': global_config['OANDA']['ACCESS_TOKEN'], 
+                        'ACCOUNT_ID': global_config['OANDA']['DEFAULT_ACCOUNT_ID'], 
+                        'PORT': global_config['OANDA']['PORT']}
             
-    return config
+        elif broker.lower() == 'ib':
+            config = {'host': global_config['host'] if 'host' in global_config else '127.0.0.1',
+                        'port': global_config['port'] if 'port' in global_config else 7497,
+                        'clientID': global_config['clientID'] if 'clientID' in global_config else 1,
+                        'account': global_config['account'] if 'account' in global_config else '',
+                        'read_only': global_config['read_only'] if 'read_only' in global_config else False}
+        
+        elif broker.lower() == 'dydx':
+            try:
+                eth_address = global_config['DYDX']['ETH_ADDRESS']
+                eth_private_key = global_config['DYDX']['ETH_PRIV_KEY']
+                config = {'data_source': 'dYdX',
+                        'ETH_ADDRESS': eth_address,
+                        'ETH_PRIV_KEY': eth_private_key}
+            except KeyError:
+                raise Exception("Using dYdX for trading requires authentication via "+\
+                    "the global configuration. Please make sure you provide the "+\
+                    "following keys:\n ETH_ADDRESS: your ETH address "+\
+                    "\n ETH_PRIV_KEY: your ETH private key."+\
+                    "These must all be provided under the 'dYdX' key.")
+
+        elif broker.lower() == 'ccxt':
+            try:
+                config = global_config[broker_key.upper()]
+                api_key = config['api_key'] if 'api_key' in config else None
+                secret = config['secret'] if 'secret' in config else None
+                currency = config['base_currency'] if 'base_currency' in config else 'USDT'
+                sandbox_mode = False if environment.lower() == 'live' else True
+                config = {'exchange': exchange,
+                        'api_key': api_key,
+                        'secret': secret,
+                        'sandbox_mode': sandbox_mode,
+                        'base_currency': currency}
+            except KeyError:
+                raise Exception("Using CCXT for trading requires authentication via "+\
+                    "the global configuration. Please make sure you provide the "+\
+                    "details in the following format:\n"+\
+                    "CCXT:EXCHANGE_NAME:\n"+\
+                    '  api_key: "xxxx" (the exchange-specific api key)\n'+\
+                    '  secret: "xxxx" (the exchange-specific api secret)\n'+\
+                    "  base_currency: USDT (your account's base currency)\n")
+        
+        elif broker.lower() == 'virtual':
+            config = {}
+
+        else:
+            raise Exception(f"No configuration available for {broker}.")
+        
+        # Append to full config
+        all_config[broker_key] = config
+
+    # Check length
+    if len(all_config) == 1: all_config = config
+    
+    return all_config
 
 
 def get_data_config(feed: str, global_config: dict = None) -> dict:

@@ -78,28 +78,33 @@ class AutoTrader:
         self._global_config_dict = None
         self._instance_str = None
         self._run_mode = 'periodic'
+        self._papertrading = False
         self._timestep = pd.Timedelta('10s').to_pytimedelta()
         self._warmup_period = pd.Timedelta('0s').to_pytimedelta()
         self._feed = None
-        self._execution_feed = None
         self._req_liveprice = False
         
+        # Communications
         self._notify = 0
         self._email_params = None
         self._order_summary_fp = None
-        self._show_plot = False
         
         # Livetrade Parameters
         self._check_data_alignment = True
         self._allow_dancing_bears = False
         self._maintain_broker_thread = False
 
-        self._broker = None
-        self._broker_utils = None
-        self._broker_verbosity = 0
-        self._environment = 'paper'
-        self._account_id = None
+        # Broker parameters
+        self._broker = None                     # Broker instance(s)
+        self._broker_name = ''                  # Broker name(s)
+        self._broker_utils = None               # Broker utilities
+        self._broker_verbosity = 0              # Broker verbosity
+        self._environment = 'paper'             # Trading environment
+        self._account_id = None                 # Trading account 
+        self._base_currency = None
+        self._multiple_brokers = False
         
+        # Strategy parameters
         self._strategy_configs = {}
         self._strategy_classes = {}
         self._shutdown_methods = {}
@@ -125,19 +130,7 @@ class AutoTrader:
         self._allow_duplicate_bars = False
         
         # Virtual Broker Parameters
-        self._papertrading = False
-        self._virtual_initial_balance = None
-        self._virtual_spread = None
-        self._virtual_spread_units = None
-        self._virtual_commission = None
-        self._commission_scheme = None
-        self._maker_commission = None
-        self._taker_commission = None
-        self._virtual_leverage = None
-        self._virtual_broker_hedging = False
-        self._virtual_margin_call = 0
-        self._base_currency = None
-        self._virtual_broker_picklefile = None
+        self._virtual_broker_config = {}
         self._broker_refresh_freq = '1s'
         
         # Optimisation Parameters
@@ -152,6 +145,7 @@ class AutoTrader:
         self._scan_watchlist = None
         
         # Plotting
+        self._show_plot = False
         self._max_indis_over = 3
         self._max_indis_below = 2
         self._fig_tools = "pan,wheel_zoom,box_zoom,undo,redo,reset,save,crosshair"
@@ -175,7 +169,7 @@ class AutoTrader:
         return 'AutoTrader instance'
     
     
-    def configure(self, verbosity: int = 1, broker: str = 'virtual', 
+    def configure(self, verbosity: int = 1, broker: str = None, 
                   feed: str = None, req_liveprice: bool = False, 
                   notify: int = 0, home_dir: str = None, 
                   allow_dancing_bears: bool = False, account_id: str = None, 
@@ -192,8 +186,8 @@ class AutoTrader:
         verbosity : int, optional
             The verbosity of AutoTrader (0, 1, 2). The default is 1.
         broker : str, optional
-            The broker to connect to for trade execution. The default is 
-            'virtual'.
+            The broker(s) to connect to for trade execution. Multiple exchanges
+            can be provided using comma separattion. The default is 'virtual'.
         feed : str, optional
             The data feed to be used. This can be the same as the broker 
             being used, or another data source. Options include 'yahoo', 
@@ -258,7 +252,7 @@ class AutoTrader:
         self._verbosity = verbosity
         self._feed = feed
         self._req_liveprice = req_liveprice
-        self._broker_name = broker
+        self._broker_name = broker if broker is not None else self._broker_name
         self._notify = notify
         self._home_dir = home_dir if home_dir is not None else os.getcwd()
         self._allow_dancing_bears = allow_dancing_bears
@@ -358,9 +352,11 @@ class AutoTrader:
                    margin_call_fraction: float = 0,
                    picklefile: str = None,
                    exchange: str = None,
-                   refresh_freq: str = '1s') -> None:
+                   refresh_freq: str = '1s',
+                   home_currency: str = None) -> None:
         """Configures the virtual broker's initial state to allow livetrading
-        on the virtual broker.
+        on the virtual broker. If you wish to create multiple virtual broker
+        instances, call this method for each virtual account.
         
         Parameters
         ----------
@@ -406,32 +402,55 @@ class AutoTrader:
         exchange : str, optional
             The name of the exchange to use for execution. This gets passed to 
             an instance of AutoData to update prices and use the realtime 
-            orderbook for virtual order execution. This is equivalent to the
-            execution_feed.
+            orderbook for virtual order execution.
         refresh_freq : str, optional
             The timeperiod to sleep for in between updates of the virtual broker
             data feed. The default is 1s.
+        home_currency : str, optional
+            The home currency of the account. The default is None.
         """
-        # Assign attributes
-        self._broker_verbosity = verbosity
-        self._papertrading = True
-        self._virtual_initial_balance = initial_balance
-        self._virtual_spread = spread
-        self._virtual_spread_units = spread_units
-        self._virtual_commission = commission
-        self._commission_scheme = commission_scheme
-        self._maker_commission = maker_commission
-        self._taker_commission = taker_commission
-        self._virtual_leverage = leverage
-        self._virtual_broker_hedging = hedging
-        self._virtual_margin_call = margin_call_fraction
-        self._virtual_broker_picklefile = picklefile
-        self._execution_feed = exchange
-        self._broker_refresh_freq = refresh_freq
-        
+        # TODO - all of the below need to be specific to the exchange instance
+
         # Enforce virtual broker and paper trading environment
-        self._broker_name = 'virtual'
+        if exchange is not None:
+            split_exchange = exchange.lower().split(':')
+            exchange_name = split_exchange[0] if split_exchange[0] != 'ccxt' else split_exchange[1]
+            broker_name = f'virtual:{exchange_name}'
+        else:
+            # TODO - catch attempt to create multiple instances with same exchange
+            broker_name = 'virtual'
+
+        self._broker_name += broker_name + ', '
         self._environment = 'paper'
+        self._papertrading = True
+        self._broker_refresh_freq = refresh_freq
+
+        # Construct configuration dictionary
+        config = {
+            # Broker configuration
+            'verbosity': verbosity,
+            'initial_balance': initial_balance,
+            'leverage': leverage,
+            'spread': spread,
+            'spread_units': spread_units,
+            'commission': commission,
+            'commission_scheme': commission_scheme,
+            'maker_commission': maker_commission,
+            'taker_commission': taker_commission,
+            'hedging': hedging,
+            'base_currency': home_currency,
+            'paper_mode': self._papertrading,
+            'public_trade_access': False,           # Not yet implemented
+            'margin_closeout': margin_call_fraction,
+            'picklefile': picklefile,
+
+            # Extra parameters
+            'execution_feed': exchange,
+            }
+        
+        # Append 
+        # TODO - check keys for already existing
+        self._virtual_broker_config[broker_name] = config
 
 
     def backtest(self, start: str = None, end: str = None, 
@@ -837,7 +856,7 @@ class AutoTrader:
 
         else:
             # Trading
-            if not self._backtest_mode and self._broker_name == 'virtual':
+            if not self._backtest_mode and 'virtual' in self._broker_name:
                 # Not in backtest mode, yet virtual broker is selected 
                 if not self._papertrading:
                     # Not papertrading either
@@ -845,10 +864,13 @@ class AutoTrader:
                                     "broker. Please do so using the "+\
                                     "AutoTrader configure method. If you "+\
                                     "would like to use the virtual broker "+\
-                                    "for sandbox livetrading, please "+\
-                                    "configure the virtual broker account "+\
+                                    "for papertrading, please "+\
+                                    "configure the virtual broker account(s) "+\
                                     "with the papertrade method.")
             
+            # Remove any trailing commas in self._broker_name
+            self._broker_name = self._broker_name.strip().strip(',')
+
             # Load global (account) configuration
             if self._global_config_dict is not None:
                 # Use global config dict provided
@@ -892,8 +914,10 @@ class AutoTrader:
                 
                 # Check broker
                 supported_exchanges = ['virtual', 'oanda', 'ib', 'ccxt', 'dydx']
-                if self._broker_name.split(':')[0].lower() not in supported_exchanges:
-                    raise Exception(f"Unsupported broker requested: {self._broker_name}")
+                inputted_brokers = self._broker_name.lower().replace(' ','').split(',')
+                for broker in inputted_brokers:
+                    if broker.split(':')[0] not in supported_exchanges:
+                        raise Exception(f"Unsupported broker requested: {self._broker_name}")
 
             # All checks passed, proceed to run main
             self._main()
@@ -1210,17 +1234,28 @@ class AutoTrader:
     def _main(self) -> None:
         """Run AutoTrader with configured settings.
         """
+        self._multiple_brokers = len(self._broker_name.split(',')) > 1
+
         # Get broker configuration 
         broker_config = get_broker_config(global_config=self._global_config_dict, 
                                           broker=self._broker_name,
                                           environment=self._environment)
         
         if self._account_id is not None:
-            # Overwrite default account in global config
-            broker_config['ACCOUNT_ID'] = self._account_id
+            if self._multiple_brokers:
+                raise Exception("Cannot use provided account ID when "+\
+                    "trading across multiple exchanges. Please specify the "+\
+                    "desired account in the GLOBAL config.")
+            else:
+                # Overwrite default account in global config
+                broker_config['ACCOUNT_ID'] = self._account_id
         
         # Append broker verbosity to broker_config
-        broker_config['verbosity'] = self._broker_verbosity
+        if self._multiple_brokers:
+            for broker, config in broker_config.items():
+                config['verbosity'] = self._broker_verbosity
+        else:
+            broker_config['verbosity'] = self._broker_verbosity
         
         self._assign_broker(broker_config)
         self._configure_emailing(self._global_config_dict)
@@ -1341,43 +1376,49 @@ class AutoTrader:
     
     
     def _assign_broker(self, broker_config: dict) -> None:
-        """Configures and assigns appropriate broker for trading.
+        """Configures and assigns appropriate broker(s) for trading.
         """
-        # Import relevant broker and utilities modules
-        broker_name = self._broker_name.lower().split(':')[0]
-        broker_module = importlib.import_module(f'autotrader.brokers.{broker_name}.broker')
-        utils_module = importlib.import_module(f'autotrader.brokers.{broker_name}.utils')
-        
-        # Create broker and utils instances
-        utils = utils_module.Utils()
-        broker = broker_module.Broker(broker_config, utils)
-        
-        if self._backtest_mode or self._papertrading:
-            # Using virtual broker, initialise account
-            feed = self._feed if self._execution_feed is None else self._execution_feed
-            autodata_config = {'feed': feed, 
-                               'environment': self._environment,
-                               'global_config': self._global_config_dict,
-                               'allow_dancing_bears': self._allow_dancing_bears,
-                               'base_currency': self._base_currency}
-            broker.configure(verbosity=self._broker_verbosity,
-                              initial_balance=self._virtual_initial_balance, 
-                              leverage=self._virtual_leverage, 
-                              spread=self._virtual_spread,
-                              spread_units=self._virtual_spread_units,
-                              commission=self._virtual_commission,
-                              commission_scheme=self._commission_scheme,
-                              maker_commission=self._maker_commission,
-                              taker_commission=self._taker_commission,
-                              hedging=self._virtual_broker_hedging, 
-                              base_currency=self._base_currency,
-                              paper_mode=self._papertrading, 
-                              margin_closeout=self._virtual_margin_call,
-                              autodata_config=autodata_config,
-                              picklefile=self._virtual_broker_picklefile)
+        # Check for multiple brokers
+        if not self._multiple_brokers:
+            # Put broker config in dict to allow single iteration
+            broker_config = {self._broker_name: broker_config}
 
-        self._broker = broker
-        self._broker_utils = utils
+        # Instantiate brokers
+        brokers = {}
+        brokers_utils = {}
+        for broker_key, config in broker_config.items():
+            # Import relevant broker and utilities modules
+            broker_name = broker_key.lower().split(':')[0]
+            broker_module = importlib.import_module(f'autotrader.brokers.{broker_name}.broker')
+            utils_module = importlib.import_module(f'autotrader.brokers.{broker_name}.utils')
+            
+            # Create broker and utils instances
+            utils = utils_module.Utils()
+            broker = broker_module.Broker(config, utils)
+            
+            if self._backtest_mode or self._papertrading:
+                # Using virtual broker, configure account
+                account_config = self._virtual_broker_config[broker_key]
+                execution_feed = account_config['execution_feed']
+                feed = self._feed if execution_feed is None else execution_feed
+                autodata_config = {'feed': feed, 
+                                'environment': self._environment,
+                                'global_config': self._global_config_dict,
+                                'allow_dancing_bears': self._allow_dancing_bears,
+                                'base_currency': self._base_currency}
+                broker.configure(**account_config, autodata_config=autodata_config)
+
+            # Append to brokers dict
+            brokers[broker_key] = broker
+            brokers_utils[broker_key] = utils
+
+        if not self._multiple_brokers:
+            # Extract single broker
+            brokers = broker
+            brokers_utils = utils
+
+        self._broker = brokers
+        self._broker_utils = brokers_utils
     
     
     def _configure_emailing(self, global_config: dict) -> None:
@@ -1579,10 +1620,19 @@ class AutoTrader:
             print("Running virtual broker updates.")
             self._maintain_broker_thread = True
             sleep_time = pd.Timedelta(self._broker_refresh_freq).total_seconds()
+            
+            # Check for multiple brokers
+            if not self._multiple_brokers:
+                brokers = {self._broker_name: self._broker}
+            else:
+                brokers = self._broker
+
+            # Run update loop
             while self._maintain_broker_thread:
                 try:
-                    self._broker._update_all()
-                    time.sleep(sleep_time)
+                    for broker_name, broker in brokers.items():
+                        broker._update_all()
+                        time.sleep(sleep_time)
                 except Exception as e:
                     print(e)
             else:
@@ -1592,6 +1642,8 @@ class AutoTrader:
 
     def shutdown(self):
         """Shutdown the active AutoTrader instance."""
+
+        # TODO - need to iterate over all brokers
 
         if int(self._verbosity) > 0 and self._backtest_mode:
             backtest_end_time = timeit.default_timer()
@@ -1640,6 +1692,7 @@ class AutoTrader:
                         process_holding_history=self._process_holding_history)
                 self.print_trade_results(papertrade_results)
 
+                # TODO - need to look into virtual broker config dict
                 if self._virtual_broker_picklefile:
                     print("\nNote: the instance of the virtual broker has "+\
                           f"been pickled to '{self._virtual_broker_picklefile}', "+\

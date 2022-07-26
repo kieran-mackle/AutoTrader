@@ -150,7 +150,8 @@ class Broker:
                   public_trade_access: bool = None,
                   margin_closeout: float = None,
                   autodata_config: dict = None, 
-                  picklefile: str = None):
+                  picklefile: str = None,
+                  **kwargs):
         """Configures the broker and account settings.
         
         Parameters
