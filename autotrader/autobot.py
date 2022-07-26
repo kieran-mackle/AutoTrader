@@ -82,10 +82,12 @@ class AutoTraderBot:
             self._instrument_to_broker = {}
             for broker_name, tradeable_instruments in self._virtual_tradeable_instruments.items():
                 for instrument in tradeable_instruments:
-                    self._instrument_to_broker[instrument] = self._brokers[broker_name]
-
-            # TODO - check that length of self._instrument_to_broker matches 
-            # length of self.instruments, if not, some will not be updated.
+                    if instrument in self._instrument_to_broker:
+                        # Instrument is already in mapper, add broker
+                        self._instrument_to_broker[instrument].append(self._brokers[broker_name])
+                    else:
+                        # New instrument, add broker
+                        self._instrument_to_broker[instrument] = [self._brokers[broker_name]]
 
         else:
             # Trading through a single broker
@@ -95,7 +97,7 @@ class AutoTraderBot:
             self._instrument_to_broker = {}
             instruments = [instrument] if isinstance(instrument, str) else instrument
             for instrument in instruments:
-                self._instrument_to_broker[instrument] = self._broker
+                self._instrument_to_broker[instrument] = [self._broker]
         
         # Unpack strategy parameters and assign to strategy_params
         strategy_config = strategy_dict['config']
@@ -587,14 +589,16 @@ class AutoTraderBot:
         # not only when feed=none
         if self._feed == 'none':
             # None data feed provided, use L1 to update
-            for instrument, broker in self._instrument_to_broker.items():
-                broker._update_instrument(instrument)
+            for instrument, brokers in self._instrument_to_broker.items():
+                for broker in brokers:
+                    broker._update_instrument(instrument)
 
         else:
             # Using OHLC data feed
             for product, bar in current_bars.items():
-                broker = self._instrument_to_broker[product]
-                broker._update_positions(instrument=product, candle=bar)
+                brokers = self._instrument_to_broker[product]
+                for broker in brokers:
+                    broker._update_positions(instrument=product, candle=bar)
     
     
     def _create_trade_results(self) -> dict:
