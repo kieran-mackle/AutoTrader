@@ -208,10 +208,6 @@ class AutoTraderBot:
         if interval.split(',')[0] == 'tick':
             self._strategy._tick_data = True
         
-        if int(self._verbosity) > 0:
-            print(f"\nAutoTraderBot assigned to trade {self.instrument}",
-                    f"with {self._broker_name} broker using {strategy_config['NAME']}.")
-    
     
     def __repr__(self):
         # TODO - alter str for portfolio bots

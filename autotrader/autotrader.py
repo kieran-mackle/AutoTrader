@@ -1239,6 +1239,9 @@ class AutoTrader:
         self._assign_broker(broker_config)
         self._configure_emailing(self._global_config_dict)
         
+        if int(self._verbosity) > 0:
+            print(pyfiglet.figlet_format("AutoTrader", font='slant'))
+
         # Assign trading bots to each strategy
         for strategy, config in self._strategy_configs.items():
             # Check for portfolio strategy
@@ -1268,7 +1271,6 @@ class AutoTrader:
                 self._bots_deployed.append(bot)
         
         if int(self._verbosity) > 0:
-            print(pyfiglet.figlet_format("AutoTrader", font='slant'))
             if self._backtest_mode:
                 print("BACKTEST MODE")
             else:
@@ -1282,6 +1284,10 @@ class AutoTrader:
                 print("Current time: {}".format(datetime.now().strftime("%A, %B %d %Y, "+
                                                                   "%H:%M:%S")))
         
+            for bot in self._bots_deployed:
+                print(f"\nAutoTraderBot assigned to trade {bot.instrument}",
+                    f"with {bot._broker_name} broker using {bot._strategy_name}.")
+
         # Begin trading
         self._trade_update_loop()
 
