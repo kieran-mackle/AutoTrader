@@ -1631,8 +1631,6 @@ class AutoTrader:
     def shutdown(self):
         """Shutdown the active AutoTrader instance."""
 
-        # TODO - need to iterate over all brokers
-
         if int(self._verbosity) > 0 and self._backtest_mode:
             backtest_end_time = timeit.default_timer()
 
@@ -1646,7 +1644,6 @@ class AutoTrader:
         # Run instance shut-down routine
         if self._backtest_mode:
             # Create overall backtest results
-            # TODO - create TradeAnalysis from all broker instances
             self.trade_results = TradeAnalysis(self._broker, 
                         process_holding_history=self._process_holding_history)
             
@@ -1677,12 +1674,10 @@ class AutoTrader:
             
             elif self._papertrading:
                 # Paper trade through virtual broker
-                # TODO - create TradeAnalysis from all broker instances
                 papertrade_results = TradeAnalysis(self._broker, 
                         process_holding_history=self._process_holding_history)
                 self.print_trade_results(papertrade_results)
 
-                # TODO - need to look into virtual broker config dict
                 picklefile_list = [config['picklefile'] if config['picklefile'] is not None \
                     else '' for _, config in self._virtual_broker_config.items()]
                 picklefiles = '\n '.join(picklefile_list)

@@ -318,9 +318,11 @@ class TradeAnalysis:
     def __init__(self, broker, instrument: str = None, 
                  process_holding_history: bool = True):
         
+        self.brokers_used = None
+        self.broker_results = None
         self.instruments_traded = None
         self.account_history = None
-        self.holding_history = None
+        # self.holding_history = None
         self.trade_history = None
         self.order_history = None
         self.open_trades = None
@@ -341,79 +343,139 @@ class TradeAnalysis:
                          process_holding_history: bool = True):
         """Analyses trade account and creates summary of key details.
         """
-        # TODO - handle multiple broker instances. Enforce broker input 
-        # as dict, then iterate over and aggregate history. Will need to
-        # see how plotting gets impacted.
-        # Will also want to keep the history from each of the broker instances,
-        # for individual analysis.
+        if not isinstance(broker, dict):
+            # Single broker - create dummy dict
+            broker_instances = {'broker': broker}
+        else:
+            # Multiple brokers passed in as dict
+            broker_instances = broker
 
-        # for broker_name, broker in broker_instances.items():
-
-        # Construct trade and order summaries
-        all_trades = {}
-        for status in ['open', 'closed']:
-            trades = broker.get_trades(trade_status=status)
-            all_trades.update(trades)
-        
-        all_orders = {}
-        for status in ['pending', 'open', 'filled', 'cancelled']:
-            orders = broker.get_orders(order_status=status)
-            all_orders.update(orders)
-        
-        trades = TradeAnalysis.create_trade_summary(trades=all_trades, 
-                                                      instrument=instrument)
-        orders = TradeAnalysis.create_trade_summary(orders=all_orders, 
-                                                      instrument=instrument)
-        
-        # Construct account history
-        account_history = pd.DataFrame(data={'NAV': broker._NAV_hist, 
-                                             'equity': broker._equity_hist, 
-                                             'margin': broker._margin_hist},
-                                       index=broker._time_hist)
-        
-        # Create history of holdings
-        holding_history = None
-        if process_holding_history:
-            holdings = broker.holdings.copy()
-            holding_history = pd.DataFrame(columns=list(orders.instrument.unique()),
-                                            index=account_history.index)
-            for i in range(len(holding_history)):
-                try:
-                    holding_history.iloc[i] = holdings[i]
-                except:
-                    pass
-            holding_history.fillna(0, inplace=True)
+        # Process results from each broker instance
+        broker_results = {}
+        for broker_name, broker in broker_instances.items():
+            # Construct trade and order summaries
+            all_trades = {}
+            for status in ['open', 'closed']:
+                trades = broker.get_trades(trade_status=status)
+                all_trades.update(trades)
             
-            for col in holding_history.columns:
-                holding_history[col] = holding_history[col] / account_history.NAV
+            all_orders = {}
+            for status in ['pending', 'open', 'filled', 'cancelled']:
+                orders = broker.get_orders(order_status=status)
+                all_orders.update(orders)
             
-            # Drop duplicated indices from multiple product updates 
-            holding_history = holding_history[~holding_history.index.duplicated(keep='last')]
-            holding_history['cash'] = 1 - holding_history.sum(1)
-        
-        account_history = account_history[~account_history.index.duplicated(keep='last')]
-        account_history['drawdown'] = account_history.NAV/account_history.NAV.cummax() - 1
-        
+            trades = TradeAnalysis.create_trade_summary(trades=all_trades, 
+                                                        instrument=instrument,
+                                                        broker_name=broker_name)
+            orders = TradeAnalysis.create_trade_summary(orders=all_orders, 
+                                                        instrument=instrument,
+                                                        broker_name=broker_name)
+            
+            # Construct account history
+            account_history = pd.DataFrame(data={'NAV': broker._NAV_hist, 
+                                                'equity': broker._equity_hist, 
+                                                'margin': broker._margin_hist},
+                                        index=broker._time_hist)
+            
+            # Create history of holdings
+            holding_history = None
+            if process_holding_history:
+                holdings = broker.holdings.copy()
+                holding_history = pd.DataFrame(columns=list(orders.instrument.unique()),
+                                                index=account_history.index)
+                for i in range(len(holding_history)):
+                    try:
+                        holding_history.iloc[i] = holdings[i]
+                    except:
+                        pass
+                holding_history.fillna(0, inplace=True)
+                
+                for col in holding_history.columns:
+                    holding_history[col] = holding_history[col] / account_history.NAV
+                
+                # Drop duplicated indices from multiple product updates 
+                holding_history = holding_history[~holding_history.index.duplicated(keep='last')]
+                holding_history['cash'] = 1 - holding_history.sum(1)
+            
+            account_history = account_history[~account_history.index.duplicated(keep='last')]
+            account_history['drawdown'] = account_history.NAV/account_history.NAV.cummax() - 1
 
-        # Save results for this broker instance
-        # broker_results[broker_name] = {  <attributes below>  }
+            # Save results for this broker instance
+            broker_results[broker_name] = {
+                            'instruments_traded': list(orders.instrument.unique()),
+                            'account_history': account_history,
+                            'holding_history': holding_history,
+                            'trade_history': trades,
+                            'order_history': orders,
+                            'open_trades': trades[trades.status == 'open'],
+                            'cancelled_orders': orders[orders.status == 'cancelled'],
+                            }
+
+        # Save all results
+        self.broker_results = broker_results
 
         # Aggregate across broker instances
+        self._aggregate_across_brokers(broker_results)
+    
 
+    def _aggregate_across_brokers(self, broker_results):
+        """Aggregates trading history across all broker instances."""
+        
+        brokers_used = []
+        instruments_traded = []
+        open_trades = pd.DataFrame()
+        cancelled_orders = pd.DataFrame()
+        trade_history = pd.DataFrame()
+        order_history = pd.DataFrame()
+        account_history = None
+        for broker, results in broker_results.items():
+            orders = results['order_history']
+            brokers_used.append(broker)
+
+            # Append unique instruments traded
+            unique_instruments = orders.instrument.unique()
+            [instruments_traded.append(instrument) if instrument not in \
+                instruments_traded else None for instrument in unique_instruments]
+            
+            # Aggregate account history
+            if account_history is None:
+                # Initialise
+                account_history = results['account_history']
+            else:
+                # Reindex each dataset
+                original_index = results['account_history'].reindex(index=account_history.index,
+                                                                 method='ffill')
+                new_index = account_history.reindex(index=results['account_history'].index,
+                                                                 method='ffill')
+                if len(original_index) >= len(new_index):
+                    # Use original index
+                    account_history += original_index
+                else:
+                    # Use new index
+                    account_history = new_index + results['account_history']
+
+            # Concatenate trades and orders
+            open_trades = pd.concat([open_trades, results['open_trades']])
+            cancelled_orders = pd.concat([cancelled_orders, results['cancelled_orders']])
+            trade_history = pd.concat([trade_history, results['trade_history']])
+            order_history = pd.concat([order_history, results['order_history']])
 
         # Assign attributes
-        self.instruments_traded = list(orders.instrument.unique())
+        self.brokers_used = brokers_used
+        self.instruments_traded = instruments_traded
         self.account_history = account_history
-        self.holding_history = holding_history
-        self.trade_history = trades
-        self.order_history = orders
-        self.open_trades = trades[trades.status == 'open']
-        self.cancelled_orders = orders[orders.status == 'cancelled']
-    
+        # self.holding_history = holding_history
+        self.trade_history = trade_history
+        self.order_history = order_history
+        self.open_trades = open_trades
+        self.cancelled_orders = cancelled_orders
+
     
     @staticmethod
-    def create_trade_summary(trades: dict = None, orders: dict = None, 
-                             instrument: str = None) -> pd.DataFrame:
+    def create_trade_summary(trades: dict = None, 
+                             orders: dict = None, 
+                             instrument: str = None, 
+                             broker_name: str = None) -> pd.DataFrame:
         """Creates trade summary dataframe.
         """
         
@@ -514,6 +576,9 @@ class TradeAnalysis:
             
         dataframe = dataframe.sort_index()
         
+        # Add broker name column
+        dataframe['broker'] = broker_name
+
         # Filter by instrument
         if instrument is not None:
             dataframe = dataframe[dataframe['instrument'] == instrument]

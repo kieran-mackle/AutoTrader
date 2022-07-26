@@ -601,10 +601,8 @@ class AutoTraderBot:
     def _create_trade_results(self) -> dict:
         """Constructs trade summary for post-processing.
         """
-        # TODO - handle multiple brokers in Trade analysis, then pass in 
-        # the dict of broker instances
         trade_results = TradeAnalysis(self._broker, self.instrument, 
-                                           self._process_holding_history)
+                                      self._process_holding_history)
         trade_results.indicators = self._strategy.indicators if \
             hasattr(self._strategy, 'indicators') else None
         trade_results.data = self.data
