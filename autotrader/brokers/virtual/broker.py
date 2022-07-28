@@ -508,8 +508,10 @@ class Broker:
                                           spread=self.spread)
         else:
             # Backtesting, use local pseudo-orderbook
-            orderbook = self._autodata._local_orderbook(spread_units=self.spread_units,
-                        spread=self.spread, midprice=midprice)
+            orderbook = self._autodata._local_orderbook(instrument=instrument,
+                    spread_units=self.spread_units,
+                    spread=self.spread, 
+                    midprice=midprice)
 
         # TODO - Add local orders to the book?
         

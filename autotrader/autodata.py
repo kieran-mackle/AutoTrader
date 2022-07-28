@@ -2,6 +2,7 @@ import os
 import time
 import pandas as pd
 from typing import Union
+from decimal import Decimal
 from autotrader.brokers.trading import Order
 from datetime import datetime, timedelta, timezone
 from autotrader.brokers.broker_utils import OrderBook
@@ -176,7 +177,10 @@ class AutoData:
         """Unified level 2 data retrieval api."""
         func = getattr(self, f'_{self._feed}_orderbook')
         data = func(instrument, *args, **kwargs)
-        book = OrderBook(instrument, data)
+        if self._feed == 'local':
+            book = data
+        else:
+            book = OrderBook(instrument, data)
         return book
 
     
@@ -776,6 +780,10 @@ class AutoData:
             The filename (absolute, or relative if data_dir was provided with
             data_config dictionary) of the instrument data. Only required if
             'midprice' argument is not provided.
+        spread : float, optional
+            The bid/ask spread value.
+        spread_units : float, optional 
+            The units to which the spread refers to.
         midprice : float, optional
             The midprice to use as a reference price.
         """
@@ -799,9 +807,15 @@ class AutoData:
             bid = midprice * (1-0.5*spread/100)
             ask = midprice * (1+0.5*spread/100)
         
-        # TODO - ability to add levels 
-        orderbook = {'bids': [{'price': bid, 'size': 1e100},],
+        # Quantize
+        bid = Decimal(bid).quantize(Decimal(str(midprice)))
+        ask = Decimal(ask).quantize(Decimal(str(midprice)))
+
+        # TODO - ability to add levels by book parameters
+        data = {'bids': [{'price': bid, 'size': 1e100},],
                          'asks': [{'price': ask, 'size': 1e100},]}
+        orderbook = OrderBook(instrument, data)
+
         return orderbook
     
     

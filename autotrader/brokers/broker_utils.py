@@ -223,7 +223,7 @@ class OrderBook:
 
         # Quantize
         # TODO - use ticksize and step size to quantize
-        ref = Decimal(str(self.bids['size'][0]))
+        ref = Decimal(str(self.bids['price'][0]))
         self.spread = Decimal(spread).quantize(ref)
         self.midprice = Decimal(midprice).quantize(ref)
     
