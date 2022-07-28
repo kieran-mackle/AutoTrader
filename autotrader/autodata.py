@@ -4,6 +4,7 @@ import pandas as pd
 from typing import Union
 from autotrader.brokers.trading import Order
 from datetime import datetime, timedelta, timezone
+from autotrader.brokers.broker_utils import OrderBook
 
 
 class AutoData:
@@ -160,29 +161,13 @@ class AutoData:
     def L1(self, instrument=None, *args, **kwargs):
         """Unified level 1 data retrieval api."""
         # Get orderbook
-        func = getattr(self, f'_{self._feed}_orderbook')
-        orderbook = func(instrument, *args, **kwargs)
+        orderbook = self.L2(instrument, *args, **kwargs)
 
         # Construct response
-        best_bid = float(orderbook['bids'][0]['price'])
-        bid_size = float(orderbook['bids'][0]['size'])
-        best_ask = float(orderbook['asks'][0]['price'])
-        ask_size = float(orderbook['asks'][0]['size'])
-        
-        for level in orderbook['bids']:
-            if float(level['price']) > float(best_bid):
-                best_bid = level['price']
-                bid_size = level['size']
-
-        for level in orderbook['asks']:
-            if float(level['price']) < float(best_ask):
-                best_ask = level['price']
-                ask_size = level['size']
-
-        response = {'bid': best_bid,
-                    'ask': best_ask,
-                    'bid_size': bid_size,
-                    'ask_size': ask_size}
+        response = {'bid': orderbook.bids['price'][0],
+                    'ask': orderbook.asks['price'][0],
+                    'bid_size': orderbook.bids['size'][0],
+                    'ask_size': orderbook.asks['size'][0]}
 
         return response
     
@@ -191,7 +176,8 @@ class AutoData:
         """Unified level 2 data retrieval api."""
         func = getattr(self, f'_{self._feed}_orderbook')
         data = func(instrument, *args, **kwargs)
-        return data
+        book = OrderBook(instrument, data)
+        return book
 
     
     def trades(self, instrument, *args, **kwargs):

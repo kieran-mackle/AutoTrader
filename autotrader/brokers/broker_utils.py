@@ -1,6 +1,7 @@
 import os
 import numpy as np
 import pandas as pd
+from decimal import Decimal
 from datetime import datetime
 
 
@@ -198,4 +199,50 @@ class BrokerUtils:
         new_df = new_df.interpolate()
         
         return new_df
+
+
+class OrderBook:
+    def __init__(self, instrument, initial_state):
+        self.instrument = instrument
+        self.bids = None
+        self.asks = None
+        self._midprice = None
+        self._spread = None
+
+        # Initialise from initial state
+        self.bids = pd.DataFrame(initial_state['bids'])
+        self.asks = pd.DataFrame(initial_state['asks'])
+
+        # Sort quotes
+        self.bids.sort_values(by='price', ascending=False, inplace=True)
+        self.asks.sort_values(by='price', ascending=True, inplace=True)
+
+        # Calculate spread and midprice
+        spread = self.asks.price.min() - self.bids.price.max()
+        midprice = (self.asks.price.min() + self.bids.price.max())/2
+
+        # Quantize
+        # TODO - use ticksize and step size to quantize
+        ref = Decimal(str(self.bids['size'][0]))
+        self.spread = Decimal(spread).quantize(ref)
+        self.midprice = Decimal(midprice).quantize(ref)
+    
+    def __repr__(self):
+        return f"{self.instrument} Order Book snapshot"
+
+    @property
+    def midprice(self):
+        return self._midprice
+
+    @midprice.setter
+    def midprice(self, value):
+        self._midprice = value
+
+    @property
+    def spread(self):
+        return self._spread
+
+    @spread.setter
+    def spread(self, value):
+        self._spread = value
 
