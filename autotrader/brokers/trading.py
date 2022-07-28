@@ -145,23 +145,44 @@ class Order:
     
     
     def __repr__(self):
-        if self.size is not None:
-            direction = 'long' if self.direction > 0 else 'short'
-            if self.order_type == 'limit':
-                extra = f' @ {self.order_limit_price}'
-            else:
-                extra = ''
-            return f'{round(self.size,3)} unit {direction} {self.instrument} '+\
-                f'{self.order_type} order' + extra
-        else:
-            return self.__str__()
+        return self.__str__()
         
     
     def __str__(self):
         if self.instrument is None:
+            # Blank order
             return 'Blank order'
+
         else:
-            return f'{self.instrument} {self.order_type} Order'
+            # Order constructed with instrument
+            if self.size is not None:
+                if self.direction is None:
+                    return 'Invalid order (direction not specified)'
+
+                side = 'buy' if self.direction > 0 else 'sell'
+
+                string = f'{round(self.size, self.size_precision)} '+\
+                    f'unit {self.instrument} {self.order_type} '+\
+                    f'{side} order'
+
+                # Append additional information
+                if self.order_type == 'limit':
+                    if self.order_limit_price is None:
+                        return 'Invalid order (limit price not provided)'
+                    string += f' @ {self.order_limit_price}'
+
+                elif self.order_type == 'stop-limit':
+                    if self.order_limit_price is None:
+                        return 'Invalid order (limit price not provided)'
+                    elif self.order_stop_price is None:
+                        return 'Invalid order (stop price not provided)'
+                    string += f' @ {self.order_stop_price} / {self.order_limit_price}'
+
+                return string
+
+            else:
+                # Size un-assigned
+                return f'{self.instrument} {self.order_type} Order'
     
     
     def __call__(self, broker = None, order_price: float = None, 
