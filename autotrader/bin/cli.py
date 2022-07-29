@@ -11,7 +11,7 @@ def cli():
 
 @click.command()
 def init():
-    """Initialises current directory for trading."""
+    """Initialises the current directory for trading."""
     # Construct filepaths
     file_dir = os.path.dirname(os.path.abspath(__file__))
     data_dir = os.path.join(file_dir, '..', 'data')
@@ -33,5 +33,17 @@ def init():
     
     click.echo("AutoTrader initialisation complete.")
 
+# TODO - add init options: 
+#   - 'minimal' option to initialise with a minimal strategy file,
+#     with no strat config files or global config, just locally 
+#     defined config dicts.
+#   - 'full' (default) option to initialise full directory strucuture, 
+#     with config/ and strategies/ dir, with templates in each
+
+# TODO - allow specifying a directory name to create for init, 
+# load it with the files (rather than to cwd)
+
+# TODO - option to initialise with a strategy - pull from demo repo using eg.
+# wget https://raw.githubusercontent.com/kieran-mackle/autotrader-demo/main/strategies/ema_crossover.py
 
 cli.add_command(init)
