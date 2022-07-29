@@ -651,7 +651,10 @@ class Broker:
                 
             elif order.order_type == 'reduce':
                 # Market reduce position
-                self._reduce_position(order, exit_time=latest_time)
+                reference_price = get_market_ref_price(order.direction)
+                self._reduce_position(order, 
+                                      exit_price=reference_price,
+                                      exit_time=latest_time)
                 self._move_order(order)
                 
             # Check for limit orders
@@ -811,7 +814,9 @@ class Broker:
 
                     else:
                         # Simply reduce the current position
-                        self._reduce_position(order=order, exit_time=fill_time)
+                        self._reduce_position(order=order, 
+                                              exit_price=reference_price,
+                                              exit_time=fill_time)
                         self._move_order(order)
                         if self.verbosity > 0:
                             print(f"Order filled: {order}")
@@ -933,7 +938,8 @@ class Broker:
         trade_id : int, optional
             The trade id. The default is None.
         exit_price : float, optional
-            The trade exit price. The default is None.
+            The trade exit price. If none is provided, the market price
+            will be used. The default is None.
         exit_time : datetime, optional
             The trade exit time. The default is None.
         order_type : str, optional
@@ -991,13 +997,18 @@ class Broker:
     
     
     def _reduce_position(self, order: Order,
+                         exit_price: float = None,
                          exit_time: datetime = None) -> None:
         """Reduces the position of the specified instrument using the 
         original order. 
-        
+
         The direction of the order is used to specify whether 
         to reduce long or short units. 
         """
+        # Assign reference price: use limit price for limit order, else market price
+        reference_price = order.order_limit_price if order.order_limit_price is \
+            not None else exit_price
+
         # Consired long vs. short units to be reduced
         instrument = order.instrument
         reduction_direction = order.direction
@@ -1016,19 +1027,19 @@ class Broker:
                         # Entire trade must be closed
                         self._close_trade(instrument=instrument, 
                                           trade_id=trade_id,
-                                          exit_price=order.order_limit_price,
+                                          exit_price=reference_price,
                                           exit_time=exit_time,
                                           order_type=order.order_type)
                         
                         # Update units_to_reduce
                         units_to_reduce -= abs(trade.size)
                         
-                    else:
+                    elif units_to_reduce > 0:
                         # Partially close trade
                         self._partial_trade_close(instrument=instrument, 
                                                   trade_id=trade_id, 
                                                   units=units_to_reduce,
-                                                  exit_price=order.order_limit_price,
+                                                  exit_price=reference_price,
                                                   exit_time=exit_time,
                                                   order_type=order.order_type)
                         
@@ -1095,7 +1106,7 @@ class Broker:
         level_no = 0
         while units_to_fill > 0:
             # Consume liquidity
-            level = book[side][level_no]
+            level = getattr(book, side).iloc[level_no]
             units_consumed = min(units_to_fill, float(level['size']))
             fill_prices.append(float(level['price']))
             fill_sizes.append(units_consumed)
