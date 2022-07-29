@@ -885,7 +885,9 @@ class AutoTrader:
                 inputted_brokers = self._broker_name.lower().replace(' ','').split(',')
                 for broker in inputted_brokers:
                     if broker.split(':')[0] not in supported_exchanges:
-                        raise Exception(f"Unsupported broker requested: {self._broker_name}")
+                        raise Exception(f"Unsupported broker requested: {self._broker_name}\n"+\
+                            "Please check the broker(s) specified in configure method and "+\
+                            "virtual_account_config.")
 
             # All checks passed, proceed to run main
             self._main()
