@@ -2,26 +2,25 @@
 hide-toc: true
 ---
 
-# Welcome to AutoTrader's Documentation
+# AutoTrader Documentation
 
-AutoTrader is a cross-exchange trading platform designed to help in the development, optimisation and live 
-deployment of automated trading systems. Here you will find everything you need to start 
-algotrading with AutoTrader.
+AutoTrader is Python-based trading framework for the development, optimisation and deployment of 
+automated trading systems. Here you will find everything you need to start algotrading with AutoTrader.
 
-A basic level of experience with Python is recommended, but the documentation here 
-aims to be clear enough that a beginner is able to pick up the key components as they go. If you are 
-new to Python, you may find the tutorials especially useful. There is even a 
-[complete walkthrough](tutorials/walkthrough), where a popular MACD trading strategy is built and tested.
+If you are new to Python, you may find the tutorials especially useful. For those who like no details
+spared, refer to the [complete strategy walkthrough](tutorials/walkthrough), where a popular MACD trading 
+strategy is built and tested. The [condensed walkthrough](tutorials/condensed-walkthrough) offers a more
+concise version of this tutorial.
 
-If you are still deciding if AutoTrader is for you, check out the [features](features-landing) to 
-see what is on offer. Otherwise, head on over to the [Getting Started](getting-started) guide.
+If you are still deciding if AutoTrader is for you, check out the [feature showcase](features-landing) to 
+see what on AutoTrader has to offer. Otherwise, head on over to the [Getting Started](getting-started) guide.
 
 
-## Supported Exchanges
+## Supported Brokers
 With AutoTrader `v0.7.0`, you can access over 100 cryptocurrency exchanges thanks to the integration
-with [CCXT](https://github.com/ccxt/ccxt).
+of [CCXT](https://github.com/ccxt/ccxt). The table below summarises the connection to supported brokers.
 
-| Exchange | Asset classes | Integration status | Docs page |
+| Broker | Asset classes | Integration status | Docs page |
 | -------- | ------------- | ------------------ | --------- |
 | [Oanda](https://www.oanda.com/)    | Forex CFDs    | Complete | [link](oanda-module-docs)|
 | [Interactive Brokers](https://www.interactivebrokers.com/en/home.php) | Many | In progress | [link](ib-module-docs) |
@@ -29,14 +28,14 @@ with [CCXT](https://github.com/ccxt/ccxt).
 | [CCXT](https://github.com/ccxt/ccxt) | Cryptocurrencies | In progress | [link](ccxt-module-docs) |
 
 
-
 ## Latest Changes
-AutoTrader `v0.7.0` has been released! Make sure to check out the [changelog](changelog) when upgrading details on the breaking changes. 
+AutoTrader `v0.7.0` has been released! Make sure to check out the [changelog](changelog) when upgrading
+for details on the breaking changes and latest features.
 
 
 ## Contact
 If you have any other queries or suggestions, please [raise an issue](https://github.com/kieran-mackle/AutoTrader/issues)
-on GitHub or send me an [email](mailto:kemackle98@gmail.com).
+on the GitHub repository or send me an [email](mailto:kemackle98@gmail.com).
 
 
 ## Index
@@ -49,7 +48,7 @@ Looking for something specific? Try the search bar on the left, or take a look t
 :hidden:
 
 Getting Started <getting-started>
-Features <features/features>
+Feature Showcase <features/features>
 ```
 
 ```{toctree}
@@ -72,8 +71,8 @@ Core Modules <core/core-modules>
 Broker Interface <broker/broker-interface>
 Indicator Library <indicators>
 Communications <comms>
-Utilities <utilities>
 ```
+
 
 ```{toctree}
 :maxdepth: 2
