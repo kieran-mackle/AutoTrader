@@ -47,8 +47,8 @@ Looking for something specific? Try the search bar on the left, or take a look t
 ```{toctree}
 :hidden:
 
-Getting Started <getting-started>
 Feature Showcase <features/features>
+Getting Started <getting-started>
 ```
 
 ```{toctree}
