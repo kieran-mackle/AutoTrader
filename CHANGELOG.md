@@ -20,6 +20,13 @@ AUGUST 2022
 - For consistency in naming conventions, `GetData` class of `autodata.py` has 
   been renamed to `AutoData`.
 - Broker interface method `get_positions` will directly 
+- Rename `virtual_livetrade_config` to `virtual_account_config`.
+- Strategy configuration key `INCLUDE_POSITIONS` has been deprecated in favour
+  of using `INCLUDE_BROKER`, then directly fetching positions from broker using
+  `get_positions` method.
+- Renamed `GLOBAL.yaml` to `keys.yaml` for clarification.
+
+
 
 ### Features
 - Major backtest speed improvements: over 50% reduction in backtest time for 
@@ -43,11 +50,21 @@ AUGUST 2022
   commissions.
 - Additional commission schemes for backtesting.
 - Option to specify bid/ask spread as a percentage value.
+- Manual trading (paper and live) via command line. Simply configure an instance 
+  of AutoTrader without adding a strategy, and the broker specified will be 
+  instantiated ready for trading. Papertrading via the virtual broker supported.
+- Ability to trade across multiple venues from a single strategy. Simply
+  provide the broker names with comma separation via the `configure` method,
+- Exchange-specific precision checking for Orders. Even in backtest mode, AutoTrader
+  will communicate with your chosen exchange to precision-check your orders.
 
 
 ### Deprecation Notices
 - Broker method `get_trade_details` has been deprecated in favour of `get_trades`
   method.
+- Strategy configuration key `INCLUDE_POSITIONS` has been deprecated in favour
+  of using `INCLUDE_BROKER`, then directly fetching positions from broker using
+  `get_positions` method.
 
 ### Fixes
 - Minor improvements to margin requirement calculations in backtest
