@@ -40,6 +40,7 @@ setuptools.setup(
         "finta >= 1.3",
         "tqdm>=4.64.0",
         "importlib-resources",
+        "Click",
         ],
     extras_require={
         "dydx": ["dydx-v3-python"],
@@ -47,7 +48,6 @@ setuptools.setup(
         "oanda": ["v20 >= 3.0.25.0",],
         "ib": ["ib_insync >= 0.9.70",],
         "yfinance": ["yfinance >= 0.1.67",],
-        "cli": ["Click"],
         },
     setup_requires=[
             "setuptools_git",
