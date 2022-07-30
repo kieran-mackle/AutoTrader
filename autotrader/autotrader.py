@@ -885,7 +885,7 @@ class AutoTrader:
                 global_config = self._global_config_dict
             else:
                 # Try load from file
-                global_config_fp = os.path.join(self._home_dir, 'config', 'GLOBAL.yaml')
+                global_config_fp = os.path.join(self._home_dir, 'config', 'keys.yaml')
                 if os.path.isfile(global_config_fp):
                     global_config = read_yaml(global_config_fp)
                 else:
@@ -917,7 +917,7 @@ class AutoTrader:
                     # No global_config
                     raise Exception("No global configuration found (required for "+\
                         "livetrading). Either provide a global configuration dictionary "+\
-                        "via the configure method, or create a GLOBAL.yaml file in your "+\
+                        "via the configure method, or create a keys.yaml file in your "+\
                         "config/ directory.")
                 
                 if self._broker_name == '':
@@ -1268,7 +1268,7 @@ class AutoTrader:
             if self._multiple_brokers:
                 raise Exception("Cannot use provided account ID when "+\
                     "trading across multiple exchanges. Please specify the "+\
-                    "desired account in the GLOBAL config.")
+                    "desired account in the keys config.")
             else:
                 # Overwrite default account in global config
                 broker_config['ACCOUNT_ID'] = self._account_id
@@ -1424,12 +1424,18 @@ class AutoTrader:
                 # Use real broker
                 broker_name = broker_key.lower().split(':')[0]
             
+            # Construct utils args
+            utils_args = {}
+            utils_name = broker_key.lower().split(':')[0]
+            if utils_name == 'ccxt':
+                utils_args['exchange'] = broker_key.lower().split(':')[1]
+
             # Import relevant modules 
             broker_module = importlib.import_module(f'autotrader.brokers.{broker_name}.broker')
-            utils_module = importlib.import_module(f'autotrader.brokers.{broker_key}.utils')
+            utils_module = importlib.import_module(f'autotrader.brokers.{utils_name}.utils')
             
             # Create broker and utils instances
-            utils = utils_module.Utils()
+            utils = utils_module.Utils(**utils_args)
             broker = broker_module.Broker(config, utils)
             
             if self._backtest_mode or self._papertrading:

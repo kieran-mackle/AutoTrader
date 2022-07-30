@@ -22,9 +22,9 @@ def init():
     if not os.path.isdir(config_dir):
         os.mkdir(config_dir)
 
-    # Copy global config
-    global_config_fp = os.path.join(data_dir, 'GLOBAL.yaml')
-    shutil.copyfile(global_config_fp, os.path.join(config_dir, 'GLOBAL.yaml'))
+    # Copy keys config
+    keys_config_fp = os.path.join(data_dir, 'keys.yaml')
+    shutil.copyfile(keys_config_fp, os.path.join(config_dir, 'keys.yaml'))
 
     # Check if strategy directory exists
     strategy_dir = os.path.join(cwd, 'strategies')
@@ -35,7 +35,7 @@ def init():
 
 # TODO - add init options: 
 #   - 'minimal' option to initialise with a minimal strategy file,
-#     with no strat config files or global config, just locally 
+#     with no strat config files or keys config, just locally 
 #     defined config dicts.
 #   - 'full' (default) option to initialise full directory strucuture, 
 #     with config/ and strategies/ dir, with templates in each
