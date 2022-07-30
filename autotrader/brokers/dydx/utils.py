@@ -3,7 +3,7 @@ from autotrader.brokers.broker_utils import BrokerUtils
 
 
 class Utils(BrokerUtils):
-    def __init__(self):
+    def __init__(self, **kwargs):
         # Create Client instance
         try:
             from dydx3 import Client

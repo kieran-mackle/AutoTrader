@@ -1,7 +1,7 @@
 from autotrader.brokers.broker_utils import BrokerUtils
 
 class Utils(BrokerUtils):
-    def __init__(self, exchange: str = None):
+    def __init__(self, exchange: str = None, **kwargs):
         if exchange is not None:
             self.connect_to_exchange(exchange)
         
