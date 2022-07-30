@@ -102,6 +102,7 @@ class AutoTrader:
         self._environment = 'paper'             # Trading environment
         self._account_id = None                 # Trading account 
         self._base_currency = None
+        self._no_brokers = 0
         self._multiple_brokers = False
         
         # Strategy parameters
@@ -323,7 +324,21 @@ class AutoTrader:
                 # Config dictionary provided directly
                 new_strategy = config_dict
             
-            name = new_strategy['NAME']
+            # Construct strategy name
+            try:
+                name = new_strategy['NAME']
+            except KeyError:
+                raise Exception("Please specify the name of your strategy via the "+\
+                    "'NAME' key of the strategy configuration. This name should "+\
+                    "match the class name of your strategy.")
+            
+            # Check for other required keys
+            # TODO - review required keys
+            required_keys = ['CLASS', 'INTERVAL', 'PERIOD']
+            for key in required_keys:
+                if key not in new_strategy:
+                    print(f"Please include the '{key}' key in your strategy configuration.")
+                    sys.exit(0)
             
             if name in self._strategy_configs:
                 print("Warning: duplicate strategy name deteced. Please check " + \
@@ -333,7 +348,6 @@ class AutoTrader:
                 print("Conflicting name:", name)
             
             self._strategy_configs[name] = new_strategy
-            
             self._shutdown_methods[name] = shutdown_method
             
         if strategy is not None:
@@ -432,8 +446,12 @@ class AutoTrader:
             # TODO - catch attempt to create multiple instances with same exchange
             broker_name = 'virtual'
 
-        if broker_name not in self._broker_name:
-            self._broker_name += broker_name + ', '
+        if broker_name != 'virtual' and broker_name not in self._broker_name:
+            # Unrecognised broker
+            print(f"Please specify the broker '{broker_name}' in the "+\
+                "configure method before configuring its virtual account.")
+            sys.exit(0)
+            # self._broker_name += broker_name + ', '
 
         self._environment = 'paper'
         self._papertrading = False if self._backtest_mode else papertrade
@@ -792,6 +810,26 @@ class AutoTrader:
             print("Please check your inputs and try again.")
             sys.exit(0)
         
+        # Remove any trailing commas in self._broker_name
+        self._broker_name = self._broker_name.strip().strip(',')
+        
+        # Check for multiple brokers
+        self._no_brokers = len(self._broker_name.split(','))
+        self._multiple_brokers = self._no_brokers > 1
+        # TODO - check len(self._virtual_broker_config)
+
+        # Check self._broker_name
+        if self._broker_name == '':
+            # Broker has not been assigned 
+            if self._backtest_mode or self._papertrading:
+                # Use virtual broker
+                self._broker_name = 'virtual'
+
+            else:
+                # Livetrading
+                raise Exception("Please specify the name(s) of the broker(s) "+\
+                    "you wish to trade with.")
+
         if self._backtest_mode:
             if self._notify > 0:
                 print("Warning: notify set to {} ".format(self._notify) + \
@@ -806,9 +844,18 @@ class AutoTrader:
                 self._data_end = datetime.now(tz=timezone.utc)
             
             # Check if the broker has been configured
-            if len(self._virtual_broker_config) == 0:
-                # Virtual broker has not been configured yet, assume default
-                self.virtual_account_config(papertrade=False)
+            if len(self._virtual_broker_config) != self._no_brokers:
+                # Virtual accounts have not been configured for the brokers specified
+                if len(self._virtual_broker_config) == 0:
+                    # Use default values for all virtual accounts
+                    for exchange in self._broker_name.split(','):
+                        self.virtual_account_config(papertrade=False, exchange=exchange)
+                else:
+                    # Partially configured accounts
+                    raise Exception("Please configure the virtual accounts for "+\
+                        "each broker you plan to used.\n"+\
+                        f" Number of brokers specifed: {self._no_brokers}\n"+\
+                        f" Number of virtual accounts configured: {len(self._virtual_broker_config)}")
 
         # Preliminary checks complete, continue
         if self._optimise_mode:
@@ -832,9 +879,6 @@ class AutoTrader:
                                     "configure the virtual broker account(s) "+\
                                     "with the virtual_account_config method.")
             
-            # Remove any trailing commas in self._broker_name
-            self._broker_name = self._broker_name.strip().strip(',')
-
             # Load global (account) configuration
             if self._global_config_dict is not None:
                 # Use global config dict provided
@@ -1204,11 +1248,9 @@ class AutoTrader:
     def _main(self) -> None:
         """Run AutoTrader with configured settings.
         """
-        self._multiple_brokers = len(self._broker_name.split(',')) > 1
-
         # Check tradeable instruments
         if self._multiple_brokers and len(self._virtual_tradeable_instruments) != \
-            len(self._broker_name.split(',')) and self._backtest_mode:
+            self._no_brokers and self._backtest_mode:
             raise Exception("Please define the tradeable instruments for "+\
                 "each virtual account configured.")
 
