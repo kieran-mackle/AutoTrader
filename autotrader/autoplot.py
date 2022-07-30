@@ -475,7 +475,7 @@ class AutoPlot:
         linked_crosshair = CrosshairTool(dimensions='both')
         reindexed_acc_hist = self._reindex_data(backtest_results.account_history)
         trade_history = backtest_results.trade_history
-        holding_history = backtest_results.holding_history
+        # holding_history = backtest_results.holding_history
         
         # Account Balance 
         acc_hist = ColumnDataSource(reindexed_acc_hist)
@@ -563,41 +563,41 @@ class AutoPlot:
         cplfig.xaxis.bounds = (0, reindexed_acc_hist.index[-1])
         
         # Portoflio distribution
-        names = list(holding_history.columns)
-        holding_history['date'] = holding_history.index
-        holding_hist_source = ColumnDataSource(pd.merge(reindexed_acc_hist, 
-                                                        holding_history, 
-                                                        left_on='date', 
-                                                        right_on='date').fillna(0))
-        portfolio = figure(plot_width = navfig.plot_width,
-                           plot_height = self._top_fig_height,
-                           title = "Asset Allocation History",
-                           active_drag = 'pan',
-                           active_scroll = 'wheel_zoom',
-                           x_range = navfig.x_range)
-        portfolio.grid.minor_grid_line_color = '#eeeeee'
+        # names = list(holding_history.columns)
+        # holding_history['date'] = holding_history.index
+        # holding_hist_source = ColumnDataSource(pd.merge(reindexed_acc_hist, 
+        #                                                 holding_history, 
+        #                                                 left_on='date', 
+        #                                                 right_on='date').fillna(0))
+        # portfolio = figure(plot_width = navfig.plot_width,
+        #                    plot_height = self._top_fig_height,
+        #                    title = "Asset Allocation History",
+        #                    active_drag = 'pan',
+        #                    active_scroll = 'wheel_zoom',
+        #                    x_range = navfig.x_range)
+        # portfolio.grid.minor_grid_line_color = '#eeeeee'
         
-        portfolio.varea_stack(stackers=names, 
-                              x='data_index', 
-                              color=portfolio_colors, 
-                              legend_label=names,
-                              source=holding_hist_source)
+        # portfolio.varea_stack(stackers=names, 
+        #                       x='data_index', 
+        #                       color=portfolio_colors, 
+        #                       legend_label=names,
+        #                       source=holding_hist_source)
         
-        portfolio.legend.orientation = "horizontal"
-        portfolio.legend.background_fill_color = "#fafafa"
-        portfolio.legend.location = 'top_left'
-        portfolio.legend.border_line_width = 1
-        portfolio.legend.border_line_color = '#333333'
-        portfolio.legend.padding = 5
-        portfolio.legend.spacing = 0
-        portfolio.legend.margin = 0
-        portfolio.legend.label_text_font_size = '8pt'
-        portfolio.sizing_mode = 'stretch_width'
-        portfolio.add_tools(linked_crosshair)
-        portfolio.xaxis.major_label_overrides = {
-                    i: date.strftime('%b %d %Y') for i, date in enumerate(pd.to_datetime(reindexed_acc_hist["date"]))
-                }
-        portfolio.xaxis.bounds = (0, reindexed_acc_hist.index[-1])
+        # portfolio.legend.orientation = "horizontal"
+        # portfolio.legend.background_fill_color = "#fafafa"
+        # portfolio.legend.location = 'top_left'
+        # portfolio.legend.border_line_width = 1
+        # portfolio.legend.border_line_color = '#333333'
+        # portfolio.legend.padding = 5
+        # portfolio.legend.spacing = 0
+        # portfolio.legend.margin = 0
+        # portfolio.legend.label_text_font_size = '8pt'
+        # portfolio.sizing_mode = 'stretch_width'
+        # portfolio.add_tools(linked_crosshair)
+        # portfolio.xaxis.major_label_overrides = {
+        #             i: date.strftime('%b %d %Y') for i, date in enumerate(pd.to_datetime(reindexed_acc_hist["date"]))
+        #         }
+        # portfolio.xaxis.bounds = (0, reindexed_acc_hist.index[-1])
         
         # Define autoscale arguments
         # holding_hist_source.add(np.ones(len(holding_history)), 'High')
@@ -716,7 +716,7 @@ class AutoPlot:
         # Construct final figure
         final_fig = layout([
                                    [navfig],
-                                   [portfolio],
+                                #    [portfolio],
                                    [cplfig],
                                    [pie, plbars, winrate],
                             ])

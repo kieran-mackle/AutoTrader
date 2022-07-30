@@ -1,6 +1,6 @@
 import ccxt
 from datetime import datetime
-from autotrader.brokers.broker_utils import BrokerUtils
+from autotrader.brokers.ccxt.utils import Utils, BrokerUtils
 from autotrader.brokers.trading import Order, Trade, Position
 
 
@@ -8,15 +8,13 @@ class Broker:
     def __init__(self, config: dict, utils: BrokerUtils = None) -> None:
         """AutoTrader Broker Class constructor.
         """
-        
-        self.utils = utils if utils is not None else BrokerUtils()
-        
         # Unpack config and connect to broker-side API
         self.exchange = config['exchange']
         exchange_instance = getattr(ccxt, self.exchange)
         self.api = exchange_instance({'apiKey': config['api_key'],
                                       'secret': config['secret']})
-        
+        self.utils = utils if utils is not None else Utils()
+
         # Load markets
         markets = self.api.load_markets()
         
@@ -157,6 +155,21 @@ class Broker:
 
         return positions
     
+    
+    def get_orderbook(self, instrument: str) -> dict:
+        """Returns the orderbook"""
+        response = self.api.fetchOrderBook(symbol=instrument)
+
+        # Unify format
+        orderbook = {}
+        for side in ['bids', 'asks']:
+            orderbook[side] = []
+            for level in response[side]:
+                orderbook[side].append({'price': level[0],
+                                        'size': level[1]}
+                                       )
+        return orderbook
+
     
     def _native_order(self, order):
         """Returns a CCXT order as a native AutoTrader Order."""

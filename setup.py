@@ -47,10 +47,16 @@ setuptools.setup(
         "oanda": ["v20 >= 3.0.25.0",],
         "ib": ["ib_insync >= 0.9.70",],
         "yfinance": ["yfinance >= 0.1.67",],
+        "cli": ["Click"],
         },
     setup_requires=[
             "setuptools_git",
             "setuptools_scm",
         ],
-    package_data={'': ['data/*.js']},
+    package_data={'': ['data/*.js', 'data/GLOBAL.yaml']},
+    entry_points={
+        'console_scripts': [
+            'autotrader = autotrader.bin.cli:cli',
+        ],
+    },
 )

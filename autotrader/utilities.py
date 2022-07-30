@@ -41,155 +41,153 @@ def write_yaml(data: dict, filepath: str) -> None:
     with open(filepath, 'w') as outfile:
         yaml.dump(data, outfile, default_flow_style=False)
         
-    
-def get_config(environment: str, global_config: dict, feed: str) -> dict:
-    """Returns the configuration dictionary based on the requested 
-    environment.
 
+def get_broker_config(global_config: dict, broker: str, 
+                      environment: str = 'paper') -> dict:
+    """Returns a broker configuration dictionary.
+    
     Parameters
     ----------
+    global_config : dict
+        The global configuration dictionary.
+    broker : str
+        The name(s) of the broker/exchange. Specify multiple exchanges using
+        comma separation.
     environment : str
         The trading evironment ('demo' or 'real').
+    
+    """
+    all_config = {}
+    inputted_brokers = broker.lower().replace(' ','').split(',')
+
+    for broker in inputted_brokers:
+        # Check for CCXT
+        if broker.split(':')[0].lower() == 'ccxt':
+            broker_key = broker
+            broker, exchange = broker.lower().split(':')
+        elif broker.split(':')[0].lower() == 'virtual':
+            broker_key = ':'.join(broker.split(':')[1:])
+            broker = 'virtual'
+        else:
+            broker_key = broker
+
+        supported_brokers = ['oanda', 'ib', 'ccxt', 'dydx', 'virtual']
+        if broker.lower() not in supported_brokers:
+            raise Exception(f"Unsupported broker: '{broker}'")
+        
+        if environment.lower() not in ['live', 'paper']:
+            raise Exception("Trading environment can either be 'live' or 'paper'.")
+
+        # Live trading
+        if broker.lower() == 'oanda':
+            api_key = 'LIVE_API' if environment.lower() == 'live' else 'PRACTICE_API'
+            config = {'API': global_config['OANDA'][api_key], 
+                        'ACCESS_TOKEN': global_config['OANDA']['ACCESS_TOKEN'], 
+                        'ACCOUNT_ID': global_config['OANDA']['DEFAULT_ACCOUNT_ID'], 
+                        'PORT': global_config['OANDA']['PORT']}
+            
+        elif broker.lower() == 'ib':
+            config = {'host': global_config['host'] if 'host' in global_config else '127.0.0.1',
+                        'port': global_config['port'] if 'port' in global_config else 7497,
+                        'clientID': global_config['clientID'] if 'clientID' in global_config else 1,
+                        'account': global_config['account'] if 'account' in global_config else '',
+                        'read_only': global_config['read_only'] if 'read_only' in global_config else False}
+        
+        elif broker.lower() == 'dydx':
+            try:
+                eth_address = global_config['DYDX']['ETH_ADDRESS']
+                eth_private_key = global_config['DYDX']['ETH_PRIV_KEY']
+                config = {'data_source': 'dYdX',
+                        'ETH_ADDRESS': eth_address,
+                        'ETH_PRIV_KEY': eth_private_key}
+            except KeyError:
+                raise Exception("Using dYdX for trading requires authentication via "+\
+                    "the global configuration. Please make sure you provide the "+\
+                    "following keys:\n ETH_ADDRESS: your ETH address "+\
+                    "\n ETH_PRIV_KEY: your ETH private key."+\
+                    "These must all be provided under the 'dYdX' key.")
+
+        elif broker.lower() == 'ccxt':
+            try:
+                config = global_config[broker_key.upper()]
+                api_key = config['api_key'] if 'api_key' in config else None
+                secret = config['secret'] if 'secret' in config else None
+                currency = config['base_currency'] if 'base_currency' in config else 'USDT'
+                sandbox_mode = False if environment.lower() == 'live' else True
+                config = {'exchange': exchange,
+                        'api_key': api_key,
+                        'secret': secret,
+                        'sandbox_mode': sandbox_mode,
+                        'base_currency': currency}
+            except KeyError:
+                raise Exception("Using CCXT for trading requires authentication via "+\
+                    "the global configuration. Please make sure you provide the "+\
+                    "details in the following format:\n"+\
+                    "CCXT:EXCHANGE_NAME:\n"+\
+                    '  api_key: "xxxx" (the exchange-specific api key)\n'+\
+                    '  secret: "xxxx" (the exchange-specific api secret)\n'+\
+                    "  base_currency: USDT (your account's base currency)\n")
+        
+        elif broker.lower() == 'virtual':
+            config = {}
+
+        else:
+            raise Exception(f"No configuration available for {broker}.")
+        
+        # Append to full config
+        all_config[broker_key] = config
+
+    # Check length
+    if len(all_config) == 1: all_config = config
+    
+    return all_config
+
+
+def get_data_config(feed: str, global_config: dict = None) -> dict:
+    """Returns a configuration dictionary for AutoData.
+    Parameters
+    ----------
     global_config : dict
         The global configuration dictionary.
     feed : str
-        The data feed.
-
-    Raises
-    ------
-    Exception
-        When an unrecognised data feed is provided.
-
-    Returns
-    -------
-    dict
-        The AutoTrader configuration dictionary.
+        The name of the data feed.
     """
-    # TODO - allow kwargs in config
-    
-    if environment.lower() == 'live':
-        # Live trading
-        if feed.upper() == 'OANDA':
-            data_source     = 'OANDA'
-            api             = global_config['OANDA']['LIVE_API']
-            access_token    = global_config['OANDA']['ACCESS_TOKEN']
-            account_id      = global_config['OANDA']['DEFAULT_ACCOUNT_ID']
-            port            = global_config['OANDA']['PORT']
-            
-            config_dict = {'data_source': data_source,
-                           'API': api, 
-                           'ACCESS_TOKEN': access_token, 
-                           'ACCOUNT_ID': account_id, 
-                           'PORT': port}
-            
-        elif feed.upper() == 'IB':
-            # TODO - check port for live trading
-            data_source = 'IB'
-            host = global_config['host'] if 'host' in global_config else '127.0.0.1'
-            port = global_config['port'] if 'port' in global_config else 7497
-            client_id = global_config['clientID'] if 'clientID' in global_config else 1
-            read_only = global_config['read_only'] if 'read_only' in global_config else False
-            account = global_config['account'] if 'account' in global_config else ''
-            
-            config_dict = {'data_source': data_source,
-                           'host': host,
-                           'port': port,
-                           'clientID': client_id,
-                           'account': account,
-                           'read_only': read_only}
+    # Check for CCXT
+    if feed.split(':')[0].lower() == 'ccxt':
+        feed, exchange = feed.lower().split(':')
+
+    # Check feed
+    supported_feeds = ['oanda', 'ib', 'ccxt', 'dydx', 
+                       'yahoo', 'local', 'none']
+    if feed.lower() not in supported_feeds:
+        raise Exception(f"Unsupported data feed: '{feed}'")
+
+    # Check for required authentication
+    auth_feeds = ['oanda', 'ib']
+    if feed.lower() in auth_feeds and global_config is None:
+        raise Exception(f"Data feed '{feed}' requires authentication. "+\
+            "Please provide authentication details in the global config.")
+
+    # Construct configuration dict
+    config = {'data_source': feed.lower()}
+
+    if feed.lower() == 'oanda':
+        config['API'] = global_config['OANDA']['LIVE_API']
+        config['ACCESS_TOKEN'] = global_config['OANDA']['ACCESS_TOKEN']
+        config['PORT'] = global_config['OANDA']['PORT']
         
-        elif feed.upper() == 'DYDX':
-            eth_address = global_config['ETH_ADDRESS'] if 'ETH_ADDRESS' \
-                in global_config else None
-            eth_private_key = global_config['ETH_PRIV_KEY'] if 'ETH_PRIV_KEY' \
-                in global_config else None
-            config_dict = {'data_source': 'dYdX',
-                           'API_KEY': global_config['API_KEYS'],
-                           'STARK_KEYS': global_config['STARK_KEYS'],
-                           'ETH_ADDR': eth_address,
-                           'ETH_PRIV_KEY': eth_private_key}
-            
-        elif feed.upper() == 'CCXT':
-            config = global_config['CCXT']
-            api_key = config['api_key'] if 'api_key' in config else None
-            secret = config['secret'] if 'secret' in config else None
-            currency = config['base_currency'] if 'base_currency' in config else 'USDT'
-            config_dict = {'data_source': 'CCXT',
-                           'exchange': config['exchange'],
-                           'api_key': api_key,
-                           'secret': secret,
-                           'sandbox_mode': False,
-                           'base_currency': currency}
-            
-        elif feed.upper() == 'YAHOO':
-            data_source = 'yahoo'
-            config_dict = {'data_source': data_source}
-            
-        elif feed.upper() == 'LOCAL':
-            config_dict = {'data_source': 'local'}
-            
-        else:
-            print("Unrecognised data feed. Please check config and retry.")
-            
-    else:
-        # Paper trading
-        if feed.upper() == 'OANDA':
-            data_source     = 'OANDA'
-            api             = global_config['OANDA']['PRACTICE_API']
-            access_token    = global_config['OANDA']['ACCESS_TOKEN']
-            account_id      = global_config['OANDA']['DEFAULT_ACCOUNT_ID']
-            port            = global_config['OANDA']['PORT']
-            
-            config_dict = {'data_source': data_source,
-                           'API': api, 
-                           'ACCESS_TOKEN': access_token, 
-                           'ACCOUNT_ID': account_id, 
-                           'PORT': port}
-            
-        elif feed.upper() == 'IB':
-            # TODO - check port for paper trading
-            data_source = 'IB'
-            host = global_config['host'] if 'host' in global_config else '127.0.0.1'
-            port = global_config['port'] if 'port' in global_config else 7497
-            client_id = global_config['clientID'] if 'clientID' in global_config else 1
-            read_only = global_config['read_only'] if 'read_only' in global_config else False
-            account = global_config['account'] if 'account' in global_config else ''
-            
-            config_dict = {'data_source': data_source,
-                           'host': host,
-                           'port': port,
-                           'clientID': client_id,
-                           'account': account,
-                           'read_only': read_only}
-        
-        elif feed.upper() == 'CCXT':
-            config = global_config['CCXT']
-            api_key = config['api_key'] if 'api_key' in config else None
-            secret = config['secret'] if 'secret' in config else None
-            currency = config['base_currency'] if 'base_currency' in config else 'USDT'
-            config_dict = {'data_source': 'CCXT',
-                           'exchange': config['exchange'],
-                           'api_key': api_key,
-                           'secret': secret,
-                           'sandbox_mode': True,
-                           'base_currency': currency}
-            
-        elif feed.upper() == 'DYDX':
-            config_dict = {'data_source': 'dYdX'}
-            
-        elif feed.upper() == 'YAHOO':
-            data_source = 'yahoo'
-            config_dict = {'data_source': data_source}
-        
-        elif feed.upper() == 'LOCAL':
-            config_dict = {'data_source': 'local'}
-            
-        else:
-            raise Exception(f"Unrecognised data feed: '{feed}'. " + \
-                  "Please check global config and retry.")
+    elif feed.lower() == 'ib':
+        config['host'] = global_config['host'] if 'host' in global_config else '127.0.0.1'
+        config['port'] = global_config['port'] if 'port' in global_config else 7497
+        config['clientID'] = global_config['clientID'] if 'clientID' in global_config else 1
+        config['account'] = global_config['account'] if 'account' in global_config else ''
+        config['read_only'] = global_config['read_only'] if 'read_only' in global_config else False
     
-    return config_dict
-    
+    elif feed.lower() == 'ccxt':
+        config['exchange'] = exchange
+
+    return config
+
 
 def get_watchlist(index, feed):
     """Returns a watchlist of instruments. 
@@ -320,9 +318,11 @@ class TradeAnalysis:
     def __init__(self, broker, instrument: str = None, 
                  process_holding_history: bool = True):
         
+        self.brokers_used = None
+        self.broker_results = None
         self.instruments_traded = None
         self.account_history = None
-        self.holding_history = None
+        # self.holding_history = None
         self.trade_history = None
         self.order_history = None
         self.open_trades = None
@@ -343,64 +343,139 @@ class TradeAnalysis:
                          process_holding_history: bool = True):
         """Analyses trade account and creates summary of key details.
         """
-        # Construct trade and order summaries
-        all_trades = {}
-        for status in ['open', 'closed']:
-            trades = broker.get_trades(trade_status=status)
-            all_trades.update(trades)
-        
-        all_orders = {}
-        for status in ['pending', 'open', 'filled', 'cancelled']:
-            orders = broker.get_orders(order_status=status)
-            all_orders.update(orders)
-        
-        trades = TradeAnalysis.create_trade_summary(trades=all_trades, 
-                                                      instrument=instrument)
-        orders = TradeAnalysis.create_trade_summary(orders=all_orders, 
-                                                      instrument=instrument)
-        
-        # Construct account history
-        account_history = pd.DataFrame(data={'NAV': broker._NAV_hist, 
-                                             'equity': broker._equity_hist, 
-                                             'margin': broker._margin_hist},
-                                       index=broker._time_hist)
-        
-        # Create history of holdings
-        holding_history = None
-        if process_holding_history:
-            holdings = broker.holdings.copy()
-            holding_history = pd.DataFrame(columns=list(orders.instrument.unique()),
-                                            index=account_history.index)
-            for i in range(len(holding_history)):
-                try:
-                    holding_history.iloc[i] = holdings[i]
-                except:
-                    pass
-            holding_history.fillna(0, inplace=True)
+        if not isinstance(broker, dict):
+            # Single broker - create dummy dict
+            broker_instances = {'broker': broker}
+        else:
+            # Multiple brokers passed in as dict
+            broker_instances = broker
+
+        # Process results from each broker instance
+        broker_results = {}
+        for broker_name, broker in broker_instances.items():
+            # Construct trade and order summaries
+            all_trades = {}
+            for status in ['open', 'closed']:
+                trades = broker.get_trades(trade_status=status)
+                all_trades.update(trades)
             
-            for col in holding_history.columns:
-                holding_history[col] = holding_history[col] / account_history.NAV
+            all_orders = {}
+            for status in ['pending', 'open', 'filled', 'cancelled']:
+                orders = broker.get_orders(order_status=status)
+                all_orders.update(orders)
             
-            # Drop duplicated indices from multiple product updates 
-            holding_history = holding_history[~holding_history.index.duplicated(keep='last')]
-            holding_history['cash'] = 1 - holding_history.sum(1)
-        
-        account_history = account_history[~account_history.index.duplicated(keep='last')]
-        account_history['drawdown'] = account_history.NAV/account_history.NAV.cummax() - 1
-        
-        # Assign attributes
-        self.instruments_traded = list(orders.instrument.unique())
-        self.account_history = account_history
-        self.holding_history = holding_history
-        self.trade_history = trades
-        self.order_history = orders
-        self.open_trades = trades[trades.status == 'open']
-        self.cancelled_orders = orders[orders.status == 'cancelled']
+            trades = TradeAnalysis.create_trade_summary(trades=all_trades, 
+                                                        instrument=instrument,
+                                                        broker_name=broker_name)
+            orders = TradeAnalysis.create_trade_summary(orders=all_orders, 
+                                                        instrument=instrument,
+                                                        broker_name=broker_name)
+            
+            # Construct account history
+            account_history = pd.DataFrame(data={'NAV': broker._NAV_hist, 
+                                                'equity': broker._equity_hist, 
+                                                'margin': broker._margin_hist},
+                                        index=broker._time_hist)
+            
+            # Create history of holdings
+            holding_history = None
+            if process_holding_history:
+                holdings = broker.holdings.copy()
+                holding_history = pd.DataFrame(columns=list(orders.instrument.unique()),
+                                                index=account_history.index)
+                for i in range(len(holding_history)):
+                    try:
+                        holding_history.iloc[i] = holdings[i]
+                    except:
+                        pass
+                holding_history.fillna(0, inplace=True)
+                
+                for col in holding_history.columns:
+                    holding_history[col] = holding_history[col] / account_history.NAV
+                
+                # Drop duplicated indices from multiple product updates 
+                holding_history = holding_history[~holding_history.index.duplicated(keep='last')]
+                holding_history['cash'] = 1 - holding_history.sum(1)
+            
+            account_history = account_history[~account_history.index.duplicated(keep='last')]
+            account_history['drawdown'] = account_history.NAV/account_history.NAV.cummax() - 1
+
+            # Save results for this broker instance
+            broker_results[broker_name] = {
+                            'instruments_traded': list(orders.instrument.unique()),
+                            'account_history': account_history,
+                            'holding_history': holding_history,
+                            'trade_history': trades,
+                            'order_history': orders,
+                            'open_trades': trades[trades.status == 'open'],
+                            'cancelled_orders': orders[orders.status == 'cancelled'],
+                            }
+
+        # Save all results
+        self.broker_results = broker_results
+
+        # Aggregate across broker instances
+        self._aggregate_across_brokers(broker_results)
     
+
+    def _aggregate_across_brokers(self, broker_results):
+        """Aggregates trading history across all broker instances."""
+        
+        brokers_used = []
+        instruments_traded = []
+        open_trades = pd.DataFrame()
+        cancelled_orders = pd.DataFrame()
+        trade_history = pd.DataFrame()
+        order_history = pd.DataFrame()
+        account_history = None
+        for broker, results in broker_results.items():
+            orders = results['order_history']
+            brokers_used.append(broker)
+
+            # Append unique instruments traded
+            unique_instruments = orders.instrument.unique()
+            [instruments_traded.append(instrument) if instrument not in \
+                instruments_traded else None for instrument in unique_instruments]
+            
+            # Aggregate account history
+            if account_history is None:
+                # Initialise
+                account_history = results['account_history']
+            else:
+                # Reindex each dataset
+                original_index = results['account_history'].reindex(index=account_history.index,
+                                                                 method='ffill')
+                new_index = account_history.reindex(index=results['account_history'].index,
+                                                                 method='ffill')
+                if len(original_index) >= len(new_index):
+                    # Use original index
+                    account_history += original_index
+                else:
+                    # Use new index
+                    account_history = new_index + results['account_history']
+
+            # Concatenate trades and orders
+            open_trades = pd.concat([open_trades, results['open_trades']])
+            cancelled_orders = pd.concat([cancelled_orders, results['cancelled_orders']])
+            trade_history = pd.concat([trade_history, results['trade_history']])
+            order_history = pd.concat([order_history, results['order_history']])
+
+        # Assign attributes
+        self.brokers_used = brokers_used
+        self.instruments_traded = instruments_traded
+        self.account_history = account_history
+        # self.holding_history = holding_history
+        self.trade_history = trade_history
+        self.order_history = order_history
+        self.open_trades = open_trades
+        self.cancelled_orders = cancelled_orders
+
     
     @staticmethod
-    def create_trade_summary(trades: dict = None, orders: dict = None, 
-                             instrument: str = None) -> pd.DataFrame:
+    def create_trade_summary(trades: dict = None, 
+                             orders: dict = None, 
+                             instrument: str = None, 
+                             broker_name: str = None) -> pd.DataFrame:
         """Creates trade summary dataframe.
         """
         
@@ -501,6 +576,9 @@ class TradeAnalysis:
             
         dataframe = dataframe.sort_index()
         
+        # Add broker name column
+        dataframe['broker'] = broker_name
+
         # Filter by instrument
         if instrument is not None:
             dataframe = dataframe[dataframe['instrument'] == instrument]
@@ -516,20 +594,22 @@ class TradeAnalysis:
         # All trades
         no_trades = len(self.trade_history[self.trade_history['status'] == 'closed'])
         trade_results['no_trades'] = no_trades
-        trade_results['start'] = self.account_history.index[0]
-        trade_results['end'] = self.account_history.index[-1]
-        
-        starting_balance = self.account_history.equity[0]
-        ending_balance = self.account_history.equity[-1]
-        ending_NAV = self.account_history.NAV[-1]
-        abs_return = ending_balance - starting_balance
-        pc_return = 100 * abs_return / starting_balance
-        
-        trade_results['starting_balance'] = starting_balance
-        trade_results['ending_balance'] = ending_balance
-        trade_results['ending_NAV'] = ending_NAV
-        trade_results['abs_return'] = abs_return
-        trade_results['pc_return'] = pc_return
+
+        if len(self.account_history) > 0:
+            trade_results['start'] = self.account_history.index[0]
+            trade_results['end'] = self.account_history.index[-1]
+            
+            starting_balance = self.account_history.equity[0]
+            ending_balance = self.account_history.equity[-1]
+            ending_NAV = self.account_history.NAV[-1]
+            abs_return = ending_balance - starting_balance
+            pc_return = 100 * abs_return / starting_balance
+            
+            trade_results['starting_balance'] = starting_balance
+            trade_results['ending_balance'] = ending_balance
+            trade_results['ending_NAV'] = ending_NAV
+            trade_results['abs_return'] = abs_return
+            trade_results['pc_return'] = pc_return
         
         if no_trades > 0:
             trade_results['all_trades'] = {}
@@ -606,12 +686,6 @@ class TradeAnalysis:
             trade_results['short_trades']['short_wr'] = short_wr
         
         return trade_results
-    
-
-    def write_to_file(self):
-        """Write the trade results to file."""
-        # TODO - implement, allow writing virtual broker paper trade
-        # history to file
     
 
 class DataStream:
@@ -831,13 +905,17 @@ class DataStream:
         
         # Correct any data mismatches
         if self.portfolio:
+            # Portfolio strategy
             for instrument in multi_data:
                 matched_data, matched_quote_data = self.match_quote_data(multi_data[instrument], 
                                                                          quote_data[instrument])
                 multi_data[instrument] = matched_data
                 quote_data[instrument] = matched_quote_data
         else:
-            data, quote_data = self.match_quote_data(data, quote_data)
+            # Single instrument data strategy
+            if data is not None:
+                # Data is not None (in case of 'none' data feed)
+                data, quote_data = self.match_quote_data(data, quote_data)
         
         return data, multi_data, quote_data, auxdata
         
@@ -906,4 +984,26 @@ class DataStream:
         
         return bars
     
+
+class TradeWatcher:
+    """Watches trade snapshots to detect new trades."""
+    def __init__(self) -> None:
+        self.last_trade_time = None
+        self.latest_trades = []
     
+    def update(self, trades):
+        """Updates the trades being monitored for change."""
+        if trades[0]['time'] != self.last_trade_time:
+            # Trade update
+            self.last_trade_time = trades[0]['time']
+
+            for trade in trades:
+                if trade['time'] != self.last_trade_time: break
+                self.latest_trades.append(trade)
+    
+    def get_latest_trades(self):
+        """Returns the latest (unseen) trades."""
+        latest_trades = self.latest_trades
+        self.latest_trades = []
+        return latest_trades
+

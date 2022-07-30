@@ -24,8 +24,8 @@ def test_macd_backtest():
     at.plot_settings(show_cancelled=False)
     at.add_data({'EUR_USD': 'EUR_USD_H4.csv'}, 
                 data_directory=os.path.join(home_dir, 'data'))
-    at.backtest(start = '1/1/2021', end = '1/1/2022',
-                initial_balance=1000, leverage=30,
+    at.backtest(start = '1/1/2021', end = '1/1/2022')
+    at.virtual_account_config(initial_balance=1000, leverage=30,
                 spread=0.5*1e-4, commission=0.005, hedging=True)
     at.run()
     bot = at.get_bots_deployed()
@@ -34,7 +34,7 @@ def test_macd_backtest():
     # Test backtest results
     assert bt_results['no_trades'] == 35, "Incorrect number of trades " + \
         "(single instrument backtest)"
-    assert round(bt_results['ending_balance'], 3) == 983.887, "Incorrect "+\
+    assert round(bt_results['ending_balance'], 3) == 944.386, "Incorrect "+\
         "ending balance (single instrument backtest)"
     assert bt_results['long_trades']['no_trades'] == 10, "Incorrect number "+\
         "of long trades (single instrument backtest)"
@@ -65,18 +65,17 @@ def test_multibot_macd_backtest():
     at.add_data({'EUR_USD': 'EUR_USD_H4.csv',
                   'EUR_USD2': 'EUR_USD_H4.csv'}, 
                 data_directory=os.path.join(home_dir, 'data'))
-    at.backtest(start = '1/1/2021', end = '1/1/2022',
-                initial_balance=1000, leverage=30,
+    at.backtest(start = '1/1/2021', end = '1/1/2022')
+    at.virtual_account_config(initial_balance=1000, leverage=30,
                 spread=0.5*1e-4, commission=0.005, hedging=True)
     at.run()
     bt_results = at.trade_results.summary()
     
     assert bt_results['no_trades'] == 66, "Incorrect number of trades"+\
         " (multi-instrument backtest)"
-    assert round(bt_results['ending_balance'], 3) == 955.225, "Incorrect "+\
+    assert round(bt_results['ending_balance'], 3) == 873.795, "Incorrect "+\
         "ending balance (multi-instrument backtest)"
     assert bt_results['long_trades']['no_trades'] == 18, "Incorrect number "+\
         "of long trades (multi-instrument backtest)"
     assert bt_results['short_trades']['no_trades'] == 48, "Incorrect number "+\
         "of short trades (multi-instrument backtest)"
-    

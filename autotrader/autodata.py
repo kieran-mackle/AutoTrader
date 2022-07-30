@@ -1,9 +1,11 @@
-from re import L
+import os
 import time
 import pandas as pd
 from typing import Union
+from decimal import Decimal
 from autotrader.brokers.trading import Order
 from datetime import datetime, timedelta, timezone
+from autotrader.brokers.broker_utils import OrderBook
 
 
 class AutoData:
@@ -21,7 +23,7 @@ class AutoData:
     
     def __init__(self, data_config: dict = None, 
                  allow_dancing_bears: bool = False,
-                 home_currency: str = None) -> None:
+                 home_currency: str = None, *args, **kwargs) -> None:
         """Instantiates AutoData.
 
         Parameters
@@ -42,9 +44,19 @@ class AutoData:
         None
             AutoData will be instantiated and ready to fetch price data.
         """
-        if data_config is None:
+        def configure_local_feed(data_config):
+            """Configures the attributes for a local data feed."""
             self._feed = 'local'
+            self.api = None
+            self._data_directory = data_config['data_dir'] if 'data_dir' in \
+                    data_config else None
+            self._spread_units = data_config['spread_units'] if 'spread_units' in \
+                    data_config else 'percentage'
+            self._spread = data_config['spread'] if 'spread' in \
+                    data_config else 1
 
+        if not data_config:
+            configure_local_feed({})
         else:
             self._feed = data_config['data_source'].lower()
 
@@ -72,9 +84,9 @@ class AutoData:
                 try:
                     import ib_insync
                     from autotrader.brokers.ib.utils import Utils as IB_Utils
-                    self.ibapi = ib_insync.IB()
+                    self.api = ib_insync.IB()
                     self.IB_Utils = IB_Utils
-                    self.ibapi.connect(host=host, port=port, clientId=client_id, 
+                    self.api.connect(host=host, port=port, clientId=client_id, 
                                     readonly=read_only, account=account)
                 except ImportError:
                     raise Exception("Please install ib_insync to use "+\
@@ -83,7 +95,8 @@ class AutoData:
             elif data_config['data_source'].lower() == 'ccxt':
                 try:
                     import ccxt
-                    self.ccxt_exchange = getattr(ccxt, data_config['exchange'])()
+                    self._ccxt_exchange = data_config['exchange']
+                    self.api = getattr(ccxt, data_config['exchange'])()
                 except ImportError:
                     raise Exception("Please install ccxt to use "+\
                                     "the CCXT data feed.")
@@ -105,7 +118,11 @@ class AutoData:
                                     "the Yahoo Finance data feed.")
             
             elif data_config['data_source'].lower() == 'local':
-                pass
+                configure_local_feed(data_config)
+            
+            elif data_config['data_source'].lower() == 'none':
+                # No data feed required
+                self.api = None
 
             else:
                 raise Exception(f"Unknown data source '{self._feed}'.")
@@ -119,7 +136,8 @@ class AutoData:
     
     
     def __str__(self):
-        return f'AutoData ({self._feed} feed)'
+        feed_str = self._ccxt_exchange if self._feed == 'ccxt' else self._feed
+        return f'AutoData ({feed_str} feed)'
         
 
     def fetch(self, instrument: str, granularity: str = None, 
@@ -134,53 +152,46 @@ class AutoData:
         return data
 
     
-    def quote(self, *args, **kwargs):
+    def _quote(self, *args, **kwargs):
         """Unified quote data retrieval api."""
         func = getattr(self, f'_{self._feed}_quote_data')
         data = func(*args, **kwargs)
         return data
 
     
-    def L1(self, instrument, *args, **kwargs):
+    def L1(self, instrument=None, *args, **kwargs):
         """Unified level 1 data retrieval api."""
         # Get orderbook
-        func = getattr(self, f'_{self._feed}_orderbook')
-        orderbook = func(instrument, *args, **kwargs)
+        orderbook = self.L2(instrument, *args, **kwargs)
 
         # Construct response
-        best_bid = float(orderbook['bids'][0]['price'])
-        bid_size = float(orderbook['bids'][0]['size'])
-        best_ask = float(orderbook['asks'][0]['price'])
-        ask_size = float(orderbook['asks'][0]['size'])
-        
-        for level in orderbook['bids']:
-            if float(level['price']) > float(best_bid):
-                best_bid = level['price']
-                bid_size = level['size']
-
-        for level in orderbook['asks']:
-            if float(level['price']) < float(best_ask):
-                best_ask = level['price']
-                ask_size = level['size']
-
-        response = {'bid': best_bid,
-                    'ask': best_ask,
-                    'bid_size': bid_size,
-                    'ask_size': ask_size}
+        response = {'bid': orderbook.bids['price'][0],
+                    'ask': orderbook.asks['price'][0],
+                    'bid_size': orderbook.bids['size'][0],
+                    'ask_size': orderbook.asks['size'][0]}
 
         return response
     
 
-    def L2(self, instrument, *args, **kwargs):
+    def L2(self, instrument=None, *args, **kwargs):
         """Unified level 2 data retrieval api."""
-        # TODO - enforce ordering of book on each side
         func = getattr(self, f'_{self._feed}_orderbook')
         data = func(instrument, *args, **kwargs)
-        return data
+        if self._feed == 'local':
+            book = data
+        else:
+            book = OrderBook(instrument, data)
+        return book
+
+    
+    def trades(self, instrument, *args, **kwargs):
+        func = getattr(self, f'_{self._feed}_trades')
+        trades = func(instrument, *args, **kwargs)
+        return trades
 
     
     def _oanda(self, instrument: str, granularity: str, count: int = None, 
-              start_time: datetime = None, end_time: datetime = None) -> pd.DataFrame:
+               start_time: datetime = None, end_time: datetime = None) -> pd.DataFrame:
         """Retrieves historical price data of a instrument from Oanda v20 API.
 
         Parameters
@@ -309,7 +320,7 @@ class AutoData:
         return price
     
 
-    def _oanda_orderbook(self, instrument, time=None):
+    def _oanda_orderbook(self, instrument, time=None, *args, **kwargs):
         """Returns the orderbook from Oanda."""
         response = self.api.pricing.get(accountID=self.ACCOUNT_ID,
                                         instruments=instrument)
@@ -510,7 +521,7 @@ class AutoData:
     
 
     def _yahoo(self, instrument: str, granularity: str = None, count: int = None, 
-              start_time: str = None, end_time: str = None) -> pd.DataFrame:
+               start_time: str = None, end_time: str = None) -> pd.DataFrame:
         """Retrieves historical price data from yahoo finance. 
 
         Parameters
@@ -579,15 +590,16 @@ class AutoData:
     def _check_IB_connection(self):
         """Checks if there is an active connection to IB.
         """
-        self.ibapi.sleep(0)
-        connected = self.ibapi.isConnected()
+        self.api.sleep(0)
+        connected = self.api.isConnected()
         if not connected:
             raise ConnectionError("No active connection to IB.")
     
     
     def _ib(self, instrument: str, granularity: str, count: int,
-           start_time: datetime = None, end_time: datetime = None,
-           order: Order = None, durationStr: str = '10 mins', **kwargs) -> pd.DataFrame:
+            start_time: datetime = None, end_time: datetime = None,
+            order: Order = None, durationStr: str = '10 mins', 
+            *args, **kwargs) -> pd.DataFrame:
         """Fetches data from IB.
 
         Parameters
@@ -630,7 +642,7 @@ class AutoData:
         dt = ''
         barsList = []
         while True:
-            bars = self.ibapi.reqHistoricalData(
+            bars = self.api.reqHistoricalData(
                 contract,
                 endDateTime=dt,
                 durationStr=durationStr,
@@ -645,7 +657,7 @@ class AutoData:
         
         # Convert bars to DataFrame
         allBars = [b for bars in reversed(barsList) for b in bars]
-        df = self.ibapi.util.df(allBars)
+        df = self.api.util.df(allBars)
         return df
     
     
@@ -666,10 +678,10 @@ class AutoData:
         """
         self._check_IB_connection()
         contract = self.IB_Utils.build_contract(order)
-        self.ibapi.qualifyContracts(contract)
-        ticker = self.ibapi.reqMktData(contract, snapshot=snapshot)
-        while ticker.last != ticker.last: self.ibapi.sleep(1)
-        self.ibapi.cancelMktData(contract)
+        self.api.qualifyContracts(contract)
+        ticker = self.api.reqMktData(contract, snapshot=snapshot)
+        while ticker.last != ticker.last: self.api.sleep(1)
+        self.api.cancelMktData(contract)
         price = {"ask": ticker.ask,
                  "bid": ticker.bid,
                  "negativeHCF": 1,
@@ -721,16 +733,17 @@ class AutoData:
         return price
     
     
-    @staticmethod
-    def _local(filepath: str, start_time: Union[str, datetime] = None, 
-              end_time: Union[str, datetime] = None, utc: bool = True,
-              *args, **kwargs) -> pd.DataFrame:
+    def _local(self, instrument: str, start_time: Union[str, datetime] = None, 
+               end_time: Union[str, datetime] = None, utc: bool = True,
+               *args, **kwargs) -> pd.DataFrame:
         """Reads and returns local price data.
 
         Parameters
         ----------
-        filepath : str
-            The absolute filepath of the local price data.
+        instrument : str
+            Either the absolute filepath of the local price data file, or, if 
+            a data directory was provided in the data_config dictionary, simply
+            the name of the data file.
         start_time : str | datetime, optional
             The data start date. The default is None.
         end_time : str | datetime, optional
@@ -743,6 +756,9 @@ class AutoData:
         data : pd.DataFrame
             The price data, as an OHLC DataFrame.
         """
+        filepath = instrument if self._data_directory is None else \
+            os.path.join(self._data_directory, instrument)
+
         data = pd.read_csv(filepath, index_col = 0)
         data.index = pd.to_datetime(data.index, utc=utc)
         
@@ -752,6 +768,55 @@ class AutoData:
                                               end_time)
             
         return data
+
+    
+    def _local_orderbook(self, instrument=None, *args, **kwargs):
+        """Returns an artificial orderbook based on the last bar of 
+        local price data.
+        
+        Parameters
+        ----------
+        instrument : str, optional
+            The filename (absolute, or relative if data_dir was provided with
+            data_config dictionary) of the instrument data. Only required if
+            'midprice' argument is not provided.
+        spread : float, optional
+            The bid/ask spread value.
+        spread_units : float, optional 
+            The units to which the spread refers to.
+        midprice : float, optional
+            The midprice to use as a reference price.
+        """
+        spread_units = kwargs['spread_units'] if 'spread_units' in kwargs \
+            else self._spread_units
+        spread = kwargs['spread'] if 'spread' in kwargs \
+            else self._spread
+        
+        # Get latest price
+        if 'midprice' in kwargs:
+            midprice = kwargs['midprice']
+        else:
+            # Load from OHLC data
+            data = self._local(instrument)
+            midprice = data.iloc[-1].Close
+
+        if spread_units == 'price':
+            bid = midprice - 0.5*spread
+            ask = midprice + 0.5*spread
+        elif spread_units == 'percentage':
+            bid = midprice * (1-0.5*spread/100)
+            ask = midprice * (1+0.5*spread/100)
+        
+        # Quantize
+        bid = Decimal(bid).quantize(Decimal(str(midprice)))
+        ask = Decimal(ask).quantize(Decimal(str(midprice)))
+
+        # TODO - ability to add levels by book parameters
+        data = {'bids': [{'price': bid, 'size': 1e100},],
+                         'asks': [{'price': ask, 'size': 1e100},]}
+        orderbook = OrderBook(instrument, data)
+
+        return orderbook
     
     
     def _local_quote_data(self, data: pd.DataFrame, pair: str, granularity: str, 
@@ -804,10 +869,10 @@ class AutoData:
             
             data = []
             while start_ts <= end_ts:
-                raw_data = self.ccxt_exchange.fetchOHLCV(instrument, 
-                                                         timeframe=granularity, 
-                                                         since=start_ts,
-                                                         limit=count)
+                raw_data = self.api.fetchOHLCV(instrument, 
+                                               timeframe=granularity, 
+                                               since=start_ts,
+                                               limit=count)
                 # Append data
                 data += raw_data
                 
@@ -822,16 +887,16 @@ class AutoData:
         if count is not None:
             if start_time is None and end_time is None:
                 # Fetch N most recent candles
-                raw_data = self.ccxt_exchange.fetchOHLCV(instrument, 
-                                                         timeframe=granularity, 
-                                                         limit=count)
+                raw_data = self.api.fetchOHLCV(instrument, 
+                                               timeframe=granularity, 
+                                               limit=count)
             elif start_time is not None and end_time is None:
                 # Fetch N candles since start_time
                 start_ts = None if start_time is None else int(start_time.timestamp()*1000) 
-                raw_data = self.ccxt_exchange.fetchOHLCV(instrument, 
-                                                         timeframe=granularity, 
-                                                         since=start_ts,
-                                                         limit=count)
+                raw_data = self.api.fetchOHLCV(instrument, 
+                                               timeframe=granularity, 
+                                               since=start_ts,
+                                               limit=count)
             elif end_time is not None and start_time is None:
                 raise Exception("Fetching data from end_time and count is "+\
                                 "not yet supported.")
@@ -865,9 +930,9 @@ class AutoData:
         return data
         
 
-    def _ccxt_orderbook(self, instrument, limit=None):
+    def _ccxt_orderbook(self, instrument, limit=None, *args, **kwargs):
         """Returns the orderbook from a CCXT supported exchange."""
-        response = self.ccxt_exchange.fetchOrderBook(symbol=instrument)
+        response = self.api.fetchOrderBook(symbol=instrument)
 
         # Unify format
         orderbook = {}
@@ -878,11 +943,28 @@ class AutoData:
                                         'size': level[1]}
                                        )
         return orderbook
+    
+
+    def _ccxt_trades(self, instrument):
+        """Returns public trades from a CCXT exchange."""
+        ccxt_trades = self.api.fetchTrades(instrument)
+
+        # Convert to standard form
+        trades = []
+        for trade in ccxt_trades:
+            unified_trade = {'direction': 1 if trade['side']=='buy' else -1,
+                             'price': float(trade['price']),
+                             'size': float(trade['amount']),
+                             'time': datetime.fromtimestamp(trade['timestamp']/1000)
+                            }
+            trades.append(unified_trade)
+
+        return trades
 
 
     def _dydx(self, instrument: str, granularity: str, count: int = None, 
-             start_time: datetime = None, end_time: datetime = None,
-             *args, **kwargs) -> pd.DataFrame:
+              start_time: datetime = None, end_time: datetime = None,
+              *args, **kwargs) -> pd.DataFrame:
         """Retrieves historical price data of a instrument from dYdX.
           
         Parameters
@@ -1007,8 +1089,38 @@ class AutoData:
         return data
 
     
-    def _dydx_orderbook(self, instrument):
+    def _dydx_orderbook(self, instrument, *args, **kwargs):
         """Returns the orderbook from dYdX."""
         response = self.api.public.get_orderbook(market=instrument)
         orderbook = response.data
         return orderbook
+
+
+    def _dydx_trades(self, instrument):
+        """Returns public trades from dYdX."""
+        response = self.api.public.get_trades(instrument)
+        dydx_trades = response.data['trades']
+
+        # Convert to standard form
+        trades = []
+        for trade in dydx_trades:
+            unified_trade = {'direction': 1 if trade['side']=='BUY' else -1,
+                             'price': float(trade['price']),
+                             'size': float(trade['size']),
+                             'time': datetime.strptime(trade['createdAt'], 
+                                                '%Y-%m-%dT%H:%M:%S.%fZ')
+                            }
+            trades.append(unified_trade)
+
+        return trades
+    
+
+    def _none(self, *args, **kwargs):
+        """Dummy method for none 'data' feed"""
+        return None
+    
+    def _none_quote_data(self, *args, **kwargs):
+        return None
+
+    def _none_orderbook(self, *args, **kwargs):
+        return None

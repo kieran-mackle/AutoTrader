@@ -1,4 +1,5 @@
 from __future__ import annotations
+from tracemalloc import stop
 import numpy as np
 from datetime import datetime
 from autotrader.brokers.broker_utils import BrokerUtils
@@ -22,6 +23,15 @@ class Order:
     target_value : float
         The target value of the resulting trade, specified in the home 
         currency of the account.
+    order_limit_price : float
+        The limit price of the order (for 'limit' and 'stop-limit' order
+        types).
+    order_stop_price : float
+        The stop price of the order (for 'stop-limit' order types).
+    order_price : float
+        The price of the instrument when the order was placed.
+    order_time : datetime
+        The time at which the order was placed.
     stop_loss : float
         The price to set the stop-loss at.
     stop_distance : float
@@ -44,8 +54,6 @@ class Order:
         The base currency of the order (IB only).
     secType : str
         The security type (IB only).
-    exchange : str
-        The exchange on which the instrument is listed (IB only).
     contract_month : str
         The contract month string (IB only).
     localSymbol : str
@@ -56,32 +64,50 @@ class Order:
     limit_fee : str, optional
         The maximum fee to accept as a percentage (dYdX only). The default
         is '0.015'.
-
+    exchange : str
+        The exchange to which the order should be submitted.
     """
-    def __init__(self, instrument: str = None, direction: int = None,
-                 order_type: str = 'market', **kwargs) -> Order:
+    def __init__(self, instrument: str = None, 
+                 direction: int = None,
+                 order_type: str = 'market',
+                 size: float = None,
+                 order_limit_price: float = None,
+                 order_stop_price: float = None,
+                 stop_loss: float = None,
+                 stop_type: str = None,
+                 take_profit: float = None,
+                 **kwargs) -> Order:
         
         # Required attributes
         self.instrument = instrument
         self.direction = direction
         self.order_type = order_type
-        self.size = None
+
+        # Optional arguments
+        self.size = size
         self.base_size = None
         self.target_value = None
-        self.size_precision = 2
         self.order_price = None
         self.order_time = None
-        self.order_limit_price = None
-        self.order_stop_price = None
+        self.order_limit_price = order_limit_price
+        self.order_stop_price = order_stop_price
         self.pip_value = None
-        
         self.HCF = 1
+
+        # Precision
+        self.price_precision = 4
+        self.size_precision = 4
+
+        # Multi-exchange handling
+        self.exchange = None
         
-        self.stop_type = None
-        self.stop_loss = None
+        # Stop loss arguments
+        self.stop_type = stop_type
+        self.stop_loss = stop_loss
         self.stop_distance = None
         
-        self.take_profit = None
+        # Take profit arguments
+        self.take_profit = take_profit
         self.take_distance = None
         
         self.related_orders = None
@@ -91,7 +117,6 @@ class Order:
         # IB attributes
         self.currency = None
         self.secType = None
-        self.exchange = None
         self.contract_month = None
         self.localSymbol = None
         
@@ -124,23 +149,49 @@ class Order:
     
     
     def __repr__(self):
-        if self.size is not None:
-            direction = 'long' if self.direction > 0 else 'short'
-            return f'{round(self.size,3)} unit {direction} {self.instrument} {self.order_type} order'
-        else:
-            return self.__str__()
+        return self.__str__()
         
     
     def __str__(self):
         if self.instrument is None:
+            # Blank order
             return 'Blank order'
+
         else:
-            return f'{self.instrument} {self.order_type} Order'
+            # Order constructed with instrument
+            if self.size is not None:
+                if self.direction is None:
+                    return 'Invalid order (direction not specified)'
+
+                side = 'buy' if self.direction > 0 else 'sell'
+
+                string = f'{round(self.size, self.size_precision)} '+\
+                    f'unit {self.instrument} {self.order_type} '+\
+                    f'{side} order'
+
+                # Append additional information
+                if self.order_type == 'limit':
+                    if self.order_limit_price is None:
+                        return 'Invalid order (limit price not provided)'
+                    string += f' @ {self.order_limit_price}'
+
+                elif self.order_type == 'stop-limit':
+                    if self.order_limit_price is None:
+                        return 'Invalid order (limit price not provided)'
+                    elif self.order_stop_price is None:
+                        return 'Invalid order (stop price not provided)'
+                    string += f' @ {self.order_stop_price} / {self.order_limit_price}'
+
+                return string
+
+            else:
+                # Size un-assigned
+                return f'{self.instrument} {self.order_type} Order'
     
     
     def __call__(self, broker = None, order_price: float = None, 
                  order_time: datetime = datetime.now(), 
-                 HCF: float = None) -> None:
+                 HCF: float = None, precision: dict = None) -> None:
         """Order object, called before submission to broker in 
         autobot._qualify_orders.
 
@@ -154,6 +205,9 @@ class Order:
             The time of the order. The default is datetime.now().
         HCF : float, optional
             The home conversion factor. The default is 1.
+        precision : dict, optional
+            A dictionary containing the precision for order size and price. 
+            The default is None.
 
         Returns
         -------
@@ -163,6 +217,11 @@ class Order:
         self.order_price = order_price if order_price else self.order_price
         self.order_time = order_time if order_time else self.order_time
         self.HCF = HCF if HCF is not None else self.HCF
+        
+        # Assign precisions
+        if precision is not None:
+            self.price_precision = precision['price']
+            self.size_precision = precision['size']
         
         # Enforce size scalar
         self.size = abs(self.size) if self.size is not None else self.size
@@ -192,9 +251,9 @@ class Order:
         order_price = order_price if order_price is not None \
             else self.order_price
         if self.order_type == 'limit' or self.order_type == 'stop-limit':
-            self._working_price = self.order_limit_price
+            self._working_price = round(self.order_limit_price, self.price_precision)
         else:
-            self._working_price = order_price
+            self._working_price = round(order_price, self.price_precision)
         
     
     def _calculate_exit_prices(self, broker = None, 
@@ -215,21 +274,25 @@ class Order:
         None
             The exit prices will be assigned to the order instance.
         """
-        working_price = working_price if working_price is not None \
-            else self._working_price
+        working_price = round(working_price, self.price_precision) if \
+            working_price is not None else self._working_price
         
         if broker is None:
+            # No broker provided, create nominal utils instance
             utils = BrokerUtils()
         else:
+            # Use broker-specific utilities
             utils = broker.utils
+        
         pip_value = self.pip_value if self.pip_value is not None else\
             utils.get_pip_ratio(self.instrument)
 
         # Calculate stop loss price
         if self.stop_loss is None and self.stop_distance is not None:
             # Stop loss provided as pip distance, convert to price
-            self.stop_loss = working_price - np.sign(self.direction)*\
+            stop_loss = working_price - np.sign(self.direction)*\
                 self.stop_distance*pip_value
+            self.stop_loss = round(stop_loss, self.price_precision)
         
         if self.stop_type == 'trailing' and self.stop_distance is None and \
             working_price is not None:
@@ -240,8 +303,9 @@ class Order:
         # Calculate take profit price
         if self.take_profit is None and self.take_distance is not None:
             # Take profit pip distance specified, convert to price
-            self.take_profit = working_price + np.sign(self.direction)*\
+            take_profit = working_price + np.sign(self.direction)*\
                 self.take_distance*pip_value
+            self.take_profit = round(take_profit, self.price_precision)
         
 
     def _calculate_position_size(self, broker = None, working_price: float = None, 
@@ -291,16 +355,45 @@ class Order:
                 # Size not provided, need to calculate it
                 amount_risked = amount_risked if amount_risked else \
                     broker.get_NAV() * risk_pc / 100
+                
                 if sizing == 'risk':
-                    self.size = broker.utils.get_size(instrument=self.instrument, 
-                                                      amount_risked=amount_risked, 
-                                                      price=working_price, 
-                                                      HCF=HCF,
-                                                      stop_price=self.stop_loss, 
-                                                      stop_distance=self.stop_distance)
+                    # Calculate size from SL placement
+                    size = broker.utils.get_size(instrument=self.instrument, 
+                                                amount_risked=amount_risked, 
+                                                price=working_price, 
+                                                HCF=HCF,
+                                                stop_price=self.stop_loss, 
+                                                stop_distance=self.stop_distance)
+                    self.size = round(size, self.size_precision)
+
                 else:
+                    # Use position size provided via sizing key
                     self.size = sizing
-            
+        
+        else:
+            # Size has been set, enforce precision
+            self.size = round(self.size, self.size_precision)
+    
+
+    @classmethod
+    def _partial_fill(cls, order: Order, units_filled: float) -> Order:
+        """Partially fills the order."""
+        # Instantiate new order
+        order_to_be_filled = cls()
+        
+        # Inherit attributes from base order
+        for attribute, value in order.__dict__.items():
+            setattr(order_to_be_filled, attribute, value)
+        
+        # Reset ID
+        order_to_be_filled.id = None
+
+        # Transfer units
+        order_to_be_filled.size = units_filled
+        order.size -= units_filled
+
+        return order_to_be_filled
+
     
     def _check_precision(self,):
         # TODO - implement
@@ -332,6 +425,54 @@ class Order:
     @classmethod
     def _from_dict(cls, order_dict: dict) -> Order:
         return Order(**order_dict)
+
+
+class MarketOrder(Order):
+    """Market order type."""
+    def __init__(self, instrument: str = None, 
+                 direction: int = None,
+                 size: float = None,
+                 **kwargs):
+        # Create base Order
+        super().__init__(instrument=instrument,
+                         direction=direction,
+                         order_type='market',
+                         size=size, 
+                         **kwargs)
+
+                         
+class LimitOrder(Order):
+    """Limit order type."""
+    def __init__(self, instrument: str = None, 
+                 direction: int = None,
+                 size: float = None,
+                 order_limit_price: float = None,
+                 **kwargs):
+        # Create base Order
+        super().__init__(instrument=instrument,
+                         direction=direction,
+                         order_type='limit',
+                         size=size, 
+                         order_limit_price=order_limit_price, 
+                         **kwargs)
+
+
+class StopLimitOrder(Order):
+    """Stop-limit order type."""
+    def __init__(self, instrument: str = None, 
+                 direction: int = None,
+                 size: float = None,
+                 order_limit_price: float = None,
+                 order_stop_price: float = None,
+                 **kwargs):
+        # Create base Order
+        super().__init__(instrument=instrument,
+                         direction=direction,
+                         order_type='stop-limit',
+                         size=size, 
+                         order_limit_price=order_limit_price, 
+                         order_stop_price=order_stop_price,
+                         **kwargs)
 
 
 class Trade(Order):
@@ -518,9 +659,3 @@ class Position:
         objects as a dictionary.
         """
         return self.__dict__
-
-
-if __name__ == '__main__':
-    order_signal_dict = {'instrument': 'EUR_USD','order_type': 'market', 
-                         'direction': 1, 'stop_loss': 1.22342}
-    o = Order._from_dict(order_signal_dict)

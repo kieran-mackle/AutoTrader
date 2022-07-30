@@ -125,6 +125,7 @@ if __name__ == "__main__":
                              'RR': 1.5},
               'WATCHLIST': ['EUR_USD'],}
     home_dir = os.getcwd()
+    data_dir = '/home/kmackle/Documents/AutoTrader/tests/data'
     
     at = AutoTrader()
     at.configure(verbosity=1, show_plot=False, 
@@ -132,12 +133,12 @@ if __name__ == "__main__":
     at.add_strategy(config_dict=config, strategy=SimpleMACD)
     at.plot_settings(show_cancelled=False)
     at.add_data({'EUR_USD': 'EUR_USD_H4.csv'}, 
-                data_directory=os.path.join(home_dir, 'data'))
-    at.backtest(start = '1/1/2015',
-                end = '1/3/2022',
-                initial_balance=1000,
+                # data_directory=os.path.join(home_dir, 'data'),
+                data_directory=data_dir)
+    at.backtest(start = '1/1/2015', end = '1/3/2022',)
+    at.virtual_account_config(initial_balance=1000,
                 leverage=30,
-                spread=0.5,
+                spread=0.5*1e-4,
                 commission=0.005)
     at.run()
     

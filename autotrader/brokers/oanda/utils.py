@@ -1,18 +1,11 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-'''
-Module: brokers.oanda.utils
-Purpose: Utility functions for Oanda broker wrapper
-Author: Kieran Mackle
-'''
-
+import numpy as np
 import pandas as pd
 from datetime import datetime, timedelta
-import numpy as np
 from autotrader.brokers.broker_utils import BrokerUtils
 
+
 class Utils(BrokerUtils):
-    def __init__(self):
+    def __init__(self, **kwargs):
         return
     
     def update_data_with_candle(self, data, latest_candle):
@@ -123,3 +116,10 @@ class Utils(BrokerUtils):
                 watchlist.append(formatted_instrument)
         
         return watchlist
+
+    
+    def get_precision(self, instrument, *args, **kwargs):
+        """Returns the precision of the instrument."""
+        # NOTE: this has not been formally implemented yet.
+        # TODO - implement
+        return {'size': 4, 'price': 4}
