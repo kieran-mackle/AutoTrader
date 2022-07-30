@@ -549,19 +549,30 @@ class AutoTraderBot:
                         quote_bars: dict) -> None:
         """Passes price data to order to populate missing fields.
         """
-        if self._feed != 'none':
-            # Cannot qualify orders without a data feed, continue otherwise
-            for order in orders:
+        
+        for order in orders:
+            # Get relevant broker
+            broker = self._brokers[order.exchange]
+
+            # Fetch precision for instrument
+            precision = broker.utils.get_precision(order.instrument)
+            
+            if self._feed != 'none':
+                # Get order price from current bars
                 if self._req_liveprice:
+                    # Fetch current price
                     liveprice_func = getattr(self._get_data, f'_{self._feed.lower()}_liveprice')
                     last_price = liveprice_func(order)
                 else:
+                    # Fetch pseudo-current price
                     try:
+                        # Use instrument
                         last_price = self._get_data._pseduo_liveprice(last=current_bars[order.instrument].Close,
-                                                                    quote_price=quote_bars[order.instrument].Close)
+                                                                      quote_price=quote_bars[order.instrument].Close)
                     except:
+                        # Use data name
                         last_price = self._get_data._pseduo_liveprice(last=current_bars[order.data_name].Close,
-                                                                    quote_price=quote_bars[order.data_name].Close)
+                                                                      quote_price=quote_bars[order.data_name].Close)
                 
                 if order.order_type not in ['close', 'reduce', 'modify']:
                     if order.direction < 0:
@@ -574,9 +585,17 @@ class AutoTraderBot:
                     # Close, reduce or modify order type, provide dummy inputs
                     order_price = last_price['ask']
                     HCF = last_price['positiveHCF']
-                
-                # Call order with price
-                order(broker=self._brokers[order.exchange], order_price=order_price, HCF=HCF)
+
+            else:
+                # Do not provide order price yet
+                order_price = None
+                HCF = None
+
+            # Call order to update
+            order(broker=broker, 
+                order_price=order_price, 
+                HCF=HCF,
+                precision=precision)
     
     
     def _update_virtual_broker(self, current_bars: dict) -> None:

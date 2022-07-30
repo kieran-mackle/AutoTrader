@@ -12,6 +12,9 @@ class Utils(BrokerUtils):
             raise Exception("Please install dydx-v3-python to connect "+\
                             "to dydx API.")
         # Except network error?
+
+        # Stored instrument precisions
+        self._instrument_precisions = {}
     
     
     def __repr__(self):
@@ -24,9 +27,18 @@ class Utils(BrokerUtils):
     
     def get_precision(self, instrument, *arg, **kwargs):
         """Returns the precision of the specified instrument."""
-        market = self._get_market(instrument=instrument)
-        unified_response = {'size': -Decimal(market['tickSize']).as_tuple().exponent,
-                            'price': -Decimal(market['stepSize']).as_tuple().exponent}
+        if instrument in self._instrument_precisions:
+            # Precision already fetched, use stored value
+            unified_response = self._instrument_precisions[instrument]
+        else:
+            # Fetch precision
+            market = self._get_market(instrument=instrument)
+            unified_response = {'size': -Decimal(market['tickSize']).as_tuple().exponent,
+                                'price': -Decimal(market['stepSize']).as_tuple().exponent}
+            
+            # Store for later use
+            self._instrument_precisions[instrument] = unified_response
+
         return unified_response
 
     

@@ -1,6 +1,6 @@
 import ccxt
 from datetime import datetime
-from autotrader.brokers.broker_utils import BrokerUtils
+from autotrader.brokers.ccxt.utils import Utils, BrokerUtils
 from autotrader.brokers.trading import Order, Trade, Position
 
 
@@ -13,7 +13,7 @@ class Broker:
         exchange_instance = getattr(ccxt, self.exchange)
         self.api = exchange_instance({'apiKey': config['api_key'],
                                       'secret': config['secret']})
-        self.utils = utils if utils is not None else BrokerUtils()
+        self.utils = utils if utils is not None else Utils()
 
         # Load markets
         markets = self.api.load_markets()

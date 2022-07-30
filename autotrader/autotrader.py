@@ -1418,11 +1418,15 @@ class AutoTrader:
         for broker_key, config in broker_config.items():
             # Import relevant broker and utilities modules
             if self._backtest_mode or self._papertrading:
+                # Use virtual broker
                 broker_name = 'virtual'
             else:
+                # Use real broker
                 broker_name = broker_key.lower().split(':')[0]
+            
+            # Import relevant modules 
             broker_module = importlib.import_module(f'autotrader.brokers.{broker_name}.broker')
-            utils_module = importlib.import_module(f'autotrader.brokers.{broker_name}.utils')
+            utils_module = importlib.import_module(f'autotrader.brokers.{broker_key}.utils')
             
             # Create broker and utils instances
             utils = utils_module.Utils()

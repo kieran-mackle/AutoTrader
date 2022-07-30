@@ -11,3 +11,11 @@ class Utils(BrokerUtils):
     
     def __str__(self):
         return 'AutoTrader Virtual Broker Utilities'
+    
+
+    def get_precision(self, instrument, *arg, **kwargs):
+        """Returns the precision of the specified instrument."""
+        unified_response = {'size': 4,
+                            'price': 4
+                            }
+        return unified_response

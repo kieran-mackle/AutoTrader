@@ -2,7 +2,7 @@ import pandas as pd
 from decimal import Decimal
 from datetime import datetime
 from dydx3 import Client, constants
-from autotrader.brokers.broker_utils import BrokerUtils
+from autotrader.brokers.dydx.utils import Utils, BrokerUtils
 from autotrader.brokers.trading import Order, Position, Trade
 
 
@@ -10,8 +10,7 @@ class Broker:
     def __init__(self, config: dict, utils: BrokerUtils = None) -> None:
         """AutoTrader Broker Class constructor.
         """
-        
-        self.utils = utils if utils is not None else BrokerUtils()
+        self.utils = utils if utils is not None else Utils()
         
         # Unpack config to obtain STARK and API keys 
         client = Client(host='http://localhost:8080', eth_private_key=config['ETH_PRIV_KEY'])

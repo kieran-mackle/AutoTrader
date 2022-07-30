@@ -123,3 +123,10 @@ class Utils(BrokerUtils):
                 watchlist.append(formatted_instrument)
         
         return watchlist
+
+    
+    def get_precision(self, instrument, *args, **kwargs):
+        """Returns the precision of the instrument."""
+        # NOTE: this has not been formally implemented yet.
+        # TODO - implement
+        return {'size': 4, 'price': 4}

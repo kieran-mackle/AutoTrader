@@ -1,4 +1,5 @@
 from __future__ import annotations
+from tracemalloc import stop
 import numpy as np
 from datetime import datetime
 from autotrader.brokers.broker_utils import BrokerUtils
@@ -86,13 +87,16 @@ class Order:
         self.size = size
         self.base_size = None
         self.target_value = None
-        self.size_precision = 2
         self.order_price = None
         self.order_time = None
         self.order_limit_price = order_limit_price
         self.order_stop_price = order_stop_price
         self.pip_value = None
         self.HCF = 1
+
+        # Precision
+        self.price_precision = 4
+        self.size_precision = 4
 
         # Multi-exchange handling
         self.exchange = None
@@ -187,7 +191,7 @@ class Order:
     
     def __call__(self, broker = None, order_price: float = None, 
                  order_time: datetime = datetime.now(), 
-                 HCF: float = None) -> None:
+                 HCF: float = None, precision: dict = None) -> None:
         """Order object, called before submission to broker in 
         autobot._qualify_orders.
 
@@ -201,6 +205,9 @@ class Order:
             The time of the order. The default is datetime.now().
         HCF : float, optional
             The home conversion factor. The default is 1.
+        precision : dict, optional
+            A dictionary containing the precision for order size and price. 
+            The default is None.
 
         Returns
         -------
@@ -210,6 +217,11 @@ class Order:
         self.order_price = order_price if order_price else self.order_price
         self.order_time = order_time if order_time else self.order_time
         self.HCF = HCF if HCF is not None else self.HCF
+        
+        # Assign precisions
+        if precision is not None:
+            self.price_precision = precision['price']
+            self.size_precision = precision['size']
         
         # Enforce size scalar
         self.size = abs(self.size) if self.size is not None else self.size
@@ -239,9 +251,9 @@ class Order:
         order_price = order_price if order_price is not None \
             else self.order_price
         if self.order_type == 'limit' or self.order_type == 'stop-limit':
-            self._working_price = self.order_limit_price
+            self._working_price = round(self.order_limit_price, self.price_precision)
         else:
-            self._working_price = order_price
+            self._working_price = round(order_price, self.price_precision)
         
     
     def _calculate_exit_prices(self, broker = None, 
@@ -262,21 +274,25 @@ class Order:
         None
             The exit prices will be assigned to the order instance.
         """
-        working_price = working_price if working_price is not None \
-            else self._working_price
+        working_price = round(working_price, self.price_precision) if \
+            working_price is not None else self._working_price
         
         if broker is None:
+            # No broker provided, create nominal utils instance
             utils = BrokerUtils()
         else:
+            # Use broker-specific utilities
             utils = broker.utils
+        
         pip_value = self.pip_value if self.pip_value is not None else\
             utils.get_pip_ratio(self.instrument)
 
         # Calculate stop loss price
         if self.stop_loss is None and self.stop_distance is not None:
             # Stop loss provided as pip distance, convert to price
-            self.stop_loss = working_price - np.sign(self.direction)*\
+            stop_loss = working_price - np.sign(self.direction)*\
                 self.stop_distance*pip_value
+            self.stop_loss = round(stop_loss, self.price_precision)
         
         if self.stop_type == 'trailing' and self.stop_distance is None and \
             working_price is not None:
@@ -287,8 +303,9 @@ class Order:
         # Calculate take profit price
         if self.take_profit is None and self.take_distance is not None:
             # Take profit pip distance specified, convert to price
-            self.take_profit = working_price + np.sign(self.direction)*\
+            take_profit = working_price + np.sign(self.direction)*\
                 self.take_distance*pip_value
+            self.take_profit = round(take_profit, self.price_precision)
         
 
     def _calculate_position_size(self, broker = None, working_price: float = None, 
@@ -338,15 +355,24 @@ class Order:
                 # Size not provided, need to calculate it
                 amount_risked = amount_risked if amount_risked else \
                     broker.get_NAV() * risk_pc / 100
+                
                 if sizing == 'risk':
-                    self.size = broker.utils.get_size(instrument=self.instrument, 
-                                                      amount_risked=amount_risked, 
-                                                      price=working_price, 
-                                                      HCF=HCF,
-                                                      stop_price=self.stop_loss, 
-                                                      stop_distance=self.stop_distance)
+                    # Calculate size from SL placement
+                    size = broker.utils.get_size(instrument=self.instrument, 
+                                                amount_risked=amount_risked, 
+                                                price=working_price, 
+                                                HCF=HCF,
+                                                stop_price=self.stop_loss, 
+                                                stop_distance=self.stop_distance)
+                    self.size = round(size, self.size_precision)
+
                 else:
+                    # Use position size provided via sizing key
                     self.size = sizing
+        
+        else:
+            # Size has been set, enforce precision
+            self.size = round(self.size, self.size_precision)
     
 
     @classmethod

@@ -4,6 +4,9 @@ class Utils(BrokerUtils):
     def __init__(self, exchange: str = None):
         if exchange is not None:
             self.connect_to_exchange(exchange)
+        
+        # Stored instrument precisions
+        self._instrument_precisions = {}
     
 
     def connect_to_exchange(self, exchange: str):
@@ -27,12 +30,21 @@ class Utils(BrokerUtils):
     
     def get_precision(self, instrument, *args, **kwargs):
         """Returns the precision of the instrument."""
-        market = self._get_market(instrument)
-        precision = market['precision']
-        unified_response = {'size': precision['amount'],
-                            'price': precision['price']}
+        if instrument in self._instrument_precisions:
+            # Precision already fetched, use stored value
+            unified_response = self._instrument_precisions[instrument]
+        else:
+            # Fetch precision
+            market = self._get_market(instrument)
+            precision = market['precision']
+            unified_response = {'size': precision['amount'],
+                                'price': precision['price']}
+            
+            # Store for later use
+            self._instrument_precisions[instrument] = unified_response
+
         return unified_response
-    
+        
 
     def _get_market(self, instrument, *args, **kwargs):
         """Returns the raw get_market response from a CCXT exchange"""

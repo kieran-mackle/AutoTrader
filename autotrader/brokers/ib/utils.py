@@ -207,4 +207,9 @@ class Utils(BrokerUtils):
         expiry_dt = dt + relativedelta(months=months)
         return expiry_dt.strftime('%Y') + expiry_dt.strftime('%m')
         
-        
+    
+    def get_precision(self, instrument, *args, **kwargs):
+        """Returns the precision of the instrument."""
+        # NOTE: this has not been formally implemented yet.
+        # TODO - implement
+        return {'size': 4, 'price': 4}
