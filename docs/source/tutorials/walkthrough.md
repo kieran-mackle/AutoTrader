@@ -1,49 +1,48 @@
 (detailed-walkthrough)=
 # Detailed AutoTrader Walkthrough
-The next few pages will walk you through building an algorithmic trading system in AutoTrader. There will also
-be links to sections of relevant code documentation.
+
+A popular MACD crossover strategy will be developed in this section. An important note 
+here is that this strategy assumes that the trading instrument can be short-sold. 
 
 ```{warning}
-This walkthrough is intentionally very thorough and detailed. If you don't mind glossing over the finer details, 
-the [condensed walkthrough](condensed-walkthrough) might be better suited for you.
+This walkthrough is intentionally very thorough and detailed. If you don't mind g
+lossing over the finer details, or are comfortable programming in Python, the 
+[condensed walkthrough](condensed-walkthrough) might be better suited to you.
 ```
 
 
-(rec-dir-struc)=
-## Directory Organisation
-Before building a strategy in AutoTrader, it is important to understand the structure of a project. At a minimum, any 
-strategy you run in AutoTrader requires two things: 
-1. A strategy module, containing all the logic of your strategy, and
-2. A configuration file, containing strategy configuration parameters.
+## Strategy Rules
+The rules for the MACD strategy are defined as follows.
 
-If you plan to take your strategy [live](going-live), you will also need a [global configuration](global-config) 
-file to connect to your broker, but we will get to that later. For now, the files above are enough to get started backtesting, so
-this tutorial will go over setting them up.
+1. Trade in the direction of the trend, as determined by the 200-period exponential 
+moving average (EMA) (if the current price above 200EMA, there is an up-trend and only
+long trades should be made, and if price is below, there is a down-trend and only short
+trades should be made).
+2. Enter a long position when the MACD line crosses *up* over the signal line, and enter short when the MACD line crosses *down* below the signal line.
+3. To ensure only the strongest signals, the MACD crossover must occur below the 
+histogram zero line for long positions, and above the histogram zero line for short 
+positions.
+3. Stop losses are set at recent price swings/significant price levels. We will use 
+AutoTrader's [swing detection](swing-detection) indicator for this.
+4. Take profit levels are set at 1:1.5 risk-to-reward, meaning that winning trades make
+1.5 times more than losing trades lose.
 
-Back to the recommended directory structure: you should have a `config/` directory - containing your configuration 
-files - and a `strategies/` directory - containing your [trading strategies](../userfiles/strategy). When you 
-run AutoTrader, it will look for the appropriate files under these directories. If you cloned the demo repository, 
-you will see these directories set up already. Think of this directory structure as your 'bag' of algo-trading bots. 
-Sticking to this will make path management super easy. Note, however, that you can also just directly provide the 
-contents of each file to AutoTrader directly if preferred.
+From these rules, the following strategy parameters can be defined:
 
-```
-your_trading_project/
-├── runfile.py                      # Run script to deploy trading bots
-├── config 
-│   ├── GLOBAL.yaml                 # Global configuration file
-│   ├── strategy1_config.yaml       # Strategy 1 configuration file
-│   └── strategy2_config.yaml       # Strategy 2 configuration file
-└── strategies
-    ├── strategy1.py                # Strategy 1 module, containing strategy 1 logic
-    └── strategy2.py                # Strategy 2 module, containing strategy 2 logic
-```
+| Parameter | Nominal value |
+|-----------|---------------|
+| ema_period | 200 |
+| MACD_fast | 12  |
+| MACD_slow | 26  |
+| MACD_smoothing | 9 |
+| RR | 1.5 |
 
-```{note}
-AutoTrader has become even more flexible in version `0.6.0`. While the directory structure above is a good guide to 
-keeping an organised system, it is no longer requied. You can now directly pass your strategy configuration as a `dict` object,
-and your strategy logic as its class object.
-```
+An example of a long entry signal from this strategy is shown in the image below 
+(generated using [AutoTrader IndiView](../features/visualisation)).
+
+![MACD crossover strategy](../assets/images/long_macd_signal.png "Long trade example for the MACD Crossover Strategy")
+
+
 
 
 

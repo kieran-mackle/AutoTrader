@@ -47,18 +47,18 @@ Looking for something specific? Try the search bar on the left, or take a look t
 ```{toctree}
 :hidden:
 
-Feature Showcase <features/features>
 Getting Started <getting-started>
+Feature Showcase <features/features>
 ```
 
 ```{toctree}
 :maxdepth: 2
-:caption: Tutorials
+:caption: Using AutoTrader
 :hidden:
 
 Overview <tutorials/overview>
-Detailed Walkthrough <tutorials/walkthrough>
 Condensed Walkthrough <tutorials/condensed-walkthrough>
+Detailed Walkthrough <tutorials/walkthrough>
 Miscellaneous <tutorials/misc/misc-tuts>
 ```
 
