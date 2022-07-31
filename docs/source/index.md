@@ -56,6 +56,7 @@ Getting Started <getting-started>
 :caption: Tutorials
 :hidden:
 
+Overview <tutorials/overview>
 Detailed Walkthrough <tutorials/walkthrough>
 Condensed Walkthrough <tutorials/condensed-walkthrough>
 Miscellaneous <tutorials/misc/misc-tuts>
@@ -63,14 +64,15 @@ Miscellaneous <tutorials/misc/misc-tuts>
 
 ```{toctree}
 :maxdepth: 2
-:caption: API Documentation
+:caption: Documentation
 :hidden:
    
-User Input Files <userfiles/userfiles>
+User Inputs <userfiles/userfiles>
 Core Modules <core/core-modules>
 Broker Interface <broker/broker-interface>
 Indicator Library <indicators>
 Communications <comms>
+Command Line Interface <core/cli>
 ```
 
 
