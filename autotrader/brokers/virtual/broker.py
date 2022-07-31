@@ -840,7 +840,8 @@ class Broker:
                 else self._trade_through_book(instrument=order.instrument, 
                                               direction=order.direction,
                                               size=order.size, 
-                                              reference_price=reference_price)
+                                              reference_price=reference_price,
+                                              precision=order.price_precision)
 
             if close_existing_position:
                 # Close the open position before proceeding
@@ -988,7 +989,8 @@ class Broker:
             exit_price = self._trade_through_book(instrument=instrument, 
                                                   direction=-direction, 
                                                   size=size, 
-                                                  reference_price=reference_price)
+                                                  reference_price=reference_price,
+                                                  precision=trade.price_precision)
         
         # Update portfolio with profit/loss
         gross_PL = direction*size*(float(exit_price) - float(fill_price))*trade.HCF
@@ -1098,8 +1100,11 @@ class Broker:
         self._trade_id_instrument[partial_trade_id] = instrument
         
     
-    def _trade_through_book(self, instrument, direction, size, 
-                            reference_price=None):
+    def _trade_through_book(self, instrument: str, 
+                            direction: int, 
+                            size: float, 
+                            reference_price: float = None, 
+                            precision: int = None):
         """Returns an average fill price by filling an order through
         the orderbook.
         
@@ -1115,6 +1120,9 @@ class Broker:
         reference_price : float, optional
             The reference price to use if artificially creating an 
             orderbook.
+        precision : dict, optional
+            The precision to use for rounding prices. The default 
+            is None.
         """
         # Get order book
         book = self.get_orderbook(instrument, reference_price)
@@ -1138,6 +1146,11 @@ class Broker:
 
         avg_fill_price = sum([fill_sizes[i]*fill_prices[i] for i \
                 in range(len(fill_prices))])/sum(fill_sizes)
+        
+        if precision is not None:
+            # Round price to precision
+            avg_fill_price = round(avg_fill_price, precision)
+
         return avg_fill_price
 
 

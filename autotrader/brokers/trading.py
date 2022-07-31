@@ -95,8 +95,8 @@ class Order:
         self.HCF = 1
 
         # Precision
-        self.price_precision = 4
-        self.size_precision = 4
+        self.price_precision = 5
+        self.size_precision = 5
 
         # Multi-exchange handling
         self.exchange = None

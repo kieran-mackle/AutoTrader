@@ -212,4 +212,4 @@ class Utils(BrokerUtils):
         """Returns the precision of the instrument."""
         # NOTE: this has not been formally implemented yet.
         # TODO - implement
-        return {'size': 4, 'price': 4}
+        return {'size': 5, 'price': 5}
