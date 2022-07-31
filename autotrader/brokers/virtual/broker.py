@@ -346,7 +346,7 @@ class Broker:
         if invalid_order:
             if self.verbosity > 0:
                 print(f"  Order {order.id} rejected.\n")
-            self.cancel_order(order.id, reason, 'pending_orders')
+            self.cancel_order(order.id, reason, 'pending_orders', datetime_stamp)
         else:
             # Move order to open_orders or leave in pending
             immediate_orders = ['close', 'reduce', 'modify']
@@ -357,7 +357,7 @@ class Broker:
             
             # Print
             if self.verbosity > 0:
-                print("Order recieved: ", order.__repr__())
+                print(f"{datetime_stamp}: Order {order.id} recieved: {order.__repr__()}")
         
     
     def get_orders(self, instrument: str = None, 
@@ -380,7 +380,8 @@ class Broker:
     
     
     def cancel_order(self, order_id: int, reason: str = None, 
-                     from_dict: str = 'open_orders') -> None:
+                     from_dict: str = 'open_orders', 
+                     timestamp: datetime = None) -> None:
         """Cancels the order."""
         instrument = self._order_id_instrument[order_id]
         from_dict = getattr(self, from_dict)[instrument]
@@ -393,7 +394,7 @@ class Broker:
         self.cancelled_orders[instrument][order_id].status = 'cancelled'
         
         if self.verbosity > 0 and reason:
-            print(f"Order {order_id} cancelled - {reason}")
+            print(f"{timestamp}: Order {order_id} cancelled: {reason}")
     
     
     def get_trades(self, instrument: str = None,
@@ -782,6 +783,9 @@ class Broker:
         If hedging is enabled, trades can be opened against one another, and
         will be treated in isolation. 
         """
+        if self._paper_trading:
+            fill_time = datetime.now()
+
         if trade_size is not None:
             # Fill limit order with trade_size provided
             if trade_size < order.size:
@@ -813,13 +817,17 @@ class Broker:
                         close_existing_position = True
 
                     else:
-                        # Simply reduce the current position
+                        # Reduce the current position with order
                         self._reduce_position(order=order, 
                                               exit_price=reference_price,
                                               exit_time=fill_time)
                         self._move_order(order)
+
                         if self.verbosity > 0:
-                            print(f"Order filled: {order}")
+                            self._print_fill(order=order,
+                                             fill_time=fill_time,
+                                             fill_price=reference_price,
+                                             fill_size=order.size)
                         return
         
         # Calculate margin requirements
@@ -865,17 +873,30 @@ class Broker:
                                                      units=order.size, 
                                                      HCF=order.HCF,
                                                      order_type=order.order_type)
-            self._add_funds(commission)
+            self._add_funds(-commission)
 
             if self.verbosity > 0:
-                print(f"Order filled: {order}")
+                self._print_fill(order=order, 
+                                 fill_time=fill_time, 
+                                 fill_price=avg_fill_price,
+                                 fill_size=order.size)
 
         else:
             # Cancel order
             cancel_reason = "Insufficient margin to fill order."
-            self.cancel_order(order.id, cancel_reason)
+            self.cancel_order(order_id=order.id, 
+                              reason=cancel_reason,
+                              timestamp=fill_time)
 
     
+    @staticmethod
+    def _print_fill(order, fill_time, fill_price, fill_size):
+        """Prints a message when an order gets filled."""
+        fill_str = f'{fill_time}: Order {order.id} filled: {fill_size} '+\
+            f'units of {order.instrument} @ {fill_price}'
+        print(fill_str)
+
+
     def _move_order(self, order: Order, 
                     from_dict: str = 'open_orders', 
                     to_dict: str = 'filled_orders', 
