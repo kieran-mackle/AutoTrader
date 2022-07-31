@@ -419,7 +419,7 @@ class AutoTrader:
         exchange : str, optional
             The name of the exchange to use for execution. This gets passed to 
             an instance of AutoData to update prices and use the realtime 
-            orderbook for virtual order execution.
+            orderbook for virtual order execution. The default is None.
         tradeable_instruments : list, optional
             A list containing strings of the instruments tradeable through the 
             exchange specified. This is used to determine which exchange orders
@@ -428,7 +428,7 @@ class AutoTrader:
             default is None.
         refresh_freq : str, optional
             The timeperiod to sleep for in between updates of the virtual broker
-            data feed. The default is 1s.
+            data feed when manually papertrading. The default is '1s'.
         home_currency : str, optional
             The home currency of the account. The default is None.
         papertrade : bool, optional
