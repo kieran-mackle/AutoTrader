@@ -784,7 +784,8 @@ class Broker:
         will be treated in isolation. 
         """
         if self._paper_trading:
-            fill_time = datetime.now()
+            tz = fill_time.tzinfo
+            fill_time = datetime.now(tz=tz)
 
         if trade_size is not None:
             # Fill limit order with trade_size provided
