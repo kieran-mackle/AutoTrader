@@ -329,6 +329,7 @@ class TradeAnalysis:
         self.order_history = None
         self.open_trades = None
         self.cancelled_orders = None
+        self.fills = None
         
         self.analyse_account(broker, instrument, process_holding_history)
     
@@ -372,6 +373,8 @@ class TradeAnalysis:
             orders = TradeAnalysis.create_trade_summary(orders=all_orders, 
                                                         instrument=instrument,
                                                         broker_name=broker_name)
+            fills = TradeAnalysis.create_fill_summary(fills=broker.fills,
+                broker_name=broker_name)
             
             # Construct account history
             account_history = pd.DataFrame(data={'NAV': broker._NAV_hist, 
@@ -411,6 +414,7 @@ class TradeAnalysis:
                             'order_history': orders,
                             'open_trades': trades[trades.status == 'open'],
                             'cancelled_orders': orders[orders.status == 'cancelled'],
+                            'fills': fills,
                             }
 
         # Save all results
@@ -421,7 +425,8 @@ class TradeAnalysis:
     
 
     def _aggregate_across_brokers(self, broker_results):
-        """Aggregates trading history across all broker instances."""
+        """Aggregates trading history across all broker instances.
+        """
         
         brokers_used = []
         instruments_traded = []
@@ -429,6 +434,7 @@ class TradeAnalysis:
         cancelled_orders = pd.DataFrame()
         trade_history = pd.DataFrame()
         order_history = pd.DataFrame()
+        fills = pd.DataFrame()
         account_history = None
         for broker, results in broker_results.items():
             orders = results['order_history']
@@ -456,11 +462,12 @@ class TradeAnalysis:
                     # Use new index
                     account_history = new_index + results['account_history']
 
-            # Concatenate trades and orders
+            # Concatenate trades, orders and fills
             open_trades = pd.concat([open_trades, results['open_trades']])
             cancelled_orders = pd.concat([cancelled_orders, results['cancelled_orders']])
             trade_history = pd.concat([trade_history, results['trade_history']])
             order_history = pd.concat([order_history, results['order_history']])
+            fills = pd.concat([fills, results['fills']])
 
         # Assign attributes
         self.brokers_used = brokers_used
@@ -471,7 +478,34 @@ class TradeAnalysis:
         self.order_history = order_history
         self.open_trades = open_trades
         self.cancelled_orders = cancelled_orders
+        self.fills = fills
 
+    
+    @staticmethod
+    def create_fill_summary(fills: list, broker_name: str = None):
+        """Creates a dataframe of fill history."""
+        # Initialise lists
+        fill_dict = {
+            'order_time': [],
+            'order_price': [],
+            'fill_time': [],
+            'fill_price': [],
+            'direction': [],
+            'size': [],
+            'fee': []
+            }
+        for fill in fills:
+            fill_dict['order_time'].append(fill.order_time)
+            fill_dict['order_price'].append(fill.order_price)
+            fill_dict['fill_time'].append(fill.fill_time)
+            fill_dict['fill_price'].append(fill.fill_price)
+            fill_dict['direction'].append(fill.direction)
+            fill_dict['size'].append(fill.size)
+            fill_dict['fee'].append(fill.fee)
+
+        fill_df = pd.DataFrame(data=fill_dict, index=fill_dict['fill_time'])
+        return fill_df
+    
     
     @staticmethod
     def create_trade_summary(trades: dict = None, 
