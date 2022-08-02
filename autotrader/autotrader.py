@@ -1824,8 +1824,10 @@ class AutoTrader:
     
     @staticmethod
     def papertrade_snapshot(broker_picklefile: str = '.virtual_broker'):
-        """Prints a snapshot of the virtual broker from a pickle."""
+        """Prints a snapshot of the virtual broker from a pickle. and 
+        returns the TradeAnalysis object."""
         broker = unpickle_broker(broker_picklefile)
         results = TradeAnalysis(broker)
         at = AutoTrader()
         at.print_trade_results(results)
+        return results
