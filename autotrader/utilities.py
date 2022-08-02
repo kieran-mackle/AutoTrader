@@ -317,7 +317,9 @@ class TradeAnalysis:
     """
     def __init__(self, broker, instrument: str = None, 
                  process_holding_history: bool = True):
-        
+        # TODO - review the attributes below for name clarity
+        # trades - refer to fills
+        # will need to maintain 'trade_history' for plotting
         self.brokers_used = None
         self.broker_results = None
         self.instruments_traded = None

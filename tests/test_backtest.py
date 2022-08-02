@@ -19,9 +19,9 @@ def test_macd_backtest():
     home_dir = os.path.abspath(os.path.dirname(__file__))
     
     at = AutoTrader()
-    at.configure(verbosity=0, show_plot=False)
+    at.configure(verbosity=1, show_plot=False)
     at.add_strategy(config_dict=config, strategy=SimpleMACD)
-    at.plot_settings(show_cancelled=False)
+    at.plot_settings(show_cancelled=True)
     at.add_data({'EUR_USD': 'EUR_USD_H4.csv'}, 
                 data_directory=os.path.join(home_dir, 'data'))
     at.backtest(start = '1/1/2021', end = '1/1/2022')
@@ -80,3 +80,4 @@ def test_multibot_macd_backtest():
     assert bt_results['short_trades']['no_trades'] == 48, "Incorrect number "+\
         "of short trades (multi-instrument backtest)"
         
+test_macd_backtest()

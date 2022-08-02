@@ -582,6 +582,44 @@ class Trade(Order):
         return split_trade
 
 
+class Fill:
+    def __init__(self, order: Order = None, **kwargs) -> Fill:
+        # Trade data
+        self.order_price = None
+        self.order_time = None
+        self.fill_time = None
+        self.fill_price = None
+        self.fee = None
+        
+        # Meta data
+        self.parent_id = None # ID of order which spawned trade
+        self.id = None 
+        
+        # Unpack kwargs
+        for item in kwargs:
+            setattr(self, item, kwargs[item])
+            
+        # Inherit order attributes
+        if order:
+            self._inheret_order(order)
+            self.parent_id = order.id
+        
+    
+    def __repr__(self):
+        direction = 'long' if self.direction > 0 else 'short'
+        return f'{round(self.size,3)} unit {direction} {self.instrument} trade'
+        
+    
+    def __str__(self):
+        return 'AutoTrader Trade'
+    
+    
+    def _inheret_order(self, order: Order) -> None:
+        # TODO - only inherit relevant attributes (eg. order price/time, etc)
+        for attribute, value in order.__dict__.items():
+            setattr(self, attribute, value)
+
+
 class Position:
     """AutoTrader Position object.
 

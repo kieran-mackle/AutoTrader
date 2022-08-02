@@ -12,7 +12,7 @@ from autotrader.brokers.trading import Order, Trade, Position
 
 
 class Broker:
-    """Autotrader virtual broker to simulate trading in backtest.
+    """Autotrader Virtual Broker for simulated trading.
 
     Attributes
     ----------
@@ -64,10 +64,9 @@ class Broker:
 
     def __init__(self, broker_config: dict = None, 
                  utils: BrokerUtils = None) -> None:
-        """Initialise virtual broker. Attributes are updated by 
-        AutoTrader._assign_broker.
+        """Initialise virtual broker.
         """
-        # TODO - improve floating point precision, not currently realistic
+        # TODO - improve floating point precision coverage
         if broker_config is not None:
             self.verbosity = broker_config['verbosity']
         else:
@@ -81,10 +80,13 @@ class Broker:
         self.cancelled_orders = {}
         self._order_id_instrument = {} # mapper from order_id to instrument
         
-        # Trades
-        self.open_trades = {}
-        self.closed_trades = {}
+        # Isolated positions (formerly "trades")
+        self.open_iso_pos = {}
+        self.closed_iso_pos = {}
         self._trade_id_instrument = {} # mapper from order_id to instrument
+
+        # Fills (executed trades)
+        self.fills = [] # TODO - make this a list? Should only be post-processed...
 
         # Account 
         self.base_currency = 'AUD'
@@ -164,29 +166,32 @@ class Broker:
         leverage : int, optional
             The leverage available. The default is 1.
         spread : float, optional
-            The bid/ask spread to use in backtest (specified in units defined
-            by the spread_units argument). The default is 0.
+            The bid/ask spread to use in backtest (specified in units 
+            defined by the spread_units argument). The default is 0.
         spread_units : str, optional
-            The unit of the spread specified. Options are 'price', meaning that 
-            the spread is quoted in price units, or 'percentage', meaning that 
-            the spread is quoted as a percentage of the market price. The default
-            is 'price'.
+            The unit of the spread specified. Options are 'price', meaning 
+            that the spread is quoted in price units, or 'percentage', 
+            meaning that the spread is quoted as a percentage of the 
+            market price. The default is 'price'.
         commission : float, optional
             Trading commission as percentage per trade. The default is 0.
         commission_scheme : str, optional
-            The method with which to apply commissions to trades made. The options
-            are (1) 'percentage', where the percentage specified by the commission 
-            argument is applied to the notional trade value, (2) 'fixed_per_unit',
-            where the monetary value specified by the commission argument is 
-            multiplied by the number of units in the trade, and (3) 'flat', where 
-            a flat monetary value specified by the commission argument is charged
-            per trade made, regardless of size. The default is 'percentage'.
+            The method with which to apply commissions to trades made. The 
+            options are (1) 'percentage', where the percentage specified by 
+            the commission argument is applied to the notional trade value, 
+            (2) 'fixed_per_unit', where the monetary value specified by the 
+            commission argument is multiplied by the number of units in the 
+            trade, and (3) 'flat', where a flat monetary value specified by 
+            the commission argument is charged per trade made, regardless 
+            of size. The default is 'percentage'.
         maker_commission : float, optional
-            The commission to charge on liquidity-making orders. The default is 
-            None, in which case the nominal commission argument will be used.
+            The commission to charge on liquidity-making orders. The default 
+            is None, in which case the nominal commission argument will be 
+            used.
         taker_commission: float, optional
-            The commission to charge on liquidity-taking orders. The default is 
-            None, in which case the nominal commission argument will be used.
+            The commission to charge on liquidity-taking orders. The default 
+            is None, in which case the nominal commission argument will be 
+            used.
         hedging : bool, optional
             Allow hedging in the virtual broker (opening simultaneous 
             trades in oposing directions). The default is False.
@@ -196,8 +201,8 @@ class Broker:
             A boolean flag to indicate if the broker is in paper trade mode.
             The default is False.
         public_trade_access : bool, optional
-            A boolean flag to signal if public trades are being used to update
-            limit orders. The default is False.
+            A boolean flag to signal if public trades are being used to 
+            update limit orders. The default is False.
         margin_closeout : float, optional
             The fraction of margin usage at which a margin call will occur.
             The default is 0.
@@ -205,11 +210,13 @@ class Broker:
             The filename of the picklefile to load state from. If you do not 
             wish to load from state, leave this as None. The default is None.
         """
-        self.verbosity = verbosity if verbosity is not None else self.verbosity
+        self.verbosity = verbosity if verbosity is not None \
+            else self.verbosity
         self.leverage = leverage if leverage is not None else self.leverage
-        self.commission = commission if commission is not None else self.commission
-        self.commission_scheme = commission_scheme if commission_scheme is not None \
-            else self.commission_scheme
+        self.commission = commission if commission is not None \
+            else self.commission
+        self.commission_scheme = commission_scheme if commission_scheme \
+            is not None else self.commission_scheme
         self.spread = spread if spread is not None else self.spread
         self.spread_units = spread_units if spread_units is not None else \
             self.spread_units
@@ -217,23 +224,26 @@ class Broker:
             self.base_currency
         self._paper_trading = paper_mode if paper_mode is not None else \
             self._paper_trading
-        self._public_trade_access = public_trade_access if public_trade_access is \
-            not None else self._public_trade_access
+        self._public_trade_access = public_trade_access if public_trade_access \
+            is not None else self._public_trade_access
         self.margin_closeout = margin_closeout if margin_closeout is not None \
             else self.margin_closeout
         self.hedging = hedging if hedging is not None else self.hedging
-        self._picklefile = picklefile if picklefile is not None else self._picklefile
+        self._picklefile = picklefile if picklefile is not None else \
+            self._picklefile
 
         # Assign commissions for making and taking liquidity
-        self.maker_commission = maker_commission if maker_commission is not None \
-            else self.commission
-        self.taker_commission = taker_commission if taker_commission is not None \
-            else self.commission
+        self.maker_commission = maker_commission if maker_commission is \
+            not None else self.commission
+        self.taker_commission = taker_commission if taker_commission is \
+            not None else self.commission
 
         if autodata_config is not None:
             # Instantiate AutoData from config
-            data_config = get_data_config(global_config=autodata_config['global_config'], 
-                                          feed=autodata_config['feed'])
+            data_config = get_data_config(
+                global_config=autodata_config['global_config'], 
+                feed=autodata_config['feed']
+                )
             self._autodata = AutoData(data_config, **autodata_config)
 
         else:
@@ -262,20 +272,26 @@ class Broker:
     
     
     def place_order(self, order: Order, **kwargs) -> None:
-        """Place order with broker."""
+        """Place order with broker.
+        """
         # Call order to set order time
         datetime_stamp = kwargs['order_time'] if 'order_time' in \
             kwargs else datetime.now()
         order(order_time = datetime_stamp)
 
+        # Define reference price
         if order.order_type == 'limit' or order.order_type == 'stop-limit':
+            # Use limit price
             ref_price = order.order_limit_price
+
         elif order.order_type == 'modify':
             # Get direction of related trade
-            related_trade = self.open_trades[order.instrument][order.related_orders]
+            related_trade = self.open_iso_pos[order.instrument][order.related_orders]
             order.direction = related_trade.direction
             ref_price = order.order_price
+            
         else:
+            # Use order price
             ref_price = order.order_price
         
         # Convert stop distance to price
@@ -329,6 +345,7 @@ class Broker:
                             f"(reference price: {ref_price}, "+\
                             f"limit price: {order.order_limit_price})"
         except:
+            # Exception, continue
             pass
 
         # Assign order ID
@@ -340,13 +357,16 @@ class Broker:
         try:
             self.pending_orders[order.instrument][order.id] = order
         except KeyError:
+            # Instrument hasn't been in pending orders yet
             self.pending_orders[order.instrument] = {order.id: order}
         
         # Submit order
         if invalid_order:
+            # Invalid order, cancel it
             if self.verbosity > 0:
                 print(f"  Order {order.id} rejected.\n")
             self.cancel_order(order.id, reason, 'pending_orders', datetime_stamp)
+            
         else:
             # Move order to open_orders or leave in pending
             immediate_orders = ['close', 'reduce', 'modify']
@@ -362,7 +382,8 @@ class Broker:
     
     def get_orders(self, instrument: str = None, 
                    order_status: str = 'open') -> dict:
-        """Returns orders."""
+        """Returns orders of status order_status.
+        """
         all_orders = getattr(self, order_status+'_orders')
         if instrument:
             # Return orders for instrument specified
@@ -379,53 +400,91 @@ class Broker:
         return orders.copy()
     
     
-    def cancel_order(self, order_id: int, reason: str = None, 
+    def cancel_order(self, order_id: int, 
+                     reason: str = None, 
                      from_dict: str = 'open_orders', 
                      timestamp: datetime = None) -> None:
-        """Cancels the order."""
+        """Cancels the order.
+
+        Parameters
+        ----------
+        order_id : int
+            The ID of the order to be cancelled.
+        reason : str, optional
+            The reason why the order is being cancelled. The default 
+            is None.
+        from_dict: str, optional
+            The dictionary currently holding the order. The default is 
+            'open_orders'.
+        timestamp: datetime, optional
+            The datetime stamp of the order cancellation. The default is
+            None.
+        """
+
         instrument = self._order_id_instrument[order_id]
         from_dict = getattr(self, from_dict)[instrument]
         reason = reason if reason is not None else "User cancelled."
 
         if instrument not in self.cancelled_orders: 
+            # Initialise instrument in cancelled_orders
             self.cancelled_orders[instrument] = {}
         self.cancelled_orders[instrument][order_id] = from_dict.pop(order_id)
         self.cancelled_orders[instrument][order_id].reason = reason
         self.cancelled_orders[instrument][order_id].status = 'cancelled'
         
         if self.verbosity > 0 and reason:
+            # Print cancel reason to console
             print(f"{timestamp}: Order {order_id} cancelled: {reason}")
     
     
     def get_trades(self, instrument: str = None,
                    trade_status: str = 'open') -> dict:
-        """Returns open trades for the specified instrument."""
-        all_trades = getattr(self, trade_status+'_trades')
+        """Returns open trades (isolated positions) for the 
+        specified instrument.
+
+        Parameters
+        ----------
+        instrument : str, optional
+            The instrument to fetch trades under. The default is None.
+        trade_status : str, optional
+            The status of the trades to fetch ('open' or 'closed'). The 
+            default is 'open'.
+        """
+        # TODO - review: fills v. trades
+
+        # Get all instrument isolated positions
+        all_iso_pos = getattr(self, trade_status+'_iso_pos')
+
         if instrument:
-            # Specific instruments requested
+            # Specific instrument(s) requested
             try:
-                trades = all_trades[instrument]
+                trades = all_iso_pos[instrument]
             except KeyError:
+                # No isolated positions for this instrument
                 trades = {}
         else:
-            # Return all currently open trades
+            # Return all currently open isolated positions
             trades = {}
-            for instr, instr_trades in all_trades.items():
+            for instr, instr_trades in all_iso_pos.items():
                 trades.update(instr_trades)
+        
+        # Return a copy to prevent unintended manipulation
         return trades.copy()
     
     
     def get_trade_details(self, trade_ID: int) -> Trade:
-        """Returns the trade specified by trade_ID."""
+        """Returns the trade specified by trade_ID.
+        """
         raise DeprecationWarning("This method is deprecated, and will "+\
                 "be removed in a future release. Please use the "+\
                 "get_trades method instead.")
         instrument = self._trade_id_instrument[trade_ID]
-        return self.open_trades[instrument][trade_ID]
+        return self.open_iso_pos[instrument][trade_ID]
     
     
     def get_positions(self, instrument: str = None) -> dict:
-        """Returns the positions held by the account.
+        """Returns the positions held by the account, sorted by
+        instrument.
         
         Parameters
         ----------
@@ -448,13 +507,13 @@ class Broker:
             instruments = [instrument]
         else:
             # No specific instrument requested, use all
-            instruments = list(self.open_trades.keys())
+            instruments = list(self.open_iso_pos.keys())
             
         open_positions = {}
         for instrument in instruments:
-            # First get open trades
-            open_trades = self.get_trades(instrument)
-            if len(open_trades) > 0:
+            # First get open isolated positions
+            open_iso_positions = self.get_trades(instrument)
+            if len(open_iso_positions) > 0:
                 long_units = 0
                 long_PL = 0
                 long_margin = 0
@@ -464,7 +523,7 @@ class Broker:
                 total_margin = 0
                 trade_IDs = []
                 
-                for trade_id, trade in open_trades.items():
+                for trade_id, trade in open_iso_positions.items():
                     trade_IDs.append(trade.id)
                     total_margin += trade.margin_required
                     if trade.direction > 0:
@@ -481,7 +540,7 @@ class Broker:
                 # Construct instrument position dict
                 net_position = long_units-short_units
                 net_exposure = net_position * trade.last_price
-                # TODO - add net_exposure attribute to Position class
+                # TODO - add net_exposure attribute to Position class and docstring
                 instrument_position = {'long_units': long_units,
                                        'long_PL': long_PL,
                                        'long_margin': long_margin,
@@ -494,9 +553,10 @@ class Broker:
                                        'net_position': net_position,
                                        'net_exposure': net_exposure,}
                 
+                # Create Position instance
                 instrument_position = Position(**instrument_position)
                 
-                # Append position dict to open_positions dict
+                # Append Position to open_positions dict
                 open_positions[instrument] = instrument_position
                 
         return open_positions
@@ -509,7 +569,8 @@ class Broker:
     
     
     def get_orderbook(self, instrument: str, midprice: float = None):
-        """Returns the orderbook."""
+        """Returns the orderbook.
+        """
         # Get public orderbook
         if self._paper_trading:
             # Papertrading, try get realtime orderbook
@@ -681,9 +742,9 @@ class Broker:
                     # Update limit orders based on trade feed
                     if trade is not None: self._public_trade(instrument, trade)
         
-        # Update open trades
-        open_trades = self.get_trades(instrument).copy()
-        for trade_id, trade in open_trades.items():
+        # Update open isolated positions 
+        open_iso_positions = self.get_trades(instrument).copy()
+        for trade_id, trade in open_iso_positions.items():
             # Update stop losses
             if trade.stop_type == 'trailing':
                 # Trailing stop loss type, check if price has moved SL
@@ -740,7 +801,7 @@ class Broker:
     
     def _update_all(self):
         """Convenience method to update all open positions when paper trading."""
-        # TODO - update public trades too 
+        # TODO - update with public trades too ?
         # Get latest trades
         # trades = broker._autodata.trades(symbol)
         # tw.update(trades)
@@ -764,12 +825,13 @@ class Broker:
     
     def _update_instrument(self, instrument):
         """Convenience method to update a single instrument when paper 
-        trading."""
-        # Update orders
+        trading.
+        """
+        # Check for existing orders or position in this instrument
         orders = self.get_orders(instrument=instrument)
         positions = self.get_positions(instrument=instrument)
         if len(orders) + len(positions) > 0:
-            # Update instrument
+            # Order or position exists for this instrument, update it
             l1 = self._autodata.L1(instrument=instrument)
             self._update_positions(instrument=instrument, L1=l1)
 
@@ -872,9 +934,9 @@ class Broker:
             trade.margin_required = margin_required
             trade.value = position_value
             try:
-                self.open_trades[order.instrument][trade_id] = trade
+                self.open_iso_pos[order.instrument][trade_id] = trade
             except KeyError:
-                self.open_trades[order.instrument] = {trade_id: trade}
+                self.open_iso_pos[order.instrument] = {trade_id: trade}
             
             # Move order to filled_orders dict
             self._move_order(order)
@@ -891,6 +953,9 @@ class Broker:
                                  fill_time=fill_time, 
                                  fill_price=avg_fill_price,
                                  fill_size=order.size)
+            
+            # TODO - Create Fill and append to self.fills
+            # self.fills.append(Fill())
 
         else:
             # Cancel order
@@ -951,7 +1016,7 @@ class Broker:
                               exit_time=exit_time)
         else:
             # Close all positions for instrument
-            open_trades = self.open_trades[instrument].copy()
+            open_trades = self.open_iso_pos[instrument].copy()
             for trade_id, trade in open_trades.items():
                 self._close_trade(instrument, trade_id=trade_id,
                                   order_type=order_type, exit_price=exit_price,
@@ -985,7 +1050,7 @@ class Broker:
             commission will be charged for the trade.
         """
         # Get trade to be closed
-        trade = self.open_trades[instrument][trade_id]
+        trade = self.open_iso_pos[instrument][trade_id]
         fill_price = trade.fill_price
         size = trade.size
         direction = trade.direction
@@ -1019,11 +1084,11 @@ class Broker:
         trade.status = 'closed'
         
         # Add trade to closed positions
-        popped_trade = self.open_trades[instrument].pop(trade_id)
+        popped_trade = self.open_iso_pos[instrument].pop(trade_id)
         try:
-            self.closed_trades[instrument][trade_id] = popped_trade
+            self.closed_iso_pos[instrument][trade_id] = popped_trade
         except KeyError:
-            self.closed_trades[instrument] = {trade_id: popped_trade}
+            self.closed_iso_pos[instrument] = {trade_id: popped_trade}
         
         # Update account
         self._add_funds(net_profit)
@@ -1091,7 +1156,7 @@ class Broker:
         The original trade ID remains, but the trade size may be reduced. The
         portion that gets closed is assigned a new ID.
         """
-        trade = self.open_trades[instrument][trade_id]
+        trade = self.open_iso_pos[instrument][trade_id]
         
         # Create new trade for the amount to be reduced
         partial_trade = Trade._split(trade, units)
@@ -1099,7 +1164,7 @@ class Broker:
         partial_trade.id = partial_trade_id
 
         # Add partial trade to open trades, then close it
-        self.open_trades[instrument][partial_trade_id] = partial_trade
+        self.open_iso_pos[instrument][partial_trade_id] = partial_trade
         self._close_trade(instrument=instrument, 
                           trade_id=partial_trade_id,
                           exit_price=exit_price,
@@ -1274,15 +1339,15 @@ class Broker:
                           new_stop_type: str = 'limit') -> None:
         """Updates stop loss on open trade.
         """
-        self.open_trades[instrument][trade_id].stop_loss = new_stop_loss
-        self.open_trades[instrument][trade_id].stop_type = new_stop_type
+        self.open_iso_pos[instrument][trade_id].stop_loss = new_stop_loss
+        self.open_iso_pos[instrument][trade_id].stop_type = new_stop_type
     
     
     def _update_take_profit(self, instrument: str, trade_id: int, 
                             new_take_profit: float) -> None:
         """Updates take profit on open trade.
         """
-        self.open_trades[instrument][trade_id].take_profit = new_take_profit
+        self.open_iso_pos[instrument][trade_id].take_profit = new_take_profit
         
         
     def _get_new_order_id(self):

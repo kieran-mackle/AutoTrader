@@ -270,6 +270,7 @@ class AutoPlot:
             topsource.add(account_hist[['NAV', 'equity']].min(1), 'Low')
             topsource.add(account_hist[['NAV', 'equity']].max(1), 'High')
             
+            # TODO - update below, trade_history is more like iso_pos history
             trade_summary = backtest_dict.trade_history
             indicators = backtest_dict.indicators
             open_trades = backtest_dict.open_trades
