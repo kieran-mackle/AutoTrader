@@ -475,6 +475,7 @@ class StopLimitOrder(Order):
                          **kwargs)
 
 
+# TODO - rename Trade to IsolatedPosition
 class Trade(Order):
     """AutoTrader Trade.
     
