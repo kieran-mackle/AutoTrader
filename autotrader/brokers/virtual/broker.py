@@ -87,7 +87,7 @@ class Broker:
         self._trade_id_instrument = {} # mapper from order_id to instrument
 
         # Fills (executed trades)
-        self.fills = [] # TODO - make this a list? Should only be post-processed...
+        self.fills = []
 
         # Account 
         self.base_currency = 'AUD'
@@ -752,15 +752,23 @@ class Broker:
             sl_ref, tp_ref = get_sl_tp_ref_prices(trade.direction)
             if trade.stop_loss and trade.direction*(sl_ref - trade.stop_loss) < 0:
                 # Stop loss hit
-                self._close_isolated_position(trade=trade, 
-                                exit_price=trade.stop_loss, exit_time=latest_time,
-                                order_type='limit')
-                # TODO - need to simulate fill from SL (to add TCs)
+                exit_price = self._close_isolated_position(
+                    trade=trade, 
+                    exit_price=trade.stop_loss, 
+                    exit_time=latest_time,
+                    order_type='limit')
+                self._fill_order(trade, fill_price=exit_price, 
+                    fill_time=latest_time, sl_tp=True)
+
             elif trade.take_profit and trade.direction*(tp_ref - trade.take_profit) > 0:
                 # Take Profit hit
-                self._close_isolated_position(trade=trade, 
-                                exit_price=trade.take_profit, exit_time=latest_time)
-                # TODO - need to simulate fill from TP (to add TCs)
+                exit_price = self._close_isolated_position(
+                    trade=trade, 
+                    exit_price=trade.take_profit, 
+                    exit_time=latest_time)
+                self._fill_order(trade, fill_price=exit_price, 
+                    fill_time=latest_time, sl_tp=True)
+
             else:
                 # Position is still open, update value of holding
                 trade.last_price = get_last_price(trade.direction)
@@ -825,12 +833,25 @@ class Broker:
             self._update_positions(instrument=instrument, L1=l1)
 
     
-    def _process_order(self, order: Order,
-            fill_time: datetime = None, 
-            reference_price : float = None,
-            trade_size: float = None):
+    def _process_order(self, 
+        order: Order,
+        fill_time: datetime = None, 
+        reference_price : float = None,
+        trade_size: float = None):
         """Processes an order, either filling or cancelling it.
         
+        Parameters
+        -----------
+        order : Order
+            The order being processed.
+        fill_time : datetime, optional
+            The time to fill the order.
+        reference_price : float, optional
+            The order reference price (either market price or order limit price).
+        trade_size : float, optional
+            The size of a public trade being used to fill orders (papertrade
+            mode). The default is None.
+
         Notes
         -----
         If hedging is not enabled, any orders which are contrary to an open
@@ -843,21 +864,6 @@ class Broker:
         If hedging is enabled, trades can be opened against one another, and
         will be treated in isolation. 
         """
-
-        # TODO - simplify method
-        # Purpose is to process new orders
-        # An order will do one of the following:
-            # create a new position in the instrument
-            # add to the position in the instrument
-            # reduce the position in the instrument
-            # close out the position in the instrument
-        # In each case, a trade (fill) is involved.
-        # In each case, a single fill is made, perhaps with multiple execution
-        # prices, which are averaged to the fill_price.
-
-        # TODO - clarify / document what the inputs are, specifically 
-        # what the reference price will be (limit price for limit orders 
-        # or ?)
 
         # Check if papertrading
         if self._paper_trading:
@@ -882,7 +888,7 @@ class Broker:
 
         # Check order against current position
         close_existing_position = False # initialisation
-        # ref_size = order.size  # TODO - initialise here
+        ref_size = order.size  # initialise of reference size
         if not self.hedging:
             # Check if current order will reduce or add to existing position
             current_position = self.get_positions(order.instrument)
@@ -896,18 +902,8 @@ class Broker:
                         # Order will close out existing position
                         close_existing_position = True
 
-                        # Modify order size to the net remaining units
-                        # TODO - CHECK THIS : will impact the closeout 
-                        # when calling reduce_pos method below after 
-                        # close_existing_position flag !
-                        # Perhaps delay the adjustment of the order size?
-                        # Or just define a new variable here, which gets 
-                        # used to create the IsolatedPosition, so then
-                        # the order has its original size, and the comm
-                        # is calculated appropriately when filling the 
-                        # order.
-                        # ref_size = order.size - abs(net_position)
-                        order.size -= abs(net_position)
+                        # Modify reference size to the net remaining units
+                        ref_size -= abs(net_position)
 
                     else:
                         # Order size is less than or equal to current position, 
@@ -916,8 +912,7 @@ class Broker:
                             order=order, 
                             exit_price=reference_price, 
                             exit_time=fill_time)
-                        # TODO - will exit price be returned here? Since now
-                        # The order hasn't been filled yet
+                        
                         # Fill the original order then exit
                         self._fill_order(
                             order=order, 
@@ -931,19 +926,21 @@ class Broker:
         margin_required = self._calculate_margin(position_value)
         
         if margin_required < self.margin_available:
+            # Initialise lists
+            exit_prices = []
+            exit_size = []
 
             # Check for position closeout
             if close_existing_position:
                 # Close the open position before proceeding
-                # TODO - see note above
-                # TODO - what is the reference price being passed here?
                 avg_exit_price = self._reduce_position(
                     order=order, 
                     exit_price=reference_price, 
                     exit_time=fill_time)
-                # TODO - implement lists for below
-                # exit_prices.append(avg_exit_price)
-                # exit_size.append(order.size -ref_size) # TODO - check (want net_position)
+                
+                # Append price and size for closing position
+                exit_prices.append(avg_exit_price)
+                exit_size.append(net_position)
 
             # Enough margin in account to fill order, determine average fill 
             # price on remaining units (ref_size) of order
@@ -952,43 +949,37 @@ class Broker:
                 avg_fill_price = order.order_limit_price 
             
             elif order.order_type == 'market':
-                # Market order, trade through the book 
-                # TODO - again, check note above about order.size attr, 
-                # if adjusted by close pos flag
+                # Market order, trade through the book using reference size
                 avg_fill_price = self._trade_through_book(
                     instrument=order.instrument, 
                     direction=order.direction,
-                    size=order.size,   # TODO - use ref_size
+                    size=ref_size,
                     reference_price=reference_price,
                     precision=order.price_precision)
             else:
                 raise Exception(f"Unrecognised order type: {order.order_type}")
 
             # Append avg_fill_price
-            # TODO - below
-            # exit_prices.append(avg_fill_price)
-            # exit_size.append(ref_size)
+            exit_prices.append(avg_fill_price)
+            exit_size.append(ref_size)
             
             # Fill order
-            # TODO - calculate fill_price, need to account for closed pos
-            # and new opened pos
-            # fill_price = sum([exit_size[i]*exit_prices[i] for i \
-            #     in range(len(exit_prices))])/sum(exit_size)
+            fill_price = sum([exit_size[i]*exit_prices[i] for i \
+                in range(len(exit_prices))])/sum(exit_size)
             self._fill_order(
                 order=order, 
                 fill_price=fill_price, 
                 fill_time=fill_time)
 
             # Make isolated position
-            # TODO - double check order.size, which will be inherited by Trade below
             trade_id = self._get_new_trade_id()
-            self._trade_id_instrument[trade_id] = order.instrument # Track ID-instrument pair
             trade = Trade(order)
             trade.id = trade_id
             trade.fill_price = float(avg_fill_price)
             trade.time_filled = fill_time
             trade.margin_required = margin_required
             trade.value = position_value
+            self._trade_id_instrument[trade_id] = order.instrument
             
             # Move trade to open isolated positions
             self._move_isolated_position(trade)
@@ -1004,23 +995,27 @@ class Broker:
     def _fill_order(self, 
         order: Order, 
         fill_price: float, 
-        fill_time: datetime) -> None:
+        fill_time: datetime,
+        sl_tp: bool = False) -> None:
         """Fills an order and records the trade as a Fill.
+
+        Parameters
+        ----------
+        order : Order
+            The order to fill.
+        fill_price : float
+            The fill price.
+        fill_time : datetime
+            The time at which the order is filled.
+        sl_tp : bool
+            Flag for SL and TP orders (which come with IsolatedPosition object)
         """
-        # One order comes in, it gets filled, commissions calculated for 
-        # that order individually
-        # This method can route to other methods. 
 
-        # Whether the fill creates a new position, adds to the postion, closes 
-        # a position, or just reduces a position, this method is not concerned - 
-        # it ONLY marks the order as filled, appends the Fill and charges the 
-        # cost of trading.
-
-        # TODO - implement throughout
-
-        # Filling an order changes its status to 'filled'
-        self._move_order(order=order, from_dict='open_orders', 
-                         to_dict='filled_orders', new_status='filled')
+        # If fill is originating from an order, mark as filled
+        if not sl_tp:
+            # Filling an order changes its status to 'filled'
+            self._move_order(order=order, from_dict='open_orders', 
+                            to_dict='filled_orders', new_status='filled')
 
         # Charge trading fees
         commission = self._calculate_commissions(price=fill_price, 
@@ -1082,50 +1077,17 @@ class Broker:
             to_dict[trade.instrument] = {trade.id: popped_item}
 
     
-    def _close_position(self, instrument: str, 
-                        exit_price: float = None, 
-                        exit_time: datetime = None,
-                        order_type: str = 'market') -> None:
-        """Closes the entire position of an instrument. Wrapper of 
-        self._close_isolated_position method.
-
-        Parameters
-        -----------
-        instrument : str
-            The name of the instrument.
-        exit_price : float, optional
-            The exit price. The default is None.
-        exit_time : datetime, optional
-            The position exit time. The default is None.
-        order_type : str, optional
-            The type of order used to close the position. The default 
-            is 'market'.
-        """
-
-        # TODO - can the order be passed into here? And then to fill_order ...?
-        # Well, pass it through to the final method
-
-        # TODO - is this method redundant to self._reduce_position ?
-        # Yes, but need a way to do margin calls with it... Perhaps provide
-        # instrument in absence of order, then assume full pos closeout when 
-        # calculating units_to_reduce.
-
-        # Close all positions for instrument
-        open_trades = self.open_iso_pos[instrument].copy()
-        for trade_id, trade in open_trades.items():
-            self._close_isolated_position(trade=trade,
-                            order_type=order_type, exit_price=exit_price,
-                            exit_time=exit_time)
-    
-    
     def _reduce_position(self, 
-        order: Order,
+        order: Order = None,
         exit_price: float = None,
-        exit_time: datetime = None
+        exit_time: datetime = None,
         ) -> None:
         """Reduces the position of the specified instrument using an order. If the
         order.size exceeds the net position, the entire existing position will be 
         closed out. 
+
+        Parameters
+        -----------
 
         Returns
         -------
@@ -1175,15 +1137,6 @@ class Broker:
                         units_to_reduce = 0
                         executed_prices.append(exit_price)
                         executed_sizes.append(units_to_reduce)
-
-                    # TODO - track average fill price to eventually 
-                    # pass order to fill_order with
-        
-        # TODO - need to think about how order.size will be impacted, how 
-        # it will be treated, etc.
-        # What happens if the order size is more than the net position?
-        # Look into where this method is called from, ideally it will account 
-        # for that?
 
         avg_exit_price = sum([executed_sizes[i]*executed_prices[i] for i \
                 in range(len(executed_prices))])/sum(executed_sizes)
@@ -1270,24 +1223,13 @@ class Broker:
                 precision=trade.price_precision)
         
         # Update portfolio with profit/loss
-        gross_PL = direction*size*(float(exit_price) - float(fill_price))*trade.HCF
+        pnl = direction*size*(float(exit_price) - float(fill_price))*trade.HCF
 
-        # TODO - commission should only be calculated in fill_order method 
-        # for net order
-        # TODO - revisit this when the order is used to fill, and this order 
-        # remains only to move the isolated position around.
-        # Double check commission is properly accounted for.
-        commission = self._calculate_commissions(price=exit_price, 
-                                                 units=size, 
-                                                 HCF=trade.HCF,
-                                                 order_type=order_type)
-        net_profit = gross_PL - commission
-        
         # Update trade closure attributes
-        trade.profit = net_profit
+        trade.profit = pnl
         trade.balance = self.equity
         trade.exit_price = exit_price
-        trade.fees = commission
+        # trade.fees = commission
         trade.exit_time = exit_time if exit_time is not None else trade.last_time
         
         # Add trade to closed positions
@@ -1297,10 +1239,9 @@ class Broker:
             to_dict='closed_iso_pos',
             new_status='closed')
         
-        # Update account
-        self._add_funds(net_profit)
+        # Update account with position pnl
+        self._add_funds(pnl)
 
-        # TODO - return the close price?
         return exit_price
     
 
@@ -1496,7 +1437,15 @@ class Broker:
     def _margin_call(self, instrument: str, latest_time: datetime):
         """Closes open positions.
         """
-        self._close_position(instrument=instrument, exit_time=latest_time)
+        # Construct full position closeout market order
+        position = self.get_positions(instrument=instrument)[instrument]
+        size = abs(position.net_position)
+        direction = np.sign(position.net_position)
+        closeout_order = Order(instrument=instrument, direction=direction, size=size)
+
+        # Fire the order
+        self._reduce_position(instrument=instrument, exit_time=latest_time)
+        self._fill_order(closeout_order)
     
     
     def _get_holding_allocations(self):
