@@ -1,6 +1,3 @@
-from sympy import Mod
-
-
 try:
     import v20
 except ImportError:
