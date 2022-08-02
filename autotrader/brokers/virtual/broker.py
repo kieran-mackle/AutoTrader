@@ -437,6 +437,11 @@ class Broker:
         -------
         open_positions : dict
             A dictionary containing details of the open positions.
+        
+        Notes
+        ------
+        net_position: refers to the number of units held in the position.
+
         """
         if instrument:
             # instrument provided
@@ -474,6 +479,9 @@ class Broker:
                         short_margin += trade.margin_required
             
                 # Construct instrument position dict
+                net_position = long_units-short_units
+                net_exposure = net_position * trade.last_price
+                # TODO - add net_exposure attribute to Position class
                 instrument_position = {'long_units': long_units,
                                        'long_PL': long_PL,
                                        'long_margin': long_margin,
@@ -483,7 +491,8 @@ class Broker:
                                        'total_margin': total_margin,
                                        'trade_IDs': trade_IDs,
                                        'instrument': instrument,
-                                       'net_position': long_units-short_units}
+                                       'net_position': net_position,
+                                       'net_exposure': net_exposure,}
                 
                 instrument_position = Position(**instrument_position)
                 
