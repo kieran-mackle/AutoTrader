@@ -1,4 +1,5 @@
 from __future__ import annotations
+from textwrap import fill
 from tracemalloc import stop
 import numpy as np
 from datetime import datetime
@@ -584,13 +585,24 @@ class Trade(Order):
 
 
 class Fill:
-    def __init__(self, order: Order = None, **kwargs) -> Fill:
-        # Trade data
+    def __init__(self, 
+        order: Order, 
+        fill_time: datetime, 
+        fill_price: float, 
+        fill_direction: int,
+        fee: float,
+        **kwargs
+        ) -> Fill:
+        """Fill constructor.
+        """
+        # Fill data
+        self.fill_time = fill_time
+        self.fill_price = fill_price
+        self.direction = fill_direction
+        self.fee = fee
         self.order_price = None
         self.order_time = None
-        self.fill_time = None
-        self.fill_price = None
-        self.fee = None
+        self.size = None
         
         # Meta data
         self.parent_id = None # ID of order which spawned trade
@@ -601,9 +613,8 @@ class Fill:
             setattr(self, item, kwargs[item])
             
         # Inherit order attributes
-        if order:
-            self._inheret_order(order)
-            self.parent_id = order.id
+        self._inheret_order(order)
+        self.parent_id = order.id
         
     
     def __repr__(self):
@@ -616,9 +627,10 @@ class Fill:
     
     
     def _inheret_order(self, order: Order) -> None:
-        # TODO - only inherit relevant attributes (eg. order price/time, etc)
+        inheritable_attributes = ['order_price', 'order_time', 'size']
         for attribute, value in order.__dict__.items():
-            setattr(self, attribute, value)
+            if attribute in inheritable_attributes:
+                setattr(self, attribute, value)
 
 
 class Position:

@@ -1017,13 +1017,26 @@ class Broker:
             self._move_order(order=order, from_dict='open_orders', 
                             to_dict='filled_orders', new_status='filled')
 
+            # Define fill_direction
+            fill_direction = order.direction
+
+        else:
+            # The 'order' arg is actually an IsolatedPosition (SL/TP hit), so
+            # the fill direction is opposite the original trade direction
+            fill_direction = -order.direction
+
         # Charge trading fees
         commission = self._calculate_commissions(price=fill_price, 
             units=order.size, HCF=order.HCF, order_type=order.order_type)
         self._add_funds(-commission)
 
         # Create Fill and append to fills
-        fill = Fill(order=order)
+        fill = Fill(
+            order=order, 
+            fill_time=fill_time, 
+            fill_price=fill_price, 
+            fill_direction=fill_direction,
+            fee=commission)
         self.fills.append(fill)
         
         # Print fill to console
