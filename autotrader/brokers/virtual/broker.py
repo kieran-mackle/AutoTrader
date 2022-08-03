@@ -67,49 +67,46 @@ class Broker:
                  utils: BrokerUtils = None) -> None:
         """Initialise virtual broker.
         """
-
-        # TODO - privatise attributes 
-
         # TODO - improve floating point precision coverage
         if broker_config is not None:
-            self.verbosity = broker_config['verbosity']
+            self._verbosity = broker_config['verbosity']
         else:
-            self.verbosity = 0
-        self.utils = utils
+            self._verbosity = 0
+        self._utils = utils
         
         # Orders
-        self.pending_orders = {}       # {instrument: {id: Order}}
-        self.open_orders = {}          # {instrument: {id: Order}}
-        self.filled_orders = {}
-        self.cancelled_orders = {}
+        self._pending_orders = {}       # {instrument: {id: Order}}
+        self._open_orders = {}          # {instrument: {id: Order}}
+        self._filled_orders = {}
+        self._cancelled_orders = {}
         self._order_id_instrument = {} # mapper from order_id to instrument
         
         # Isolated positions (formerly "trades")
-        self.open_iso_pos = {}
-        self.closed_iso_pos = {}
+        self._open_iso_pos = {}
+        self._closed_iso_pos = {}
         self._trade_id_instrument = {} # mapper from order_id to instrument
 
         # Fills (executed trades)
-        self.fills = []
+        self._fills = []
 
         # Account 
-        self.base_currency = 'AUD'
-        self.NAV = 0                    # Net asset value
-        self.equity = 0                 # Account equity (balance)
-        self.floating_pnl = 0
-        self.margin_available = 0
+        self._base_currency = 'AUD'
+        self._NAV = 0                    # Net asset value
+        self._equity = 0                 # Account equity (balance)
+        self._floating_pnl = 0
+        self._margin_available = 0
         
-        self.leverage = 1               # The account leverage
-        self.spread = 0                 # The bid/ask spread
-        self.spread_units = 'price'     # The units of the spread 
-        self.hedging = False            # Allow simultaneous trades on opposing sides
-        self.margin_closeout = 0.0      # Fraction at margin call
+        self._leverage = 1               # The account leverage
+        self._spread = 0                 # The bid/ask spread
+        self._spread_units = 'price'     # The units of the spread 
+        self._hedging = False            # Allow simultaneous trades on opposing sides
+        self._margin_closeout = 0.0      # Fraction at margin call
         
         # Commissions
-        self.commission_scheme = 'percentage' # Either percentage, fixed_per_unit or flat
-        self.commission = 0
-        self.maker_commission = 0       # Liquidity 'maker' trade commission
-        self.taker_commission = 0       # Liquidity 'taker' trade commission
+        self._commission_scheme = 'percentage' # Either percentage, fixed_per_unit or flat
+        self._commission = 0
+        self._maker_commission = 0       # Liquidity 'maker' trade commission
+        self._taker_commission = 0       # Liquidity 'taker' trade commission
         
         # History
         self._NAV_hist = []
@@ -214,33 +211,33 @@ class Broker:
             The filename of the picklefile to load state from. If you do not 
             wish to load from state, leave this as None. The default is None.
         """
-        self.verbosity = verbosity if verbosity is not None \
-            else self.verbosity
-        self.leverage = leverage if leverage is not None else self.leverage
-        self.commission = commission if commission is not None \
-            else self.commission
-        self.commission_scheme = commission_scheme if commission_scheme \
-            is not None else self.commission_scheme
-        self.spread = spread if spread is not None else self.spread
-        self.spread_units = spread_units if spread_units is not None else \
-            self.spread_units
-        self.base_currency = base_currency if base_currency is not None else \
-            self.base_currency
+        self._verbosity = verbosity if verbosity is not None \
+            else self._verbosity
+        self._leverage = leverage if leverage is not None else self._leverage
+        self._commission = commission if commission is not None \
+            else self._commission
+        self._commission_scheme = commission_scheme if commission_scheme \
+            is not None else self._commission_scheme
+        self._spread = spread if spread is not None else self._spread
+        self._spread_units = spread_units if spread_units is not None else \
+            self._spread_units
+        self._base_currency = base_currency if base_currency is not None else \
+            self._base_currency
         self._paper_trading = paper_mode if paper_mode is not None else \
             self._paper_trading
         self._public_trade_access = public_trade_access if public_trade_access \
             is not None else self._public_trade_access
-        self.margin_closeout = margin_closeout if margin_closeout is not None \
-            else self.margin_closeout
-        self.hedging = hedging if hedging is not None else self.hedging
+        self._margin_closeout = margin_closeout if margin_closeout is not None \
+            else self._margin_closeout
+        self._hedging = hedging if hedging is not None else self._hedging
         self._picklefile = picklefile if picklefile is not None else \
             self._picklefile
 
         # Assign commissions for making and taking liquidity
-        self.maker_commission = maker_commission if maker_commission is \
-            not None else self.commission
-        self.taker_commission = taker_commission if taker_commission is \
-            not None else self.commission
+        self._maker_commission = maker_commission if maker_commission is \
+            not None else self._commission
+        self._taker_commission = taker_commission if taker_commission is \
+            not None else self._commission
 
         if autodata_config is not None:
             # Instantiate AutoData from config
@@ -267,12 +264,12 @@ class Broker:
     
     def get_NAV(self) -> float:
         """Returns Net Asset Value of account."""
-        return self.NAV
+        return self._NAV
     
     
     def get_balance(self) -> float:
         """Returns balance of account."""
-        return self.equity
+        return self._equity
     
     
     def place_order(self, order: Order, **kwargs) -> None:
@@ -290,7 +287,7 @@ class Broker:
 
         elif order.order_type == 'modify':
             # Get direction of related trade
-            related_trade = self.open_iso_pos[order.instrument][order.related_orders]
+            related_trade = self._open_iso_pos[order.instrument][order.related_orders]
             order.direction = related_trade.direction
             ref_price = order.order_price
             
@@ -360,28 +357,28 @@ class Broker:
         order.status = 'pending'
         # TODO - use move orders method
         try:
-            self.pending_orders[order.instrument][order.id] = order
+            self._pending_orders[order.instrument][order.id] = order
         except KeyError:
             # Instrument hasn't been in pending orders yet
-            self.pending_orders[order.instrument] = {order.id: order}
+            self._pending_orders[order.instrument] = {order.id: order}
         
         # Submit order
         if invalid_order:
             # Invalid order, cancel it
-            if self.verbosity > 0:
+            if self._verbosity > 0:
                 print(f"  Order {order.id} rejected.\n")
-            self.cancel_order(order.id, reason, 'pending_orders', datetime_stamp)
+            self.cancel_order(order.id, reason, '_pending_orders', datetime_stamp)
             
         else:
             # Move order to open_orders or leave in pending
             immediate_orders = ['modify']
             if order.order_type in immediate_orders or self._paper_trading:
                 # Move to open orders
-                self._move_order(order, from_dict='pending_orders',
-                                    to_dict='open_orders', new_status='open')
+                self._move_order(order, from_dict='_pending_orders',
+                                    to_dict='_open_orders', new_status='open')
             
             # Print
-            if self.verbosity > 0:
+            if self._verbosity > 0:
                 print(f"{datetime_stamp}: Order {order.id} recieved: {order.__repr__()}")
         
     
@@ -389,7 +386,7 @@ class Broker:
                    order_status: str = 'open') -> dict:
         """Returns orders of status order_status.
         """
-        all_orders = getattr(self, order_status+'_orders')
+        all_orders = getattr(self, f'_{order_status}_orders')
         if instrument:
             # Return orders for instrument specified
             try:
@@ -407,7 +404,7 @@ class Broker:
     
     def cancel_order(self, order_id: int, 
                      reason: str = None, 
-                     from_dict: str = 'open_orders', 
+                     from_dict: str = '_open_orders', 
                      timestamp: datetime = None) -> None:
         """Cancels the order.
 
@@ -430,14 +427,14 @@ class Broker:
         from_dict = getattr(self, from_dict)[instrument]
         reason = reason if reason is not None else "User cancelled."
 
-        if instrument not in self.cancelled_orders: 
+        if instrument not in self._cancelled_orders: 
             # Initialise instrument in cancelled_orders
-            self.cancelled_orders[instrument] = {}
-        self.cancelled_orders[instrument][order_id] = from_dict.pop(order_id)
-        self.cancelled_orders[instrument][order_id].reason = reason
-        self.cancelled_orders[instrument][order_id].status = 'cancelled'
+            self._cancelled_orders[instrument] = {}
+        self._cancelled_orders[instrument][order_id] = from_dict.pop(order_id)
+        self._cancelled_orders[instrument][order_id].reason = reason
+        self._cancelled_orders[instrument][order_id].status = 'cancelled'
         
-        if self.verbosity > 0 and reason:
+        if self._verbosity > 0 and reason:
             # Print cancel reason to console
             print(f"{timestamp}: Order {order_id} cancelled: {reason}")
     
@@ -458,7 +455,7 @@ class Broker:
         # TODO - review: fills v. trades
 
         # Get all instrument isolated positions
-        all_iso_pos = getattr(self, trade_status+'_iso_pos')
+        all_iso_pos = getattr(self, f'_{trade_status}_iso_pos')
 
         if instrument:
             # Specific instrument(s) requested
@@ -484,7 +481,7 @@ class Broker:
                 "be removed in a future release. Please use the "+\
                 "get_trades method instead.")
         instrument = self._trade_id_instrument[trade_ID]
-        return self.open_iso_pos[instrument][trade_ID]
+        return self._open_iso_pos[instrument][trade_ID]
     
     
     def get_positions(self, instrument: str = None) -> dict:
@@ -512,7 +509,7 @@ class Broker:
             instruments = [instrument]
         else:
             # No specific instrument requested, use all
-            instruments = list(self.open_iso_pos.keys())
+            instruments = list(self._open_iso_pos.keys())
             
         open_positions = {}
         for instrument in instruments:
@@ -570,7 +567,7 @@ class Broker:
     def get_margin_available(self) -> float:
         """Returns the margin available on the account.
         """
-        return self.margin_available
+        return self._margin_available
     
     
     def get_orderbook(self, instrument: str, midprice: float = None):
@@ -580,13 +577,13 @@ class Broker:
         if self._paper_trading:
             # Papertrading, try get realtime orderbook
             orderbook = self._autodata.L2(instrument, 
-                                          spread_units=self.spread_units,
-                                          spread=self.spread)
+                                          spread_units=self._spread_units,
+                                          spread=self._spread)
         else:
             # Backtesting, use local pseudo-orderbook
             orderbook = self._autodata._local_orderbook(instrument=instrument,
-                    spread_units=self.spread_units,
-                    spread=self.spread, 
+                    spread_units=self._spread_units,
+                    spread=self._spread, 
                     midprice=midprice)
 
         # TODO - Add local orders to the book?
@@ -696,8 +693,8 @@ class Broker:
         pending_orders = self.get_orders(instrument, 'pending').copy()
         for order_id, order in pending_orders.items():
             if latest_time > order.order_time:
-                self._move_order(order, from_dict='pending_orders',
-                                 to_dict='open_orders', new_status='open')
+                self._move_order(order, from_dict='_pending_orders',
+                                 to_dict='_open_orders', new_status='open')
         
         # Update open orders for current instrument
         open_orders = self.get_orders(instrument).copy()
@@ -783,12 +780,12 @@ class Broker:
         self._update_margin(instrument=instrument, latest_time=latest_time)
         
         # Update open position value
-        self.NAV = self.equity + self.floating_pnl
+        self._NAV = self._equity + self._floating_pnl
         
         # Update account history
-        self._NAV_hist.append(self.NAV)
-        self._equity_hist.append(self.equity)
-        self._margin_hist.append(self.margin_available)
+        self._NAV_hist.append(self._NAV)
+        self._equity_hist.append(self._equity)
+        self._margin_hist.append(self._margin_available)
         self._time_hist.append(latest_time)
         
         holdings = self._get_holding_allocations()
@@ -811,7 +808,7 @@ class Broker:
         # 	broker._update_positions(instrument=symbol, trade=trade)
 
         # Update orders
-        orders = self.open_orders
+        orders = self._open_orders
         for instrument in orders:
             l1 = self._autodata.L1(instrument=instrument)
             self._update_positions(instrument=instrument, L1=l1)
@@ -887,12 +884,12 @@ class Broker:
 
                 # Move new order to open_orders 
                 # The original order will remain with reduced size
-                self.open_orders[order.instrument][order.id] = order
+                self._open_orders[order.instrument][order.id] = order
 
         # Check order against current position
         close_existing_position = False # initialisation
         ref_size = order.size  # initialise of reference size
-        if not self.hedging:
+        if not self._hedging:
             # Check if current order will reduce or add to existing position
             current_position = self.get_positions(order.instrument)
             if current_position:
@@ -928,7 +925,7 @@ class Broker:
         position_value = order.size * float(reference_price) * order.HCF
         margin_required = self._calculate_margin(position_value)
         
-        if margin_required < self.margin_available:
+        if margin_required < self._margin_available:
             # Initialise lists
             exit_prices = []
             exit_size = []
@@ -1016,8 +1013,8 @@ class Broker:
         # If fill is originating from an order, mark as filled
         if not sl_tp:
             # Filling an order changes its status to 'filled'
-            self._move_order(order=order, from_dict='open_orders', 
-                            to_dict='filled_orders', new_status='filled')
+            self._move_order(order=order, from_dict='_open_orders', 
+                            to_dict='_filled_orders', new_status='filled')
 
             # Define fill_direction
             fill_direction = order.direction
@@ -1041,10 +1038,10 @@ class Broker:
             fill_price=fill_price, 
             fill_direction=fill_direction,
             fee=commission)
-        self.fills.append(fill)
+        self._fills.append(fill)
         
         # Print fill to console
-        if self.verbosity > 0:
+        if self._verbosity > 0:
             fill_str = f'{fill_time}: Order {order.id} filled: {order.size} '+\
                 f'units of {order.instrument} @ {fill_price}'
             print(fill_str)
@@ -1052,8 +1049,8 @@ class Broker:
     
     def _move_order(self, 
         order: Order, 
-        from_dict: str = 'open_orders', 
-        to_dict: str = 'filled_orders', 
+        from_dict: str = '_open_orders', 
+        to_dict: str = '_filled_orders', 
         new_status: str = 'filled'
         ) -> None:
         """Moves an order from the from_dict to the to_dict.
@@ -1071,7 +1068,7 @@ class Broker:
     def _move_isolated_position(self, 
         trade: IsolatedPosition,
         from_dict: str = None,
-        to_dict: str = 'open_iso_pos',
+        to_dict: str = '_open_iso_pos',
         new_status = 'open',
         ) -> None:
         """Moves an isolated position from the from_dict to the to_dict.
@@ -1182,7 +1179,7 @@ class Broker:
         partial_trade.id = partial_trade_id
 
         # Add partial trade to open trades, then immediately close it
-        self.open_iso_pos[trade.instrument][partial_trade_id] = partial_trade
+        self._open_iso_pos[trade.instrument][partial_trade_id] = partial_trade
         exit_price = self._close_isolated_position(
             trade=partial_trade,
             exit_price=exit_price,
@@ -1244,7 +1241,7 @@ class Broker:
 
         # Update trade closure attributes
         trade.profit = pnl
-        trade.balance = self.equity
+        trade.balance = self._equity
         trade.exit_price = exit_price
         # trade.fees = commission
         trade.exit_time = exit_time if exit_time is not None else trade.last_time
@@ -1252,8 +1249,8 @@ class Broker:
         # Add trade to closed positions
         self._move_isolated_position(
             trade, 
-            from_dict='open_iso_pos', 
-            to_dict='closed_iso_pos',
+            from_dict='_open_iso_pos', 
+            to_dict='_closed_iso_pos',
             new_status='closed')
         
         # Update account with position pnl
@@ -1325,19 +1322,19 @@ class Broker:
         """Calculates trade commissions.
         """
         # Get appropriate commission value
-        commission_val = self.taker_commission if order_type == 'market' else \
-            self.maker_commission
+        commission_val = self._taker_commission if order_type == 'market' else \
+            self._maker_commission
 
-        if self.commission_scheme == 'percentage':
+        if self._commission_scheme == 'percentage':
             # Commission charged as percentage of trade value
             trade_value = abs(units)*float(price)*HCF
             commission  = (commission_val/100) * trade_value
         
-        elif self.commission_scheme == 'fixed_per_unit':
+        elif self._commission_scheme == 'fixed_per_unit':
             # Fixed commission per unit traded
             commission = commission_val * units
         
-        elif self.commission_scheme == 'flat':
+        elif self._commission_scheme == 'flat':
             # Flat commission value per trade
             commission = commission_val
 
@@ -1347,15 +1344,15 @@ class Broker:
     def _add_funds(self, amount: float) -> None:
         """Adds funds to brokerage account.
         """
-        self.equity += amount
+        self._equity += amount
         self._update_margin()
     
     
     def _make_deposit(self, deposit: float) -> None:
         """Adds deposit to account balance and NAV.
         """
-        self.equity += deposit
-        self.NAV += deposit
+        self._equity += deposit
+        self._NAV += deposit
         self._update_margin()
     
     
@@ -1363,7 +1360,7 @@ class Broker:
         """Calculates margin required to take a position with the 
         available leverage of the account.
         """
-        margin = position_value / self.leverage
+        margin = position_value / self._leverage
         return margin
     
     
@@ -1391,15 +1388,15 @@ class Broker:
             floating_pnl += trade.unrealised_PL
                 
         # Update unrealised PnL
-        self.floating_pnl = floating_pnl
+        self._floating_pnl = floating_pnl
         
         # Update margin available
-        self.margin_available = self.NAV - margin_used
+        self._margin_available = self._NAV - margin_used
         
         # Check for margin call
-        if self.leverage > 1 and self.margin_available/self.NAV < self.margin_closeout:
+        if self._leverage > 1 and self._margin_available/self._NAV < self._margin_closeout:
             # Margin call
-            if self.verbosity > 0:
+            if self._verbosity > 0:
                 print("MARGIN CALL: closing all positions.")
             self._margin_call(instrument, latest_time)
 
@@ -1430,15 +1427,15 @@ class Broker:
                           new_stop_type: str = 'limit') -> None:
         """Updates stop loss on open trade.
         """
-        self.open_iso_pos[instrument][trade_id].stop_loss = new_stop_loss
-        self.open_iso_pos[instrument][trade_id].stop_type = new_stop_type
+        self._open_iso_pos[instrument][trade_id].stop_loss = new_stop_loss
+        self._open_iso_pos[instrument][trade_id].stop_type = new_stop_type
     
     
     def _update_take_profit(self, instrument: str, trade_id: int, 
                             new_take_profit: float) -> None:
         """Updates take profit on open trade.
         """
-        self.open_iso_pos[instrument][trade_id].take_profit = new_take_profit
+        self._open_iso_pos[instrument][trade_id].take_profit = new_take_profit
         
         
     def _get_new_order_id(self):
@@ -1510,7 +1507,7 @@ class Broker:
 
     def _load_state(self):
         """Loads the state of the broker from a pickle."""
-        verbosity = self.verbosity
+        verbosity = self._verbosity
         try:
             with open(self._picklefile, 'rb') as file:
                 state = pickle.load(file)

@@ -377,7 +377,7 @@ class TradeAnalysis:
             orders = TradeAnalysis.create_trade_summary(orders=all_orders, 
                                                         instrument=instrument,
                                                         broker_name=broker_name)
-            trade_history = TradeAnalysis.create_fill_summary(fills=broker.fills,
+            trade_history = TradeAnalysis.create_fill_summary(fills=broker._fills,
                 broker_name=broker_name)
             
             # Construct account history

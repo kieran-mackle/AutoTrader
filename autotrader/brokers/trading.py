@@ -283,7 +283,7 @@ class Order:
             utils = BrokerUtils()
         else:
             # Use broker-specific utilities
-            utils = broker.utils
+            utils = broker._utils
         
         pip_value = self.pip_value if self.pip_value is not None else\
             utils.get_pip_ratio(self.instrument)
@@ -359,7 +359,7 @@ class Order:
                 
                 if sizing == 'risk':
                     # Calculate size from SL placement
-                    size = broker.utils.get_size(instrument=self.instrument, 
+                    size = broker._utils.get_size(instrument=self.instrument, 
                                                 amount_risked=amount_risked, 
                                                 price=working_price, 
                                                 HCF=HCF,
