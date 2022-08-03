@@ -16,6 +16,8 @@ from bokeh.layouts import gridplot, layout
 from bokeh.transform import factor_cmap, cumsum
 from bokeh.palettes import Category20c
 
+from autotrader.utilities import TradeAnalysis
+
 try:
     import importlib.resources as pkg_resources
 except ImportError:
@@ -155,9 +157,11 @@ class AutoPlot:
         self._use_strat_plot_data = use_strat_plot_data if use_strat_plot_data is not None else self._use_strat_plot_data
         
     
-    def plot(self, instrument: str = None, indicators: dict = None, 
-             backtest_dict: dict = None,
-             show_fig: bool = True) -> None:
+    def plot(self, 
+        instrument: str = None, 
+        indicators: dict = None, 
+        trade_results: TradeAnalysis = None,
+        show_fig: bool = True) -> None:
         """Creates a trading chart of OHLC price data and indicators.
 
         Extended Summary
@@ -208,8 +212,8 @@ class AutoPlot:
         ----------
         instrument : str, optional
             The traded instrument name. The default is None.
-        backtest_dict : dict, optional
-            The backtest results dictionary. The default is None.
+        trade_results : TradeAnalysis, optional
+            The TradeAnalysis results object. The default is None.
         indicators : dict, optional
             Indicators dictionary. The default is None.
         show_fig : bool, optional
@@ -226,7 +230,7 @@ class AutoPlot:
         """
         
         # Preparation
-        if backtest_dict is None:
+        if trade_results is None:
             # Using Indiview
             if instrument is not None:
                 title_string = "AutoTrader IndiView - {}".format(instrument)
@@ -237,8 +241,8 @@ class AutoPlot:
         else:
             # Plotting backtest results
             if instrument is None:
-                instrument = backtest_dict.instruments_traded[0]
-            title_string = f"Backtest chart for {instrument} ({backtest_dict.interval} candles)"
+                instrument = trade_results.instruments_traded[0]
+            title_string = f"Backtest chart for {instrument} ({trade_results.interval} candles)"
             output_file(f"{instrument}-backtest-chart.html",
                         title=f"AutoTrader Backtest Results - {instrument}")
         
@@ -261,8 +265,8 @@ class AutoPlot:
         top_figs = []
         bottom_figs = []
         
-        if backtest_dict is not None:
-            account_hist = backtest_dict.account_history
+        if trade_results is not None:
+            account_hist = trade_results.account_history
             if len(account_hist) != len(self._data):
                 account_hist = self._interpolate_and_merge(account_hist)
             
@@ -271,10 +275,10 @@ class AutoPlot:
             topsource.add(account_hist[['NAV', 'equity']].max(1), 'High')
             
             # TODO - update below, trade_history is more like iso_pos history
-            trade_summary = backtest_dict.trade_history
-            indicators = backtest_dict.indicators
-            open_trades = backtest_dict.open_trades
-            cancelled_trades = backtest_dict.cancelled_orders
+            trade_summary = trade_results.trade_history
+            indicators = trade_results.indicators
+            open_trades = trade_results.open_trades
+            cancelled_trades = trade_results.cancelled_orders
             
             top_fig = self._plot_lineV2(topsource, main_plot, "NAV", new_fig=True, 
                                       legend_label='Net Asset Value', 

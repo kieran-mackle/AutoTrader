@@ -1228,7 +1228,7 @@ class AutoTrader:
         def single_instrument_plot(bot):
             data = bot._check_strategy_for_plot_data(self._use_strat_plot_data)
             ap = self._instantiate_autoplot(data)
-            ap.plot(backtest_dict=bot.trade_results)
+            ap.plot(trade_results=bot.trade_results)
         
         if bot is None:
             # No bot has been provided, select automatically
