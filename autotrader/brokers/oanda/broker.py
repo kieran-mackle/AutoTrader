@@ -9,7 +9,7 @@ import traceback
 import numpy as np
 import pandas as pd
 from autotrader.brokers.broker_utils import BrokerUtils
-from autotrader.brokers.trading import Order, Trade, Position
+from autotrader.brokers.trading import Order, IsolatedPosition, Position
 
 
 class Broker:
@@ -169,9 +169,9 @@ class Broker:
                 new_trade['related_orders'] = related_orders
             
             if instruments is not None and trade.instrument in instruments:
-                open_trades[trade.id] = Trade(**new_trade)
+                open_trades[trade.id] = IsolatedPosition(**new_trade)
             elif instruments is None:
-                open_trades[trade.id] = Trade(**new_trade)
+                open_trades[trade.id] = IsolatedPosition(**new_trade)
         
         return open_trades
     

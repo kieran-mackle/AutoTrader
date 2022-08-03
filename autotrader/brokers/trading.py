@@ -476,9 +476,9 @@ class StopLimitOrder(Order):
                          **kwargs)
 
 
-# TODO - rename Trade to IsolatedPosition
-class Trade(Order):
-    """AutoTrader Trade.
+class IsolatedPosition(Order):
+    """AutoTrader IsolatedPosition. Use to connect SL and TP orders to individual
+    trades.
     
     Attributes
     ----------
@@ -513,7 +513,7 @@ class Trade(Order):
     -----
     When a trade is created from an Order, the Order will be marked as filled.
     """
-    def __init__(self, order: Order = None, **kwargs) -> Trade:
+    def __init__(self, order: Order = None, **kwargs) -> IsolatedPosition:
         
         # Trade data
         self.unrealised_PL = 0
@@ -552,7 +552,7 @@ class Trade(Order):
         
     
     def __str__(self):
-        return 'AutoTrader Trade'
+        return 'AutoTrader IsolatedPosition'
     
     
     def _inheret_order(self, order: Order) -> None:
@@ -560,8 +560,8 @@ class Trade(Order):
             setattr(self, attribute, value)
             
     @classmethod
-    def _split(cls, trade: Trade, split_units: float) -> Trade:
-        """Splits parent trade into new trade object for partial trade 
+    def _split(cls, trade: IsolatedPosition, split_units: float) -> IsolatedPosition:
+        """Splits parent IsolatedPosition into new object for partial  
         closures.
         
         split units are given to the new trade.

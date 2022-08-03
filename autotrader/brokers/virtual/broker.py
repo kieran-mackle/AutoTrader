@@ -9,7 +9,7 @@ from datetime import date, datetime
 from autotrader.autodata import AutoData
 from autotrader.utilities import get_data_config
 from autotrader.brokers.broker_utils import BrokerUtils
-from autotrader.brokers.trading import Order, Trade, Position, Fill
+from autotrader.brokers.trading import Order, IsolatedPosition, Position, Fill
 
 
 class Broker:
@@ -474,7 +474,7 @@ class Broker:
         return trades.copy()
     
     
-    def get_trade_details(self, trade_ID: int) -> Trade:
+    def get_trade_details(self, trade_ID: int) -> IsolatedPosition:
         """Returns the trade specified by trade_ID.
         """
         raise DeprecationWarning("This method is deprecated, and will "+\
@@ -972,17 +972,16 @@ class Broker:
                 fill_time=fill_time)
 
             # Make isolated position
-            trade_id = self._get_new_trade_id()
-            trade = Trade(order)
-            trade.id = trade_id
-            trade.fill_price = float(avg_fill_price)
-            trade.time_filled = fill_time
-            trade.margin_required = margin_required
-            trade.value = position_value
-            self._trade_id_instrument[trade_id] = order.instrument
+            isopos = IsolatedPosition(order)
+            isopos.id = self._get_new_trade_id()
+            isopos.fill_price = float(avg_fill_price)
+            isopos.time_filled = fill_time
+            isopos.margin_required = margin_required
+            isopos.value = position_value
+            self._trade_id_instrument[isopos.id] = order.instrument
             
             # Move trade to open isolated positions
-            self._move_isolated_position(trade)
+            self._move_isolated_position(isopos)
 
         else:
             # Cancel order
@@ -1031,6 +1030,7 @@ class Broker:
         self._add_funds(-commission)
 
         # Create Fill and append to fills
+        # TODO - look into where order_price and order_time originate
         fill = Fill(
             order=order, 
             fill_time=fill_time, 
@@ -1065,7 +1065,7 @@ class Broker:
     
     
     def _move_isolated_position(self, 
-        trade: Trade,
+        trade: IsolatedPosition,
         from_dict: str = None,
         to_dict: str = 'open_iso_pos',
         new_status = 'open',
@@ -1157,7 +1157,7 @@ class Broker:
                     
     
     def _reduce_isolated_position(self, 
-        trade: Trade, 
+        trade: IsolatedPosition, 
         units: float, 
         exit_price: float = None,
         exit_time: datetime = None,
@@ -1173,7 +1173,7 @@ class Broker:
             The execution price used to reduce the isolated position.
         """
         # Create new trade for the amount to be reduced
-        partial_trade = Trade._split(trade, units)
+        partial_trade = IsolatedPosition._split(trade, units)
         partial_trade_id = self._get_new_trade_id()
         partial_trade.id = partial_trade_id
 
@@ -1192,7 +1192,7 @@ class Broker:
         
     
     def _close_isolated_position(self, 
-        trade: Trade, 
+        trade: IsolatedPosition, 
         exit_price: float = None,
         exit_time: datetime = None,
         order_type: str = 'market',
