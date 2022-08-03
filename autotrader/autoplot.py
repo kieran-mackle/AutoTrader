@@ -274,10 +274,10 @@ class AutoPlot:
             topsource.add(account_hist[['NAV', 'equity']].min(1), 'Low')
             topsource.add(account_hist[['NAV', 'equity']].max(1), 'High')
             
-            # TODO - update below, trade_history is more like iso_pos history
-            trade_summary = trade_results.trade_history
+            # Get isolated position summary
+            trade_summary = trade_results.isolated_position_history
             indicators = trade_results.indicators
-            open_trades = trade_results.open_trades
+            open_trades = trade_results.open_isolated_positions
             cancelled_trades = trade_results.cancelled_orders
             
             top_fig = self._plot_lineV2(topsource, main_plot, "NAV", new_fig=True, 
@@ -479,7 +479,7 @@ class AutoPlot:
         output_file("autotrader_backtest.html", title = "AutoTrader Multi-Bot Backtest Results")
         linked_crosshair = CrosshairTool(dimensions='both')
         reindexed_acc_hist = self._reindex_data(backtest_results.account_history)
-        trade_history = backtest_results.trade_history
+        trade_history = backtest_results.isolated_position_history
         # holding_history = backtest_results.holding_history
         
         # Account Balance 
@@ -520,6 +520,7 @@ class AutoPlot:
         self.autoscale_args = {'y_range': navfig.y_range, 'source': acc_hist}
         
         # Cumultive returns plot
+        # TODO - review calculation
         returns_per_instrument = [trade_history.profit[trade_history.instrument == i].cumsum() for i in instruments]
         cplfig = figure(plot_width = navfig.plot_width,
                         plot_height = self._top_fig_height,

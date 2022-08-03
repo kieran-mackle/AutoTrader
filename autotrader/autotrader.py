@@ -1104,7 +1104,7 @@ class AutoTrader:
                                             round(pc_return, 1)))
             if no_trades > 0:
                 print("Total no. trades:        {}".format(no_trades))
-                print("Total fees:              ${}".format(round(total_fees, 3)))
+                print("Total fees paid:         ${}".format(round(total_fees, 3)))
                 print("Trade win rate:          {}%".format(round(win_rate, 1)))
                 print("Maximum drawdown:        {}%".format(round(max_drawdown*100, 2)))
                 print("Max win:                 ${}".format(round(max_win, 2)))
@@ -1171,7 +1171,7 @@ class AutoTrader:
             if len(trade_results.instruments_traded) > 1:
                 # Mutliple instruments traded
                 instruments = trade_results.instruments_traded
-                trade_history = trade_results.trade_history
+                trade_history = trade_results.isolated_position_history
                 
                 total_no_trades = []
                 max_wins = []
@@ -1710,7 +1710,7 @@ class AutoTrader:
                       f"{round((backtest_end_time - self._backtest_start_time), 3)} s).")
                 self.print_trade_results()
                 
-            if self._show_plot and len(self.trade_results.trade_history) > 0:
+            if self._show_plot and len(self.trade_results.isolated_position_history) > 0:
                 self.plot_backtest()
         
         elif self._scan_mode and self._show_plot:

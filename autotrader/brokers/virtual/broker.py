@@ -1034,6 +1034,7 @@ class Broker:
 
         # Create Trade and append to fills
         # TODO - look into where order_price and order_time originate
+        # Looks like the order price is repeated for closing orders...
         fill = Trade(
             order=order, 
             fill_time=fill_time, 

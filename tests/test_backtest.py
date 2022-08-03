@@ -81,3 +81,4 @@ def test_multibot_macd_backtest():
         "of short trades (multi-instrument backtest)"
         
 test_macd_backtest()
+# test_multibot_macd_backtest()
