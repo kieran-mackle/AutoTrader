@@ -492,7 +492,8 @@ class TradeAnalysis:
             'fill_price': [],
             'direction': [],
             'size': [],
-            'fee': []
+            'fee': [],
+            'instrument': [],
             }
         for fill in fills:
             fill_dict['order_time'].append(fill.order_time)
@@ -502,6 +503,7 @@ class TradeAnalysis:
             fill_dict['direction'].append(fill.direction)
             fill_dict['size'].append(fill.size)
             fill_dict['fee'].append(fill.fee)
+            fill_dict['instrument'].append(fill.instrument)
 
         fill_df = pd.DataFrame(data=fill_dict, index=fill_dict['fill_time'])
         return fill_df
@@ -512,7 +514,7 @@ class TradeAnalysis:
                              orders: dict = None, 
                              instrument: str = None, 
                              broker_name: str = None) -> pd.DataFrame:
-        """Creates trade summary dataframe.
+        """Creates a summary dataframe for trades and orders.
         """
         
         instrument = None if isinstance(instrument, list) else instrument

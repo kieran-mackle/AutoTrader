@@ -584,7 +584,8 @@ class IsolatedPosition(Order):
         return split_trade
 
 
-class Fill:
+class Trade:
+    """AutoTrader Trade object. Represents an exchange of value."""
     def __init__(self, 
         order: Order, 
         fill_time: datetime, 
@@ -592,7 +593,7 @@ class Fill:
         fill_direction: int,
         fee: float,
         **kwargs
-        ) -> Fill:
+        ) -> Trade:
         """Fill constructor.
         """
         # Fill data
@@ -603,6 +604,7 @@ class Fill:
         self.order_price = None
         self.order_time = None
         self.size = None
+        self.instrument = None
         
         # Meta data
         self.parent_id = None # ID of order which spawned trade
@@ -627,7 +629,7 @@ class Fill:
     
     
     def _inheret_order(self, order: Order) -> None:
-        inheritable_attributes = ['order_price', 'order_time', 'size']
+        inheritable_attributes = ['order_price', 'order_time', 'size', 'instrument']
         for attribute, value in order.__dict__.items():
             if attribute in inheritable_attributes:
                 setattr(self, attribute, value)

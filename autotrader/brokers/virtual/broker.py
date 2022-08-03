@@ -9,7 +9,7 @@ from datetime import date, datetime
 from autotrader.autodata import AutoData
 from autotrader.utilities import get_data_config
 from autotrader.brokers.broker_utils import BrokerUtils
-from autotrader.brokers.trading import Order, IsolatedPosition, Position, Fill
+from autotrader.brokers.trading import Order, IsolatedPosition, Position, Trade
 
 
 class Broker:
@@ -67,6 +67,9 @@ class Broker:
                  utils: BrokerUtils = None) -> None:
         """Initialise virtual broker.
         """
+
+        # TODO - privatise attributes 
+
         # TODO - improve floating point precision coverage
         if broker_config is not None:
             self.verbosity = broker_config['verbosity']
@@ -1029,9 +1032,9 @@ class Broker:
             units=order.size, HCF=order.HCF, order_type=order.order_type)
         self._add_funds(-commission)
 
-        # Create Fill and append to fills
+        # Create Trade and append to fills
         # TODO - look into where order_price and order_time originate
-        fill = Fill(
+        fill = Trade(
             order=order, 
             fill_time=fill_time, 
             fill_price=fill_price, 
