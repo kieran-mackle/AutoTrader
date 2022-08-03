@@ -113,7 +113,6 @@ class Broker:
         self._equity_hist = []
         self._margin_hist = []
         self._time_hist = []
-        self.holdings = []
         
         # Last order and trade counts
         self._last_order_id = 0
@@ -788,9 +787,6 @@ class Broker:
         self._margin_hist.append(self._margin_available)
         self._time_hist.append(latest_time)
         
-        holdings = self._get_holding_allocations()
-        self.holdings.append(holdings)
-
         # Save state
         if self._paper_trading and self._picklefile is not None:
             self._save_state()
@@ -1462,25 +1458,6 @@ class Broker:
         self._reduce_position(instrument=instrument, exit_time=latest_time)
         self._fill_order(closeout_order)
     
-    
-    def _get_holding_allocations(self):
-        """Returns a dictionary containing the nominal value of
-        all open trades.
-        """
-        # TODO - This can be post-processed, stop calling internally for speedup
-        open_trades = self.get_trades()
-        values = {}
-        for trade_id, trade in open_trades.items():
-            if trade.instrument in values:
-                values[trade.instrument] += trade.size * trade.last_price
-            else:
-                values[trade.instrument] = trade.size * trade.last_price
-                
-        if len(values) == 0:
-            values = {None: None}
-            
-        return values
-
     
     def _add_orders_to_book(self, instrument, orderbook):
         """Adds local orders to the orderbook."""
