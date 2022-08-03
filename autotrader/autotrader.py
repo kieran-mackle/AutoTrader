@@ -117,7 +117,6 @@ class AutoTrader:
         self._backtest_mode = False
         self._data_start = None
         self._data_end = None
-        self._process_holding_history = True
         
         # Local Data Parameters
         self._data_indexing = 'open'
@@ -490,8 +489,7 @@ class AutoTrader:
 
     def backtest(self, start: str = None, end: str = None, 
                  start_dt: datetime = None, end_dt: datetime = None, 
-                 warmup_period: str = '0s', 
-                 process_holding_history: bool = True) -> None:
+                 warmup_period: str = '0s') -> None:
         """Configures settings for backtesting.
 
         Parameters
@@ -508,11 +506,6 @@ class AutoTrader:
             A string describing the warmup period to be used. This is 
             equivalent to the minimum period of time required to collect 
             sufficient data for the strategy. The default is '0s'.
-        process_holding_history : bool, optional
-            A boolean flag to proccess the acconut holding history across 
-            a backtest into a nicer format. Setting this to False can greatly
-            speedup the time taken to post-process a backtest. The default is
-            True.
             
         Notes
         ------
@@ -530,7 +523,6 @@ class AutoTrader:
         self._data_start = start_dt
         self._data_end = end_dt
         self._warmup_period = pd.Timedelta(warmup_period).to_pytimedelta()
-        self._process_holding_history = process_holding_history
         
     
     def optimise(self, opt_params: list, bounds: list, Ns: int = 4,
@@ -1698,8 +1690,7 @@ class AutoTrader:
         # Run instance shut-down routine
         if self._backtest_mode:
             # Create overall backtest results
-            self.trade_results = TradeAnalysis(self._broker, 
-                        process_holding_history=self._process_holding_history)
+            self.trade_results = TradeAnalysis(self._broker)
             
             # Create trade results for each bot
             for bot in self._bots_deployed:
@@ -1728,8 +1719,7 @@ class AutoTrader:
             
             elif self._papertrading:
                 # Paper trade through virtual broker
-                papertrade_results = TradeAnalysis(self._broker, 
-                        process_holding_history=self._process_holding_history)
+                papertrade_results = TradeAnalysis(self._broker)
                 self.print_trade_results(papertrade_results)
 
                 picklefile_list = [config['picklefile'] if config['picklefile'] is not None \

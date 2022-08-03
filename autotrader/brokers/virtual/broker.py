@@ -1032,6 +1032,7 @@ class Broker:
         # Create Trade and append to fills
         # TODO - look into where order_price and order_time originate
         # Looks like the order price is repeated for closing orders...
+        # TODO - include a fill_no to later check ordering
         fill = Trade(
             order=order, 
             fill_time=fill_time, 
@@ -1464,7 +1465,9 @@ class Broker:
     
     def _get_holding_allocations(self):
         """Returns a dictionary containing the nominal value of
-        all open trades."""
+        all open trades.
+        """
+        # TODO - This can be post-processed, stop calling internally for speedup
         open_trades = self.get_trades()
         values = {}
         for trade_id, trade in open_trades.items():

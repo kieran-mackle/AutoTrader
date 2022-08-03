@@ -32,7 +32,7 @@ def test_macd_backtest():
     bt_results = at.trade_results.summary()
     
     # Test backtest results
-    assert bt_results['no_trades'] == 35, "Incorrect number of trades " + \
+    assert bt_results['no_trades'] == 70, "Incorrect number of trades " + \
         "(single instrument backtest)"
     assert round(bt_results['ending_balance'], 3) == 922.059, "Incorrect "+\
         "ending balance (single instrument backtest)"
@@ -71,7 +71,7 @@ def test_multibot_macd_backtest():
     at.run()
     bt_results = at.trade_results.summary()
     
-    assert bt_results['no_trades'] == 66, "Incorrect number of trades"+\
+    assert bt_results['no_trades'] == 132, "Incorrect number of trades"+\
         " (multi-instrument backtest)"
     assert round(bt_results['ending_balance'], 3) == 838.269, "Incorrect "+\
         "ending balance (multi-instrument backtest)"

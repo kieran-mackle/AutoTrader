@@ -331,23 +331,26 @@ class TradeAnalysis:
         self.account_history = None
         self.isolated_position_history = None
         self.open_isolated_positions = None
+        self.position_history = None
         self.order_history = None
         self.cancelled_orders = None
         self.trade_history = None
         
-        self.analyse_account(broker, instrument, process_holding_history)
+        self.analyse_account(broker, instrument)
     
     
     def __str__(self):
-        return 'AutoTrader Trade Results'
+        return 'AutoTrader Trading Results'
     
     
     def __repr__(self):
-        return 'AutoTrader Trade Results'
+        return 'AutoTrader Trading Results'
         
     
-    def analyse_account(self, broker, instrument: str = None,
-                         process_holding_history: bool = True):
+    def analyse_account(self, 
+        broker, 
+        instrument: str = None,
+        ) -> None:
         """Analyses trade account and creates summary of key details.
         """
         if not isinstance(broker, dict):
@@ -380,32 +383,17 @@ class TradeAnalysis:
             trade_history = TradeAnalysis.create_fill_summary(fills=broker._fills,
                 broker_name=broker_name)
             
-            # Construct account history
             account_history = pd.DataFrame(data={'NAV': broker._NAV_hist, 
                                                 'equity': broker._equity_hist, 
                                                 'margin': broker._margin_hist},
                                         index=broker._time_hist)
             
-            # Create history of holdings
-            holding_history = None
-            if process_holding_history:
-                holdings = broker.holdings.copy()
-                holding_history = pd.DataFrame(columns=list(orders.instrument.unique()),
-                                                index=account_history.index)
-                for i in range(len(holding_history)):
-                    try:
-                        holding_history.iloc[i] = holdings[i]
-                    except:
-                        pass
-                holding_history.fillna(0, inplace=True)
-                
-                for col in holding_history.columns:
-                    holding_history[col] = holding_history[col] / account_history.NAV
-                
-                # Drop duplicated indices from multiple product updates 
-                holding_history = holding_history[~holding_history.index.duplicated(keep='last')]
-                holding_history['cash'] = 1 - holding_history.sum(1)
+            position_history = TradeAnalysis.create_position_history(
+                trade_history=trade_history,
+                account_history=account_history,
+            )
             
+            # Calculate drawdown
             account_history = account_history[~account_history.index.duplicated(keep='last')]
             account_history['drawdown'] = account_history.NAV/account_history.NAV.cummax() - 1
 
@@ -413,8 +401,8 @@ class TradeAnalysis:
             broker_results[broker_name] = {
                             'instruments_traded': list(orders.instrument.unique()),
                             'account_history': account_history,
-                            'holding_history': holding_history,
                             'isolated_position_history': trades,
+                            'position_history': position_history,
                             'order_history': orders,
                             'open_isolated_positions': trades[trades.status == 'open'],
                             'cancelled_orders': orders[orders.status == 'cancelled'],
@@ -428,6 +416,40 @@ class TradeAnalysis:
         self._aggregate_across_brokers(broker_results)
     
 
+    @staticmethod
+    def create_position_history(
+        trade_history: pd.DataFrame, 
+        account_history: pd.DataFrame,
+        ) -> pd.DataFrame:
+        """Creates a history of positions held, recording number of units held 
+        at each timestamp.
+        """
+        # Use fills to reconstruct position history, in terms of units held
+        instruments_traded = list(trade_history['instrument'].unique())
+
+        position_histories = pd.DataFrame()
+        for instrument in instruments_traded:
+            instrument_trade_hist = trade_history[trade_history['instrument']==instrument]
+            directional_trades = instrument_trade_hist['direction']*\
+                instrument_trade_hist['size']
+            net_position_hist = directional_trades.cumsum()
+
+            # Filter out duplicates
+            net_position_hist = net_position_hist[~net_position_hist.index.duplicated(keep='last')]
+
+            # Reindex to account history index
+            net_position_hist = net_position_hist.reindex(index=account_history.index, method='ffill').fillna(0)
+
+            # Save result
+            position_histories[instrument] = net_position_hist
+            
+        # Eventually, using the price history, the value of the holding can be
+        # tracked too, or maybe the change in value over the life of the 
+        # position
+        
+        return position_histories
+
+    
     def _aggregate_across_brokers(self, broker_results):
         """Aggregates trading history across all broker instances.
         """
@@ -436,6 +458,7 @@ class TradeAnalysis:
         open_isolated_positions = pd.DataFrame()
         cancelled_orders = pd.DataFrame()
         isolated_position_history = pd.DataFrame()
+        position_history = pd.DataFrame()
         order_history = pd.DataFrame()
         trade_history = pd.DataFrame()
         account_history = None
@@ -471,12 +494,14 @@ class TradeAnalysis:
             isolated_position_history = pd.concat([isolated_position_history, results['isolated_position_history']])
             order_history = pd.concat([order_history, results['order_history']])
             trade_history = pd.concat([trade_history, results['trade_history']])
+            position_history = pd.concat([position_history, results['position_history']])
 
         # Assign attributes
         self.brokers_used = brokers_used
         self.instruments_traded = instruments_traded
         self.account_history = account_history
         self.isolated_position_history = isolated_position_history
+        self.position_history = position_history
         self.order_history = order_history
         self.open_isolated_positions = open_isolated_positions
         self.cancelled_orders = cancelled_orders
@@ -508,6 +533,8 @@ class TradeAnalysis:
             fill_dict['instrument'].append(fill.instrument)
 
         fill_df = pd.DataFrame(data=fill_dict, index=fill_dict['fill_time'])
+        fill_df['broker'] = broker_name
+
         return fill_df
     
     
