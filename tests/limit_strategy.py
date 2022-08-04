@@ -1,4 +1,4 @@
-from autotrader import Order
+from autotrader import Order, LimitOrder
 
 
 class LimitStrategy:
@@ -9,14 +9,12 @@ class LimitStrategy:
         orders = []
         if not self.orders_fired:
             last_close = data['Close'][-1]
-            short_order = Order(
+            short_order = LimitOrder(
                 direction=-1, 
-                order_type='limit',
                 order_limit_price=last_close+0.0050,
                 )
-            long_order = Order(
+            long_order = LimitOrder(
                 direction=1, 
-                order_type='limit',
                 order_limit_price=last_close-0.0050,
                 )
 

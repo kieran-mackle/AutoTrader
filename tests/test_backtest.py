@@ -124,7 +124,7 @@ def test_margin_call_backtest():
     home_dir = os.path.abspath(os.path.dirname(__file__))
     
     at = AutoTrader()
-    at.configure(verbosity=1, show_plot=True, 
+    at.configure(verbosity=1, show_plot=False, 
                  mode='continuous', update_interval='4h')
     at.add_strategy(config_dict=config, strategy=LimitStrategy)
     at.plot_settings(show_cancelled=True)
