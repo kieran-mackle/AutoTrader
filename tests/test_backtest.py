@@ -79,6 +79,3 @@ def test_multibot_macd_backtest():
         "of long trades (multi-instrument backtest)"
     assert bt_results['short_trades']['no_trades'] == 48, "Incorrect number "+\
         "of short trades (multi-instrument backtest)"
-        
-test_macd_backtest()
-# test_multibot_macd_backtest()

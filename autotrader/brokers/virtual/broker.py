@@ -1608,14 +1608,4 @@ class Broker:
                         # Update trade_units_remaining
                         trade_units_remaining -= trade_units_consumed
     
-
-    @staticmethod
-    def _print_fill(order, fill_time, fill_price, fill_size):
-        """Prints a message when an order gets filled."""
-        fill_str = f'{fill_time}: Order {order.id} filled: {fill_size} '+\
-            f'units of {order.instrument} @ {fill_price}'
-        print(fill_str)
-
-
-    
                     
