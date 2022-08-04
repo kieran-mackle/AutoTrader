@@ -352,9 +352,8 @@ class Broker:
         order.id = self._get_new_order_id()
         self._order_id_instrument[order.id] = order.instrument
         
-        # Move order to pending_orders dict
+        # Add order to pending_orders dict
         order.status = 'pending'
-        # TODO - use move orders method
         try:
             self._pending_orders[order.instrument][order.id] = order
         except KeyError:
@@ -541,7 +540,6 @@ class Broker:
                 # Construct instrument position dict
                 net_position = long_units-short_units
                 net_exposure = net_position * trade.last_price
-                # TODO - add net_exposure attribute to Position class and docstring
                 instrument_position = {'long_units': long_units,
                                        'long_PL': long_PL,
                                        'long_margin': long_margin,
@@ -1031,18 +1029,32 @@ class Broker:
 
         Parameters
         ----------
-        order : Order
-            The order to fill.
         fill_price : float
             The fill price.
         fill_time : datetime
             The time at which the order is filled.
-        sl_tp : bool
-            Flag for SL and TP orders (which come with IsolatedPosition object)
+        order : Order, optional 
+            The order to fill. The default is None, in which case the arguments 
+            below must be specified.
+        instrument : str, optional
+            The trading instrument name.
+        order_price : float, optional
+            The price at which the order was created.
+        order_time : datetime, optional
+            The time at which the order was created.
+        order_size : float, optional
+            The size of the order, in number of units.
+        order_type : str, optional
+            The type of order ('limit' or 'market').
+        direction : int, optional
+            The direction of the fill (1 for a buy, -1 for sell).
+        order_id : int, optional
+            The ID of the order.
+        HCF : float, optional
+            The instruments home conversion factor (FX).
+        liquidation_order : bool, optional
+            A flag whether this is a liquidation order from the broker.
         """
-        # TODO - update docstrings
-        
-        # Due to SL and TP, there isn't always an order to be used
 
         if order is not None and not liquidation_order:
             # Filling an order changes its status to 'filled'
@@ -1406,7 +1418,6 @@ class Broker:
         latest_time: datetime = None) -> None:
         """Updates the margin available in the account.
         """
-        # TODO - use (net) positions to calculate margin requirements
         margin_used = 0
         floating_pnl = 0
         open_trades = self.get_trades()

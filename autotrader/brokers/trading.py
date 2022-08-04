@@ -646,7 +646,9 @@ class Position:
     trade_IDs : list[int]
         The trade ID's associated with the position.
     net_position : float
-        The total number of units in the position (IB only).
+        The total number of units in the position.
+    net_exposure : float
+        The net exposure (in $ value) of the position.
     PL : float
         The floating PnL (IB only).
     contracts : list
@@ -665,6 +667,7 @@ class Position:
         self.total_margin = None
         self.trade_IDs = None
         self.net_position = None
+        self.net_exposure = None
         
         # IB Attributes
         self.PL = None
