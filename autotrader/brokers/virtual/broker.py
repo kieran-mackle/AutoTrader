@@ -117,6 +117,7 @@ class Broker:
         # Last order and trade counts
         self._last_order_id = 0
         self._last_trade_id = 0
+        self._last_fill_id = 0
 
         # Paper trading mode
         self._paper_trading = False             # Paper trading mode boolean
@@ -1085,6 +1086,8 @@ class Broker:
             fill_price=fill_price, 
             fill_direction=direction,
             fee=commission,
+            id=self._get_new_fill_id(),
+            order_id=order_id,
         )
         self._fills.append(trade)
         
@@ -1496,6 +1499,11 @@ class Broker:
     def _get_new_trade_id(self):
         self._last_trade_id += 1
         return self._last_trade_id
+    
+    
+    def _get_new_fill_id(self):
+        self._last_fill_id += 1
+        return self._last_fill_id
     
     
     def _margin_call(self, 

@@ -653,7 +653,8 @@ class TradeAnalysis:
 
     
     def summary(self):
-        """Constructs a summary of trades taken."""
+        """Constructs a trading summary for printing.
+        """
         trade_results = {}
         # TODO - review below calculation
         cpl = self.isolated_position_history.profit.cumsum()

@@ -595,6 +595,7 @@ class Trade:
         fill_price: float, 
         fill_direction: int,
         fee: float,
+        **kwargs,
         ) -> Trade:
         """Trade constructor.
         """
@@ -608,9 +609,12 @@ class Trade:
         self.size = size
         self.instrument = instrument
         
-        # TODO - Meta-data
+        # Meta-data
         self.id = None
-        self.parent_id = None
+        self.order_id = None
+
+        for item in kwargs:
+            setattr(self, item, kwargs[item])
 
     
     def __repr__(self):
