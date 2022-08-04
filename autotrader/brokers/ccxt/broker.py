@@ -1,7 +1,7 @@
 import ccxt
 from datetime import datetime
 from autotrader.brokers.ccxt.utils import Utils, BrokerUtils
-from autotrader.brokers.trading import Order, Trade, Position
+from autotrader.brokers.trading import Order, IsolatedPosition, Position
 
 
 class Broker:
@@ -199,14 +199,15 @@ class Broker:
         direction = 1 if trade['side'] == 'buy' else -1
         # parent_order_id = trade['info']['orderId']
         parent_order_id = trade['info']['orderID']
-        native_trade = Trade(instrument=trade['symbol'],
-                             direction=direction,
-                             size=abs(trade['amount']),
-                             id=trade['id'],
-                             parent_id=parent_order_id,
-                             fill_price=trade['price'],
-                             time_filled=datetime.fromtimestamp(trade['timestamp']/1000),
-                             fees=trade['fee']['cost'])
+        native_trade = IsolatedPosition(
+            instrument=trade['symbol'],
+            direction=direction,
+            size=abs(trade['amount']),
+            id=trade['id'],
+            parent_id=parent_order_id,
+            fill_price=trade['price'],
+            time_filled=datetime.fromtimestamp(trade['timestamp']/1000),
+            fees=trade['fee']['cost'])
         
         return native_trade
     

@@ -1,4 +1,5 @@
 from __future__ import annotations
+from textwrap import fill
 from tracemalloc import stop
 import numpy as np
 from datetime import datetime
@@ -282,7 +283,7 @@ class Order:
             utils = BrokerUtils()
         else:
             # Use broker-specific utilities
-            utils = broker.utils
+            utils = broker._utils
         
         pip_value = self.pip_value if self.pip_value is not None else\
             utils.get_pip_ratio(self.instrument)
@@ -358,7 +359,7 @@ class Order:
                 
                 if sizing == 'risk':
                     # Calculate size from SL placement
-                    size = broker.utils.get_size(instrument=self.instrument, 
+                    size = broker._utils.get_size(instrument=self.instrument, 
                                                 amount_risked=amount_risked, 
                                                 price=working_price, 
                                                 HCF=HCF,
@@ -475,8 +476,9 @@ class StopLimitOrder(Order):
                          **kwargs)
 
 
-class Trade(Order):
-    """AutoTrader Trade.
+class IsolatedPosition(Order):
+    """AutoTrader IsolatedPosition. Use to connect SL and TP orders to individual
+    trades.
     
     Attributes
     ----------
@@ -511,7 +513,7 @@ class Trade(Order):
     -----
     When a trade is created from an Order, the Order will be marked as filled.
     """
-    def __init__(self, order: Order = None, **kwargs) -> Trade:
+    def __init__(self, order: Order = None, **kwargs) -> IsolatedPosition:
         
         # Trade data
         self.unrealised_PL = 0
@@ -550,7 +552,7 @@ class Trade(Order):
         
     
     def __str__(self):
-        return 'AutoTrader Trade'
+        return 'AutoTrader IsolatedPosition'
     
     
     def _inheret_order(self, order: Order) -> None:
@@ -558,8 +560,8 @@ class Trade(Order):
             setattr(self, attribute, value)
             
     @classmethod
-    def _split(cls, trade: Trade, split_units: float) -> Trade:
-        """Splits parent trade into new trade object for partial trade 
+    def _split(cls, trade: IsolatedPosition, split_units: float) -> IsolatedPosition:
+        """Splits parent IsolatedPosition into new object for partial  
         closures.
         
         split units are given to the new trade.
@@ -581,6 +583,50 @@ class Trade(Order):
         
         return split_trade
 
+
+class Trade:
+    """AutoTrader Trade object. Represents an exchange of value."""
+    def __init__(self, 
+        instrument: str,
+        order_price: float,
+        order_time: datetime, 
+        order_type: str,
+        size: float,
+        fill_time: datetime, 
+        fill_price: float, 
+        fill_direction: int,
+        fee: float,
+        **kwargs,
+        ) -> Trade:
+        """Trade constructor.
+        """
+        # Trade data
+        self.fill_time = fill_time
+        self.fill_price = fill_price
+        self.direction = fill_direction
+        self.fee = fee
+        self.order_price = order_price
+        self.order_time = order_time
+        self.order_type = order_type
+        self.size = size
+        self.instrument = instrument
+        
+        # Meta-data
+        self.id = None
+        self.order_id = None
+
+        for item in kwargs:
+            setattr(self, item, kwargs[item])
+
+    
+    def __repr__(self):
+        direction = 'long' if self.direction > 0 else 'short'
+        return f'{round(self.size,3)} unit {direction} {self.instrument} trade'
+        
+    
+    def __str__(self):
+        return 'AutoTrader Trade'
+    
 
 class Position:
     """AutoTrader Position object.
@@ -606,7 +652,9 @@ class Position:
     trade_IDs : list[int]
         The trade ID's associated with the position.
     net_position : float
-        The total number of units in the position (IB only).
+        The total number of units in the position.
+    net_exposure : float
+        The net exposure (in $ value) of the position.
     PL : float
         The floating PnL (IB only).
     contracts : list
@@ -625,6 +673,7 @@ class Position:
         self.total_margin = None
         self.trade_IDs = None
         self.net_position = None
+        self.net_exposure = None
         
         # IB Attributes
         self.PL = None

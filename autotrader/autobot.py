@@ -23,10 +23,7 @@ class AutoTraderBot:
         The multiple timeframe data used by the bot.
     backtest_results : TradeAnalysis
         A class containing results from the bot in backtest. This 
-        is available only after a backtest and has attributes: 'data', 
-        'account_history', 'trade_summary', 'indicators', 'instrument', 
-        'interval', 'open_trades', 'cancelled_trades'.
-    
+        is available only after a backtest.
     """
     
     def __init__(self, instrument: str, strategy_dict: dict, 
@@ -555,7 +552,7 @@ class AutoTraderBot:
             broker = self._brokers[order.exchange]
 
             # Fetch precision for instrument
-            precision = broker.utils.get_precision(order.instrument)
+            precision = broker._utils.get_precision(order.instrument)
             
             if self._feed != 'none':
                 # Get order price from current bars
@@ -618,10 +615,9 @@ class AutoTraderBot:
     
     
     def _create_trade_results(self) -> dict:
-        """Constructs trade summary for post-processing.
+        """Constructs bot-specific trade summary for post-processing.
         """
-        trade_results = TradeAnalysis(self._broker, self.instrument, 
-                                      self._process_holding_history)
+        trade_results = TradeAnalysis(self._broker, self.instrument)
         trade_results.indicators = self._strategy.indicators if \
             hasattr(self._strategy, 'indicators') else None
         trade_results.data = self.data

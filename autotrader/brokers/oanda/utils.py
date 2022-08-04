@@ -120,6 +120,5 @@ class Utils(BrokerUtils):
     
     def get_precision(self, instrument, *args, **kwargs):
         """Returns the precision of the instrument."""
-        # NOTE: this has not been formally implemented yet.
         # TODO - implement
-        return {'size': 5, 'price': 5}
+        return {'size': 2, 'price': 5}

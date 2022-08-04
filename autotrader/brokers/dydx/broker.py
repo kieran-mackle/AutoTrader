@@ -3,7 +3,7 @@ from decimal import Decimal
 from datetime import datetime
 from dydx3 import Client, constants
 from autotrader.brokers.dydx.utils import Utils, BrokerUtils
-from autotrader.brokers.trading import Order, Position, Trade
+from autotrader.brokers.trading import Order, Position, IsolatedPosition
 
 
 class Broker:
@@ -255,12 +255,14 @@ class Broker:
     def _native_trade(self, dydx_fill: dict):
         """Converts a dydx fill to a native AutoTrader trade."""
         direction = 1 if dydx_fill['side'] == 'BUY' else -1
-        native_trade = Trade(instrument=dydx_fill['market'],
-                             id=dydx_fill['id'],
-                             time_filled=dydx_fill['createdAt'],
-                             fill_price=float(dydx_fill['price']),
-                             size=float(dydx_fill['size']),
-                             direction=direction)
+        # TODO - consider using Fill object
+        native_trade = IsolatedPosition(
+            instrument=dydx_fill['market'],
+            id=dydx_fill['id'],
+            time_filled=dydx_fill['createdAt'],
+            fill_price=float(dydx_fill['price']),
+            size=float(dydx_fill['size']),
+            direction=direction)
         return native_trade
     
     

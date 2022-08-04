@@ -15,7 +15,6 @@ class Utils(BrokerUtils):
 
     def get_precision(self, instrument, *arg, **kwargs):
         """Returns the precision of the specified instrument."""
-        unified_response = {'size': 5,
-                            'price': 5
-                            }
+        unified_response = {'size': 2,
+                            'price': 5}
         return unified_response

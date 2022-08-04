@@ -117,7 +117,6 @@ class AutoTrader:
         self._backtest_mode = False
         self._data_start = None
         self._data_end = None
-        self._process_holding_history = True
         
         # Local Data Parameters
         self._data_indexing = 'open'
@@ -490,8 +489,7 @@ class AutoTrader:
 
     def backtest(self, start: str = None, end: str = None, 
                  start_dt: datetime = None, end_dt: datetime = None, 
-                 warmup_period: str = '0s', 
-                 process_holding_history: bool = True) -> None:
+                 warmup_period: str = '0s') -> None:
         """Configures settings for backtesting.
 
         Parameters
@@ -508,11 +506,6 @@ class AutoTrader:
             A string describing the warmup period to be used. This is 
             equivalent to the minimum period of time required to collect 
             sufficient data for the strategy. The default is '0s'.
-        process_holding_history : bool, optional
-            A boolean flag to proccess the acconut holding history across 
-            a backtest into a nicer format. Setting this to False can greatly
-            speedup the time taken to post-process a backtest. The default is
-            True.
             
         Notes
         ------
@@ -530,7 +523,6 @@ class AutoTrader:
         self._data_start = start_dt
         self._data_end = end_dt
         self._warmup_period = pd.Timedelta(warmup_period).to_pytimedelta()
-        self._process_holding_history = process_holding_history
         
     
     def optimise(self, opt_params: list, bounds: list, Ns: int = 4,
@@ -1077,11 +1069,11 @@ class AutoTrader:
             ending_NAV = trade_summary['ending_NAV']
             abs_return = trade_summary['abs_return']
             pc_return = trade_summary['pc_return']
+            max_drawdown = trade_summary['max_drawdown']
             
             no_trades = trade_summary['no_trades']
             if no_trades > 0:
                 win_rate = trade_summary['all_trades']['win_rate']
-                max_drawdown = trade_summary['all_trades']['max_drawdown']
                 max_win = trade_summary['all_trades']['max_win']
                 avg_win = trade_summary['all_trades']['avg_win']
                 max_loss = trade_summary['all_trades']['max_loss']
@@ -1090,7 +1082,6 @@ class AutoTrader:
                 longest_lose_streak = trade_summary['all_trades']['lose_streak']
                 total_fees = trade_summary['all_trades']['total_fees']
                 
-            
             print("\n----------------------------------------------")
             print("               Trading Results")
             print("----------------------------------------------")
@@ -1102,16 +1093,16 @@ class AutoTrader:
             print("Ending NAV:              ${}".format(round(ending_NAV, 2)))
             print("Total return:            ${} ({}%)".format(round(abs_return, 2), 
                                             round(pc_return, 1)))
+            print("Maximum drawdown:        {}%".format(round(max_drawdown*100, 2)))
             if no_trades > 0:
                 print("Total no. trades:        {}".format(no_trades))
-                print("Total fees:              ${}".format(round(total_fees, 3)))
-                print("Trade win rate:          {}%".format(round(win_rate, 1)))
-                print("Maximum drawdown:        {}%".format(round(max_drawdown*100, 2)))
+                print("Total fees paid:         ${}".format(round(total_fees, 3)))
+                print("Win rate:                {}%".format(round(win_rate, 1)))
                 print("Max win:                 ${}".format(round(max_win, 2)))
                 print("Average win:             ${}".format(round(avg_win, 2)))
                 print("Max loss:                -${}".format(round(max_loss, 2)))
                 print("Average loss:            -${}".format(round(avg_loss, 2)))
-                print("Longest win streak:      {} trades".format(longest_win_streak))
+                print("Longest winning streak:  {} trades".format(longest_win_streak))
                 print("Longest losing streak:   {} trades".format(longest_lose_streak))
                 print("Average trade duration:  {}".format(trade_summary['all_trades']['avg_trade_duration']))
                 
@@ -1120,9 +1111,8 @@ class AutoTrader:
             
             no_open = trade_summary['no_open']
             no_cancelled = trade_summary['no_cancelled']
-            
             if no_open > 0:
-                print("Trades still open:       {}".format(no_open))
+                print("Positions still open:    {}".format(no_open))
             if no_cancelled > 0:
                 print("Cancelled orders:        {}".format(no_cancelled))
             
@@ -1138,7 +1128,7 @@ class AutoTrader:
                 long_wr = trade_summary['long_trades']['long_wr']
                 
                 print("Number of long trades:   {}".format(no_long))
-                print("Long win rate:           {}%".format(round(long_wr, 1)))
+                print("Win rate:                {}%".format(round(long_wr, 1)))
                 print("Max win:                 ${}".format(round(max_long_win, 2)))
                 print("Average win:             ${}".format(round(avg_long_win, 2)))
                 print("Max loss:                -${}".format(round(max_long_loss, 2)))
@@ -1158,7 +1148,7 @@ class AutoTrader:
                 short_wr = trade_summary['short_trades']['short_wr']
                 
                 print("Number of short trades:  {}".format(no_short))
-                print("short win rate:          {}%".format(round(short_wr, 1)))
+                print("Win rate:                {}%".format(round(short_wr, 1)))
                 print("Max win:                 ${}".format(round(max_short_win, 2)))
                 print("Average win:             ${}".format(round(avg_short_win, 2)))
                 print("Max loss:                -${}".format(round(max_short_loss, 2)))
@@ -1171,7 +1161,7 @@ class AutoTrader:
             if len(trade_results.instruments_traded) > 1:
                 # Mutliple instruments traded
                 instruments = trade_results.instruments_traded
-                trade_history = trade_results.trade_history
+                trade_history = trade_results.isolated_position_history
                 
                 total_no_trades = []
                 max_wins = []
@@ -1228,7 +1218,7 @@ class AutoTrader:
         def single_instrument_plot(bot):
             data = bot._check_strategy_for_plot_data(self._use_strat_plot_data)
             ap = self._instantiate_autoplot(data)
-            ap.plot(backtest_dict=bot.trade_results)
+            ap.plot(trade_results=bot.trade_results)
         
         if bot is None:
             # No bot has been provided, select automatically
@@ -1698,8 +1688,7 @@ class AutoTrader:
         # Run instance shut-down routine
         if self._backtest_mode:
             # Create overall backtest results
-            self.trade_results = TradeAnalysis(self._broker, 
-                        process_holding_history=self._process_holding_history)
+            self.trade_results = TradeAnalysis(self._broker)
             
             # Create trade results for each bot
             for bot in self._bots_deployed:
@@ -1710,7 +1699,7 @@ class AutoTrader:
                       f"{round((backtest_end_time - self._backtest_start_time), 3)} s).")
                 self.print_trade_results()
                 
-            if self._show_plot and len(self.trade_results.trade_history) > 0:
+            if self._show_plot and len(self.trade_results.isolated_position_history) > 0:
                 self.plot_backtest()
         
         elif self._scan_mode and self._show_plot:
@@ -1728,8 +1717,7 @@ class AutoTrader:
             
             elif self._papertrading:
                 # Paper trade through virtual broker
-                papertrade_results = TradeAnalysis(self._broker, 
-                        process_holding_history=self._process_holding_history)
+                papertrade_results = TradeAnalysis(self._broker)
                 self.print_trade_results(papertrade_results)
 
                 picklefile_list = [config['picklefile'] if config['picklefile'] is not None \

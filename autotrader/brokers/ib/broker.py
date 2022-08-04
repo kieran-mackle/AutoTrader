@@ -1,7 +1,7 @@
 import random
 import ib_insync
 import numpy as np
-from autotrader.brokers.trading import Order, Trade, Position
+from autotrader.brokers.trading import Order, IsolatedPosition, Position
 from autotrader.brokers.ib.utils import Utils
 
 
@@ -241,9 +241,9 @@ class Broker:
                 new_trade['strategy']           = None
                 
                 if instrument is not None and contract.symbol == instrument:
-                    open_trades[new_trade['order_ID']] = Trade(new_trade)
+                    open_trades[new_trade['order_ID']] = IsolatedPosition(new_trade)
                 elif instrument is None:
-                    open_trades[new_trade['order_ID']] = Trade(new_trade)
+                    open_trades[new_trade['order_ID']] = IsolatedPosition(new_trade)
         
         return open_trades
     

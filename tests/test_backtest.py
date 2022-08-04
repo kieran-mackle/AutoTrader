@@ -19,9 +19,9 @@ def test_macd_backtest():
     home_dir = os.path.abspath(os.path.dirname(__file__))
     
     at = AutoTrader()
-    at.configure(verbosity=0, show_plot=False)
+    at.configure(verbosity=1, show_plot=False)
     at.add_strategy(config_dict=config, strategy=SimpleMACD)
-    at.plot_settings(show_cancelled=False)
+    at.plot_settings(show_cancelled=True)
     at.add_data({'EUR_USD': 'EUR_USD_H4.csv'}, 
                 data_directory=os.path.join(home_dir, 'data'))
     at.backtest(start = '1/1/2021', end = '1/1/2022')
@@ -32,7 +32,7 @@ def test_macd_backtest():
     bt_results = at.trade_results.summary()
     
     # Test backtest results
-    assert bt_results['no_trades'] == 35, "Incorrect number of trades " + \
+    assert bt_results['no_trades'] == 70, "Incorrect number of trades " + \
         "(single instrument backtest)"
     assert round(bt_results['ending_balance'], 3) == 922.059, "Incorrect "+\
         "ending balance (single instrument backtest)"
@@ -71,7 +71,7 @@ def test_multibot_macd_backtest():
     at.run()
     bt_results = at.trade_results.summary()
     
-    assert bt_results['no_trades'] == 66, "Incorrect number of trades"+\
+    assert bt_results['no_trades'] == 132, "Incorrect number of trades"+\
         " (multi-instrument backtest)"
     assert round(bt_results['ending_balance'], 3) == 838.269, "Incorrect "+\
         "ending balance (multi-instrument backtest)"
@@ -80,3 +80,5 @@ def test_multibot_macd_backtest():
     assert bt_results['short_trades']['no_trades'] == 48, "Incorrect number "+\
         "of short trades (multi-instrument backtest)"
         
+test_macd_backtest()
+# test_multibot_macd_backtest()
