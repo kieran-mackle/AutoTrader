@@ -1106,13 +1106,14 @@ class AutoTrader:
                 print("Longest losing streak:   {} trades".format(longest_lose_streak))
                 print("Average trade duration:  {}".format(trade_summary['all_trades']['avg_trade_duration']))
                 
+                no_open = trade_summary['no_open']
+                if no_open > 0:
+                    print("Positions still open:    {}".format(no_open))
+                    
             else:
                 print("\n No trades closed.")
             
-            no_open = trade_summary['no_open']
             no_cancelled = trade_summary['no_cancelled']
-            if no_open > 0:
-                print("Positions still open:    {}".format(no_open))
             if no_cancelled > 0:
                 print("Cancelled orders:        {}".format(no_cancelled))
             
