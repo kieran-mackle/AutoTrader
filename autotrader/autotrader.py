@@ -1430,7 +1430,14 @@ class AutoTrader:
             
             if self._backtest_mode or self._papertrading:
                 # Using virtual broker, configure account
-                account_config = self._virtual_broker_config[broker_key]
+                try:
+                    account_config = self._virtual_broker_config[broker_key]
+                except KeyError:
+                    # Broker hasn't been configured properly
+                    raise Exception(f"Broker '{broker_key}' has not been "+\
+                        "configured. Please do so using the virtual_account_config "+\
+                        f"method, making sure to specify exchange='{broker_key}'.")
+                    
                 execution_feed = account_config['execution_feed']
                 feed = self._feed if execution_feed is None else execution_feed
                 autodata_config = {'feed': feed, 
