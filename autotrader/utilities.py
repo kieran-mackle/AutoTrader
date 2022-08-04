@@ -152,6 +152,10 @@ def get_data_config(feed: str, global_config: dict = None) -> dict:
     feed : str
         The name of the data feed.
     """
+    if feed is None:
+        print("Please specify a data feed.")
+        sys.exit(0)
+
     # Check for CCXT
     if feed.split(':')[0].lower() == 'ccxt':
         feed, exchange = feed.lower().split(':')

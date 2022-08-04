@@ -844,14 +844,12 @@ class AutoTraderBot:
             processed_quote_data = {}
             for instrument in self.quote_data:
                 processed_quote_data[instrument] = self._check_ohlc_data(self.quote_data[instrument], 
-                                                               timestamp, 
-                                                               indexing, 
-                                                               no_bars)
+                    timestamp, indexing, no_bars, check_for_future_data)
             quote_data = processed_quote_data[instrument] # Dummy
             
         elif isinstance(self.quote_data, pd.DataFrame):
             quote_data = self._check_ohlc_data(self.quote_data, timestamp, 
-                                               indexing, no_bars)
+                indexing, no_bars, check_for_future_data)
             processed_quote_data = {self.instrument: quote_data}
         
         elif self.quote_data is None:
