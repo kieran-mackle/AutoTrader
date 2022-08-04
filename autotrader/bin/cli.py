@@ -1,9 +1,10 @@
 import os
+from turtle import down
 import click
 import shutil
 import pyfiglet
+import requests
 
-print(pyfiglet.figlet_format("AutoTrader", font='slant'))
 
 @click.group()
 def cli():
@@ -23,6 +24,9 @@ def init(full, minimal, name):
     """Initialises the directory NAME for trading with AutoTrader. If no
     directory NAME is provided, the current directory will be initialised.
     """
+
+    print(pyfiglet.figlet_format("AutoTrader", font='slant'))
+
     # TODO - implement init options: 
     #   - 'minimal' option to initialise with a minimal strategy file,
     #     with no strat config files or keys config, just locally 
@@ -33,7 +37,6 @@ def init(full, minimal, name):
     # TODO - option to initialise with a strategy - pull from demo repo using eg.
     # wget https://raw.githubusercontent.com/kieran-mackle/autotrader-
     # demo/main/strategies/ema_crossover.py
-
 
     # Construct filepaths
     file_dir = os.path.dirname(os.path.abspath(__file__))
@@ -66,10 +69,31 @@ def init(full, minimal, name):
     click.echo("AutoTrader initialisation complete.")
 
 
+def download_file(url):
+    local_filename = url.split('/')[-1]
+    with requests.get(url, stream=True) as r:
+        r.raise_for_status()
+        with open(local_filename, 'wb') as f:
+            for chunk in r.iter_content(chunk_size=8192): 
+                f.write(chunk)
+    return local_filename
+
+
 @click.command()
 def demo():
-    """Runs a demo backtest in AutoTrader."""
-    pass
+    """Runs a demo backtest in AutoTrader.
+    """
+    # Download the strategy file and data
+    print("Loading demo files...")
+    strat_filename = download_file('https://raw.githubusercontent.com/kieran-mackle/'+\
+        'AutoTrader/main/tests/macd_strategy.py')
+    data_filename = download_file('https://raw.githubusercontent.com/kieran-mackle/'+\
+        'AutoTrader/main/tests/data/EUR_USD_H4.csv')
+    print("  Done.")
+
+    # Run backtest
+
+    
 
 
 # Add commands to CLI
