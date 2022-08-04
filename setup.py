@@ -55,6 +55,7 @@ setuptools.setup(
         "yfinance": [
             "yfinance >= 0.1.67",
         ],
+        "dev": ["black"],
     },
     setup_requires=[
         "setuptools_git",
