@@ -9,8 +9,8 @@ setuptools.setup(
     author="Kieran Mackle",
     author_email="kemackle98@gmail.com",
     license="gpl-3.0",
-    description="A Python-based platform for developing, optimising "+\
-        "and deploying automated trading systems.",
+    description="A Python-based platform for developing, optimising "
+    + "and deploying automated trading systems.",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://kieran-mackle.github.io/AutoTrader/",
@@ -42,22 +42,28 @@ setuptools.setup(
         "tqdm>=4.64.0",
         "importlib-resources",
         "Click",
-        ],
+    ],
     extras_require={
         "dydx": ["dydx-v3-python"],
         "ccxt": ["ccxt"],
-        "oanda": ["v20 >= 3.0.25.0",],
-        "ib": ["ib_insync >= 0.9.70",],
-        "yfinance": ["yfinance >= 0.1.67",],
-        },
-    setup_requires=[
-            "setuptools_git",
-            "setuptools_scm",
+        "oanda": [
+            "v20 >= 3.0.25.0",
         ],
-    package_data={'': ['data/*.js', 'data/GLOBAL.yaml']},
+        "ib": [
+            "ib_insync >= 0.9.70",
+        ],
+        "yfinance": [
+            "yfinance >= 0.1.67",
+        ],
+    },
+    setup_requires=[
+        "setuptools_git",
+        "setuptools_scm",
+    ],
+    package_data={"": ["data/*.js", "data/GLOBAL.yaml"]},
     entry_points={
-        'console_scripts': [
-            'autotrader = autotrader.bin.cli:cli',
+        "console_scripts": [
+            "autotrader = autotrader.bin.cli:cli",
         ],
     },
 )
