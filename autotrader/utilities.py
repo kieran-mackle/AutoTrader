@@ -691,6 +691,9 @@ class TradeAnalysis:
             # Initialise all_trades dict
             trade_results['all_trades'] = {}
 
+            # Calculate positions still open
+            trade_results['no_open'] = sum(self.position_history.iloc[-1] > 0)
+
             # Analyse winning positions
             wins = self.isolated_position_history[self.isolated_position_history.profit > 0]
             avg_win = np.mean(wins.profit)
@@ -721,8 +724,7 @@ class TradeAnalysis:
             trade_results['all_trades']['avg_trade_duration'] = str(timedelta(seconds = int(avg_trade_duration)))
             trade_results['all_trades']['total_fees'] = total_fees
             
-        # Cancelled orders and open positions
-        trade_results['no_open'] = sum(self.position_history.iloc[-1] > 0)
+        # Cancelled orders
         trade_results['no_cancelled'] = len(self.cancelled_orders)
         
         # Long positions

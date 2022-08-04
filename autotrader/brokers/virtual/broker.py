@@ -1174,7 +1174,7 @@ class Broker:
         position = self.get_positions(order.instrument)
         
         # Modify existing trades until there are no more units to reduce
-        units_to_reduce = min(order.size, position[order.instrument].net_position)
+        units_to_reduce = min(abs(order.size), abs(position[order.instrument].net_position))
         executed_prices = []
         executed_sizes = []
         while units_to_reduce > 0:
