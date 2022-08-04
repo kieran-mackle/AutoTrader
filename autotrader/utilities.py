@@ -317,11 +317,7 @@ class TradeAnalysis:
         A history of all trades (fills) made during the trading period.
     
     """
-    def __init__(self, broker, instrument: str = None, 
-                 process_holding_history: bool = True):
-        # TODO - need to review how calculations are performed, eg. no_trades, 
-        # trade_duration
-
+    def __init__(self, broker, instrument: str = None):
         # Meta data
         self.brokers_used = None
         self.broker_results = None
@@ -336,6 +332,7 @@ class TradeAnalysis:
         self.cancelled_orders = None
         self.trade_history = None
         
+        # Perform analysis
         self.analyse_account(broker, instrument)
     
     
@@ -432,7 +429,7 @@ class TradeAnalysis:
             instrument_trade_hist = trade_history[trade_history['instrument']==instrument]
             directional_trades = instrument_trade_hist['direction']*\
                 instrument_trade_hist['size']
-            net_position_hist = directional_trades.cumsum()
+            net_position_hist = round(directional_trades.cumsum(), 8)
 
             # Filter out duplicates
             net_position_hist = net_position_hist[~net_position_hist.index.duplicated(keep='last')]
@@ -652,49 +649,58 @@ class TradeAnalysis:
         return dataframe
 
     
-    def summary(self):
+    def summary(self) -> dict:
         """Constructs a trading summary for printing.
         """
+        # Initialise trade results dict
         trade_results = {}
-        # TODO - review below calculation
-        cpl = self.isolated_position_history.profit.cumsum()
         
-        # All trades
-        no_trades = len(self.trade_history)
-        trade_results['no_trades'] = no_trades
-
+        # Analyse account history
         if len(self.account_history) > 0:
-            trade_results['start'] = self.account_history.index[0]
-            trade_results['end'] = self.account_history.index[-1]
-            
+            # The account was open for some nonzero time period
             starting_balance = self.account_history.equity[0]
             ending_balance = self.account_history.equity[-1]
             ending_NAV = self.account_history.NAV[-1]
             abs_return = ending_balance - starting_balance
             pc_return = 100 * abs_return / starting_balance
+            floating_pnl = ending_NAV - ending_balance
+            max_drawdown = min(self.account_history.drawdown)
             
+            # Save results to dict
+            trade_results['start'] = self.account_history.index[0]
+            trade_results['end'] = self.account_history.index[-1]
             trade_results['starting_balance'] = starting_balance
             trade_results['ending_balance'] = ending_balance
             trade_results['ending_NAV'] = ending_NAV
             trade_results['abs_return'] = abs_return
             trade_results['pc_return'] = pc_return
+            trade_results['floating_pnl'] = floating_pnl
+            trade_results['max_drawdown'] = max_drawdown
+
+        # All trades
+        no_trades = len(self.trade_history)
+        trade_results['no_trades'] = no_trades
         
         if no_trades > 0:
-            # TODO - need to review calculation of all below
-            # Think in terms of positions, not 'trades'
+            # Initialise all_trades dict
             trade_results['all_trades'] = {}
+
+            # Analyse winning positions
             wins = self.isolated_position_history[self.isolated_position_history.profit > 0]
             avg_win = np.mean(wins.profit)
             max_win = np.max(wins.profit)
+
+            # Analyse losing positions
             loss = self.isolated_position_history[self.isolated_position_history.profit < 0]
             avg_loss = abs(np.mean(loss.profit))
             max_loss = abs(np.min(loss.profit))
+
+            # Performance
             win_rate = 100*len(wins)/no_trades
             longest_win_streak, longest_lose_streak = get_streaks(self.isolated_position_history)
             avg_trade_duration = np.nanmean(self.isolated_position_history.trade_duration.values)
             min_trade_duration = np.nanmin(self.isolated_position_history.trade_duration.values)
             max_trade_duration = np.nanmax(self.isolated_position_history.trade_duration.values)
-            max_drawdown = min(self.account_history.drawdown)
             total_fees = self.trade_history.fee.sum()
             
             trade_results['all_trades']['avg_win'] = avg_win
@@ -707,15 +713,13 @@ class TradeAnalysis:
             trade_results['all_trades']['longest_trade'] = str(timedelta(seconds = int(max_trade_duration)))
             trade_results['all_trades']['shortest_trade'] = str(timedelta(seconds = int(min_trade_duration)))
             trade_results['all_trades']['avg_trade_duration'] = str(timedelta(seconds = int(avg_trade_duration)))
-            trade_results['all_trades']['net_pl'] = cpl.values[-1]
-            trade_results['all_trades']['max_drawdown'] = max_drawdown
             trade_results['all_trades']['total_fees'] = total_fees
             
-        # Cancelled and open orders
-        trade_results['no_open'] = len(self.open_isolated_positions)
+        # Cancelled orders and open positions
+        trade_results['no_open'] = sum(self.position_history.iloc[-1] > 0)
         trade_results['no_cancelled'] = len(self.cancelled_orders)
         
-        # Long trades
+        # Long positions
         long_trades = self.isolated_position_history[self.isolated_position_history['direction'] > 0]
         no_long = len(long_trades)
         trade_results['long_trades'] = {}
@@ -735,7 +739,7 @@ class TradeAnalysis:
             trade_results['long_trades']['max_long_loss'] = max_long_loss
             trade_results['long_trades']['long_wr'] = long_wr
             
-        # Short trades
+        # Short positions
         short_trades = self.isolated_position_history[self.isolated_position_history['direction'] < 0]
         no_short = len(short_trades)
         trade_results['short_trades'] = {}
