@@ -1053,7 +1053,7 @@ class AutoData:
         if count is not None:
             if start_time is None and end_time is None:
                 # Fetch N most recent candles
-                raw_data = fetch_count(count)
+                raw_data = fetch_count(count+10)
             elif start_time is not None and end_time is None:
                 # Fetch N candles since start_time
                 raw_data = self.api.public.get_candles(market=instrument, 
