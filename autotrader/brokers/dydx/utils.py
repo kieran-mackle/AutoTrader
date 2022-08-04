@@ -33,8 +33,8 @@ class Utils(BrokerUtils):
         else:
             # Fetch precision
             market = self._get_market(instrument=instrument)
-            unified_response = {'size': -Decimal(market['tickSize']).as_tuple().exponent,
-                                'price': -Decimal(market['stepSize']).as_tuple().exponent}
+            unified_response = {'size': -Decimal(market['stepSize']).as_tuple().exponent,
+                                'price': -Decimal(market['tickSize']).as_tuple().exponent}
             
             # Store for later use
             self._instrument_precisions[instrument] = unified_response

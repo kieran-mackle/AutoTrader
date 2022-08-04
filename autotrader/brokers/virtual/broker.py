@@ -364,8 +364,6 @@ class Broker:
         # Submit order
         if invalid_order:
             # Invalid order, cancel it
-            if self._verbosity > 0:
-                print(f"  Order {order.id} rejected.\n")
             self.cancel_order(order.id, reason, '_pending_orders', datetime_stamp)
             
         else:
