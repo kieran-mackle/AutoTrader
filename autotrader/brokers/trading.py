@@ -587,37 +587,31 @@ class IsolatedPosition(Order):
 class Trade:
     """AutoTrader Trade object. Represents an exchange of value."""
     def __init__(self, 
-        order: Order, 
+        instrument: str,
+        order_price: float,
+        order_time: datetime, 
+        size: float,
         fill_time: datetime, 
         fill_price: float, 
         fill_direction: int,
         fee: float,
-        **kwargs
         ) -> Trade:
-        """Fill constructor.
+        """Trade constructor.
         """
-        # Fill data
+        # Trade data
         self.fill_time = fill_time
         self.fill_price = fill_price
         self.direction = fill_direction
         self.fee = fee
-        self.order_price = None
-        self.order_time = None
-        self.size = None
-        self.instrument = None
+        self.order_price = order_price
+        self.order_time = order_time
+        self.size = size
+        self.instrument = instrument
         
-        # Meta data
-        self.parent_id = None # ID of order which spawned trade
-        self.id = None 
-        
-        # Unpack kwargs
-        for item in kwargs:
-            setattr(self, item, kwargs[item])
-            
-        # Inherit order attributes
-        self._inheret_order(order)
-        self.parent_id = order.id
-        
+        # TODO - Meta-data
+        self.id = None
+        self.parent_id = None
+
     
     def __repr__(self):
         direction = 'long' if self.direction > 0 else 'short'
@@ -627,13 +621,6 @@ class Trade:
     def __str__(self):
         return 'AutoTrader Trade'
     
-    
-    def _inheret_order(self, order: Order) -> None:
-        inheritable_attributes = ['order_price', 'order_time', 'size', 'instrument']
-        for attribute, value in order.__dict__.items():
-            if attribute in inheritable_attributes:
-                setattr(self, attribute, value)
-
 
 class Position:
     """AutoTrader Position object.

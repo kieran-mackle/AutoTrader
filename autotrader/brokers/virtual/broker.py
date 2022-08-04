@@ -750,23 +750,46 @@ class Broker:
             # Check if SL or TP have been hit
             sl_ref, tp_ref = get_sl_tp_ref_prices(trade.direction)
             if trade.stop_loss and trade.direction*(sl_ref - trade.stop_loss) < 0:
-                # Stop loss hit
+                # Stop loss hit - close isolated position via limit order
                 exit_price = self._close_isolated_position(
                     trade=trade, 
                     exit_price=trade.stop_loss, 
                     exit_time=latest_time,
                     order_type='limit')
-                self._fill_order(trade, fill_price=exit_price, 
-                    fill_time=latest_time, sl_tp=True)
+                
+                # Create order fill from SL
+                self._fill_order(
+                    fill_price=exit_price, 
+                    fill_time=latest_time, 
+                    instrument=instrument,
+                    order_price=trade.stop_loss,
+                    order_time=latest_time,
+                    order_size=trade.size,
+                    order_type='limit',
+                    direction=-trade.direction,
+                    order_id=None,
+                    HCF=trade.HCF,)
 
             elif trade.take_profit and trade.direction*(tp_ref - trade.take_profit) > 0:
-                # Take Profit hit
+                # Take Profit hit - close isolated position via market order
                 exit_price = self._close_isolated_position(
                     trade=trade, 
                     exit_price=trade.take_profit, 
-                    exit_time=latest_time)
-                self._fill_order(trade, fill_price=exit_price, 
-                    fill_time=latest_time, sl_tp=True)
+                    exit_time=latest_time,
+                    order_type='market')
+                
+                # Create order fill from TP
+                self._fill_order(
+                    fill_price=exit_price, 
+                    fill_time=latest_time, 
+                    instrument=instrument,
+                    order_price=trade.take_profit,
+                    order_time=latest_time,
+                    order_size=trade.size,
+                    order_type='market',
+                    direction=-trade.direction,
+                    order_id=None,
+                    HCF=trade.HCF,)
 
             else:
                 # Position is still open, update value of holding
@@ -776,7 +799,10 @@ class Broker:
                     (trade.last_price - trade.fill_price)*trade.HCF
                     
         # Update floating pnl and margin available 
-        self._update_margin(instrument=instrument, latest_time=latest_time)
+        self._update_margin(
+            instrument=instrument, 
+            latest_time=latest_time,
+            )
         
         # Update open position value
         self._NAV = self._equity + self._floating_pnl
@@ -988,10 +1014,19 @@ class Broker:
 
     
     def _fill_order(self, 
-        order: Order, 
         fill_price: float, 
         fill_time: datetime,
-        sl_tp: bool = False) -> None:
+        order: Order = None,
+        instrument: str = None,
+        order_price: float = None,
+        order_time: datetime = None,
+        order_size: float = None,
+        order_type: str = None,
+        direction: int = None,
+        order_id: int = None, 
+        HCF: float = 1,
+        liquidation_order: bool = False,
+        ) -> None:
         """Fills an order and records the trade as a Fill.
 
         Parameters
@@ -1005,44 +1040,49 @@ class Broker:
         sl_tp : bool
             Flag for SL and TP orders (which come with IsolatedPosition object)
         """
+        # TODO - update docstrings
+        
+        # Due to SL and TP, there isn't always an order to be used
 
-        # If fill is originating from an order, mark as filled
-        if not sl_tp:
+        if order is not None and not liquidation_order:
             # Filling an order changes its status to 'filled'
             self._move_order(order=order, from_dict='_open_orders', 
-                            to_dict='_filled_orders', new_status='filled')
-
-            # Define fill_direction
-            fill_direction = order.direction
-
-        else:
-            # The 'order' arg is actually an IsolatedPosition (SL/TP hit), so
-            # the fill direction is opposite the original trade direction
-            fill_direction = -order.direction
+                             to_dict='_filled_orders', new_status='filled')
+            
+            # Infer attributes from provided order
+            instrument = order.instrument
+            order_price = order.order_price
+            order_time = order.order_time
+            order_size = order.size
+            order_type = order.order_type
+            direction = order.direction
+            order_id = order.id
 
         # Charge trading fees
         commission = self._calculate_commissions(price=fill_price, 
-            units=order.size, HCF=order.HCF, order_type=order.order_type)
-        self._add_funds(-commission)
+            units=order_size, HCF=HCF, order_type=order_type)
+        self._adjust_balance(-commission)
 
         # Create Trade and append to fills
-        # TODO - look into where order_price and order_time originate
-        # Looks like the order price is repeated for closing orders...
-        # TODO - include a fill_no to later check ordering
-        fill = Trade(
-            order=order, 
+        trade = Trade(
+            instrument=instrument,
+            order_price=order_price,
+            order_time=order_time,
+            size=order_size,
             fill_time=fill_time, 
             fill_price=fill_price, 
-            fill_direction=fill_direction,
-            fee=commission)
-        self._fills.append(fill)
+            fill_direction=direction,
+            fee=commission,
+        )
+        self._fills.append(trade)
         
         # Print fill to console
         if self._verbosity > 0:
-            fill_str = f'{fill_time}: Order {order.id} filled: {order.size} '+\
-                f'units of {order.instrument} @ {fill_price}'
+            id_str = order_id if order_id is not None else ''
+            fill_str = f'{fill_time}: Order {id_str} filled: {order_size} '+\
+                f'units of {instrument} @ {fill_price}'
             print(fill_str)
-    
+
     
     def _move_order(self, 
         order: Order, 
@@ -1251,7 +1291,7 @@ class Broker:
             new_status='closed')
         
         # Update account with position pnl
-        self._add_funds(pnl)
+        self._adjust_balance(pnl)
 
         return exit_price
     
@@ -1338,8 +1378,8 @@ class Broker:
         return commission
     
     
-    def _add_funds(self, amount: float) -> None:
-        """Adds funds to brokerage account.
+    def _adjust_balance(self, amount: float) -> None:
+        """Adjusts the balance of the account.
         """
         self._equity += amount
         self._update_margin()
@@ -1361,9 +1401,10 @@ class Broker:
         return margin
     
     
-    def _update_margin(self, instrument: str = None, 
-                       latest_time: datetime = None) -> None:
-        """Updates margin available in account.
+    def _update_margin(self, 
+        instrument: str = None, 
+        latest_time: datetime = None) -> None:
+        """Updates the margin available in the account.
         """
         # TODO - use (net) positions to calculate margin requirements
         margin_used = 0
@@ -1394,13 +1435,14 @@ class Broker:
         if self._leverage > 1 and self._margin_available/self._NAV < self._margin_closeout:
             # Margin call
             if self._verbosity > 0:
-                print("MARGIN CALL: closing all positions.")
-            self._margin_call(instrument, latest_time)
+                print(f"MARGIN CALL: closing position in {instrument}.")
+            self._margin_call(instrument, latest_time, last_price)
 
     
     def _modify_order(self, order: Order) -> None:
-        """Modify order with updated parameters. Called when order_type = 'modify', 
-        modifies trade specified by related_orders key.
+        """Modify order with updated parameters. Called when 
+        order_type = 'modify', modifies trade specified by 
+        related_orders key.
         """
         # Get ID of trade to modify
         modify_trade_id = order.related_orders
@@ -1445,18 +1487,31 @@ class Broker:
         return self._last_trade_id
     
     
-    def _margin_call(self, instrument: str, latest_time: datetime):
-        """Closes open positions.
+    def _margin_call(self, 
+        instrument: str, 
+        latest_time: datetime, 
+        latest_price: float):
+        """Closes the open position of the instrument.
         """
         # Construct full position closeout market order
         position = self.get_positions(instrument=instrument)[instrument]
         size = abs(position.net_position)
         direction = np.sign(position.net_position)
-        closeout_order = Order(instrument=instrument, direction=direction, size=size)
+        ref_time = latest_time
+        ref_price = latest_price
+        ref_id = self._get_new_order_id()
+        closeout_order = Order(
+            instrument=instrument, 
+            order_price=ref_price,
+            order_time=ref_time,
+            direction=direction, 
+            size=size,
+            order_type='market',
+            id=ref_id)
 
         # Fire the order
         self._reduce_position(instrument=instrument, exit_time=latest_time)
-        self._fill_order(closeout_order)
+        self._fill_order(closeout_order, liquidation_order=True)
     
     
     def _add_orders_to_book(self, instrument, orderbook):
