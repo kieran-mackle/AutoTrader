@@ -540,7 +540,11 @@ class Broker:
             
                 # Construct instrument position dict
                 net_position = long_units-short_units
-                net_exposure = net_position * trade.last_price
+                try:
+                    net_exposure = net_position * trade.last_price
+                except TypeError:
+                    # Last price has not been updated yet
+                    net_exposure = None
                 instrument_position = {'long_units': long_units,
                                        'long_PL': long_PL,
                                        'long_margin': long_margin,
