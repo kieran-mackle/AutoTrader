@@ -1,5 +1,6 @@
 import os
 from macd_strategy import SimpleMACD
+from limit_strategy import LimitStrategy
 from autotrader.autotrader import AutoTrader
 
 def test_macd_backtest():
@@ -79,3 +80,69 @@ def test_multibot_macd_backtest():
         "of long trades (multi-instrument backtest)"
     assert bt_results['short_trades']['no_trades'] == 48, "Incorrect number "+\
         "of short trades (multi-instrument backtest)"
+
+
+def test_limit_backtest():
+    config = {'NAME': 'Limit Order Strategy',
+              'CLASS': 'LimitStrategy',
+              'INTERVAL': 'H4',
+              'PERIOD': 50,
+              'PARAMETERS': {},
+              'SIZING': 100,
+              'WATCHLIST': ['EUR_USD'],}
+    home_dir = os.path.abspath(os.path.dirname(__file__))
+    
+    at = AutoTrader()
+    at.configure(verbosity=1, show_plot=True, 
+                 mode='continuous', update_interval='4h')
+    at.add_strategy(config_dict=config, strategy=LimitStrategy)
+    at.plot_settings(show_cancelled=True)
+    at.add_data({'EUR_USD': 'EUR_USD_H4.csv'}, 
+                data_directory=os.path.join(home_dir, 'data'))
+    at.backtest(start = '1/1/2021', end = '1/3/2021')
+    at.virtual_account_config(initial_balance=1000, leverage=30,
+                spread=0.5*1e-4, commission=0.005)
+    at.run()
+
+    bt_results = at.trade_results.summary()
+    
+    # Test backtest results
+    assert bt_results['no_trades'] == 2, "Incorrect number of trades " + \
+        "(limit order backtest)"
+    assert round(bt_results['ending_balance'], 3) == 1000.988, "Incorrect "+\
+        "ending balance (limit order backtest)"
+
+
+def test_margin_call_backtest():
+    config = {'NAME': 'Limit Order Strategy',
+              'CLASS': 'LimitStrategy',
+              'INTERVAL': 'H4',
+              'PERIOD': 50,
+              'PARAMETERS': {},
+              'SIZING': 10000,
+              'WATCHLIST': ['EUR_USD'],}
+    home_dir = os.path.abspath(os.path.dirname(__file__))
+    
+    at = AutoTrader()
+    at.configure(verbosity=1, show_plot=True, 
+                 mode='continuous', update_interval='4h')
+    at.add_strategy(config_dict=config, strategy=LimitStrategy)
+    at.plot_settings(show_cancelled=True)
+    at.add_data({'EUR_USD': 'EUR_USD_H4.csv'}, 
+                data_directory=os.path.join(home_dir, 'data'))
+    at.backtest(start = '1/1/2021', end = '1/3/2021')
+    at.virtual_account_config(
+        initial_balance=1000, 
+        leverage=30,
+        margin_call_fraction=0.6,
+        spread=0.5*1e-4, 
+        commission=0.005)
+    at.run()
+
+    bt_results = at.trade_results.summary()
+    
+    # Test backtest results
+    assert bt_results['no_trades'] == 4, "Incorrect number of trades " + \
+        "(margin call backtest)"
+    assert round(bt_results['ending_balance'], 3) == 970.769, "Incorrect "+\
+        "ending balance (margin call backtest)"
