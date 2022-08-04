@@ -1812,7 +1812,8 @@ class AutoTrader:
                             
                 else:
                     # Live trading
-                    bot._update(i=-1) # Process most recent signal
+                    for bot in self._bots_deployed:
+                        bot._update(i=-1) # Process most recent signal
         
             # Run shutdown routines
             self.shutdown()
