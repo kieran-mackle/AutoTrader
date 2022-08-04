@@ -766,7 +766,7 @@ class Broker:
                     order_size=trade.size,
                     order_type='limit',
                     direction=-trade.direction,
-                    order_id=None,
+                    order_id=trade.parent_id,
                     HCF=trade.HCF,)
 
             elif trade.take_profit and trade.direction*(tp_ref - trade.take_profit) > 0:
@@ -787,7 +787,7 @@ class Broker:
                     order_size=trade.size,
                     order_type='market',
                     direction=-trade.direction,
-                    order_id=None,
+                    order_id=trade.parent_id,
                     HCF=trade.HCF,)
 
             else:
@@ -1088,6 +1088,7 @@ class Broker:
             fee=commission,
             id=self._get_new_fill_id(),
             order_id=order_id,
+            order_type=order_type,
         )
         self._fills.append(trade)
         

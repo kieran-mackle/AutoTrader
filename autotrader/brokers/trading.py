@@ -590,6 +590,7 @@ class Trade:
         instrument: str,
         order_price: float,
         order_time: datetime, 
+        order_type: str,
         size: float,
         fill_time: datetime, 
         fill_price: float, 
@@ -606,6 +607,7 @@ class Trade:
         self.fee = fee
         self.order_price = order_price
         self.order_time = order_time
+        self.order_type = order_type
         self.size = size
         self.instrument = instrument
         

@@ -512,12 +512,15 @@ class TradeAnalysis:
         fill_dict = {
             'order_time': [],
             'order_price': [],
+            'order_type': [],
             'fill_time': [],
             'fill_price': [],
             'direction': [],
             'size': [],
             'fee': [],
             'instrument': [],
+            'id': [],
+            'order_id': []
             }
         for fill in fills:
             fill_dict['order_time'].append(fill.order_time)
@@ -528,6 +531,9 @@ class TradeAnalysis:
             fill_dict['size'].append(fill.size)
             fill_dict['fee'].append(fill.fee)
             fill_dict['instrument'].append(fill.instrument)
+            fill_dict['id'].append(fill.id)
+            fill_dict['order_id'].append(fill.order_id)
+            fill_dict['order_type'].append(fill.order_type)
 
         fill_df = pd.DataFrame(data=fill_dict, index=fill_dict['fill_time'])
         fill_df['broker'] = broker_name
