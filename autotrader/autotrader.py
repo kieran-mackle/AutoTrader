@@ -1180,7 +1180,8 @@ class AutoTrader:
                         
             else:
                 # Live trading
-                bot._update(i=-1) # Process most recent signal
+                for bot in self._bots_deployed:
+                    bot._update(i=-1) # Process most recent signal
         
         if int(self._verbosity) > 0 and self._backtest_mode:
             backtest_end_time = timeit.default_timer()
