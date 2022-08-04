@@ -1059,10 +1059,11 @@ class Broker:
             A flag whether this is a liquidation order from the broker.
         """
 
-        if order is not None and not liquidation_order:
-            # Filling an order changes its status to 'filled'
-            self._move_order(order=order, from_dict='_open_orders', 
-                             to_dict='_filled_orders', new_status='filled')
+        if order is not None:
+            if not liquidation_order:
+                # Filling an order changes its status to 'filled'
+                self._move_order(order=order, from_dict='_open_orders', 
+                                to_dict='_filled_orders', new_status='filled')
             
             # Infer attributes from provided order
             instrument = order.instrument
@@ -1526,14 +1527,19 @@ class Broker:
             instrument=instrument, 
             order_price=ref_price,
             order_time=ref_time,
-            direction=direction, 
+            direction=-direction, 
             size=size,
             order_type='market',
-            id=ref_id)
+            id=ref_id,
+            HCF=1)
 
         # Fire the order
-        self._reduce_position(instrument=instrument, exit_time=latest_time)
-        self._fill_order(closeout_order, liquidation_order=True)
+        fill_price = self._reduce_position(order=closeout_order, exit_time=latest_time)
+        self._fill_order(
+            fill_price=fill_price, 
+            fill_time=ref_time, 
+            order=closeout_order, 
+            liquidation_order=True)
     
     
     def _add_orders_to_book(self, instrument, orderbook):
