@@ -210,16 +210,16 @@ class OrderBook:
         self._spread = None
 
         # Initialise from initial state
-        self.bids = pd.DataFrame(initial_state['bids'])
-        self.asks = pd.DataFrame(initial_state['asks'])
+        self.bids = pd.DataFrame(initial_state['bids']).astype(float)
+        self.asks = pd.DataFrame(initial_state['asks']).astype(float)
 
         # Sort quotes
         self.bids.sort_values(by='price', ascending=False, inplace=True)
         self.asks.sort_values(by='price', ascending=True, inplace=True)
 
         # Calculate spread and midprice
-        spread = self.asks.price.min() - self.bids.price.max()
-        midprice = (self.asks.price.min() + self.bids.price.max())/2
+        spread = float(self.asks.price.min()) - float(self.bids.price.max())
+        midprice = (float(self.asks.price.min()) + float(self.bids.price.max()))/2
 
         # Quantize
         # TODO - use ticksize and step size to quantize
