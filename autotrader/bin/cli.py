@@ -1,9 +1,9 @@
 import os
 import click
 import shutil
+import pyfiglet
 
-from traitlets import default
-
+print(pyfiglet.figlet_format("AutoTrader", font='slant'))
 
 @click.group()
 def cli():
@@ -12,10 +12,10 @@ def cli():
 
 
 @click.command()
-# @click.option('-f', '--full', is_flag=True, default=True, show_default=True,
-#     help='Full directory initialisation.')
-# @click.option('-m', '--minimal', is_flag=True,
-#     help='Minimal directory initialisation.')
+@click.option('-f', '--full', is_flag=True, default=True, show_default=True,
+    help='Full directory initialisation.')
+@click.option('-m', '--minimal', is_flag=True,
+    help='Minimal directory initialisation.')
 # @click.option('-s', '--strategy', )
 @click.argument('name', default='.')
 
