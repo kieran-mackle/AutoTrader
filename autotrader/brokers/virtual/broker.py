@@ -963,7 +963,7 @@ class Broker:
                 
                 # Append price and size for closing position
                 exit_prices.append(avg_exit_price)
-                exit_size.append(net_position)
+                exit_size.append(abs(net_position))
 
             # Enough margin in account to fill order, determine average fill 
             # price on remaining units (ref_size) of order
