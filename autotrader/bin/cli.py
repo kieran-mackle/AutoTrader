@@ -4,6 +4,7 @@ import click
 import shutil
 import pyfiglet
 import requests
+from autotrader import AutoTrader
 
 
 @click.group()
@@ -194,7 +195,17 @@ def monitor(port, nav, pickle):
             time.sleep(3)
 
 
+@click.command()
+@click.argument("pickle")
+def snapshot(pickle):
+    """Prints a snapshot of the trading account of a broker PICKLE instnace
+    file."""
+    AutoTrader.papertrade_snapshot(pickle)
+    print("")
+
+
 # Add commands to CLI
 cli.add_command(init)
 cli.add_command(monitor)
+cli.add_command(snapshot)
 # cli.add_command(demo)
