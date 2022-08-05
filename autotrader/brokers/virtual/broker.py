@@ -1259,9 +1259,9 @@ class Broker:
                         )
 
                         # Update units_to_reduce
-                        units_to_reduce = 0
                         executed_prices.append(exit_price)
                         executed_sizes.append(units_to_reduce)
+                        units_to_reduce = 0
 
         avg_exit_price = sum(
             [
