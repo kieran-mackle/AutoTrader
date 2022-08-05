@@ -1146,9 +1146,10 @@ class Broker:
         # Print fill to console
         if self._verbosity > 0:
             id_str = order_id if order_id is not None else ""
+            side = "(Buy)" if direction > 0 else "(Sell)"
             fill_str = (
                 f"{fill_time}: Order {id_str} filled: {order_size} "
-                + f"units of {instrument} @ {fill_price}"
+                + f"units of {instrument} @ {fill_price} {side}"
             )
             print(fill_str)
 
