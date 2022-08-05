@@ -972,7 +972,7 @@ class AutoTrader:
                 )
 
             # Check global config requirements
-            if sum([self._backtest_mode, self._scan_mode]) == 0:
+            if sum([self._backtest_mode, self._scan_mode, self._papertrading]) == 0:
                 # Livetrade mode
                 if global_config is None:
                     # No global_config
