@@ -259,7 +259,10 @@ class Order:
         if self.order_type == "limit" or self.order_type == "stop-limit":
             self._working_price = round(self.order_limit_price, self.price_precision)
         else:
-            self._working_price = round(order_price, self.price_precision)
+            if order_price is not None:
+                self._working_price = round(order_price, self.price_precision)
+            else:
+                self._working_price = None
 
     def _calculate_exit_prices(self, broker=None, working_price: float = None) -> None:
         """Calculates the prices of the exit targets from the pip distance
@@ -658,7 +661,7 @@ class Trade:
 
     def __repr__(self):
         direction = "long" if self.direction > 0 else "short"
-        return f"{round(self.size,3)} unit {direction} {self.instrument} trade"
+        return f"{round(self.size,3)} unit {direction} {self.instrument} trade @ {self.fill_price}"
 
     def __str__(self):
         return "AutoTrader Trade"

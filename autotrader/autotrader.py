@@ -1438,7 +1438,10 @@ class AutoTrader:
                 if self._scan_mode:
                     print("SCAN MODE")
                 elif self._papertrading:
-                    print("PAPERTRADE MODE")
+                    extra_str = (
+                        "" if len(self._bots_deployed) > 0 else " (manual trade)"
+                    )
+                    print("PAPERTRADE MODE" + extra_str)
                 else:
                     extra_str = (
                         "" if len(self._bots_deployed) > 0 else " (manual trade)"
@@ -1796,7 +1799,11 @@ class AutoTrader:
         # Check trading environment
         if self._papertrading:
             # Toggle broker monitoring on
-            print("Running virtual broker updates.")
+            print(
+                f"Running virtual broker updates at {self._broker_refresh_freq} intervals."
+            )
+            print("To stop papertrading, use at.shutdown().")
+
             self._maintain_broker_thread = True
             sleep_time = pd.Timedelta(self._broker_refresh_freq).total_seconds()
 

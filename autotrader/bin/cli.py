@@ -7,6 +7,10 @@ import requests
 from autotrader import AutoTrader
 
 
+def print_banner():
+    print(pyfiglet.figlet_format("AutoTrader", font="slant"))
+
+
 @click.group()
 def cli():
     """AutoTrader command line interface."""
@@ -30,7 +34,7 @@ def init(full, minimal, name):
     directory NAME is provided, the current directory will be initialised.
     """
 
-    print(pyfiglet.figlet_format("AutoTrader", font="slant"))
+    print_banner()
 
     # TODO - implement init options:
     #   - 'minimal' option to initialise with a minimal strategy file,
@@ -114,6 +118,8 @@ def monitor(port, nav, pickle):
     from autotrader.utilities import unpickle_broker
     from prometheus_client import start_http_server, Gauge
 
+    print_banner()
+
     def start_server(port):
         """Starts the http server for Prometheus."""
         start_http_server(port)
@@ -126,6 +132,8 @@ def monitor(port, nav, pickle):
     # Check picklefile exists
     if not os.path.exists(picklepath):
         raise Exception(f"\nPicklefile '{pickle}' does not exist!")
+    else:
+        print(f"Monitoring {pickle}.")
 
     # Set up instrumentation
     nav_gauge = Gauge("nav_gauge", "Net Asset Value gauge.")
@@ -200,6 +208,7 @@ def monitor(port, nav, pickle):
 def snapshot(pickle):
     """Prints a snapshot of the trading account of a broker PICKLE instnace
     file."""
+    print_banner()
     AutoTrader.papertrade_snapshot(pickle)
     print("")
 

@@ -1120,6 +1120,7 @@ class Broker:
             order_type = order.order_type
             direction = order.direction
             order_id = order.id
+            fill_price = round(fill_price, order.price_precision)
 
         # Charge trading fees
         commission = self._calculate_commissions(
