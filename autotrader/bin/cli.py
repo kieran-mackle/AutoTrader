@@ -1,5 +1,5 @@
 import os
-from turtle import down
+import time
 import click
 import shutil
 import pyfiglet
@@ -101,6 +101,100 @@ def demo():
     # Run backtest
 
 
+@click.command()
+@click.option("-p", "--port", default=8009, help="The port to serve data to.")
+@click.option("-n", "--nav", default=1000, help="The reference NAV to use for PnL.")
+@click.argument("pickle")
+def monitor(port, nav, pickle):
+    """Monitors a broker PICKLE and serves the information
+    to a prometheus database."""
+
+    # Import packages
+    from autotrader.utilities import unpickle_broker
+    from prometheus_client import start_http_server, Gauge
+
+    def start_server(port):
+        """Starts the http server for Prometheus."""
+        start_http_server(port)
+        print(f"Server started on port {port}.")
+
+    # Unpack inputs
+    ref_nav = nav
+    picklepath = pickle
+
+    # Check picklefile exists
+    if not os.path.exists(picklepath):
+        raise Exception(f"\nPicklefile '{pickle}' does not exist!")
+
+    # Set up instrumentation
+    nav_gauge = Gauge("nav_gauge", "Net Asset Value gauge.")
+    abs_PnL_gauge = Gauge("abs_pnl_gauge", "Absolute ($) PnL gauge.")
+    rel_PnL_gauge = Gauge("rel_pnl_gauge", "Relative (%) PnL gauge.")
+    pos_gauge = Gauge("pos_gauge", "Number of open positions gauge.")
+    total_exposure_gauge = Gauge("total_exposure_gauge", "Total exposure gauge.")
+    net_exposure_gauge = Gauge("net_exposure_gauge", "Total exposure gauge.")
+    leverage_gauge = Gauge("leverage_gauge", "Total leverage gauge.")
+
+    # Start up the server to expose the metrics
+    try:
+        start_server(port)
+    except OSError:
+        # Kill existing server
+        from psutil import process_iter
+        from signal import SIGKILL  # or SIGTERM
+
+        for proc in process_iter():
+            for conns in proc.connections(kind="inet"):
+                if conns.laddr.port == port:
+                    proc.send_signal(SIGKILL)  # or SIGKILL
+
+        # Start server
+        start_server(port)
+
+    # Begin loop
+    while True:
+        try:
+            # Unpickle latest broker instance
+            broker = unpickle_broker(picklefile=picklepath)
+
+            # Query broker
+            nav = broker.get_NAV()
+            positions = broker.get_positions()
+            pnl = nav - ref_nav
+            rel_pnl = pnl / ref_nav
+
+            # Calculate total exposure
+            total_exposure = 0
+            net_exposure = 0
+            for instrument, position in positions.items():
+                total_exposure += abs(position.net_exposure)
+                net_exposure += position.net_exposure
+
+            # Calculate leverage
+            leverage = total_exposure / nav
+
+            # Update Prometheus server
+            nav_gauge.set(nav)
+            abs_PnL_gauge.set(pnl)
+            rel_PnL_gauge.set(rel_pnl)
+            pos_gauge.set(len(positions))
+            total_exposure_gauge.set(total_exposure)
+            net_exposure_gauge.set(net_exposure)
+            leverage_gauge.set(leverage)
+
+            # Sleep
+            time.sleep(5)
+
+        except KeyboardInterrupt:
+            print("\n\nStopping monitoring.")
+            break
+
+        except:
+            # Unexpected exception, sleep briefly
+            time.sleep(3)
+
+
 # Add commands to CLI
 cli.add_command(init)
+cli.add_command(monitor)
 # cli.add_command(demo)
