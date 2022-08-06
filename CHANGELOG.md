@@ -57,6 +57,7 @@ AUGUST 2022
   provide the broker names with comma separation via the `configure` method,
 - Exchange-specific precision checking for Orders. Even in backtest mode, AutoTrader
   will communicate with your chosen exchange to precision-check your orders.
+- Code is now formatted using [Black](https://github.com/psf/black).
 
 
 ### Deprecation Notices
