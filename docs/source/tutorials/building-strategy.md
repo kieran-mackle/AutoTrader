@@ -181,14 +181,18 @@ which indicators to plot, and what to name them.
 
 ```python
 from finta import TA
-import autotrader.indicators as indicators
-from autotrader.brokers.trading import Order
+from autotrader import Order, indicators
 
 
 class SimpleMACD:
-    """Single broker, single instrument strategy backtest test.
-
-    For some reason, most of the trades are being cancelled.
+    """Simple MACD Strategy
+    
+    Rules
+    ------
+    1. Trade in direction of trend, as per 200EMA.
+    2. Entry signal on MACD cross below/above zero line.
+    3. Set stop loss at recent price swing.
+    4. Target 1.5 take profit.
     """
     
     def __init__(self, parameters, data, instrument):

@@ -1,7 +1,8 @@
 # Condensed AutoTrader Walkthrough
-This page is a condensed version of the [detailed walkthrough](walkthrough), which goes through the
-process of building and running a strategy in AutoTrader. If you are familiar with Python, it should 
-be sufficient to get you up and running.
+This page is a condensed version of the [detailed walkthrough](walkthrough), 
+which goes through the process of building and running a strategy in 
+AutoTrader. If you are familiar with Python, it should be sufficient to get 
+you up and running.
 
 ```{tip}
 The code for the MACD crossover strategy shown in this tutorial can be found in the
@@ -12,25 +13,28 @@ The code for the MACD crossover strategy shown in this tutorial can be found in 
 The rules for the MACD crossover strategy are as follows.
 
 1. Trade in the direction of the trend, as determined by the 200EMA.
-2. Enter a long position when the MACD line crosses *up* over the signal line, and enter a short 
-when the MACD line crosses *down* below the signal line.
-3. To ensure only the strongest MACD signals, the crossover must occur below the histogram zero line for 
-long positions, and above the histogram zero line for short positions.
+2. Enter a long position when the MACD line crosses *up* over the signal 
+line, and enter a short when the MACD line crosses *down* below the 
+signal line.
+3. To ensure only the strongest MACD signals, the crossover must occur 
+below the histogram zero line for long positions, and above the histogram 
+zero line for short positions.
 3. Stop losses are set at recent price swings/significant price levels.
 4. Take profit levels are set at 1:1.5 risk-to-reward.
 
-An example of a long entry signal from this strategy is shown in the image below (generated using 
-[AutoTrader IndiView](../features/visualisation)).
+An example of a long entry signal from this strategy is shown in the 
+image below (generated using [AutoTrader IndiView](../features/visualisation)).
 
 ![MACD crossover strategy](../assets/images/long_macd_signal.png "Long trade example for the MACD Crossover Strategy")
 
 
 
-
-
 ## Strategy Construction
-A strategy in AutoTrader is defined by a class. The `__init__` and `generate_signal` methods are the only
-required methods, and must accept the following inputs.
+Strategies in AutoTrader are built as class objects. They contain the logic 
+required to transform data into a trading signals. Generally speaking, a 
+strategy class will be instantiated with the name of the instrument being 
+traded and the strategy parameters, but you can customise what gets passed
+in using the [strategy configuration](strategy-config).
 
 
 ### Configuration
@@ -39,11 +43,13 @@ Follow along in the demo repository:
 config/[macd.yaml](https://github.com/kieran-mackle/autotrader-demo/blob/main/config/macd.yaml)
 ```
 
-The [strategy configuration](strategy-config) file defines all strategy parameters and instruments 
-to trade with the strategy. The `PARAMETERS` of this file will be passed into your strategy for you 
-to use there. 
+The [strategy configuration](strategy-config) file defines all strategy 
+parameters and instruments to trade with the strategy. The `PARAMETERS` 
+of this file will be passed into your strategy for you to use there. 
+
 
 ```yaml
+# macd.yaml
 NAME: 'Simple Macd Strategy'    # strategy name
 MODULE: 'macd'                  # strategy module
 CLASS: 'SimpleMACD'             # strategy class
@@ -63,201 +69,251 @@ PARAMETERS:                     # strategy parameters
 WATCHLIST: ['EURUSD=X']         # strategy watchlist
 ```
 
-```{note}
-As of AutoTrader version `0.6.0`, you can now directly pass your strategy configuration to AutoTrader as a dictionary.
+
+### Class Object
+Although strategy construction is extremely flexible, the class **must** 
+contain an `__init__` method, and a method named `generate_signal`. The 
+first of these methods is called whenever the strategy is instantiated.
+
+By default, strategies in AutoTrader are instantiated with three named 
+arguments:
+
+1. The name of the instrument being traded in this specific instance (`instrument`).
+2. The strategy parameters (`parameters`)
+3. The trading instruments data (`data`)
+
+When backtesting, the `data` provided to `__init__` is for the entire 
+backtest period. This allows you to calculate all indicators for 
+plotting purposes down the line, but it shouldn't be used in the 
+`generate_signal` method, as this could introduce look-ahead.
+
+Aside from the `__init__` method, your strategy must have a method named 
+`generate_signal`. This method gets called by AutoTrader everytime new
+data becomes available, and expects a trading [Order](order-object) in 
+return.
+
+A long order can be created by specifying `direction=1` when creating the 
+`Order`, whereas a short order can be created by specifying `direction=-1`. 
+If there is no trading signal this update, you can create an 
+[empty order](empty-order) with just `Order()`. We also define our exit targets 
+by the `stop_loss` and `take_profit` arguments. The strategy below uses
+the `generate_exit_levels` helper method to calculate these prices.
+
+
+
+```{tip}
+Take a look at the template strategy file provided [here](https://github.com/kieran-mackle/autotrader-demo/blob/main/strategies/template.py).
 ```
 
 
-### Code
-Although strategy construction is extremely flexible, the class must contain at a minimum an `__init__` method, and a 
-method named `generate_signal`. The first of these methods is called whenever the strategy is instantiated. By default,
-strategies in AutoTrader are instantiated with three named arguments:
-
-1. The strategy parameters (`parameters`)
-2. The trading instruments data (`data`)
-3. The name of the instrument being traded in this specific instance (`instrument`).
-
-The signal generation function, `generate_signal`, is where the logic of the strategy sits. The inputs to this function 
-are `i`, an indexing variable which is used when iterating over the data. When livetrading, `i` will simply index the
-last candle in the data, corresponding to the most recent market conditions. Read more about the indexing system for 
-periodic update mode [here](autotrader-run-modes).
-
-
 ```py
-# Import packages
+# macd.py
 from finta import TA
-from autotrader import indicators 
-from autotrader import Order
+from autotrader import Order, indicators
+
 
 class SimpleMACD:
-
+    """Simple MACD Strategy
+    
+    Rules
+    ------
+    1. Trade in direction of trend, as per 200EMA.
+    2. Entry signal on MACD cross below/above zero line.
+    3. Set stop loss at recent price swing.
+    4. Target 1.5 take profit.
+    """
+    
     def __init__(self, parameters, data, instrument):
         """Define all indicators used in the strategy.
         """
-        self.name   = "Simple MACD Trend Strategy"
-        self.data   = data
-        self.parameters = parameters
+        self.name = "Simple MACD Trend Strategy"
+        self.params = parameters
+        self.instrument = instrument
         
-        # 200EMA
-        self.ema = TA.EMA(data, parameters['ema_period'])
-        
-        # MACD
-        self.MACD = TA.MACD(data, self.parameters['MACD_fast'], 
-                            self.parameters['MACD_slow'], self.parameters['MACD_smoothing'])
-        self.MACD_CO = indicators.crossover(self.MACD.MACD, self.MACD.SIGNAL)
-        self.MACD_CO_vals = indicators.cross_values(self.MACD.MACD, 
-                                                      self.MACD.SIGNAL,
-                                                      self.MACD_CO)
+        # Initial feature generation (for plotting only)
+        self.generate_features(data)
+
         # Construct indicators dict for plotting
         self.indicators = {'MACD (12/26/9)': {'type': 'MACD',
                                               'macd': self.MACD.MACD,
                                               'signal': self.MACD.SIGNAL},
                            'EMA (200)': {'type': 'MA',
-                                         'data': self.ema}}
+                                         'data': self.ema}
+                        }
+    
+    def generate_features(self, data):
+        """Updates MACD indicators and saves them to the class attributes."""
+        # Save data for other functions
+        self.data = data
+        
+        # 200EMA
+        self.ema = TA.EMA(self.data, self.params['ema_period'])
+        
+        # MACD
+        self.MACD = TA.MACD(self.data, self.params['MACD_fast'], 
+                            self.params['MACD_slow'], self.params['MACD_smoothing'])
+        self.MACD_CO = indicators.crossover(self.MACD.MACD, self.MACD.SIGNAL)
+        self.MACD_CO_vals = indicators.cross_values(self.MACD.MACD, 
+                                                    self.MACD.SIGNAL,
+                                                    self.MACD_CO)
         
         # Price swings
-        self.swings = indicators.find_swings(data)
-    
-
-    def generate_signal(self, i, **kwargs):
-        """Define strategy to determine entry signals.
-        """
+        self.swings = indicators.find_swings(self.data)
         
-        if self.data.Close.values[i] > self.ema[i] and \ 
-            self.MACD_CO[i] == 1 and \
-            self.MACD_CO_vals[i] < 0:
-                exit_dict = self.generate_exit_levels(signal=1, i=i)
-                new_order = Order(direction=1,
-                                  stop_loss=exit_dict['stop_loss'],
-                                  take_profit=exit_dict['take_profit'])
+    def generate_signal(self, data):
+        """Define strategy to determine entry signals."""
+        # Feature calculation
+        self.generate_features(data)
+        
+        # Look for entry signals (index -1 for the latest data)
+        if self.data.Close.values[-1] > self.ema[-1] and \
+            self.MACD_CO[-1] == 1 and \
+            self.MACD_CO_vals[-1] < 0:
+                # Long entry signal detected! Calculate SL and TP prices
+                stop, take = self.generate_exit_levels(signal=1)
+                new_order = Order(direction=1, stop_loss=stop, take_profit=take)
                 
-        elif self.data.Close.values[i] < self.ema[i] and \
-            self.MACD_CO[i] == -1 and \
-            self.MACD_CO_vals[i] > 0:
-                exit_dict = self.generate_exit_levels(signal=-1, i=i)
-                new_order = Order(direction=-1,
-                                  stop_loss=exit_dict['stop_loss'],
-                                  take_profit=exit_dict['take_profit'])
+        elif self.data.Close.values[-1] < self.ema[-1] and \
+            self.MACD_CO[-1] == -1 and \
+            self.MACD_CO_vals[-1] > 0:
+                # Short entry signal detected! Calculate SL and TP prices
+                stop, take = self.generate_exit_levels(signal=-1)
+                new_order = Order(direction=-1, stop_loss=stop, take_profit=take)
 
         else:
+            # No trading signal, return a blank Order
             new_order = Order()
         
         return new_order
     
-    
-    def generate_exit_levels(self, signal, i):
-        """Function to determine stop loss and take profit levels.
-        """
-        stop_type = 'limit'
-        RR = self.parameters['RR']
-        
-        if signal == 0:
-            stop = None
-            take = None
+    def generate_exit_levels(self, signal):
+        """Function to determine stop loss and take profit prices."""
+        RR = self.params['RR']
+        if signal == 1:
+            # Long signal
+            stop = self.swings.Lows[-1]
+            take = self.data.Close[-1] + RR*(self.data.Close[-1] - stop)
         else:
-            if signal == 1:
-                stop = self.swings.Lows[i]
-                take = self.data.Close[i] + RR*(self.data.Close[i] - stop)
-            else:
-                stop = self.swings.Highs[i]
-                take = self.data.Close[i] - RR*(stop - self.data.Close[i])
-                
-        
-        exit_dict = {'stop_loss': stop, 
-                     'stop_type': stop_type,
-                     'take_profit': take}
-        
-        return exit_dict
+            # Short signal
+            stop = self.swings.Highs[-1]
+            take = self.data.Close[-1] - RR*(stop - self.data.Close[-1])
+        return stop, take
 ```
-
 
 
 
 ## Backtesting
-To run a backtest in AutoTrader, begin by importing AutoTrader and creating 
-an instance using `at = AutoTrader()`. Next, use the [`configure`](autotrader-configure) method to set 
-the verbosity of the code and tell AutoTrader that you would like to see the plot. Next, we add our 
-strategy using the `add_strategy` method. Then, we use the [`backtest`](autotrader-backtest-config) 
-method to define your backtest settings. Finally, we run AutoTrader with the command `at.run()`, and 
-that's it! 
+
+An easy and organised way to deploy a trading bot is to set up a 
+run file. Here you import AutoTrader, configure the run settings and 
+deploy your bot. This is all achieved in the example below.
 
 
 ```python
+# runfile.py
 from autotrader import AutoTrader
 
-at = AutoTrader()                           # Create a new instance of AutoTrader
-at.configure(show_plot=True, verbosity=1)   # Configure the instance
-at.add_strategy('macd')                     # Add the strategy by its configuration file prefix
-at.backtest(start = '1/1/2021',             # Define the backtest settings
-            end = '1/1/2022',
-            initial_balance=1000,
-            leverage = 30)
-at.run()                                    # Run AutoTrader!
+at = AutoTrader()
+at.configure(show_plot=True, verbosity=1, feed='yahoo',
+             mode='continuous', update_interval='1h') 
+at.add_strategy('macd') 
+at.backtest(start = '1/1/2021', end = '1/1/2022')
+at.virtual_account_config(leverage=30)
+at.run()
 ```
+
+Let's dive into this a bit more:
+- We begin by importing AutoTrader and creating an instance 
+using `at = AutoTrader()`. 
+- Next, we use the [`configure`](autotrader-configure) method to set 
+the verbosity of the code and tell AutoTrader that you would like to see 
+the backtest plot. We also define the [run mode](autotrader-run-modes)
+and update interval to `1h`, meaning that we will step through the backtest
+data by 1 hour at a time.
+- Next, we add our strategy using the `add_strategy` method. Here we pass the 
+file prefix of the strategy configuration file, located (by default) in the 
+`config/` [directory](rec-dir-struc). Since our strategy configuration file
+is named `macd.yaml`, we pass in 'macd'.
+- We then use the [`backtest`](autotrader-backtest-config) method to define 
+the backtest period. In this example, we set the start and end dates of the
+backtest.
+- Since we will be simulating trading (by backtesting), we also need to configure
+the virtual trading account. We do this with the `virtual_account_config` method.
+Here we set the account leverage to 30. You can also configure trading costs,
+bid/ask spread, initial balance and other settings here.
+- Finally, we run AutoTrader with the command `at.run()`.
+
+Simply run this file, and AutoTrader will do its thing.
+
+
+
 
 
 ### Backtest Results
-With a verbosity of 1, you will see an output similar to that shown below. As you can see, there is a detailed breakdown of 
-trades taken during the backtest period. Since we told AutoTrader to plot the results, you will also see the interactive chart
-shown below.
+With a verbosity of 1, you will see an output similar to that shown below. 
+As you can see, there is a detailed breakdown of trades taken during the
+backtest period. Since we told AutoTrader to plot the results, you will also 
+see the interactive chart shown below.
 
 ```
-    _         _        ____             _    _            _   
-   / \  _   _| |_ ___ | __ )  __ _  ___| | _| |_ ___  ___| |_ 
-  / _ \| | | | __/ _ \|  _ \ / _` |/ __| |/ / __/ _ \/ __| __|
- / ___ \ |_| | || (_) | |_) | (_| | (__|   <| ||  __/\__ \ |_ 
-/_/   \_\__,_|\__\___/|____/ \__,_|\___|_|\_\\__\___||___/\__|
-                                                              
+    ___         __      ______               __         
+   /   | __  __/ /_____/_  __/________ _____/ /__  _____
+  / /| |/ / / / __/ __ \/ / / ___/ __ `/ __  / _ \/ ___/
+ / ___ / /_/ / /_/ /_/ / / / /  / /_/ / /_/ /  __/ /    
+/_/  |_\__,_/\__/\____/_/ /_/   \__,_/\__,_/\___/_/     
+                                                        
 
-Beginning new backtest.
 [*********************100%***********************]  1 of 1 completed
+BACKTEST MODE
 
-AutoTraderBot assigned to trade EURUSD=X with virtual broker using MACD Trend Strategy.
+AutoTraderBot assigned to trade EURUSD=X with virtual broker using Simple Macd Strategy.
 
 Trading...
 
-Backtest complete (runtime 4.642 s).
+31539600.0it [00:19, 1630112.41it/s]                                                                                                                                          
+Backtest complete (runtime 19.348 s).
 
 ----------------------------------------------
-               Backtest Results
+               Trading Results
 ----------------------------------------------
-Start date:              Jan 20 2021 05:00:00
+Start date:              Jan 20 2021 04:00:00
 End date:                Dec 31 2021 13:00:00
+Duration:                345 days 09:00:00
 Starting balance:        $1000.0
-Ending balance:          $1255.11
-Ending NAV:              $1270.05
-Total return:            $255.11 (25.5%)
-Total no. trades:        96
-Total fees:              $0.0
-Backtest win rate:       46.9%
-Maximum drawdown:        -18.1%
-Max win:                 $40.5
-Average win:             $26.53
-Max loss:                -$43.81
-Average loss:            -$18.41
-Longest win streak:      6 trades
-Longest losing streak:   6 trades
-Average trade duration:  1 day, 2:37:30
-Orders still open:       1
-Cancelled orders:        3
+Ending balance:          $1140.75
+Ending NAV:              $1170.16
+Total return:            $140.75 (14.1%)
+Maximum drawdown:        -18.97%
+Total no. trades:        175
+Total fees paid:         $0.0
+Win rate:                21.7%
+Max win:                 $36.51
+Average win:             $25.26
+Max loss:                -$21.57
+Average loss:            -$16.38
+Longest winning streak:  4 trades
+Longest losing streak:   11 trades
+Average trade duration:  1 day, 3:43:38
+Positions still open:    1
+Cancelled orders:        5
 
             Summary of long trades
 ----------------------------------------------
-Number of long trades:   40
-Long win rate:           50.0%
-Max win:                 $40.5
-Average win:             $26.99
-Max loss:                -$21.91
-Average loss:            -$17.96
+Number of long trades:   36
+Win rate:                41.7%
+Max win:                 $36.51
+Average win:             $25.22
+Max loss:                -$21.18
+Average loss:            -$17.23
 
              Summary of short trades
 ----------------------------------------------
-Number of short trades:  59
-short win rate:          42.4%
-Max win:                 $35.06
-Average win:             $26.17
-Max loss:                -$43.81
-Average loss:            -$18.65
+Number of short trades:  54
+Win rate:                42.6%
+Max win:                 $31.85
+Average win:             $25.28
+Max loss:                -$21.57
+Average loss:            -$15.86
 ```
 
 
@@ -266,183 +322,42 @@ Average loss:            -$18.65
 
 
 
-## Parameter Optimisation
-We will modify our runfile to optimise the `MACD_fast` and `MACD_slow` parameters of our MACD strategy by using
-the [`optimise`](autotrader-optimise-config) method of AutoTrader. This method requires two inputs: 
-- `opt_params`: the names of the parameters we wish to optimise, as they appear in the `PARAMETERS` section of our 
-strategy configuration.
-- `bounds`: the upper and lower bounds on the optimisation parameters, specified as tuples.
-
-Before we run the optimiser, lets download the price data used in our backtest, so that we do not have to download it 
-for each iteration of the optimisation. This can be acheived with the code snippet below. 
-
-```python
-bot = at.get_bots_deployed()
-bot.data.to_csv('price_data/EUdata.csv')
-```
-
-Now we can use this data in our optimiser by providing it via the [`add_data`](autotrader-add-data) method, as shown below.
-
-```python
-from autotrader.autotrader import AutoTrader
-
-at = AutoTrader()
-at.configure(show_plot=True, verbosity=1)
-at.add_strategy('macd')
-at.backtest(start = '1/1/2020',
-            end = '1/1/2021',
-            initial_balance=1000,
-            leverage = 30)
-at.add_data(data_dict={'EURUSD=X': 'EUdata.csv'})
-at.optimise(opt_params=['MACD_fast', 'MACD_slow'],
-            bounds=[(5, 20), (20, 40)])
-at.run()
-```
-
-The objective of the optimiser is to maximise profit. 
-
-
-### Optimisation Results
-Running the file above will result in the following output. After a few minutes on a mid-range laptop, the 
-parameters of our MACD strategy have been optimised to maximise profit over the one-year backtest period. As you can 
-see from the output, the optimal parameter values for the strategy configuration parameters specified are approximately 
-10 and 33. This means that the fast MACD period should be 10, and the slow MACD period should be 33.
-
-```
-Parameters/objective: [ 5. 20.] / -966.904
-                    .
-                    .
-                    .
-Parameters/objective: [ 9.79685545 33.30738306] / -1246.284
-
-Optimisation complete.
-Time to run: 555.793s
-Optimal parameters:
-[ 9.796875   33.30729167]
-Objective:
--1246.2841641533123
-```
-
-
-### Comparison to Baseline Strategy
-Now let's compare the performance of the strategy before and after optimisation. Simply run the backtest again with 
-the optimised parameters (you will need to update the strategy configuration file) and observe the results shown below. 
-
-```
-    _         _        ____             _    _            _   
-   / \  _   _| |_ ___ | __ )  __ _  ___| | _| |_ ___  ___| |_ 
-  / _ \| | | | __/ _ \|  _ \ / _` |/ __| |/ / __/ _ \/ __| __|
- / ___ \ |_| | || (_) | |_) | (_| | (__|   <| ||  __/\__ \ |_ 
-/_/   \_\__,_|\__\___/|____/ \__,_|\___|_|\_\\__\___||___/\__|
-                                                              
-
-Beginning new backtest.
-[*********************100%***********************]  1 of 1 completed
-
-AutoTraderBot assigned to trade EURUSD=X with virtual broker using MACD Trend Strategy.
-
-Trading...
-
-Backtest complete (runtime 2.884 s).
-
-----------------------------------------------
-               Backtest Results
-----------------------------------------------
-Start date:              Jan 20 2021 05:00:00
-End date:                Dec 31 2021 13:00:00
-Starting balance:        $1000.0
-Ending balance:          $1261.72
-Ending NAV:              $1276.52
-Total return:            $261.72 (26.2%)
-Total no. trades:        92
-Total fees:              $0.0
-Backtest win rate:       46.7%
-Maximum drawdown:        -13.53%
-Max win:                 $37.47
-Average win:             $25.65
-Max loss:                -$22.3
-Average loss:            -$17.16
-Longest win streak:      4 trades
-Longest losing streak:   6 trades
-Average trade duration:  1 day, 0:52:49
-Orders still open:       1
-Cancelled orders:        1
-
-            Summary of long trades
-----------------------------------------------
-Number of long trades:   37
-Long win rate:           43.2%
-Max win:                 $37.47
-Average win:             $26.37
-Max loss:                -$22.27
-Average loss:            -$17.11
-
-             Summary of short trades
-----------------------------------------------
-Number of short trades:  58
-short win rate:          46.6%
-Max win:                 $32.44
-Average win:             $25.22
-Max loss:                -$22.3
-Average loss:            -$17.2
-```
-
-Let's take a look at the profit [before](backtesting) and after:
->
->Profit before optimisation:
->$255.11 (25.5%)
->
->Profit after optimisation:
->$261.72 (26.2%)
-
-
 
 ## Going Live
-
-Live trading is the [default trading medium](autotrader-mediums) of AutoTrader. As such, you are only 
-required to specify the strategy configuration file along with any run [configuration](autotrader-config-methods) 
-parameters to take a strategy live. 
-
+Taking a strategy live is as easy as changing a few lines in your runfile.
+Say you would like to trade your strategy on the cryptocurrency exchange 
+[dYdX](https://dydx.exchange/). Then, all you need to do is specify this 
+as the `broker` in the `configure` method, as shown below. You will
+just need to make sure you have provided the relevant API keys in your 
+`keys.yaml` file to connect to your exchange.
 
 ```python
-from autotrader.autotrader import AutoTrader
+from autotrader import AutoTrader
 
 at = AutoTrader()
-at.configure(broker='oanda', feed='oanda')
+at.configure(verbosity=1, broker='dydx',
+             mode='continuous', update_interval='1h') 
 at.add_strategy('macd')
 at.run()
 ```
 
-Using the [`configure`](autotrader-configure) method, we specify the broker and feed as `oanda`, indicating we will 
-be trading with the Oanda API. This will automatically assign the Oanda API module as the broker, and use Oanda to 
-retrieve price data. This is a very minimal run file, however there are more options available in the `configure` 
-method. For example, we can specify the level of email verbosity via the `notify` input, so that you get an email 
-for specific trading activity. Read more about the configuration method [here](autotrader-configure). 
+
+What if you wanted to paper trade your strategy before putting real money into
+it? Simply configure a virtual trading account and specify the exchange as 
+`dydx` (or whatever `broker` you specify in `configure`) and then you will
+be paper trading! Doing this, AutoTrader's virtual broker mirrors the real-time
+orderbook of the exchange specified, making execution of orders as accurate as 
+possible.
+
+```python
+from autotrader import AutoTrader
+
+at = AutoTrader()
+at.configure(verbosity=1, broker='dydx',
+             mode='continuous', update_interval='1h') 
+at.add_strategy('macd') 
+at.virtual_account_config(leverage=30, exchange='dydx')
+at.run()
+```
 
 
-### Automated Running
-Putting a strategy live will vary depending on if you are running AutoTrader in periodic or continuous mode.
-In this tutorial, we developed the strategy to run in periodic mode, which was the original mode of AutoTrader.
-Read about these modes [here](autotrader-run-modes).
-
-#### Periodic Mode
-When running in periodic mode, you need a way to automatically run AutoTrader at whatever interval your strategy 
-demands (as per the `INTERVAL` key of your strategy configuration). In theory, if you are running a strategy 
-on the daily timeframe, you could manually run AutoTrader at a certain time each day, such as when the daily 
-candle closes. To automate this, you will need some sort of job scheduler or automated run file.
-
-If you are running on Linux, [cron](https://en.wikipedia.org/wiki/Cron) is a suitable option. Simply schedule 
-the running of your run file at an appropriate interval, as dictated by your strategy. Alternatively, you could 
-write the runfile above into a `while True:` loop to periodically run your strategy, using `time.sleep()` to 
-pause between the periodic updates.
-
-
-#### Continuous Mode
-Going live in continous mode is tremendously effortless. Specify how frequently you would like AutoTrader to 
-refresh the data feed using the `update_interval` in the [`configure`](autotrader-configure) method, and 
-run the file. Thats it! When you do this, you'll notice that AutoTrader will create an `active_bots/` directory,
-and create an empty file each time you run an instance of AutoTrader live in continuous. To kill the trading 
-bots associated with that instance, simply delete this file, and AutoTrader will stop running.
-
-If you are running on a server, you might want to use [`nohup`](https://www.maketecheasier.com/nohup-and-uses/)
-(short for 'no hangup') to prevent your system from stopping Python when you log out.
