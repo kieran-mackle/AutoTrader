@@ -10,7 +10,7 @@ lossing over the finer details, or are comfortable programming in Python, the
 [condensed walkthrough](condensed-walkthrough) might be better suited to you.
 ```
 
-
+(walthrough-strat-rules)=
 ## Strategy Rules
 The rules for the MACD strategy are defined as follows.
 
@@ -27,6 +27,9 @@ AutoTrader's [swing detection](swing-detection) indicator for this.
 4. Take profit levels are set at 1:1.5 risk-to-reward, meaning that winning trades make
 1.5 times more than losing trades lose.
 
+
+(walkthrough-strategy-parameters)=
+### Strategy Parameters
 From these rules, the following strategy parameters can be defined:
 
 | Parameter | Nominal value |
@@ -41,8 +44,6 @@ An example of a long entry signal from this strategy is shown in the image below
 (generated using [AutoTrader IndiView](../features/visualisation)).
 
 ![MACD crossover strategy](../assets/images/long_macd_signal.png "Long trade example for the MACD Crossover Strategy")
-
-
 
 
 
