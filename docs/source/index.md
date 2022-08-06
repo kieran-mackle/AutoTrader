@@ -4,16 +4,21 @@ hide-toc: true
 
 # AutoTrader Documentation
 
-AutoTrader is Python-based trading framework for the development, optimisation and deployment of 
-automated trading systems. Here you will find everything you need to start algotrading with AutoTrader.
+AutoTrader is a Python-based trading framework for the development, 
+optimisation and deployment of automated trading systems. Here you 
+will find everything you need to start algotrading with AutoTrader.
 
-If you are new to Python, you may find the tutorials especially useful. For those who like no details
-spared, refer to the [complete strategy walkthrough](tutorials/walkthrough), where a popular MACD trading 
-strategy is built and tested. The [condensed walkthrough](tutorials/condensed-walkthrough) offers a more
-concise version of this tutorial.
+If you are new to Python, you may find the tutorials especially 
+useful. For those who like no details spared, refer to the 
+[complete strategy walkthrough](tutorials/walkthrough), where a 
+popular MACD trading strategy is built and tested. The 
+[condensed walkthrough](tutorials/condensed-walkthrough) offers a 
+more concise version of this tutorial.
 
-If you are still deciding if AutoTrader is for you, check out the [feature showcase](features-landing) to 
-see what on AutoTrader has to offer. Otherwise, head on over to the [Getting Started](getting-started) guide.
+If you are still deciding if AutoTrader is for you, check out the 
+[feature showcase](features-landing) to see what on AutoTrader has 
+to offer. Otherwise, head on over to the 
+[Getting Started](getting-started) guide.
 
 
 ## Supported Brokers
