@@ -89,6 +89,9 @@ your_trading_project/
 │   ├── GLOBAL.yaml                 # Global configuration file
 │   ├── strategy1_config.yaml       # Strategy 1 configuration file
 │   └── strategy2_config.yaml       # Strategy 2 configuration file
+├── price_data
+|   ├── dataset1.csv                # Local OHLC dataset
+│   └── dataset2.csv                # Another dataset
 └── strategies
     ├── strategy1.py                # Strategy 1 module, containing strategy 1 logic
     └── strategy2.py                # Strategy 2 module, containing strategy 2 logic

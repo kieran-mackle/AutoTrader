@@ -54,6 +54,5 @@ An example of a long entry signal from this strategy is shown in the image below
 Building a Strategy <building-strategy>
 Getting Price Data <getting-data>
 Backtesting <backtesting>
-Optimisation <optimisation>
-Going Live <going-live>
+Live Trading <going-live>
 ```

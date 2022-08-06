@@ -23,7 +23,8 @@ Follow along in the demo repository:
 <a href="https://github.com/kieran-mackle/autotrader-demo/blob/main/config/macd.yaml" target="_blank">config/macd.yaml</a>
 ```
 
-Lets start by writing the [strategy configuration](strategy-config) `.yaml` file. 
+Lets start by writing the [strategy configuration](strategy-config) `.yaml` file.
+Call this `macd.yaml`, refering to our MACD strategy. 
 This file is a convenient place to define your strategy parameters (using the 
 `PARAMETERS` key) and which instruments to trade using this strategy (using the 
 `WATCHLIST` key). It is also used to tell AutoTrader where to find your strategy -
@@ -50,6 +51,7 @@ the `RR` key.
 
 
 ```yaml
+# macd.yaml
 NAME: 'Simple Macd Strategy'    # strategy name
 MODULE: 'macd'                  # strategy module
 CLASS: 'SimpleMACD'             # strategy class
@@ -272,7 +274,7 @@ def generate_features(self, data):
 def generate_signal(self, data):
     """Define strategy to determine entry signals."""
     # Feature calculation
-    self.calculate_features(data)
+    self.generate_features(data)
     
     # Look for entry signals (index -1 for the latest data)
     if self.data.Close.values[-1] > self.ema[-1] and \
