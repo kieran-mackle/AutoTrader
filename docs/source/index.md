@@ -76,7 +76,6 @@ User Inputs <userfiles/userfiles>
 Core Modules <core/core-modules>
 Broker Interface <broker/broker-interface>
 Indicator Library <indicators>
-Communications <comms>
 Command Line Interface <core/cli>
 ```
 

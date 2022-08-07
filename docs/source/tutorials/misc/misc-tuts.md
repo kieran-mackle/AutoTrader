@@ -2,12 +2,15 @@
 Here you can find a collection of miscellaneous tutorials - things 
 which are useful to know, but not essential to using AutoTrader.
 
+
 ```{toctree}
 :maxdepth: 2
 :hidden:
 
 Click Trading <click-trading>
-Host Email Account <host-email>
+Broker Pickling <broker-pickles>
+Dashboarding <dashboarding>
+Trading Snapshots <trading-snapshot>
 Continuous Mode <continuous-mode>
 Single File Strategy <single-file-strat>
 ```

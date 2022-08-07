@@ -53,7 +53,7 @@ After the trading bots are updated with the latest data in periodic update mode,
 instance will become inactive. For this reason, AutoTrader must be run periodically to repeatedly deploy trading bots and act 
 on the latest signal - hence the name 'periodic update mode'. For example, a strategy running on the 4-hour timeframe, AutoTrader 
 should be scheduled to run every 4 hours. Each time it runs, the trading bots will be provided with data of the latest 4-hour 
-candles to run the strategy on.This task is easily automated using [cron](https://en.wikipedia.org/wiki/Cron), or even in a 
+candles to run the strategy on. This task is easily automated using [cron](https://en.wikipedia.org/wiki/Cron), or even in a 
 `while True` loop. A single bot update in this mode is illustrated in the chart below.
 
 
@@ -140,14 +140,19 @@ local data file(s), you should always call the `configure` method prior to speci
 ```
 
 (autotrader-virtual-livetrade-config)=
-### Virtual Livetrade Configuration
+### Virtual Account Configuration
 If you wish to paper trade your strategy without connecting to any broker, you can simply plug into the
 [virtual broker](virtual-broker-docs). Of course, you will need to have a live price feed feeding your 
 strategy to get the most up-to-date data. Given that, simply configure your 'virtual account' using the
 `virtual_livetrade_config` method.
 
+To create multiple instances of the virtual broker, connected to different exchange data feeds, simply 
+call the `papertrade` method multiple times, configuring each account specified by the `exchange`
+argument.
+
+
 ```{eval-rst}
-.. automethod:: autotrader.autotrader.AutoTrader.virtual_livetrade_config
+.. automethod:: autotrader.autotrader.AutoTrader.virtual_account_config
 ```
 
 

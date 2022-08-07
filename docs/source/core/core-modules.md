@@ -10,6 +10,7 @@ AutoTrader <AutoTrader>
 AutoBot <AutoBot>
 AutoData <AutoData>
 AutoPlot <AutoPlot>
+Utilities <utilities>
 ```
 
 
