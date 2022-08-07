@@ -9,7 +9,7 @@ def test_macd_backtest():
         "NAME": "MACD Strategy",
         "MODULE": "macd_strategy",
         "CLASS": "SimpleMACD",
-        "INTERVAL": "H4",
+        "INTERVAL": "4h",
         "PERIOD": 300,
         "RISK_PC": 1.5,
         "SIZING": "risk",
@@ -25,7 +25,7 @@ def test_macd_backtest():
     home_dir = os.path.abspath(os.path.dirname(__file__))
 
     at = AutoTrader()
-    at.configure(verbosity=1, show_plot=False)
+    at.configure(verbosity=1, show_plot=False, mode="periodic")
     at.add_strategy(config_dict=config, strategy=SimpleMACD)
     at.plot_settings(show_cancelled=True)
     at.add_data(
@@ -63,7 +63,7 @@ def test_multibot_macd_backtest():
         "NAME": "MACD Strategy",
         "MODULE": "macd_strategy",
         "CLASS": "SimpleMACD",
-        "INTERVAL": "H4",
+        "INTERVAL": "4h",
         "PERIOD": 300,
         "RISK_PC": 1.5,
         "SIZING": "risk",
@@ -79,7 +79,7 @@ def test_multibot_macd_backtest():
     home_dir = os.path.abspath(os.path.dirname(__file__))
 
     at = AutoTrader()
-    at.configure(verbosity=0, show_plot=False)
+    at.configure(verbosity=0, show_plot=False, mode="periodic")
     at.add_strategy(config_dict=config, strategy=SimpleMACD)
     at.plot_settings(show_cancelled=False)
     at.add_data(
@@ -115,7 +115,7 @@ def test_limit_backtest():
     config = {
         "NAME": "Limit Order Strategy",
         "CLASS": "LimitStrategy",
-        "INTERVAL": "H4",
+        "INTERVAL": "4h",
         "PERIOD": 50,
         "PARAMETERS": {},
         "SIZING": 100,
@@ -151,7 +151,7 @@ def test_margin_call_backtest():
     config = {
         "NAME": "Limit Order Strategy",
         "CLASS": "LimitStrategy",
-        "INTERVAL": "H4",
+        "INTERVAL": "4h",
         "PERIOD": 50,
         "PARAMETERS": {},
         "SIZING": 10000,

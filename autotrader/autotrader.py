@@ -79,9 +79,9 @@ class AutoTrader:
 
         self._global_config_dict = None
         self._instance_str = None
-        self._run_mode = "periodic"
+        self._run_mode = "continuous"
         self._papertrading = False
-        self._timestep = pd.Timedelta("10s").to_pytimedelta()
+        self._timestep = None
         self._warmup_period = pd.Timedelta("0s").to_pytimedelta()
         self._feed = None
         self._req_liveprice = False
@@ -182,8 +182,8 @@ class AutoTrader:
         environment: str = "paper",
         show_plot: bool = False,
         jupyter_notebook: bool = False,
-        mode: str = "periodic",
-        update_interval: str = "10s",
+        mode: str = "continuous",
+        update_interval: str = None,
         data_index_time: str = "open",
         global_config: dict = None,
         instance_str: str = None,
@@ -232,7 +232,9 @@ class AutoTrader:
             The update interval to use when running in 'continuous' mode. This
             should align with the highest resolution bar granularity in your
             strategy to allow adequate updates. The string inputted will be
-            converted to a timedelta object. The default is '10s'.
+            converted to a timedelta object. If None is passed, the update
+            interval will be inferred from the strategy INTERVAL. The
+            default is None.
         data_index_time : str, optional
             The time by which the data is indexed. Either 'open', if the data
             is indexed by the bar open time, or 'close', if the data is indexed
@@ -274,7 +276,11 @@ class AutoTrader:
         self._show_plot = show_plot
         self._jupyter_notebook = jupyter_notebook
         self._run_mode = mode
-        self._timestep = pd.Timedelta(update_interval).to_pytimedelta()
+        self._timestep = (
+            pd.Timedelta(update_interval).to_pytimedelta()
+            if update_interval is not None
+            else self._timestep
+        )
         self._data_indexing = data_index_time
         self._global_config_dict = global_config
         self._instance_str = instance_str
@@ -330,7 +336,7 @@ class AutoTrader:
                 )
 
         else:
-            # Home directory has been set
+            # Home directory has been set, continue
             if config_dict is None:
                 # Config YAML filepath provided
                 config_file_path = os.path.join(
@@ -372,6 +378,17 @@ class AutoTrader:
 
             self._strategy_configs[name] = new_strategy
             self._shutdown_methods[name] = shutdown_method
+
+            # Set timestep from strategy config
+            strat_granularity = pd.Timedelta(new_strategy["INTERVAL"]).to_pytimedelta()
+            if self._timestep is None:
+                # Timestep hasn't been set yet; set it
+                self._timestep = strat_granularity
+
+            else:
+                # Timestep has been set, overwrite only with a smaller granularity
+                if strat_granularity < self._timestep:
+                    self._timestep = strat_granularity
 
         if strategy is not None:
             self._strategy_classes[strategy.__name__] = strategy

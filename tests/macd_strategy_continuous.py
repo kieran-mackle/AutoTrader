@@ -115,45 +115,45 @@ class SimpleMACD:
         return exit_dict
 
 
-if __name__ == "__main__":
-    from autotrader.autotrader import AutoTrader
+# if __name__ == "__main__":
+from autotrader.autotrader import AutoTrader
 
-    config = {
-        "NAME": "MACD Strategy",
-        "MODULE": "macd_strategy_continuous",
-        "CLASS": "SimpleMACD",
-        "INTERVAL": "H4",
-        "PERIOD": 300,
-        "RISK_PC": 1.5,
-        "SIZING": "risk",
-        "PARAMETERS": {
-            "ema_period": 200,
-            "MACD_fast": 5,
-            "MACD_slow": 19,
-            "MACD_smoothing": 9,
-            "RR": 1.5,
-        },
-        "WATCHLIST": ["EUR_USD"],
-    }
-    home_dir = os.getcwd()
-    data_dir = "/home/kmackle/Documents/AutoTrader/tests/data"
+config = {
+    "NAME": "MACD Strategy",
+    "MODULE": "macd_strategy_continuous",
+    "CLASS": "SimpleMACD",
+    "INTERVAL": "4h",
+    "PERIOD": 300,
+    "RISK_PC": 1.5,
+    "SIZING": "risk",
+    "PARAMETERS": {
+        "ema_period": 200,
+        "MACD_fast": 5,
+        "MACD_slow": 19,
+        "MACD_smoothing": 9,
+        "RR": 1.5,
+    },
+    "WATCHLIST": ["EUR_USD"],
+}
+home_dir = os.getcwd()
+data_dir = "/home/kmackle/Documents/AutoTrader/tests/data"
 
-    at = AutoTrader()
-    at.configure(verbosity=1, show_plot=False, mode="continuous", update_interval="4h")
-    at.add_strategy(config_dict=config, strategy=SimpleMACD)
-    at.plot_settings(show_cancelled=False)
-    at.add_data(
-        {"EUR_USD": "EUR_USD_H4.csv"},
-        # data_directory=os.path.join(home_dir, 'data'),
-        data_directory=data_dir,
-    )
-    at.backtest(
-        start="1/1/2015",
-        end="1/3/2022",
-    )
-    at.virtual_account_config(
-        initial_balance=1000, leverage=30, spread=0.5 * 1e-4, commission=0.005
-    )
-    at.run()
+at = AutoTrader()
+at.configure(verbosity=1, show_plot=True)
+at.add_strategy(config_dict=config, strategy=SimpleMACD)
+at.plot_settings(show_cancelled=False)
+at.add_data(
+    {"EUR_USD": "EUR_USD_H4.csv"},
+    # data_directory=os.path.join(home_dir, 'data'),
+    data_directory=data_dir,
+)
+at.backtest(
+    start="1/1/2021",
+    end="1/3/2022",
+)
+at.virtual_account_config(
+    initial_balance=1000, leverage=30, spread=0.5 * 1e-4, commission=0.005
+)
+at.run()
 
-    bot = at.get_bots_deployed()
+# bot = at.get_bots_deployed()
