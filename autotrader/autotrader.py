@@ -1961,7 +1961,10 @@ class AutoTrader:
                             instance_filepath = os.path.join(
                                 self._home_dir, "active_bots", instance_str
                             )
-                            os.remove(instance_filepath)
+                            try:
+                                os.remove(instance_filepath)
+                            except FileNotFoundError:
+                                print(f"Intance file '{instance_str}' already deleted.")
                             break
 
             elif self._run_mode.lower() == "periodic":
