@@ -11,6 +11,16 @@ def print_banner():
     print(pyfiglet.figlet_format("AutoTrader", font="slant"))
 
 
+def download_file(url):
+    local_filename = url.split("/")[-1]
+    with requests.get(url, stream=True) as r:
+        r.raise_for_status()
+        with open(local_filename, "wb") as f:
+            for chunk in r.iter_content(chunk_size=8192):
+                f.write(chunk)
+    return local_filename
+
+
 @click.group()
 def cli():
     """AutoTrader command line interface."""
@@ -19,33 +29,23 @@ def cli():
 
 @click.command()
 @click.option(
-    "-f",
-    "--full",
+    "-m",
+    "--minimal",
     is_flag=True,
-    default=True,
-    show_default=True,
-    help="Full directory initialisation.",
+    default=False,
+    help="Minimal directory initialisation.",
 )
-@click.option("-m", "--minimal", is_flag=True, help="Minimal directory initialisation.")
-# @click.option('-s', '--strategy', )
+@click.option(
+    "-s",
+    "--strategies",
+    help="The name of strategies to include in the initialised directory.",
+)
 @click.argument("name", default=".")
-def init(full, minimal, name):
+def init(minimal, strategies, name):
     """Initialises the directory NAME for trading with AutoTrader. If no
     directory NAME is provided, the current directory will be initialised.
     """
-
     print_banner()
-
-    # TODO - implement init options:
-    #   - 'minimal' option to initialise with a minimal strategy file,
-    #     with no strat config files or keys config, just locally
-    #     defined config dicts.
-    #   - 'full' (default) option to initialise full directory strucuture,
-    #     with config/ and strategies/ dir, with templates in each
-
-    # TODO - option to initialise with a strategy - pull from demo repo using eg.
-    # wget https://raw.githubusercontent.com/kieran-mackle/autotrader-
-    # demo/main/strategies/ema_crossover.py
 
     # Construct filepaths
     file_dir = os.path.dirname(os.path.abspath(__file__))
@@ -60,32 +60,64 @@ def init(full, minimal, name):
         # Initialise current directory
         dir_name = os.path.abspath(os.getcwd())
 
-    # Check is config directory exists
-    config_dir = os.path.join(dir_name, "config")
-    if not os.path.isdir(config_dir):
-        os.mkdir(config_dir)
+    if minimal:
+        # Run minimial directory initialisation
+        pass
 
-    # Copy keys config
-    keys_config_fp = os.path.join(data_dir, "keys.yaml")
-    shutil.copyfile(keys_config_fp, os.path.join(config_dir, "keys.yaml"))
+    else:
+        # Run full directory initialisation
+        # Check if config directory exists
+        config_dir = os.path.join(dir_name, "config")
+        if not os.path.isdir(config_dir):
+            os.mkdir(config_dir)
 
-    # Check if strategy directory exists
-    strategy_dir = os.path.join(dir_name, "strategies")
-    if not os.path.isdir(strategy_dir):
-        # Strategy directory doesn't exist - create it
-        os.mkdir(strategy_dir)
+        # Copy keys config
+        keys_config_fp = os.path.join(data_dir, "keys.yaml")
+        shutil.copyfile(keys_config_fp, os.path.join(config_dir, "keys.yaml"))
 
+        # Check if strategy directory exists
+        strategy_dir = os.path.join(dir_name, "strategies")
+        if not os.path.isdir(strategy_dir):
+            # Strategy directory doesn't exist - create it
+            os.mkdir(strategy_dir)
+
+    # Add strategies
+    for strategy in strategies.split(","):
+        # Construct urls
+        if strategy == "template":
+            # Get strategy template from main repo
+            urls = {
+                "strategies": "https://raw.githubusercontent.com/"
+                + "kieran-mackle/AutoTrader/main/templates/strategy.py",
+                "config": None,
+            }
+
+        else:
+            # Get from demo repo
+            urls = {
+                "strategies": "https://raw.githubusercontent.com/kieran-mackle/"
+                + f"autotrader-demo/main/strategies/{strategy}.py",
+                "config": "https://raw.githubusercontent.com/kieran-mackle/"
+                + f"autotrader-demo/main/config/{strategy}.yaml",
+            }
+
+        for dir in ["strategies", "config"]:
+            try:
+                # Download
+                filename = download_file(urls[dir])
+
+                # Move to appropriate directory
+                if minimal:
+                    move_to = os.path.join(dir_name, filename)
+                else:
+                    move_to = os.path.join(dir_name, dir, filename)
+                os.rename(filename, move_to)
+
+            except:
+                pass
+
+    # Print completion message
     click.echo("AutoTrader initialisation complete.")
-
-
-def download_file(url):
-    local_filename = url.split("/")[-1]
-    with requests.get(url, stream=True) as r:
-        r.raise_for_status()
-        with open(local_filename, "wb") as f:
-            for chunk in r.iter_content(chunk_size=8192):
-                f.write(chunk)
-    return local_filename
 
 
 @click.command()
@@ -206,7 +238,7 @@ def monitor(port, nav, pickle):
 @click.command()
 @click.argument("pickle")
 def snapshot(pickle):
-    """Prints a snapshot of the trading account of a broker PICKLE instnace
+    """Prints a snapshot of the trading account of a broker PICKLE instance
     file."""
     print_banner()
     AutoTrader.papertrade_snapshot(pickle)
