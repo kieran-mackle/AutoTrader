@@ -1,7 +1,7 @@
 import ccxt
 from datetime import datetime
 from autotrader.brokers.ccxt.utils import Utils, BrokerUtils
-from autotrader.brokers.trading import Order, IsolatedPosition, Position
+from autotrader.brokers.trading import Order, Trade, Position
 
 
 class Broker:
@@ -191,17 +191,22 @@ class Broker:
     def _native_trade(self, trade):
         """Returns a CCXT trade as a native AutoTrader Trade."""
         direction = 1 if trade["side"] == "buy" else -1
+
         # parent_order_id = trade['info']['orderId']
         parent_order_id = trade["info"]["orderID"]
-        native_trade = IsolatedPosition(
+
+        native_trade = Trade(
             instrument=trade["symbol"],
-            direction=direction,
+            order_price=None,
+            order_time=None,
+            order_type=None,
             size=abs(trade["amount"]),
+            fill_time=datetime.fromtimestamp(trade["timestamp"] / 1000),
+            fill_price=float(trade["price"]),
+            fill_direction=direction,
+            fee=trade["fee"]["cost"],
             id=trade["id"],
-            parent_id=parent_order_id,
-            fill_price=trade["price"],
-            time_filled=datetime.fromtimestamp(trade["timestamp"] / 1000),
-            fees=trade["fee"]["cost"],
+            order_id=parent_order_id,
         )
 
         return native_trade

@@ -48,7 +48,7 @@ class Broker:
         pass
 
     def get_trades(self, instrument: str = None, **kwargs) -> dict:
-        """Returns the open trades held by the account."""
+        """Returns the trades (fills) made by the account."""
         pass
 
     def get_positions(self, instrument: str = None, **kwargs) -> dict:

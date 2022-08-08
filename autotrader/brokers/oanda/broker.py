@@ -9,7 +9,7 @@ import traceback
 import numpy as np
 import pandas as pd
 from autotrader.brokers.broker_utils import BrokerUtils
-from autotrader.brokers.trading import Order, IsolatedPosition, Position
+from autotrader.brokers.trading import Order, IsolatedPosition, Position, Trade
 
 
 class Broker:
@@ -118,47 +118,90 @@ class Broker:
         self._check_connection()
         self.api.order.cancel(accountID=self.ACCOUNT_ID, orderSpecifier=str(order_id))
 
-    def get_trades(self, instruments=None, **kwargs) -> dict:
-        """Returns the open trades held by the account."""
+    def get_trades(self, instrument=None, **kwargs) -> list:
+        """Returns the trades (fills) made by the account."""
+        self._check_connection()
+        response = self.api.trade.list_open(
+            accountID=self.ACCOUNT_ID, state="CLOSED", instrument=instrument
+        )
+        oanda_trades = response.body["trades"]
+
+        trades = {}
+        for trade in oanda_trades:
+            trade_dict = self._oanda_trade_to_dict(trade)
+
+            native_trade = Trade(
+                instrument=trade_dict["instrument"],
+                order_price=None,
+                order_time=None,
+                order_type=None,
+                size=float(trade_dict["size"]),
+                fill_time=trade_dict["time_filled"],
+                fill_price=float(trade_dict["fill_price"]),
+                fill_direction=trade_dict["direction"],
+                fee=trade_dict["fees"],
+                id=trade_dict["id"],
+            )
+
+            trades[trade.id] = native_trade
+
+        return trades
+
+    def get_isolated_positions(self, instrument: str = None, **kwargs):
+        """Returns isolated positions for the specified instrument.
+
+        Parameters
+        ----------
+        instrument : str, optional
+            The instrument to fetch trades under. The default is None.
+        """
         self._check_connection()
         response = self.api.trade.list_open(accountID=self.ACCOUNT_ID)
         oanda_open_trades = response.body["trades"]
 
         open_trades = {}
         for trade in oanda_open_trades:
-            new_trade = {}
-            related_orders = []
-            new_trade["instrument"] = trade.instrument
-            new_trade["time_filled"] = trade.openTime
-            new_trade["fill_price"] = trade.price
-            new_trade["size"] = abs(trade.currentUnits)
-            new_trade["id"] = trade.id
-            new_trade["direction"] = np.sign(trade.currentUnits)
-            new_trade["margin_required"] = trade.marginUsed
-            new_trade["unrealised_PL"] = trade.unrealizedPL
-            new_trade["fees"] = trade.financing
-            new_trade["status"] = trade.state.lower()
+            new_trade = self._oanda_trade_to_dict(trade)
 
-            # Check for take profit
-            if trade.takeProfitOrder is not None:
-                new_trade["take_profit"] = trade.takeProfitOrder.price
-                related_orders.append(trade.takeProfitOrder.id)
-
-            # Check for stop loss
-            if trade.stopLossOrder is not None:
-                new_trade["stop_loss"] = trade.stopLossOrder.price
-                new_trade["stop_type"] = "limit"
-                related_orders.append(trade.stopLossOrder.id)
-
-            if related_orders is not None:
-                new_trade["related_orders"] = related_orders
-
-            if instruments is not None and trade.instrument in instruments:
+            # Filter by instrument
+            if instrument is not None and trade.instrument in instrument:
                 open_trades[trade.id] = IsolatedPosition(**new_trade)
-            elif instruments is None:
+            elif instrument is None:
                 open_trades[trade.id] = IsolatedPosition(**new_trade)
 
         return open_trades
+
+    @staticmethod
+    def _oanda_trade_to_dict(trade) -> dict:
+        """Converts an Oanda Trade object to a dictionary."""
+        new_trade = {}
+        related_orders = []
+        new_trade["instrument"] = trade.instrument
+        new_trade["time_filled"] = trade.openTime
+        new_trade["fill_price"] = trade.price
+        new_trade["size"] = abs(trade.currentUnits)
+        new_trade["id"] = trade.id
+        new_trade["direction"] = np.sign(trade.currentUnits)
+        new_trade["margin_required"] = trade.marginUsed
+        new_trade["unrealised_PL"] = trade.unrealizedPL
+        new_trade["fees"] = trade.financing
+        new_trade["status"] = trade.state.lower()
+
+        # Check for take profit
+        if trade.takeProfitOrder is not None:
+            new_trade["take_profit"] = trade.takeProfitOrder.price
+            related_orders.append(trade.takeProfitOrder.id)
+
+        # Check for stop loss
+        if trade.stopLossOrder is not None:
+            new_trade["stop_loss"] = trade.stopLossOrder.price
+            new_trade["stop_type"] = "limit"
+            related_orders.append(trade.stopLossOrder.id)
+
+        if related_orders is not None:
+            new_trade["related_orders"] = related_orders
+
+        return new_trade
 
     def get_trade_details(self, trade_ID: int):
         """Returns the details of the trade specified by trade_ID.

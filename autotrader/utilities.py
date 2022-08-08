@@ -465,7 +465,7 @@ class TradeAnalysis:
             # Construct trade and order summaries
             all_trades = {}
             for status in ["open", "closed"]:
-                trades = broker.get_trades(trade_status=status)
+                trades = broker.get_isolated_positions(status=status)
                 all_trades.update(trades)
 
             all_orders = {}

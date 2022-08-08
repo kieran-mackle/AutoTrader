@@ -1,6 +1,4 @@
 from __future__ import annotations
-from textwrap import fill
-from tracemalloc import stop
 import numpy as np
 from datetime import datetime
 from autotrader.brokers.broker_utils import BrokerUtils
@@ -590,7 +588,9 @@ class IsolatedPosition(Order):
 
     def __repr__(self):
         direction = "long" if self.direction > 0 else "short"
-        return f"{round(self.size,3)} unit {direction} {self.instrument} trade"
+        return (
+            f"{round(self.size,3)} unit {direction} {self.instrument} IsolatedPosition"
+        )
 
     def __str__(self):
         return "AutoTrader IsolatedPosition"

@@ -460,38 +460,65 @@ class Broker:
             # Print cancel reason to console
             print(f"{timestamp}: Order {order_id} cancelled: {reason}")
 
-    def get_trades(self, instrument: str = None, trade_status: str = "open") -> dict:
-        """Returns open trades (isolated positions) for the
-        specified instrument.
+    def get_trades(self, instrument: str = None, **kwargs) -> dict:
+        """Returns fills for the specified instrument.
 
         Parameters
         ----------
         instrument : str, optional
             The instrument to fetch trades under. The default is None.
-        trade_status : str, optional
-            The status of the trades to fetch ('open' or 'closed'). The
-            default is 'open'.
         """
-        # TODO - review: fills v. trades
 
         # Get all instrument isolated positions
-        all_iso_pos = getattr(self, f"_{trade_status}_iso_pos")
+        all_trades = self._fills
+
+        if instrument:
+            # Specific instrument(s) requested
+            trades = [fill for fill in all_trades if fill.instrument == "EUR"]
+
+        else:
+            # Return all trades
+            trades = all_trades
+
+        # Convert to a dict with keys by id
+        trades_dict = {fill.id: fill for fill in all_trades}
+
+        # Return a copy to prevent unintended manipulation
+        return trades_dict.copy()
+
+    def get_isolated_positions(
+        self, instrument: str = None, status: str = "open", **kwargs
+    ):
+        """Returns isolated positions for the specified instrument.
+        This method has been implemented for the users of Oanda, which treats
+        trades as isolated positions.
+
+        Parameters
+        ----------
+        instrument : str, optional
+            The instrument to fetch trades under. The default is None.
+        status : str, optional
+            The status of the isolated positions to fetch ('open' or 'closed'). The
+            default is 'open'.
+        """
+        # Get all instrument isolated positions
+        all_iso_pos = getattr(self, f"_{status}_iso_pos")
 
         if instrument:
             # Specific instrument(s) requested
             try:
-                trades = all_iso_pos[instrument]
+                pos = all_iso_pos[instrument]
             except KeyError:
                 # No isolated positions for this instrument
-                trades = {}
+                pos = {}
         else:
             # Return all currently open isolated positions
-            trades = {}
+            pos = {}
             for instr, instr_trades in all_iso_pos.items():
-                trades.update(instr_trades)
+                pos.update(instr_trades)
 
         # Return a copy to prevent unintended manipulation
-        return trades.copy()
+        return pos.copy()
 
     def get_trade_details(self, trade_ID: int) -> IsolatedPosition:
         """Returns the trade specified by trade_ID."""
@@ -533,7 +560,7 @@ class Broker:
         open_positions = {}
         for instrument in instruments:
             # First get open isolated positions
-            open_iso_positions = self.get_trades(instrument)
+            open_iso_positions = self.get_isolated_positions(instrument)
             if len(open_iso_positions) > 0:
                 long_units = 0
                 long_PL = 0
@@ -767,7 +794,7 @@ class Broker:
                         self._public_trade(instrument, trade)
 
         # Update open isolated positions
-        open_iso_positions = self.get_trades(instrument).copy()
+        open_iso_positions = self.get_isolated_positions(instrument).copy()
         for trade_id, trade in open_iso_positions.items():
             # Update stop losses
             if trade.stop_type == "trailing":
@@ -1222,7 +1249,7 @@ class Broker:
         )
 
         # Get open trades for instrument
-        open_trades = self.get_trades(order.instrument)
+        open_trades = self.get_isolated_positions(order.instrument)
         position = self.get_positions(order.instrument)
 
         # Modify existing trades until there are no more units to reduce
@@ -1487,7 +1514,7 @@ class Broker:
         """Updates the margin available in the account."""
         margin_used = 0
         floating_pnl = 0
-        open_trades = self.get_trades()
+        open_trades = self.get_isolated_positions()
         for trade_id, trade in open_trades.items():
             size = trade.size
             HCF = trade.HCF

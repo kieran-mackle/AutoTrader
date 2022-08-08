@@ -9,6 +9,7 @@ from .brokers.trading import (
     LimitOrder,
     MarketOrder,
     StopLimitOrder,
+    Trade,
 )
 
 # Broker imports
