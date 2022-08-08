@@ -376,6 +376,19 @@ class AutoTrader:
                 )
                 print("Conflicting name:", name)
 
+            # Check PERIOD type
+            if isinstance(new_strategy["PERIOD"], float):
+                # Convert to integer
+                new_strategy["PERIOD"] = int(new_strategy["PERIOD"])
+
+            elif isinstance(new_strategy["PERIOD"], str):
+                # Period provided as time range, convert to int using INTERVAL
+                new_strategy["PERIOD"] = int(
+                    pd.Timedelta(new_strategy["PERIOD"])
+                    / pd.Timedelta(new_strategy["INTERVAL"])
+                )
+
+            # Save to AutoTrader instance
             self._strategy_configs[name] = new_strategy
             self._shutdown_methods[name] = shutdown_method
 
