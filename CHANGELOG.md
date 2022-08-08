@@ -25,7 +25,14 @@ AUGUST 2022
   of using `INCLUDE_BROKER`, then directly fetching positions from broker using
   `get_positions` method.
 - Renamed `GLOBAL.yaml` to `keys.yaml` for clarification.
-
+- Run mode 'continuous' has become the default run mode. To continue running strategies
+in periodic update mode, you will now need to specify `mode='periodic'` in `configure`.
+- The behaviour of broker method `get_trades` has changed: now returns a list of fills 
+(executed trades based on the `Trade` object), rather than a dictionary of 
+`IsolatedPositions` objects as before. This falls in line with the more common 
+definition of a trade, but diverges from Oanda. As such, a new method 
+`get_isolated_positions` has been added to the virtual broker and Oanda API interface
+to maintain the previous functionality of `get_trades`.
 
 
 ### Features
@@ -58,6 +65,8 @@ AUGUST 2022
 - Exchange-specific precision checking for Orders. Even in backtest mode, AutoTrader
   will communicate with your chosen exchange to precision-check your orders.
 - Code is now formatted using [Black](https://github.com/psf/black).
+- Ability to specify a time range for `PERIOD` in strategy configuration. This value
+will be converted to an integer using the `INTERVAL` key.
 
 
 ### Deprecation Notices
