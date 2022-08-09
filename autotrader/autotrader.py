@@ -82,6 +82,7 @@ class AutoTrader:
         self._run_mode = "continuous"
         self._papertrading = False
         self._timestep = None
+        self._strategy_timestep = None
         self._warmup_period = pd.Timedelta("0s").to_pytimedelta()
         self._feed = None
         self._req_liveprice = False
@@ -395,14 +396,14 @@ class AutoTrader:
 
             # Set timestep from strategy config
             strat_granularity = pd.Timedelta(new_strategy["INTERVAL"]).to_pytimedelta()
-            if self._timestep is None:
+            if self._strategy_timestep is None:
                 # Timestep hasn't been set yet; set it
-                self._timestep = strat_granularity
+                self._strategy_timestep = strat_granularity
 
             else:
                 # Timestep has been set, overwrite only with a smaller granularity
-                if strat_granularity < self._timestep:
-                    self._timestep = strat_granularity
+                if strat_granularity < self._strategy_timestep:
+                    self._strategy_timestep = strat_granularity
 
         if strategy is not None:
             self._strategy_classes[strategy.__name__] = strategy
@@ -895,6 +896,11 @@ class AutoTrader:
             )
             print("Please check your inputs and try again.")
             sys.exit(0)
+
+        # Check self._timestep
+        if self._timestep is None:
+            # Set timestep based on strategy inferred timestep
+            self._timestep = self._strategy_timestep
 
         # Remove any trailing commas in self._broker_name
         self._broker_name = self._broker_name.strip().strip(",")
