@@ -569,10 +569,14 @@ class Broker:
                 short_PL = 0
                 short_margin = 0
                 total_margin = 0
+                last_price = None
                 trade_IDs = []
 
                 for trade_id, trade in open_iso_positions.items():
                     trade_IDs.append(trade.id)
+                    last_price = (
+                        trade.last_price if trade.last_price is not None else last_price
+                    )
                     total_margin += trade.margin_required
                     if trade.direction > 0:
                         # Long trade
@@ -588,7 +592,7 @@ class Broker:
                 # Construct instrument position dict
                 net_position = long_units - short_units
                 try:
-                    net_exposure = net_position * trade.last_price
+                    net_exposure = net_position * last_price
                 except TypeError:
                     # Last price has not been updated yet
                     net_exposure = None
@@ -604,6 +608,7 @@ class Broker:
                     "instrument": instrument,
                     "net_position": net_position,
                     "net_exposure": net_exposure,
+                    "last_price": last_price,
                 }
 
                 # Create Position instance
@@ -1541,10 +1546,13 @@ class Broker:
             self._leverage > 1
             and self._margin_available / self._NAV < self._margin_closeout
         ):
-            # Margin call
+            # Margin call - close all positions
             if self._verbosity > 0:
-                print(f"MARGIN CALL: closing position in {instrument}.")
-            self._margin_call(instrument, latest_time, last_price)
+                print("MARGIN CALL: closing all positions.")
+            positions = self.get_positions()
+            for instrument, position in positions.items():
+                last_price = position.last_price
+                self._margin_call(instrument, latest_time, last_price)
 
     def _modify_order(self, order: Order) -> None:
         """Modify order with updated parameters. Called when
