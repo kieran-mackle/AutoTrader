@@ -93,6 +93,14 @@ def init(minimal, strategies, name):
                     "config": None,
                 }
 
+            elif strategy == "config":
+                # Get strategy config file
+                urls = {
+                    "strategies": None,
+                    "config": "https://raw.githubusercontent.com/"
+                    + "kieran-mackle/AutoTrader/main/templates/strategy_config.yaml",
+                }
+
             else:
                 # Get from demo repo
                 urls = {
