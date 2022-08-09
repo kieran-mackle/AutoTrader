@@ -125,6 +125,7 @@ class AutoTrader:
         self._data_stream_object = DataStream
         self._data_file = None
         self._MTF_data_files = None
+        self._data_path_mapper = None
         self._local_data = None
         self._local_quote_data = None
         self._auxdata = None
@@ -646,6 +647,7 @@ class AutoTrader:
     def add_data(
         self,
         data_dict: dict = None,
+        mapper_func: callable = None,
         quote_data: dict = None,
         data_directory: str = "price_data",
         abs_dir_path: str = None,
@@ -660,6 +662,10 @@ class AutoTrader:
         data_dict : dict, optional
             A dictionary containing the filenames of the datasets
             to be used. The default is None.
+        mapper_func : callable, optional
+            A callable used to provide the absolute filepath to the data
+            given the instrument name (as it appears in the watchlist)
+            as an input argument. The default is None.
         quote_data : dict, optional
             A dictionary containing the quote data filenames
             of the datasets provided in data_dict. The default is None.
@@ -801,6 +807,9 @@ class AutoTrader:
                     modified_auxdata[product] = os.path.join(dir_path, item)
 
             self._auxdata = modified_auxdata
+
+        if mapper_func is not None:
+            self._data_path_mapper = mapper_func
 
         # Assign data stream object
         if stream_object is not None:

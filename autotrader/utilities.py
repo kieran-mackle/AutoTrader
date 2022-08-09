@@ -974,6 +974,9 @@ class DataStream:
         The backtest end date.
     portfolio : bool|list
         The instruments being traded in a portfolio, if any.
+    data_path_mapper : callable
+        A callable to map an instrument to an absolute filepath of
+        data for that instrument.
 
     Notes
     -----
@@ -1006,6 +1009,7 @@ class DataStream:
         self.data_start = None
         self.data_end = None
         self.portfolio = None
+        self.data_path_mapper = None
 
         # Unpack kwargs
         for item in kwargs:
@@ -1060,6 +1064,31 @@ class DataStream:
 
                 # Extract first dataset as base data (arbitrary)
                 data = multi_data[list(self.data_filepaths.keys())[0]]
+
+        elif self.data_path_mapper is not None:
+            # Local data paths provided through mapper function
+            multi_data = {}
+            if self.portfolio:
+                # Portfolio strategy
+                for instrument in self.portfolio:
+                    # Construct filepath
+                    filepath = self.data_path_mapper(instrument)
+
+                    # Save to multidata dict
+                    data = self.get_data._local(
+                        filepath, self.data_start, self.data_end
+                    )
+                    multi_data[instrument] = data
+
+            else:
+                # Single instrument strategy
+                filepath = self.data_path_mapper(instrument)
+                granularity = self.strategy_params["granularity"]
+                data = self.get_data._local(filepath, self.data_start, self.data_end)
+                multi_data[granularity] = data
+
+            # Extract first dataset as base data (arbitrary)
+            data = multi_data[list(multi_data.keys())[0]]
 
         else:
             # Download data

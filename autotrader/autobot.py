@@ -207,6 +207,7 @@ class AutoTraderBot:
             "instrument": self.instrument,
             "feed": self._feed,
             "portfolio": portfolio,
+            "data_path_mapper": self._data_path_mapper,
         }
         self.Stream = self._data_stream_object(**stream_attributes)
 
