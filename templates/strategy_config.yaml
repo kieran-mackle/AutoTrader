@@ -1,0 +1,13 @@
+NAME: Strategy Name
+MODULE: strategy_module
+CLASS: StrategyClass
+INTERVAL: 1h
+PERIOD: 7d
+PORTFOLIO: False
+INCLUDE_BROKER: False
+WATCHLIST:
+  - AAPL
+  - TSLA
+PARAMETERS:
+  ma_period: 9
+  variable: 10
