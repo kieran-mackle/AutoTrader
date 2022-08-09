@@ -62,7 +62,7 @@ class AutoData:
                 if "spread_units" in data_config
                 else "percentage"
             )
-            self._spread = data_config["spread"] if "spread" in data_config else 1
+            self._spread = data_config["spread"] if "spread" in data_config else 0
 
         if not data_config:
             configure_local_feed({})
