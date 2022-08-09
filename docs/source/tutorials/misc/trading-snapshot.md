@@ -1,8 +1,19 @@
-# Trading Snapshot
+# Paper Trading Snapshot
+
+Only for papertrading, since it scrapes the virtual brokers
+attributes.
+
+## Through AutoTrader
+
+```python
+from autotrader import AutoTrader
+
+AutoTrader.papertrade_snapshot('picklename')
+```
+
+[ example output ]
 
 
-Will this work for brokers other than virtual? If so, rename from
-papertrade snapshot to just trading_snapshot.
 
 
 ## Command Line Tool

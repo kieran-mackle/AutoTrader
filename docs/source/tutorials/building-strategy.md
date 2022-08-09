@@ -1,3 +1,4 @@
+(strategy-tut)=
 # Building a Strategy
 So you have an idea for a trading strategy. How do you code this up to 
 use with AutoTrader? Read on to find out, where we code the MACD strategy

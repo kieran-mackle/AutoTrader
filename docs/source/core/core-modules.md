@@ -7,9 +7,9 @@
 :hidden:
    
 AutoTrader <AutoTrader>
-AutoBot <AutoBot>
 AutoData <AutoData>
 AutoPlot <AutoPlot>
+AutoBot <AutoBot>
 Utilities <utilities>
 ```
 

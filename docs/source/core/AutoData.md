@@ -11,6 +11,9 @@ The `autodata.py` module contains the class `AutoData`. This class has three pub
 3. `L2`: to get a snapshot of level 2 data
 
 
+
+
+
 ## AutoData Class
 The `AutoData` class is optionally initialised with a broker configuration dictionary (either manually 
 constructed, or the output of the utility function [`get_config`](utils-get-config). This dictionary 

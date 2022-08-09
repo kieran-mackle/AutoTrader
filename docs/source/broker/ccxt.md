@@ -1,6 +1,6 @@
 (ccxt-module-docs)=
 # CCXT Exchange Interface
-`broker=ccxt:exchange_name`
+`broker=ccxt:<exchange name>`
 
 The CryptoCurrency eXchange Trading (CCXT) library is an open-source 
 [Python library](https://github.com/ccxt/ccxt) supporting over 100 
@@ -18,6 +18,15 @@ with Binance, you would specify:
 ```python
 broker=ccxt:binance
 ```
+
+
+## Supported Features
+
+| Feature | Supported? | Alternative | 
+| ------- | ---------- | ----------- |
+| Stop loss | No | Implement manually in strategy with limit orders |
+| Take profit | No | Implement manually in strategy with stop-limit orders |
+
 
 
 

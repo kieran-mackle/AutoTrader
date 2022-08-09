@@ -1,4 +1,4 @@
-(old-changelog)=
+(old-changelog-page)=
 # AutTrader Changelog (pre v0.6.0)
 
 ## Version 0.5.0

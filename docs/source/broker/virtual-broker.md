@@ -1,5 +1,6 @@
 (virtual-broker-docs)=
 # Virtual Broker
+
 `broker=virtual`
 
 The virtual broker immitates the functionality of a real broker for 
@@ -7,7 +8,16 @@ the purpose of backtesting and live papertrading.
 
 
 ## Virtual Account Configuration
-Whenever the virtual broker is used, 
+Whenever the virtual broker is used (for example in backtesting or
+papertrading), the virtual trading account must be configured using
+the `virtual_account_config` method. If multiple brokers are being 
+used simultaneously, this method must be called once for each 
+broker.
+
+When a real broker/exchange is specified in this method, the instance 
+of AutoData created for data management will be connected to the broker
+specified. 
+
 
 
 ## Internal Position Management
@@ -36,6 +46,7 @@ resulting from a single trade, and are treated in isolation of the entire positi
 in case there is a stop-loss or take-proft attached to them.
 
 
+
 ## Trade Execution
 The virtual broker maintains its own orderbook. The details of this 
 depend on whether AutoTrader is in backtest or livetrade mode.
@@ -58,6 +69,7 @@ Use `configure` and `virtual_account_config`
 
 
 ## API Reference
+
 ```{eval-rst}
 .. autoclass:: autotrader.brokers.virtual.broker.Broker
    :members:

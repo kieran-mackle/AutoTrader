@@ -154,6 +154,11 @@ are treated as `market` order type (liquidity consuming) when calculating tradin
 ```
 
 
+(isolated-position-object)=
+## Isolated Positions
+
+
+
 (position-object)=
 ## Positions
 ```{eval-rst}
