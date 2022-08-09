@@ -82,39 +82,40 @@ def init(minimal, strategies, name):
             os.mkdir(strategy_dir)
 
     # Add strategies
-    for strategy in strategies.split(","):
-        # Construct urls
-        if strategy == "template":
-            # Get strategy template from main repo
-            urls = {
-                "strategies": "https://raw.githubusercontent.com/"
-                + "kieran-mackle/AutoTrader/main/templates/strategy.py",
-                "config": None,
-            }
+    if strategies is not None:
+        for strategy in strategies.split(","):
+            # Construct urls
+            if strategy == "template":
+                # Get strategy template from main repo
+                urls = {
+                    "strategies": "https://raw.githubusercontent.com/"
+                    + "kieran-mackle/AutoTrader/main/templates/strategy.py",
+                    "config": None,
+                }
 
-        else:
-            # Get from demo repo
-            urls = {
-                "strategies": "https://raw.githubusercontent.com/kieran-mackle/"
-                + f"autotrader-demo/main/strategies/{strategy}.py",
-                "config": "https://raw.githubusercontent.com/kieran-mackle/"
-                + f"autotrader-demo/main/config/{strategy}.yaml",
-            }
+            else:
+                # Get from demo repo
+                urls = {
+                    "strategies": "https://raw.githubusercontent.com/kieran-mackle/"
+                    + f"autotrader-demo/main/strategies/{strategy}.py",
+                    "config": "https://raw.githubusercontent.com/kieran-mackle/"
+                    + f"autotrader-demo/main/config/{strategy}.yaml",
+                }
 
-        for dir in ["strategies", "config"]:
-            try:
-                # Download
-                filename = download_file(urls[dir])
+            for dir in ["strategies", "config"]:
+                try:
+                    # Download
+                    filename = download_file(urls[dir])
 
-                # Move to appropriate directory
-                if minimal:
-                    move_to = os.path.join(dir_name, filename)
-                else:
-                    move_to = os.path.join(dir_name, dir, filename)
-                os.rename(filename, move_to)
+                    # Move to appropriate directory
+                    if minimal:
+                        move_to = os.path.join(dir_name, filename)
+                    else:
+                        move_to = os.path.join(dir_name, dir, filename)
+                    os.rename(filename, move_to)
 
-            except:
-                pass
+                except:
+                    pass
 
     # Print completion message
     click.echo("AutoTrader initialisation complete.")
