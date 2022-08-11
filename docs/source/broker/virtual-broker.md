@@ -1,7 +1,7 @@
 (virtual-broker-docs)=
 # Virtual Broker
 
-`broker=virtual`
+`broker='virtual'`
 
 The virtual broker immitates the functionality of a real broker for 
 the purpose of backtesting and live papertrading. 

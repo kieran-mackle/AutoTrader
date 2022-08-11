@@ -1,7 +1,7 @@
 (dydx-module-docs)=
 # dYdX Exchange Interface
 
-`broker=dydx`
+`broker='dydx'`
 
 [dYdX](https://dydx.exchange/) is a decentralised cryptocurrency 
 derivatives exchange.

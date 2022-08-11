@@ -1,7 +1,7 @@
 (oanda-module-docs)=
 # Oanda Broker API
 
-`broker=oanda`
+`broker='oanda'`
 
 
 

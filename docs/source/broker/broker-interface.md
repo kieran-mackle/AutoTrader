@@ -84,7 +84,7 @@ autotrader.brokers
 
 ### Virtual Broker
 
-`broker=virtual`
+`broker='virtual'`
 
 At the heart of AutoTrader's backtesting algorithm is the virtual broker, a 
 Python class intended to replicate the functionality of a real broker. See 
@@ -94,7 +94,7 @@ information about how this functions.
 
 ### Oanda v20 REST API
 
-`broker=oanda`
+`broker='oanda'`
 
 AutoTrader supports Oanda's v20 REST API. See the documentation of the 
 [Oanda Broker](oanda-module-docs) module for more information.
@@ -102,7 +102,7 @@ AutoTrader supports Oanda's v20 REST API. See the documentation of the
 
 ### Interactive Brokers
 
-`broker=ib`
+`broker='ib'`
 
 As of AutoTrader `v0.6.0`, [Interactive Brokers](ib-module-docs) is also 
 supported.
@@ -110,7 +110,7 @@ supported.
 
 ### DYDX Cryto Exchange
 
-`broker=dydx`
+`broker='dydx'`
 
 [dYdX](https://dydx.exchange/) is a decentralised cryptocurrency derivatives 
 exchange.
@@ -118,7 +118,7 @@ exchange.
 
 ### CCXT
 
-`broker=ccxt:<exchange name>`
+`broker='ccxt:<exchange name>'`
 
 The CryptoCurrency eXchange Trading (CCXT) library is an open-source 
 [Python library](https://github.com/ccxt/ccxt) supporting over 100 

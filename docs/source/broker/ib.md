@@ -1,7 +1,7 @@
 (ib-module-docs)=
 # Interactive Brokers
 
-`broker=ib`
+`broker='ib'`
 
 
 ## Supported Features

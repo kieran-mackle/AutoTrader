@@ -1,6 +1,6 @@
 (ccxt-module-docs)=
 # CCXT Exchange Interface
-`broker=ccxt:<exchange name>`
+`broker='ccxt:<exchange name>'`
 
 The CryptoCurrency eXchange Trading (CCXT) library is an open-source 
 [Python library](https://github.com/ccxt/ccxt) supporting over 100 
