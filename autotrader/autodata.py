@@ -1025,6 +1025,10 @@ class AutoData:
         if start_time is not None and end_time is not None and start_time > end_time:
             raise Exception("Start time cannot be later than the end time.")
 
+        # Check granularity was provided
+        if granularity is None:
+            raise Exception("Please specify candlestick granularity.")
+
         def fetch_between_dates():
             # Fetches data between two dates
             count = 1000
@@ -1159,6 +1163,11 @@ class AutoData:
         data : DataFrame
             The price data, as an OHLCV DataFrame.
         """
+
+        # Check granularity was provided
+        if granularity is None:
+            raise Exception("Please specify candlestick granularity.")
+
         gran_str = granularity
         gran_map = {
             60: "1MIN",
