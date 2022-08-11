@@ -2,9 +2,9 @@
 # User Inputs
 
 To use AutoTrader, you must provide three things:
-1. A trading strategy,
-2. The strategy configuration settings,
-3. The account configuration parameters (trading account keys).
+1. A [trading strategy](trading-strategy),
+2. The [strategy configuration](strategy-config),
+3. The [account configuration](global-config) (trading account keys).
 
 The first of these, the trading strategy, is written as a Python class, and 
 contains the logic of your strategy - given some data, what trading signals 

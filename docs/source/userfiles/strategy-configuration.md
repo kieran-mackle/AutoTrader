@@ -1,5 +1,6 @@
 (strategy-config)=
 # Strategy Configuration
+`*.yaml`
 
 The strategy configuration contains information related specifically 
 to a strategy. Each [strategy](trading-strategy) requires its own 
