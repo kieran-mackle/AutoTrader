@@ -73,7 +73,7 @@ Miscellaneous <tutorials/misc/misc-tuts>
 :hidden:
    
 User Inputs <userfiles/userfiles>
-Core Modules <core/core-modules>
+AutoTrader API <core/core-modules>
 Broker Interface <broker/broker-interface>
 Indicator Library <indicators>
 Command Line Interface <core/cli>
