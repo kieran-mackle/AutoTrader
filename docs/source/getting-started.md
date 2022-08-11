@@ -4,7 +4,9 @@ This page has all the information required to download and install AutoTrader.
 
 ## Installation
 
-AutoTrader can be installed in two ways; through [PyPI](https://pypi.org/) or by cloning the repository directly. 
+AutoTrader can be installed in two ways; through 
+[PyPI](https://pypi.org/project/autotrader/) or by cloning the repository 
+directly. 
 
 
 ### PyPI Install
@@ -14,13 +16,15 @@ The easiest (and recommended) way to get AutoTrader is by running the following 
 pip install autotrader
 ```
 
-This will download AutoTrader from the [Python Package Index](https://pypi.org/) and install it on your machine.
+This will download AutoTrader from the 
+[Python Package Index](https://pypi.org/project/autotrader/) and install it 
+on your machine.
 
 
-
-### Clone from GitHub
+### Install from Source
 If you are interested in developing AutoTrader, or would like to view the source code while you work, cloning from 
-GitHub is the way to go. Simply clone the [Github repository](https://github.com/kieran-mackle/AutoTrader) 
+GitHub is the way to go. Simply clone the 
+[Github repository](https://github.com/kieran-mackle/AutoTrader) 
 onto your machine and run `pip install` locally to install.
 
 ```
