@@ -12,17 +12,18 @@
 #
 import os
 import sys
-sys.path.insert(0, os.path.abspath('./../..'))
+
+sys.path.insert(0, os.path.abspath("./../.."))
 
 
 # -- Project information -----------------------------------------------------
 
-project = 'AutoTrader'
-copyright = '2022, Kieran Mackle'
-author = 'Kieran Mackle'
+project = "AutoTrader"
+copyright = "2022, Kieran Mackle"
+author = "Kieran Mackle"
 
 # The full version, including alpha/beta/rc tags
-release = '0.6.0'
+release = "0.6.0"
 
 
 # -- General configuration ---------------------------------------------------
@@ -31,16 +32,16 @@ release = '0.6.0'
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-        'sphinx.ext.autodoc',
-        'sphinx.ext.napoleon',
-        'sphinx_copybutton',
-        'myst_parser',
-        'sphinx_inline_tabs',
+    "sphinx.ext.autodoc",
+    "sphinx.ext.napoleon",
+    "sphinx_copybutton",
+    "myst_parser",
+    "sphinx_inline_tabs",
 ]
 
 
 # Add any paths that contain templates here, relative to this directory.
-templates_path = ['_templates']
+templates_path = ["_templates"]
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
@@ -54,12 +55,12 @@ exclude_patterns = []
 # a list of builtin themes.
 #
 html_title = "AutoTrader Documentation"
-html_theme = 'furo'
+html_theme = "furo"
 
 html_css_files = [
-      "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/fontawesome.min.css",
-      "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/solid.min.css",
-      "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/brands.min.css",
+    "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/fontawesome.min.css",
+    "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/solid.min.css",
+    "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/brands.min.css",
 ]
 
 html_theme_options = {
@@ -82,5 +83,5 @@ html_theme_options = {
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_static']
-html_favicon = 'favicon.ico'
+html_static_path = ["_static"]
+html_favicon = "favicon.ico"

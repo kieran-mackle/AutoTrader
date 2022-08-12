@@ -1,11 +1,11 @@
 (utilities-module)=
 # AutoTrader Utilities Module
-
+`from autotrader import utilities`
 
 (utils-get-config)=
 ## Configuration Utilities
 ```{eval-rst}
-.. autofunction:: autotrader.utilities.get_config
+.. autofunction:: autotrader.utilities.get_data_config
 ```
 
 
@@ -25,15 +25,33 @@
 ```
 
 
+### Get Broker Configuration 
+```{eval-rst}
+.. autofunction:: autotrader.utilities.get_broker_config
+```
+
+(utils-get-data-config)=
+### Get Data Configuration 
+```{eval-rst}
+.. autofunction:: autotrader.utilities.get_data_config
+```
+
+### Unpickle Broker Instance 
+```{eval-rst}
+.. autofunction:: autotrader.utilities.unpickle_broker
+```
+
+
+
 ## Watchlist Utilities
 ```{eval-rst}
 .. autofunction:: autotrader.utilities.get_watchlist
 ```
 
-(utils-backtest-results)=
-## BacktestResults Class
+(utils-trade-results)=
+## TradeAnalysis Class
 ```{eval-rst}
-.. autoclass:: autotrader.utilities.BacktestResults
+.. autoclass:: autotrader.utilities.TradeAnalysis
    :members:
 ```
 

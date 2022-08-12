@@ -1,10 +1,12 @@
 (autoplot-docs)=
 # AutoPlot
+`from autotrader import AutoPlot`
 
-AutoPlot is the automated plotting module of AutoTrader. It is automatically used when visualising backtest results
-or running a [scan](https://kieran-mackle.github.io/AutoTrader/2021/09/27/developing-scanner.html). However, it 
-can also be imported to easily visualise price data and indicators of candlestick data when developing strategies 
-or indicators, as exemplified in this [blog post](https://kieran-mackle.github.io/AutoTrader/2021/09/17/using-indiview.html).
+AutoPlot is the automated plotting module of AutoTrader. It is 
+automatically used when visualising backtest results, but can
+also be interacted with to create charts and visualise 
+indicators. Refer to this 
+[blog post](https://kieran-mackle.github.io/AutoTrader/2021/09/17/using-indiview.html) for an example.
 
 
 ```{eval-rst}
@@ -67,12 +69,17 @@ self.indicators = {'indicator 1 name': {'type': 'indicator 2 type',
                   }
 ```
 
-In this dictionary, each key 'indicator name' is used to create the legend entry corresponding to the 
-indicator. The sub-dictionary assigned to each indicator contains the specific information and associated data. The `type` 
-key should be a string corresponding to the type of indicator, as defined in the table below. It is used to determine whether 
-the indicator should be plotted overlayed on the OHLC chart, or below it on a separate plot. Finally, the data associated with 
-the indicator must also be provided. For indicators with one set of data, such as a moving average, simply provide the data with 
-the `data` key. For indicators with multiple sets of data, such as MACD, provide a key for each set named according to the keys
+In this dictionary, each key 'indicator name' is used to create the 
+legend entry corresponding to the indicator. The sub-dictionary 
+assigned to each indicator contains the specific information and 
+associated data. The `type` key should be a string corresponding to 
+the type of indicator, as defined in the table below. It is used to 
+determine whether the indicator should be plotted overlayed on the 
+OHLC chart, or below it on a separate plot. Finally, the data 
+associated with the indicator must also be provided. For indicators 
+with one set of data, such as a moving average, simply provide the 
+data with the `data` key. For indicators with multiple sets of data,
+such as MACD, provide a key for each set named according to the keys
 specified in the table below.
 
 
@@ -204,12 +211,11 @@ working example is provided below to visualise the price data of Apple from the 
 [AutoData](autodata-docs). 
 
 ```py
-from autotrader.autoplot import AutoPlot
-from autotrader.lib.autodata import GetData
+from autotrader import AutoPlot, AutoData
 
 instrument = 'AAPL'
-get_data = GetData()
-data = get_data.yahoo(instrument, '1d', 
+get_data = AutoData({'data_source': 'yahoo'})
+data = get_data.fetch(instrument, '1d', 
                       start_time='2020-01-01', 
                       end_time='2021-01-01')
 
