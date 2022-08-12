@@ -28,6 +28,30 @@ broker=ccxt:binance
 | Take profit | No | Implement manually in strategy with stop-limit orders |
 
 
+## Configuration
+
+Trading through CCXT requires the following configuration details.
+
+````{tab} keys.yaml configuration
+```yaml
+CCXT:EXCHANGE:
+  api_key: "xxxx"
+  secret: "xxxx"
+  base_currency: "USDT"
+```
+````
+````{tab} Dictionary configuration
+```python
+{"CCXT:EXCHANGE":
+   {
+      "api_key": "xxxx",
+      "secret": "xxxx",
+      "base_currency": "USDT",
+   }
+}
+```
+````
+
 
 
 ## API Reference

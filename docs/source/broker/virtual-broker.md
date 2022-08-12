@@ -61,9 +61,11 @@ data and the specified bid/ask spread model.
 ### Livetrade Mode 
 When livetrading (including papertrading), the execution of orders 
 can become more accurate by tapping into the real-time orderbook 
-of your chosen exchange. 
-
-Use `configure` and `virtual_account_config`
+of your chosen exchange. To do so, the broker/exchange specified
+in `AutoTrader.configure` and `AutoTrader.virtual_account_config`
+is connected to when creating an instance of the virtual broker.
+When orders are recieved, the real-time order book will be queried
+and used to simulate execution.
 
 
 

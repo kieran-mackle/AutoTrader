@@ -27,6 +27,9 @@ same objects.
 
 ## Methods
 The shared methods of the broker interfaces are described below.
+Note that each broker may have their own additional methods
+to extend their functionality based on the brokers API 
+capabilities.
 
 ```{tip}
 A template for integrating new brokers into AutoTrader is included 
