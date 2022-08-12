@@ -1127,6 +1127,84 @@ class AutoData:
 
         return trades
 
+    def _ccxt_funding_history(
+        self,
+        instrument: str,
+        count: int = None,
+        start_time: datetime = None,
+        end_time: datetime = None,
+        **kwargs,
+    ):
+        """Fetches the funding rate history."""
+
+        def response2df(response):
+            """Converts response to DataFrame."""
+            times = []
+            rates = []
+            for chunk in response:
+                times.append(pd.Timestamp(chunk["timestamp"], unit="ms"))
+                rates.append(chunk["fundingRate"])
+            return pd.DataFrame(data={"rate": rates}, index=times)
+
+        def fetch_between_dates():
+            # Fetches data between two dates
+            count = 500
+            start_ts = int(start_time.timestamp() * 1000)
+            end_ts = int(end_time.timestamp() * 1000)
+
+            rate_hist = pd.DataFrame()
+            while start_ts <= end_ts:
+                response = self.api.fetchFundingRateHistory(
+                    symbol=instrument, since=start_ts, limit=count, params=kwargs
+                )
+
+                # Append results
+                df = response2df(response)
+                rate_hist = pd.concat([rate_hist, df])
+
+                # Increment start_ts
+                start_ts = int(df.index[-1].timestamp() * 1000)
+
+                # Sleep for API limit
+                time.sleep(1)
+
+            return rate_hist
+
+        if count is not None:
+            if start_time is None and end_time is None:
+                # Fetch N most recent candles
+                response = self.api.fetchFundingRateHistory(
+                    symbol=instrument, limit=count, params=kwargs
+                )
+                rate_hist = response2df(response)
+            elif start_time is not None and end_time is None:
+                # Fetch N candles since start_time
+                start_ts = (
+                    None if start_time is None else int(start_time.timestamp() * 1000)
+                )
+                response = self.api.fetchFundingRateHistory(
+                    symbol=instrument, since=start_ts, limit=count, params=kwargs
+                )
+                rate_hist = response2df(response)
+            elif end_time is not None and start_time is None:
+                raise Exception(
+                    "Fetching data from end_time and count is " + "not yet supported."
+                )
+            else:
+                rate_hist = fetch_between_dates()
+
+        else:
+            # Count is None
+            if start_time is not None and end_time is not None:
+                rate_hist = fetch_between_dates()
+            else:
+                response = self.api.fetchFundingRateHistory(
+                    symbol=instrument, limit=count, params=kwargs
+                )
+                rate_hist = response2df(response)
+
+        return rate_hist
+
     def _dydx(
         self,
         instrument: str,
