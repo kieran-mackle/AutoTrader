@@ -81,9 +81,7 @@ class AutoData:
                     self.api = v20.Context(hostname=API, token=ACCESS_TOKEN, port=port)
                     self.ACCOUNT_ID = data_config["ACCOUNT_ID"]
                 except ImportError:
-                    raise Exception(
-                        "Please install v20 to use " + "the Oanda data feed."
-                    )
+                    raise Exception("Please install v20 to use the Oanda data feed.")
 
             elif data_config["data_source"].lower() == "ib":
                 host = data_config["host"]
@@ -106,9 +104,7 @@ class AutoData:
                         account=account,
                     )
                 except ImportError:
-                    raise Exception(
-                        "Please install ib_insync to use " + "the IB data feed."
-                    )
+                    raise Exception("Please install ib_insync to use the IB data feed.")
 
             elif data_config["data_source"].lower() == "ccxt":
                 try:
@@ -117,9 +113,7 @@ class AutoData:
                     self._ccxt_exchange = data_config["exchange"]
                     self.api = getattr(ccxt, data_config["exchange"])()
                 except ImportError:
-                    raise Exception(
-                        "Please install ccxt to use " + "the CCXT data feed."
-                    )
+                    raise Exception("Please install ccxt to use the CCXT data feed.")
 
             elif data_config["data_source"].lower() == "dydx":
                 try:
@@ -128,7 +122,7 @@ class AutoData:
                     self.api = Client(host="https://api.dydx.exchange")
                 except ImportError:
                     raise Exception(
-                        "Please install dydx-v3-python to use " + "the dydx data feed."
+                        "Please install dydx-v3-python to use the dydx data feed."
                     )
 
             elif data_config["data_source"].lower() == "yahoo":
