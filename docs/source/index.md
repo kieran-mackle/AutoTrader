@@ -37,12 +37,6 @@ of [CCXT](https://github.com/ccxt/ccxt). The table below summarises the connecti
 AutoTrader `v0.7.0` has been released! Make sure to check out the [changelog](changelog) when upgrading
 for details on the breaking changes and latest features.
 
-
-## Contact
-If you have any other queries or suggestions, please [raise an issue](https://github.com/kieran-mackle/AutoTrader/issues)
-on the GitHub repository or send me an [email](mailto:kemackle98@gmail.com).
-
-
 ## Index
 Looking for something specific? Try the search bar on the left, or take a look through the 
 {ref}`index <genindex>`.
