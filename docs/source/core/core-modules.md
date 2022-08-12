@@ -66,26 +66,29 @@ API for price data.
 The global configuration file is also used to store email account details for [email notifications](emailing-utils).
 
 ### AutoTrader
-AutoTrader is the brains behind the software - read the complete documentation for it [here](autotrader-docs). In brief,
-it compiles each strategy and assigns a trading bot for each instrument in the strategy's watchlist (as defined in the 
-[strategy configuration](strategy-config) file). Each of these bots will then monitor a single instrument
-to trade it according to the strategy it has been assigned. 
+AutoTrader provides the the skeleton to your trading framework - read the 
+complete documentation for it [here](autotrader-docs). In brief, 
+AutoTrader loads each strategy, deploys trading bots, and monitors them
+for as long as they are trading.
 
-The mechanism by which the bots are deployed depends on the update mode of AutoTrader. Bots can either be periodically
-updated with new data, or connected to a data stream to run continuously. When running periodically, the bots will be 
-deployed each time the data is updated, and terminated after executing the strategy. When connected to a price stream,
-the bots will be deployed in detached-bot mode once only, trading continuously until a termination signal is received.
-In most strategies, periodic update mode is adequate. 
+The mechanism by which the bots are deployed depends on the selected 
+[run mode](autotrader-run-modes) of AutoTrader. Bots can either be 
+periodically updated with new data, or run continuously without stopping.
+When running periodically, the bots will be deployed each time the data 
+is updated, and terminated after executing the strategy. 
 
 ### Broker API Connection
-Each bot will also be connected to a [broker API](broker-interface). When they recieve a signal from the trading strategy,
-they will place an order with the broker. This modular structure allows for a seamless transition from backtesting to 
-livetrading. 
+Each bot will also be connected to one or more [broker APIs](broker-interface). 
+When they recieve a signal from the trading strategy, they will place 
+an order with the broker. This modular structure allows for a seamless 
+transition from backtesting to livetrading. 
 
 
 (shutdown-routines-overview)=
 ### Shutdown Routines
-AutoTrader also supports the inclusion of strategy-specific shutdown routines. This includes any processes you would like 
-to run *after* your strategy is finished trading. This may include writing data to file, pickling the strategy instance,
-or sending termination emails. Read more about this functionality [here](strategy-shutdown-routine).
+AutoTrader also supports the inclusion of strategy-specific shutdown 
+routines. This includes any processes you would like to run *after* 
+your strategy is finished trading. This may include writing data to 
+file, pickling the strategy instance, or sending termination emails. 
+Read more about this functionality [here](strategy-shutdown-routine).
 

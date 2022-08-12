@@ -11,6 +11,6 @@ Click Trading <click-trading>
 Broker Pickling <broker-pickles>
 Dashboarding <dashboarding>
 Trading Snapshots <trading-snapshot>
-Continuous Mode <continuous-mode>
+Run Modes <periodic-v-continuous>
 Single File Strategy <single-file-strat>
 ```

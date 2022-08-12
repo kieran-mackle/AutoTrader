@@ -69,8 +69,7 @@ Each new broker API is contained within its own submodule of the
 submodules:
 1. A core API module which communicates with the broker.
 2. A utility module containing helper functions related to the core API 
-module. This will usually inherit attributes from the 
-[`BrokerUtils`](broker-utils) class.
+module. 
 
 ```
 autotrader.brokers

@@ -211,12 +211,11 @@ working example is provided below to visualise the price data of Apple from the 
 [AutoData](autodata-docs). 
 
 ```py
-from autotrader.autoplot import AutoPlot
-from autotrader.lib.autodata import GetData
+from autotrader import AutoPlot, AutoData
 
 instrument = 'AAPL'
-get_data = GetData()
-data = get_data.yahoo(instrument, '1d', 
+get_data = AutoData({'data_source': 'yahoo'})
+data = get_data.fetch(instrument, '1d', 
                       start_time='2020-01-01', 
                       end_time='2021-01-01')
 
