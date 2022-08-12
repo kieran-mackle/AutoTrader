@@ -61,7 +61,7 @@ at.backtest()
 
 6. Run AutoTrader
 
-```pyhton
+```python
 at.run()
 ```
 

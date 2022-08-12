@@ -11,7 +11,7 @@ dictionary, specifying at least the data source. If you do
 not provide this dictionary, AutoData will assume you will
 be using local data.
 
-AutoData has three public methods:
+AutoData has three main public methods:
 1. `fetch`: to fetch historical OHLC data
 2. `L1`: to get a snapshot of level 1 data
 3. `L2`: to get a snapshot of level 2 data

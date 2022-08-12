@@ -57,13 +57,12 @@ trading strategy, is required. Each strategy module requires it's own
 [strategy configuration](strategy-config) file, containing the strategy 
 parameters and strategy
 watchlist. There is a second configuration file, the [global configuration](global-config) file, which is used 
-conditionally. If you are [live-trading](autotrader-mediums), you will need to create a global configuration 
+conditionally. If you are live trading, you will need to create a global configuration 
 file to provide brokerage account details. You will also need to do this if you wish to use a broker to obtain price data. 
-If you will only be [backtesting](autotrader-mediums) or [scanning](autotrader-mediums), you do not need 
+If you will are only backtesting, you do not need 
 to provide a global configuration file. In this case, [AutoData](autodata-docs) will revert to using the Yahoo Finance 
 API for price data.
 
-The global configuration file is also used to store email account details for [email notifications](emailing-utils).
 
 ### AutoTrader
 AutoTrader provides the the skeleton to your trading framework - read the 
