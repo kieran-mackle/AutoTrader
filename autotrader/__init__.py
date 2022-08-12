@@ -2,8 +2,15 @@ from .autoplot import AutoPlot
 from .autodata import AutoData
 from .autotrader import AutoTrader
 from .utilities import TradeAnalysis, DataStream
-from .brokers.trading import (Order, Trade, Position,
-                              LimitOrder, MarketOrder, StopLimitOrder)
+from .brokers.trading import (
+    Order,
+    IsolatedPosition,
+    Position,
+    LimitOrder,
+    MarketOrder,
+    StopLimitOrder,
+    Trade,
+)
 
 # Broker imports
 # CCXT
