@@ -42,6 +42,7 @@ setuptools.setup(
         "tqdm>=4.64.0",
         "importlib-resources",
         "Click",
+        "requests",
     ],
     extras_require={
         "dydx": ["dydx-v3-python"],
@@ -61,7 +62,7 @@ setuptools.setup(
         "setuptools_git",
         "setuptools_scm",
     ],
-    package_data={"": ["data/*.js", "data/GLOBAL.yaml"]},
+    package_data={"": ["data/*.js", "data/keys.yaml"]},
     entry_points={
         "console_scripts": [
             "autotrader = autotrader.bin.cli:cli",
