@@ -7,10 +7,12 @@ which are useful to know, but not essential to using AutoTrader.
 :maxdepth: 2
 :hidden:
 
-Click Trading <click-trading>
-Broker Pickling <broker-pickles>
-Dashboarding <dashboarding>
-Trading Snapshots <trading-snapshot>
 Run Modes <periodic-v-continuous>
 Single File Strategy <single-file-strat>
 ```
+
+
+<!-- Click Trading <click-trading>
+Broker Pickling <broker-pickles>
+Dashboarding <dashboarding>
+Trading Snapshots <trading-snapshot> -->
