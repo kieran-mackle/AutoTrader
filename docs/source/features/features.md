@@ -9,7 +9,6 @@ below to see some of the features AutoTrader has to show for.
 
 Backtesting <backtesting>
 Interactive Visualisations <visualisation>
-Scanning <scanning>
 Live Trading <live-trading>
 Data Pipelines <data-feeds>
 Custom Indicators <indicators>
