@@ -10,8 +10,9 @@ in real-time. You can do this in two different environments:
 and exchanges for execution with real money.
 
 If you want to do the latter, you will need to make sure you have your
-API keys defined in your `keys.yaml` file. This isn't necessary for 
-paper trading, since the environment is completely simulated.
+API keys defined in your [`keys.yaml` file](global-config). This isn't 
+necessary for paper trading, since the environment is completely 
+simulated.
 
 
 ## Live Runfile

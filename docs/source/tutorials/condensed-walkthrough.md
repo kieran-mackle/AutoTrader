@@ -102,7 +102,9 @@ the `generate_exit_levels` helper method to calculate these prices.
 
 
 ```{tip}
-Take a look at the template strategy file provided [here](https://github.com/kieran-mackle/autotrader-demo/blob/main/strategies/template.py).
+Take a look at the 
+<a href="https://github.com/kieran-mackle/AutoTrader/blob/main/templates/strategy.py" target="_blank">template strategy</a>
+provided in the Github repository.
 ```
 
 

@@ -15,6 +15,8 @@ read into Python as dictionaries). Note that spacing is important in
 A template strategy configuration file can be generated using the command
 line interface! Simply run `autotrader init -s config` in your home
 directory, and a template file will be created in the `config/` directory.
+You can also find this template in the
+<a href="https://github.com/kieran-mackle/AutoTrader/blob/main/templates/strategy_config.yaml" target="_blank">Github repository</a>.
 ```
 
 (strategy-config-options)=

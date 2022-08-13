@@ -92,6 +92,10 @@ on the 1-hour timeframe. This value is used when retrieving price data
 through [AutoData](autodata-docs). This is discussed more in the next 
 section.
 
+```{tip}
+You can find a template strategy configuration file in the 
+<a href="https://github.com/kieran-mackle/AutoTrader/blob/main/templates/strategy_config.yaml" target="_blank">Github repository</a>.
+```
 
 ### Strategy Class
 
@@ -122,7 +126,7 @@ look-ahead.
 
 #### Template Strategy
 We will start by filling out the 
-<a href="https://github.com/kieran-mackle/autotrader-demo/blob/main/strategies/template.py" target="_blank">template strategy</a>
+<a href="https://github.com/kieran-mackle/AutoTrader/blob/main/templates/strategy.py" target="_blank">template strategy</a>
 shown below.
 
 ```py

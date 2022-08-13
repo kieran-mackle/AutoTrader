@@ -17,6 +17,8 @@ Example account configuration structures are shown below.
 A template `keys.yaml` file can be generated using the command
 line interface! Simply run `autotrader init` in your home directory, 
 and the template file will be created in the `config/` directory.
+You can also find this template in the 
+<a href="https://github.com/kieran-mackle/AutoTrader/blob/main/autotrader/data/keys.yaml" target="_blank">Github repository</a>.
 ```
 
 ````{tab} YAML File

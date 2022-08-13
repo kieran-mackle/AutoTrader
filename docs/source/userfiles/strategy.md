@@ -19,7 +19,7 @@ also be helpful to review the tutorial,
 
 ```{tip}
 A strategy template can be found in the templates folder of the 
-[GitHub Repository](https://github.com/kieran-mackle/AutoTrader).
+<a href="https://github.com/kieran-mackle/AutoTrader/blob/main/templates/strategy.py" target="_blank">Github repository</a>.
 You can also use the command line interface to download 
 strategies from the repo.
 ```
