@@ -96,7 +96,7 @@ updated at an appropriate interval.
 
 Note that you do not have to call this method if you are directly 
 connecting to one of the supported exchanges for a data 
-[feed](autotraded-configure). In this case, AutoTrader will automatically
+[feed](autotrader-configure). In this case, AutoTrader will automatically
 download data using the information provided in your 
 [strategy configuration](strategy-config) and supply it to your 
 strategy.

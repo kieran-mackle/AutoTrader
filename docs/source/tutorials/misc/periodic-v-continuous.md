@@ -23,7 +23,7 @@ change slightly depending on the run mode you are using. See the
 
 
 (autotrader-periodic-mode)=
-### Periodic Update Mode
+## Periodic Update Mode
 In periodic update mode, an integer index `i` is used to iterate through 
 the data set to provide trading signals at different points in time. When
 backtesting, this index will vary from `0` to `len(data)`. Upon each 
@@ -67,7 +67,7 @@ In such cases, continuous update mode may be better suited.
 
 
 (autotrader-continuous-mode)=
-### Continuous Update Mode
+## Continuous Update Mode
 
 In continuous update mode, a time marching algorithm is used in place 
 of the integer indexing method used in periodic update mode. That is, 
@@ -94,7 +94,7 @@ The charts below illustrate this mode.
 ```
 
 (autotrader-instance-file)=
-#### Livetrading Bot Management
+### Livetrading Bot Management
 When bots are deployed for livetrading in continuous mode, a directory 
 named 'active_bots' will be created in the working directory. In this 
 directory, an 'instance file' will be created for each active instance 
