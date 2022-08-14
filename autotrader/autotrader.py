@@ -395,7 +395,16 @@ class AutoTrader:
             self._shutdown_methods[name] = shutdown_method
 
             # Set timestep from strategy config
-            strat_granularity = pd.Timedelta(new_strategy["INTERVAL"]).to_pytimedelta()
+            try:
+                strat_granularity = pd.Timedelta(
+                    new_strategy["INTERVAL"]
+                ).to_pytimedelta()
+            except:
+                print(
+                    f"Strategy configuration error: invalid time interval: '{new_strategy['INTERVAL']}'."
+                )
+                sys.exit(0)
+
             if self._strategy_timestep is None:
                 # Timestep hasn't been set yet; set it
                 self._strategy_timestep = strat_granularity
