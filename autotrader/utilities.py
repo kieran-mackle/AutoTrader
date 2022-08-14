@@ -492,15 +492,17 @@ class TradeAnalysis:
                 index=broker._time_hist,
             )
 
+            # Remove duplicates
+            account_history = account_history[
+                ~account_history.index.duplicated(keep="last")
+            ]
+
             position_history = TradeAnalysis.create_position_history(
                 trade_history=trade_history,
                 account_history=account_history,
             )
 
             # Calculate drawdown
-            account_history = account_history[
-                ~account_history.index.duplicated(keep="last")
-            ]
             account_history["drawdown"] = (
                 account_history.NAV / account_history.NAV.cummax() - 1
             )
