@@ -7,11 +7,17 @@ from typing import Union
 from bokeh.models.annotations import Title
 from bokeh.plotting import figure, output_file, show
 from bokeh.io import output_notebook, curdoc
-from bokeh.models import CustomJS, ColumnDataSource, HoverTool, CrosshairTool, Span
+from bokeh.models import (
+    CustomJS,
+    ColumnDataSource,
+    HoverTool,
+    CrosshairTool,
+    Span,
+    CustomJSTransform,
+)
 from bokeh.layouts import gridplot, layout
-from bokeh.transform import factor_cmap, cumsum
+from bokeh.transform import factor_cmap, cumsum, transform
 from bokeh.palettes import Category20c
-
 from autotrader.utilities import TradeAnalysis
 
 try:
@@ -522,6 +528,192 @@ class AutoPlot:
         )
 
     """ ------------------- FIGURE MANAGEMENT METHODS --------------------- """
+
+    def _portfolio_plot(self, trade_results: TradeAnalysis):
+        """Creates a positions history chart."""
+        # Extract results
+        account_history = self._reindex_data(trade_results.account_history)
+        position_history = self._reindex_data(np.sign(trade_results.position_history))
+
+        # Plot account balance history
+        topsource = ColumnDataSource(account_history)
+        topsource.add(account_history[["NAV", "equity"]].min(1), "Low")
+        topsource.add(account_history[["NAV", "equity"]].max(1), "High")
+
+        navfig = figure(
+            plot_width=self._ohlc_width,
+            plot_height=self._top_fig_height,
+            title="Account History",
+            active_drag="pan",
+            active_scroll="wheel_zoom",
+        )
+        navfig.line(
+            x="data_index",
+            y="NAV",
+            line_color="black",
+            legend_label="Backtest Net Asset Value",
+            source=topsource,
+        )
+        navfig.line(
+            x="data_index",
+            y="equity",
+            line_color="blue",
+            legend_label="Backtest Equity",
+            source=topsource,
+        )
+        navfig.ray(
+            x=[0],
+            y=account_history["NAV"][0],
+            length=len(account_history),
+            angle=0,
+            line_width=0.5,
+            line_color="black",
+        )
+
+        fill_color = pd.Series(dtype=str, index=account_history.index)
+        nav0 = account_history["NAV"][0]
+        fill_color[account_history["NAV"] >= nav0] = "green"
+        fill_color[account_history["NAV"] < nav0] = "red"
+
+        fill_alpha = 0.3
+
+        navfig.varea(
+            x="data_index",
+            y1=transform(
+                "NAV",
+                CustomJSTransform(
+                    v_func=f"return xs.map(x => x > {nav0} ? x : {nav0})"
+                ),
+            ),
+            y2=nav0,
+            source=topsource,
+            color="limegreen",
+            fill_alpha=fill_alpha,
+        )
+
+        navfig.varea(
+            x="data_index",
+            y1=transform(
+                "NAV",
+                CustomJSTransform(
+                    v_func=f"return xs.map(x => x < {nav0} ? x : {nav0})"
+                ),
+            ),
+            y2=nav0,
+            source=topsource,
+            color="salmon",
+            fill_alpha=fill_alpha,
+        )
+
+        # Add to autoscale args
+        self.autoscale_args = {"y_range": navfig.y_range, "source": topsource}
+
+        # Plot positions
+        pos_source = ColumnDataSource(position_history)
+        pos_source.add(np.ones(len(position_history)) * -1.1, "Low")
+        pos_source.add(np.ones(len(position_history)) * 1.1, "High")
+        position_figs = []
+        max_pos_charts = 4
+        for n, instrument in enumerate(trade_results.instruments_traded):
+            if n <= max_pos_charts:
+                posfig = figure(
+                    plot_width=self._ohlc_width,
+                    plot_height=self._top_fig_height,
+                    title=f"{instrument} Position History",
+                    active_drag="pan",
+                    active_scroll="wheel_zoom",
+                    x_range=navfig.x_range,
+                )
+                posfig.line(
+                    x="data_index",
+                    y=instrument,
+                    line_color="blue",
+                    source=pos_source,
+                )
+                position_figs.append(posfig)
+
+                self._add_to_autoscale_args(pos_source, posfig.y_range)
+
+        # TODO - add the following
+        # Plot leverage history
+        # Plot returns distribution (across all positions)
+
+        # Add javascript callback
+        js = CustomJS(args=self.autoscale_args, code=self._autoscale_code)
+        navfig.x_range.js_on_change("end", js)
+
+        # Construct final figure
+        plots = [navfig] + position_figs
+
+        for plot in plots:
+            plot.sizing_mode = "stretch_width"
+            plot.min_border_left = 0
+            plot.min_border_top = 3
+            plot.min_border_bottom = 6
+            plot.min_border_right = 10
+            plot.outline_line_color = "black"
+
+            if plot.legend:
+                plot.legend.visible = True
+                plot.legend.location = "top_left"
+                plot.legend.border_line_width = 1
+                plot.legend.border_line_color = "#333333"
+                plot.legend.padding = 5
+                plot.legend.spacing = 0
+                plot.legend.margin = 0
+                plot.legend.label_text_font_size = "8pt"
+                plot.legend.click_policy = "hide"
+
+            plot.xaxis.bounds = (0, account_history.index[-1])
+            plot.xaxis.major_label_overrides = {
+                i: date.strftime("%b %d %Y")
+                for i, date in enumerate(pd.to_datetime(account_history["date"]))
+            }
+
+        # Pie chart of trades per instrument
+        no_instruments = len(trade_results.instruments_traded)
+        trades_per_instrument = [
+            sum(trade_results.trade_history["instrument"] == inst)
+            for inst in trade_results.instruments_traded
+        ]
+        pie_data = pd.DataFrame(
+            data={"trades": trades_per_instrument},
+            index=trade_results.instruments_traded,
+        ).fillna(0)
+        pie_data["angle"] = pie_data["trades"] / pie_data["trades"].sum() * 2 * pi
+        if no_instruments < 3:
+            pie_data["color"] = Category20c[3][0:no_instruments]
+        else:
+            pie_data["color"] = Category20c[no_instruments]
+
+        pie = self._plot_pie(pie_data, fig_title="Trade Distribution")
+
+        pie.axis.axis_label = None
+        pie.axis.visible = False
+        pie.grid.grid_line_color = None
+        pie.sizing_mode = "stretch_width"
+        pie.legend.location = "top_left"
+        pie.legend.border_line_width = 1
+        pie.legend.border_line_color = "#333333"
+        pie.legend.padding = 5
+        pie.legend.spacing = 0
+        pie.legend.margin = 0
+        pie.legend.label_text_font_size = "8pt"
+
+        fig = gridplot(
+            plots + [pie],
+            ncols=1,
+            toolbar_location="right",
+            toolbar_options=dict(logo=None),
+            merge_tools=True,
+        )
+        fig.sizing_mode = "scale_width"
+
+        curdoc().theme = self._chart_theme
+
+        if self._jupyter_notebook:
+            output_notebook()
+        show(fig)
 
     def _plot_multibot_backtest(self, backtest_results):
         """Creates multi-bot backtest figure."""
