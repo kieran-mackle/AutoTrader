@@ -111,7 +111,20 @@ class AutoData:
                     import ccxt
 
                     self._ccxt_exchange = data_config["exchange"]
-                    self.api = getattr(ccxt, data_config["exchange"])()
+
+                    # Check if exchange options were provided
+                    if "config" in data_config:
+                        # Use config dict provided
+                        ccxt_config = data_config["config"]
+                    else:
+                        # Create empty config dict
+                        ccxt_config = {}
+
+                    # Create CCXT instance
+                    self.api = getattr(ccxt, data_config["exchange"])(
+                        config=ccxt_config
+                    )
+
                 except ImportError:
                     raise Exception("Please install ccxt to use the CCXT data feed.")
 
