@@ -39,6 +39,10 @@ AutoTrader is Python-based platform intended to help in the development, optimis
 A basic level of experience with Python is recommended for using AutoTrader, but the [docs](https://autotrader.readthedocs.io/en/latest/) 
 aim to make using it as easy as possible with detailed tutorials and documentation.
 
+## Latest News
+- Version 0.7 has been released, adding integrations with [CCXT](https://github.com/ccxt/ccxt) and [dYdX](https://dydx.exchange/) crypto exchanges. Many more powerful upgrades too.
+- AutoTrader has been featured in GitClone's recent article, [*Top Crypto Trader Open-Source Projects on Github*](https://gitclone.dev/top-crypto-trader-open-source-projects-on-github/).
+
 ## Features
 - A feature-rich trading simulator, supporting [backtesting](https://autotrader.readthedocs.io/en/latest/features/backtesting.html) and 
 papertrading. The 'virtual broker' allows you to test your strategies in a risk-free, simulated environment before going live. Capable 
