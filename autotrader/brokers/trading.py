@@ -374,21 +374,31 @@ class Order:
                 self.size = round(self.base_size / HCF, self.size_precision)
             else:
                 # Size not provided, need to calculate it
-                amount_risked = (
-                    amount_risked if amount_risked else broker.get_NAV() * risk_pc / 100
-                )
-
                 if sizing == "risk":
                     # Calculate size from SL placement
-                    size = broker._utils.get_size(
-                        instrument=self.instrument,
-                        amount_risked=amount_risked,
-                        price=working_price,
-                        HCF=HCF,
-                        stop_price=self.stop_loss,
-                        stop_distance=self.stop_distance,
-                    )
-                    self.size = round(size, self.size_precision)
+                    try:
+                        amount_risked = (
+                            amount_risked
+                            if amount_risked
+                            else broker.get_NAV() * risk_pc / 100
+                        )
+
+                        size = broker._utils.get_size(
+                            instrument=self.instrument,
+                            amount_risked=amount_risked,
+                            price=working_price,
+                            HCF=HCF,
+                            stop_price=self.stop_loss,
+                            stop_distance=self.stop_distance,
+                        )
+                        self.size = round(size, self.size_precision)
+
+                    except AttributeError:
+                        # Broker is None type
+                        raise Exception(
+                            "Cannot calculate size without broker access. Please "
+                            + "pass size argument, or add broker to Order object."
+                        )
 
                 else:
                     # Use position size provided via sizing key
