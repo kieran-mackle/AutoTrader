@@ -12,11 +12,7 @@
   </a>
   
   <a href="https://pepy.tech/project/autotrader">
-    <img src="https://pepy.tech/badge/autotrader" alt="Total downloads" >
-  </a>
-  
-  <a href="https://pepy.tech/project/autotrader">
-    <img src="https://pepy.tech/badge/autotrader/week" alt="Monthly downloads" >
+    <img src="https://pepy.tech/badge/autotrader/month" alt="Monthly downloads" >
   </a>
   
   <a>
