@@ -50,10 +50,10 @@ def test_macd_backtest():
     assert round(bt_results["ending_balance"], 3) == 922.059, (
         "Incorrect " + "ending balance (single instrument backtest)"
     )
-    assert bt_results["long_trades"]["no_trades"] == 10, (
+    assert bt_results["long_positions"]["total"] == 10, (
         "Incorrect number " + "of long trades (single instrument backtest)"
     )
-    assert bt_results["short_trades"]["no_trades"] == 25, (
+    assert bt_results["short_positions"]["total"] == 25, (
         "Incorrect number " + "of short trades (single instrument backtest)"
     )
 
@@ -103,10 +103,10 @@ def test_multibot_macd_backtest():
     assert round(bt_results["ending_balance"], 3) == 838.269, (
         "Incorrect " + "ending balance (multi-instrument backtest)"
     )
-    assert bt_results["long_trades"]["no_trades"] == 18, (
+    assert bt_results["long_positions"]["total"] == 18, (
         "Incorrect number " + "of long trades (multi-instrument backtest)"
     )
-    assert bt_results["short_trades"]["no_trades"] == 48, (
+    assert bt_results["short_positions"]["total"] == 48, (
         "Incorrect number " + "of short trades (multi-instrument backtest)"
     )
 

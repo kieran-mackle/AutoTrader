@@ -835,6 +835,12 @@ class TradeAnalysis:
         # All trades
         no_trades = len(self.trade_history)
         trade_results["no_trades"] = no_trades
+        trade_results["no_long_trades"] = len(
+            self.trade_history[self.trade_history["direction"] > 0]
+        )
+        trade_results["no_short_trades"] = len(
+            self.trade_history[self.trade_history["direction"] < 0]
+        )
 
         if no_trades > 0:
             # Initialise all_trades dict
@@ -862,9 +868,17 @@ class TradeAnalysis:
             longest_win_streak, longest_lose_streak = get_streaks(
                 self.isolated_position_history
             )
-            avg_trade_duration = np.nanmean(
-                self.isolated_position_history.trade_duration.values
-            )
+            try:
+                avg_trade_duration = np.nanmean(
+                    self.isolated_position_history.trade_duration.values
+                )
+                trade_results["all_trades"]["avg_trade_duration"] = str(
+                    timedelta(seconds=int(avg_trade_duration))
+                )
+            except TypeError:
+                # Position has not been closed yet
+                trade_results["all_trades"]["avg_trade_duration"] = None
+
             min_trade_duration = np.nanmin(
                 self.isolated_position_history.trade_duration.values
             )
@@ -880,63 +894,69 @@ class TradeAnalysis:
             trade_results["all_trades"]["win_rate"] = win_rate
             trade_results["all_trades"]["win_streak"] = longest_win_streak
             trade_results["all_trades"]["lose_streak"] = longest_lose_streak
-            trade_results["all_trades"]["longest_trade"] = str(
-                timedelta(seconds=int(max_trade_duration))
-            )
-            trade_results["all_trades"]["shortest_trade"] = str(
-                timedelta(seconds=int(min_trade_duration))
-            )
-            trade_results["all_trades"]["avg_trade_duration"] = str(
-                timedelta(seconds=int(avg_trade_duration))
-            )
+
+            if max_trade_duration is not None:
+                trade_results["all_trades"]["longest_trade"] = str(
+                    timedelta(seconds=int(max_trade_duration))
+                )
+            else:
+                trade_results["all_trades"]["longest_trade"] = str(None)
+
+            if min_trade_duration is not None:
+                trade_results["all_trades"]["shortest_trade"] = str(
+                    timedelta(seconds=int(min_trade_duration))
+                )
+            else:
+                trade_results["all_trades"]["shortest_trade"] = str(None)
+
             trade_results["all_trades"]["total_fees"] = total_fees
 
         # Cancelled orders
         trade_results["no_cancelled"] = len(self.cancelled_orders)
 
         # Long positions
-        long_trades = self.isolated_position_history[
+        long_positions = self.isolated_position_history[
             self.isolated_position_history["direction"] > 0
         ]
-        no_long = len(long_trades)
-        trade_results["long_trades"] = {}
-        trade_results["long_trades"]["no_trades"] = no_long
+        no_long = len(long_positions)
+        trade_results["long_positions"] = {}
+        trade_results["long_positions"]["total"] = no_long
         if no_long > 0:
-            long_wins = long_trades[long_trades.profit > 0]
+            long_wins = long_positions[long_positions.profit > 0]
             avg_long_win = np.mean(long_wins.profit)
             max_long_win = np.max(long_wins.profit)
-            long_loss = long_trades[long_trades.profit < 0]
+            long_loss = long_positions[long_positions.profit < 0]
             avg_long_loss = abs(np.mean(long_loss.profit))
             max_long_loss = abs(np.min(long_loss.profit))
-            long_wr = 100 * len(long_trades[long_trades.profit > 0]) / no_long
+            long_wr = 100 * len(long_positions[long_positions.profit > 0]) / no_long
 
-            trade_results["long_trades"]["avg_long_win"] = avg_long_win
-            trade_results["long_trades"]["max_long_win"] = max_long_win
-            trade_results["long_trades"]["avg_long_loss"] = avg_long_loss
-            trade_results["long_trades"]["max_long_loss"] = max_long_loss
-            trade_results["long_trades"]["long_wr"] = long_wr
+            trade_results["long_positions"]["avg_long_win"] = avg_long_win
+            trade_results["long_positions"]["max_long_win"] = max_long_win
+            trade_results["long_positions"]["avg_long_loss"] = avg_long_loss
+            trade_results["long_positions"]["max_long_loss"] = max_long_loss
+            trade_results["long_positions"]["long_wr"] = long_wr
 
         # Short positions
-        short_trades = self.isolated_position_history[
+        short_positions = self.isolated_position_history[
             self.isolated_position_history["direction"] < 0
         ]
-        no_short = len(short_trades)
-        trade_results["short_trades"] = {}
-        trade_results["short_trades"]["no_trades"] = no_short
+        no_short = len(short_positions)
+        trade_results["short_positions"] = {}
+        trade_results["short_positions"]["total"] = no_short
         if no_short > 0:
-            short_wins = short_trades[short_trades.profit > 0]
+            short_wins = short_positions[short_positions.profit > 0]
             avg_short_win = np.mean(short_wins.profit)
             max_short_win = np.max(short_wins.profit)
-            short_loss = short_trades[short_trades.profit < 0]
+            short_loss = short_positions[short_positions.profit < 0]
             avg_short_loss = abs(np.mean(short_loss.profit))
             max_short_loss = abs(np.min(short_loss.profit))
-            short_wr = 100 * len(short_trades[short_trades.profit > 0]) / no_short
+            short_wr = 100 * len(short_positions[short_positions.profit > 0]) / no_short
 
-            trade_results["short_trades"]["avg_short_win"] = avg_short_win
-            trade_results["short_trades"]["max_short_win"] = max_short_win
-            trade_results["short_trades"]["avg_short_loss"] = avg_short_loss
-            trade_results["short_trades"]["max_short_loss"] = max_short_loss
-            trade_results["short_trades"]["short_wr"] = short_wr
+            trade_results["short_positions"]["avg_short_win"] = avg_short_win
+            trade_results["short_positions"]["max_short_win"] = max_short_win
+            trade_results["short_positions"]["avg_short_loss"] = avg_short_loss
+            trade_results["short_positions"]["max_short_loss"] = max_short_loss
+            trade_results["short_positions"]["short_wr"] = short_wr
 
         return trade_results
 

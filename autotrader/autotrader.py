@@ -1208,6 +1208,8 @@ class AutoTrader:
             max_drawdown = trade_summary["max_drawdown"]
 
             no_trades = trade_summary["no_trades"]
+            no_long_trades = trade_summary["no_long_trades"]
+            no_short_trades = trade_summary["no_short_trades"]
             if no_trades > 0:
                 win_rate = trade_summary["all_trades"]["win_rate"]
                 max_win = trade_summary["all_trades"]["max_win"]
@@ -1235,14 +1237,20 @@ class AutoTrader:
             print("Maximum drawdown:        {}%".format(round(max_drawdown * 100, 2)))
             if no_trades > 0:
                 print("Total no. trades:        {}".format(no_trades))
+                print("No. long trades:         {}".format(no_long_trades))
+                print("No. short trades:        {}".format(no_short_trades))
                 print("Total fees paid:         ${}".format(round(total_fees, 3)))
                 print("Win rate:                {}%".format(round(win_rate, 1)))
                 print("Max win:                 ${}".format(round(max_win, 2)))
                 print("Average win:             ${}".format(round(avg_win, 2)))
                 print("Max loss:                -${}".format(round(max_loss, 2)))
                 print("Average loss:            -${}".format(round(avg_loss, 2)))
-                print("Longest winning streak:  {} trades".format(longest_win_streak))
-                print("Longest losing streak:   {} trades".format(longest_lose_streak))
+                print(
+                    "Longest winning streak:  {} positions".format(longest_win_streak)
+                )
+                print(
+                    "Longest losing streak:   {} positions".format(longest_lose_streak)
+                )
                 print(
                     "Average trade duration:  {}".format(
                         trade_summary["all_trades"]["avg_trade_duration"]
@@ -1261,37 +1269,37 @@ class AutoTrader:
                 print("Cancelled orders:        {}".format(no_cancelled))
 
             # Long trades
-            no_long = trade_summary["long_trades"]["no_trades"]
-            print("\n            Summary of long trades")
+            no_long = trade_summary["long_positions"]["total"]
+            print("\n          Summary of long positions")
             print("----------------------------------------------")
             if no_long > 0:
-                avg_long_win = trade_summary["long_trades"]["avg_long_win"]
-                max_long_win = trade_summary["long_trades"]["max_long_win"]
-                avg_long_loss = trade_summary["long_trades"]["avg_long_loss"]
-                max_long_loss = trade_summary["long_trades"]["max_long_loss"]
-                long_wr = trade_summary["long_trades"]["long_wr"]
+                avg_long_win = trade_summary["long_positions"]["avg_long_win"]
+                max_long_win = trade_summary["long_positions"]["max_long_win"]
+                avg_long_loss = trade_summary["long_positions"]["avg_long_loss"]
+                max_long_loss = trade_summary["long_positions"]["max_long_loss"]
+                long_wr = trade_summary["long_positions"]["long_wr"]
 
-                print("Number of long trades:   {}".format(no_long))
+                print("No. long positions:      {}".format(no_long))
                 print("Win rate:                {}%".format(round(long_wr, 1)))
                 print("Max win:                 ${}".format(round(max_long_win, 2)))
                 print("Average win:             ${}".format(round(avg_long_win, 2)))
                 print("Max loss:                -${}".format(round(max_long_loss, 2)))
                 print("Average loss:            -${}".format(round(avg_long_loss, 2)))
             else:
-                print("There were no long trades.")
+                print("There were no long positions.")
 
             # Short trades
-            no_short = trade_summary["short_trades"]["no_trades"]
-            print("\n             Summary of short trades")
+            no_short = trade_summary["short_positions"]["total"]
+            print("\n         Summary of short positions")
             print("----------------------------------------------")
             if no_short > 0:
-                avg_short_win = trade_summary["short_trades"]["avg_short_win"]
-                max_short_win = trade_summary["short_trades"]["max_short_win"]
-                avg_short_loss = trade_summary["short_trades"]["avg_short_loss"]
-                max_short_loss = trade_summary["short_trades"]["max_short_loss"]
-                short_wr = trade_summary["short_trades"]["short_wr"]
+                avg_short_win = trade_summary["short_positions"]["avg_short_win"]
+                max_short_win = trade_summary["short_positions"]["max_short_win"]
+                avg_short_loss = trade_summary["short_positions"]["avg_short_loss"]
+                max_short_loss = trade_summary["short_positions"]["max_short_loss"]
+                short_wr = trade_summary["short_positions"]["short_wr"]
 
-                print("Number of short trades:  {}".format(no_short))
+                print("No. short positions:     {}".format(no_short))
                 print("Win rate:                {}%".format(round(short_wr, 1)))
                 print("Max win:                 ${}".format(round(max_short_win, 2)))
                 print("Average win:             ${}".format(round(avg_short_win, 2)))
@@ -1299,7 +1307,7 @@ class AutoTrader:
                 print("Average loss:            -${}".format(round(avg_short_loss, 2)))
 
             else:
-                print("There were no short trades.")
+                print("There were no short positions.")
 
             # Check for multiple instruments
             if len(trade_results.instruments_traded) > 1:
