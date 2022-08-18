@@ -730,9 +730,8 @@ class AutoPlot:
         )
         h, edges = np.histogram(isopos_returns, bins=int(0.1 * len(isopos_returns)))
         returnsfig = figure(
-            title="Distribution of returns",
+            title="Distribution of Returns",
             toolbar_location=None,
-            tools="hover",
             plot_height=250,
         )
         returnsfig.quad(
@@ -765,7 +764,9 @@ class AutoPlot:
         show(fig)
 
     def _plot_multibot_backtest(self, backtest_results):
-        """Creates multi-bot backtest figure."""
+        """DEPRECATED
+        Creates multi-bot backtest figure.
+        """
         # Preparation
         instruments = backtest_results.instruments_traded
         no_instruments = len(instruments)

@@ -1375,7 +1375,7 @@ class AutoTrader:
 
         def portfolio_plot():
             ap = self._instantiate_autoplot()
-            ap._plot_multibot_backtest(self.trade_results)
+            ap._portfolio_plot(self.trade_results)
 
         def single_instrument_plot(bot):
             data = bot._check_strategy_for_plot_data(self._use_strat_plot_data)
