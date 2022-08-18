@@ -622,7 +622,7 @@ class Broker:
                 # Append Position to open_positions dict
                 open_positions[instrument] = instrument_position
 
-        return open_positions
+        return open_positions.copy()
 
     def get_margin_available(self) -> float:
         """Returns the margin available on the account."""
