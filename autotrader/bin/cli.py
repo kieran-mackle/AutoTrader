@@ -4,7 +4,7 @@ import click
 import shutil
 import pyfiglet
 import requests
-from autotrader import AutoTrader
+import autotrader
 
 
 def print_banner():
@@ -25,6 +25,12 @@ def download_file(url):
 def cli():
     """AutoTrader command line interface."""
     pass
+
+
+@click.command()
+def version():
+    """Shows the version of AutoTrader"""
+    print(autotrader.__version__)
 
 
 @click.command()
@@ -250,11 +256,12 @@ def snapshot(pickle):
     """Prints a snapshot of the trading account of a broker PICKLE instance
     file."""
     print_banner()
-    AutoTrader.papertrade_snapshot(pickle)
+    autotrader.AutoTrader.papertrade_snapshot(pickle)
     print("")
 
 
 # Add commands to CLI
+cli.add_command(version)
 cli.add_command(init)
 cli.add_command(monitor)
 cli.add_command(snapshot)
