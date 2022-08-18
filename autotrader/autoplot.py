@@ -729,7 +729,9 @@ class AutoPlot:
             * (iso_pos_history.exit_price - iso_pos_history.fill_price)
             / iso_pos_history.fill_price
         )
-        h, edges = np.histogram(isopos_returns, bins=int(0.1 * len(isopos_returns)))
+        h, edges = np.histogram(
+            isopos_returns, bins=max(10, int(0.1 * len(isopos_returns)))
+        )
         returnsfig = figure(
             title="Distribution of Returns",
             toolbar_location=None,

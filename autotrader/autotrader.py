@@ -1936,8 +1936,8 @@ class AutoTrader:
 
             elif self._papertrading:
                 # Paper trade through virtual broker
-                papertrade_results = TradeAnalysis(self._broker)
-                self.print_trade_results(papertrade_results)
+                self.trade_results = TradeAnalysis(self._broker)
+                self.print_trade_results(self.trade_results)
 
                 picklefile_list = [
                     config["picklefile"] if config["picklefile"] is not None else ""
@@ -1950,6 +1950,11 @@ class AutoTrader:
                         f"\nThe following pickle files have been created:\n {picklefiles}"
                         + "\nUse the `unpickle_broker` utility to access these."
                     )
+
+                # Plotting
+                if self._show_plot:
+                    ap = self._instantiate_autoplot()
+                    ap._portfolio_plot(self.trade_results)
 
     def _trade_update_loop(self):
         """Runs the mode-dependent trade update loop."""
