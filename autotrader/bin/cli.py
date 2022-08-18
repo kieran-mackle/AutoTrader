@@ -29,7 +29,7 @@ def cli():
 
 @click.command()
 def version():
-    """Shows the version of AutoTrader"""
+    """Shows the installed version number of AutoTrader."""
     print(autotrader.__version__)
 
 
