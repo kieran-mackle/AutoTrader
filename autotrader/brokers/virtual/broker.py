@@ -92,6 +92,7 @@ class Broker:
         self._equity = 0  # Account equity (balance)
         self._floating_pnl = 0
         self._margin_available = 0
+        self._open_interest = 0
 
         self._leverage = 1  # The account leverage
         self._spread = 0  # The bid/ask spread
@@ -111,6 +112,7 @@ class Broker:
         self._NAV_hist = []
         self._equity_hist = []
         self._margin_hist = []
+        self._open_interest_hist = []
         self._time_hist = []
 
         # Last order and trade counts
@@ -569,6 +571,7 @@ class Broker:
                 short_PL = 0
                 short_margin = 0
                 total_margin = 0
+                pnl = 0
                 last_price = None
                 trade_IDs = []
 
@@ -578,6 +581,7 @@ class Broker:
                         trade.last_price if trade.last_price is not None else last_price
                     )
                     total_margin += trade.margin_required
+                    pnl += trade.unrealised_PL
                     if trade.direction > 0:
                         # Long trade
                         long_units += trade.size
@@ -609,6 +613,7 @@ class Broker:
                     "net_position": net_position,
                     "net_exposure": net_exposure,
                     "last_price": last_price,
+                    "pnl": pnl,
                 }
 
                 # Create Position instance
@@ -892,6 +897,7 @@ class Broker:
         self._NAV_hist.append(self._NAV)
         self._equity_hist.append(self._equity)
         self._margin_hist.append(self._margin_available)
+        self._open_interest_hist.append(self._open_interest)
         self._time_hist.append(latest_time)
 
         # Save state
@@ -1517,8 +1523,12 @@ class Broker:
         self, instrument: str = None, latest_time: datetime = None
     ) -> None:
         """Updates the margin available in the account."""
+        # TODO - only update with instrument
+
         margin_used = 0
         floating_pnl = 0
+        open_interest = 0
+
         open_trades = self.get_isolated_positions()
         for trade_id, trade in open_trades.items():
             size = trade.size
@@ -1535,11 +1545,17 @@ class Broker:
             # Floating pnl
             floating_pnl += trade.unrealised_PL
 
+            # Open interest
+            open_interest += abs(trade.value)
+
         # Update unrealised PnL
         self._floating_pnl = floating_pnl
 
         # Update margin available
         self._margin_available = self._NAV - margin_used
+
+        # Update open interest
+        self._open_interest = open_interest
 
         # Check for margin call
         if (

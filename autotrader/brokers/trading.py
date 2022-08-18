@@ -684,6 +684,8 @@ class Position:
     ----------
     instrument : str
         The trade instrument of the position.
+    pnl : float
+        The pnl of the position.
     long_units : float
         The number of long units in the position.
     long_PL : float
@@ -714,6 +716,7 @@ class Position:
 
     def __init__(self, **kwargs):
         self.instrument = None
+        self.pnl = None
         self.long_units = None
         self.long_PL = None
         self.long_margin = None

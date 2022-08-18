@@ -488,6 +488,7 @@ class TradeAnalysis:
                     "NAV": broker._NAV_hist,
                     "equity": broker._equity_hist,
                     "margin": broker._margin_hist,
+                    "open_interest": broker._open_interest_hist,
                 },
                 index=broker._time_hist,
             )

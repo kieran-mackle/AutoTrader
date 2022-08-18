@@ -608,6 +608,31 @@ class AutoPlot:
         # Add to autoscale args
         self.autoscale_args = {"y_range": navfig.y_range, "source": topsource}
 
+        # Plot leverage history
+        leverage = (
+            account_history["open_interest"] / account_history["equity"]
+        ).to_frame("leverage")
+        leverage["Low"] = leverage[["leverage"]].min(1)
+        leverage["High"] = leverage[["leverage"]].max(1)
+        levsource = ColumnDataSource(leverage)
+
+        levfig = figure(
+            plot_width=self._ohlc_width,
+            plot_height=self._top_fig_height,
+            title="Leverage Utilisation History",
+            active_drag="pan",
+            active_scroll="wheel_zoom",
+            x_range=navfig.x_range,
+        )
+        levfig.line(
+            x="index",
+            y="leverage",
+            line_color="blue",
+            source=levsource,
+        )
+
+        self._add_to_autoscale_args(levsource, levfig.y_range)
+
         # Plot positions
         pos_source = ColumnDataSource(position_history)
         pos_source.add(np.ones(len(position_history)) * -1.1, "Low")
@@ -635,7 +660,6 @@ class AutoPlot:
                 self._add_to_autoscale_args(pos_source, posfig.y_range)
 
         # TODO - add the following
-        # Plot leverage history
         # Plot returns distribution (across all positions)
 
         # Add javascript callback
@@ -643,7 +667,7 @@ class AutoPlot:
         navfig.x_range.js_on_change("end", js)
 
         # Construct final figure
-        plots = [navfig] + position_figs
+        plots = [navfig, levfig] + position_figs
 
         for plot in plots:
             plot.sizing_mode = "stretch_width"
