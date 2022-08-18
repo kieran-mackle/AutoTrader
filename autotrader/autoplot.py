@@ -535,6 +535,7 @@ class AutoPlot:
         account_history = self._reindex_data(trade_results.account_history)
         position_history = self._reindex_data(np.sign(trade_results.position_history))
         iso_pos_history = self._reindex_data(trade_results.isolated_position_history)
+        iso_pos_history = iso_pos_history[iso_pos_history["status"] == "closed"]
 
         # Plot account balance history
         topsource = ColumnDataSource(account_history)
