@@ -534,6 +534,7 @@ class AutoPlot:
         # Extract results
         account_history = self._reindex_data(trade_results.account_history)
         position_history = self._reindex_data(np.sign(trade_results.position_history))
+        iso_pos_history = self._reindex_data(trade_results.isolated_position_history)
 
         # Plot account balance history
         topsource = ColumnDataSource(account_history)
@@ -659,9 +660,6 @@ class AutoPlot:
 
                 self._add_to_autoscale_args(pos_source, posfig.y_range)
 
-        # TODO - add the following
-        # Plot returns distribution (across all positions)
-
         # Add javascript callback
         js = CustomJS(args=self.autoscale_args, code=self._autoscale_code)
         navfig.x_range.js_on_change("end", js)
@@ -724,12 +722,39 @@ class AutoPlot:
         pie.legend.margin = 0
         pie.legend.label_text_font_size = "8pt"
 
-        fig = gridplot(
-            plots + [pie],
+        # Plot returns distribution (across all positions)
+        isopos_returns = (
+            iso_pos_history.direction
+            * (iso_pos_history.exit_price - iso_pos_history.fill_price)
+            / iso_pos_history.fill_price
+        )
+        h, edges = np.histogram(isopos_returns, bins=int(0.1 * len(isopos_returns)))
+        returnsfig = figure(
+            title="Distribution of returns",
+            toolbar_location=None,
+            tools="hover",
+            plot_height=250,
+        )
+        returnsfig.quad(
+            top=h,
+            bottom=0,
+            left=edges[:-1],
+            right=edges[1:],
+        )
+        returnsfig.sizing_mode = "stretch_width"
+
+        subfig = gridplot(
+            plots,
             ncols=1,
             toolbar_location="right",
             toolbar_options=dict(logo=None),
             merge_tools=True,
+        )
+        fig = layout(
+            [
+                [subfig],
+                [pie, returnsfig],
+            ],
         )
         fig.sizing_mode = "scale_width"
 
