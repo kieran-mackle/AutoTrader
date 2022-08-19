@@ -1146,7 +1146,7 @@ class AutoData:
         count: int = None,
         start_time: datetime = None,
         end_time: datetime = None,
-        **kwargs,
+        params: dict = {},
     ):
         """Fetches the funding rate history."""
 
@@ -1168,7 +1168,7 @@ class AutoData:
             rate_hist = pd.DataFrame()
             while start_ts <= end_ts:
                 response = self.api.fetchFundingRateHistory(
-                    symbol=instrument, since=start_ts, limit=count, params=kwargs
+                    symbol=instrument, since=start_ts, limit=count, params=params
                 )
 
                 # Append results
@@ -1187,7 +1187,7 @@ class AutoData:
             if start_time is None and end_time is None:
                 # Fetch N most recent candles
                 response = self.api.fetchFundingRateHistory(
-                    symbol=instrument, limit=count, params=kwargs
+                    symbol=instrument, limit=count, params=params
                 )
                 rate_hist = response2df(response)
             elif start_time is not None and end_time is None:
@@ -1196,7 +1196,7 @@ class AutoData:
                     None if start_time is None else int(start_time.timestamp() * 1000)
                 )
                 response = self.api.fetchFundingRateHistory(
-                    symbol=instrument, since=start_ts, limit=count, params=kwargs
+                    symbol=instrument, since=start_ts, limit=count, params=params
                 )
                 rate_hist = response2df(response)
             elif end_time is not None and start_time is None:
@@ -1212,7 +1212,8 @@ class AutoData:
                 rate_hist = fetch_between_dates()
             else:
                 response = self.api.fetchFundingRateHistory(
-                    symbol=instrument, limit=count, params=kwargs
+                    symbol=instrument,
+                    params=params,
                 )
                 rate_hist = response2df(response)
 
