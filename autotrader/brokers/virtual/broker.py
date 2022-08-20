@@ -1259,8 +1259,7 @@ class Broker:
             else exit_price
         )
 
-        # Get open trades for instrument
-        open_trades = self.get_isolated_positions(order.instrument)
+        # Get current position in instrument
         position = self.get_positions(order.instrument)
 
         # Modify existing trades until there are no more units to reduce
@@ -1271,6 +1270,11 @@ class Broker:
         executed_sizes = []
         while units_to_reduce > 0:
             # There are units to be reduced
+            open_trades = self.get_isolated_positions(order.instrument)
+            # TODO - issue when a margin call happens during this process,
+            # and the open_trades dict is no longer truthful. Need to review
+            # margin call process, as reducing should not increase margin
+            # requirements
             for trade_id, trade in open_trades.items():
                 if trade.direction != order.direction:
                     # Reduce this trade
