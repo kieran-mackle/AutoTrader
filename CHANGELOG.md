@@ -1,9 +1,15 @@
 # AutoTrader Changelog
 
 ## Version 0.7.2
+### Fixes
+- Oanda live trade functionality restored (after `keys.yaml` rename).
+
 ### Features
 - `AutoData` is more intelligent when creating a new instance; `kwargs` can
   be used in place of `data_config` dictionary, simplifying instantiation.
+- Utility methods `get_broker_config` and `get_data_config` have been 
+  simplified, allowing calling without `global_config` argument (`keys.yaml`
+  will be read in from `config/` directory).
 
 ## Version 0.7.1
 ### Changes
@@ -15,6 +21,7 @@
 ### Features 
 - Improved portfolio plot type
 - Improved printouts
+
 
 ## Version 0.7.0
 AUGUST 2022

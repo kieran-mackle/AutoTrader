@@ -41,4 +41,4 @@ except:
 from .brokers.virtual.broker import Broker as VirtualBroker
 
 # Define version number
-__version__ = "0.7.1"
+__version__ = "0.7.2"
