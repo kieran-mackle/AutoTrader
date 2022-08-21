@@ -25,8 +25,9 @@ You can also find this template in the
 ```yaml
 OANDA:
   LIVE_API: "api-fxtrade.oanda.com"
+  LIVE_ACCESS_TOKEN: "12345678900987654321-abc34135acde13f13530"
   PRACTICE_API: "api-fxpractice.oanda.com"
-  ACCESS_TOKEN: "12345678900987654321-abc34135acde13f13530"
+  PRACTICE_ACCESS_TOKEN: "12345678900987654321-abc34135acde13f13530"
   DEFAULT_ACCOUNT_ID: "xxx-xxx-xxxxxxxx-001"
   PORT: 443
 
@@ -38,15 +39,17 @@ CCXT:EXCHANGE:
 ````
 ````{tab} Dictionary Form
 ```python
-keys_config = {'OANDA': {'LIVE_API': 'api-fxtrade.oanda.com',
-                           'PRACTICE_API': 'api-fxpractice.oanda.com',
-                           'ACCESS_TOKEN': '12345678900987654321-abc34135acde13f13530',
-                           'DEFAULT_ACCOUNT_ID': 'xxx-xxx-xxxxxxxx-001',
-                           'PORT': 443},
-                 'CCXT:EXCHANGE': {'api_key': "xxxx",
-                                   'secret': "xxxx"
-                                   'base_currency': "USDT"},
-                 }
+keys_config = {
+    "OANDA": {
+        "LIVE_API": "api-fxtrade.oanda.com",
+        "LIVE_ACCESS_TOKEN": "12345678900987654321-abc34135acde13f13530",
+        "PRACTICE_API": "api-fxpractice.oanda.com",
+        "PRACTICE_ACCESS_TOKEN": "12345678900987654321-abc34135acde13f13530",
+        "DEFAULT_ACCOUNT_ID": "xxx-xxx-xxxxxxxx-001",
+        "PORT": 443,
+    },
+    "CCXT:EXCHANGE": {"api_key": "xxxx", "secret": "xxxx", "base_currency": "USDT"},
+}
 ```
 
 To pass the keys dictionary to AutoTrader, use 
