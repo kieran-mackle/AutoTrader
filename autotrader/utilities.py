@@ -1,3 +1,4 @@
+from glob import glob
 import sys
 import yaml
 import pickle
@@ -43,23 +44,30 @@ def write_yaml(data: dict, filepath: str) -> None:
 
 
 def get_broker_config(
-    global_config: dict, broker: str, environment: str = "paper"
+    broker: str, global_config: dict = None, environment: str = "paper"
 ) -> dict:
     """Returns a broker configuration dictionary.
 
     Parameters
     ----------
-    global_config : dict
-        The global configuration dictionary.
     broker : str
         The name(s) of the broker/exchange. Specify multiple exchanges using
         comma separation.
-    environment : str
+    global_config : dict
+        The global configuration dictionary.
+    environment : str, optional
         The trading evironment ('demo' or 'real').
 
     """
     all_config = {}
     inputted_brokers = broker.lower().replace(" ", "").split(",")
+
+    # Check global_config
+    if global_config is None:
+        try:
+            global_config = read_yaml("config/keys.yaml")
+        except:
+            pass
 
     for broker in inputted_brokers:
         # Check for CCXT
@@ -81,13 +89,34 @@ def get_broker_config(
 
         # Live trading
         if broker.lower() == "oanda":
-            api_key = "LIVE_API" if environment.lower() == "live" else "PRACTICE_API"
-            config = {
-                "API": global_config["OANDA"][api_key],
-                "ACCESS_TOKEN": global_config["OANDA"]["ACCESS_TOKEN"],
-                "ACCOUNT_ID": global_config["OANDA"]["DEFAULT_ACCOUNT_ID"],
-                "PORT": global_config["OANDA"]["PORT"],
-            }
+            api_key = "LIVE" if environment.lower() == "live" else "PRACTICE"
+            oanda_conf = global_config["OANDA"]
+
+            # Initialise config dict
+            config = {"PORT": oanda_conf["PORT"]}
+
+            # Unpack
+            if f"{api_key}_API" in oanda_conf:
+                config["API"] = oanda_conf[f"{api_key}_API"]
+            else:
+                raise Exception(
+                    f"Please define {api_key}_API in your "
+                    + f"account configuration for {environment} trading."
+                )
+
+            if f"{api_key}_ACCESS_TOKEN" in oanda_conf:
+                config["ACCESS_TOKEN"] = oanda_conf[f"{api_key}_ACCESS_TOKEN"]
+            else:
+                raise Exception(
+                    f"Please define {api_key}_ACCESS_TOKEN in "
+                    + f"your account configuration for {environment} trading."
+                )
+
+            config["ACCOUNT_ID"] = (
+                oanda_conf["DEFAULT_ACCOUNT_ID"]
+                if "custom_account_id" not in global_config
+                else global_config["custom_account_id"]
+            )
 
         elif broker.lower() == "ib":
             config = {
@@ -189,6 +218,13 @@ def get_data_config(feed: str, global_config: dict = None, **kwargs) -> dict:
     if feed.lower() not in supported_feeds:
         raise Exception(f"Unsupported data feed: '{feed}'")
 
+    # Check global_config
+    if global_config is None:
+        try:
+            global_config = read_yaml("config/keys.yaml")
+        except:
+            pass
+
     # Check for required authentication
     auth_feeds = ["oanda", "ib"]
     if feed.lower() in auth_feeds and global_config is None:
@@ -201,7 +237,7 @@ def get_data_config(feed: str, global_config: dict = None, **kwargs) -> dict:
     config = {"data_source": feed.lower()}
 
     if feed.lower() == "oanda":
-        environment = kwargs["environment"]
+        environment = kwargs["environment"] if "environment" in kwargs else "paper"
         api_key = "LIVE" if environment.lower() == "live" else "PRACTICE"
         oanda_conf = global_config["OANDA"]
 
