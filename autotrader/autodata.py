@@ -6,6 +6,7 @@ from decimal import Decimal
 from autotrader.brokers.trading import Order
 from datetime import datetime, timedelta, timezone
 from autotrader.brokers.broker_utils import OrderBook
+import sys
 
 
 class AutoData:
@@ -26,7 +27,6 @@ class AutoData:
         data_config: dict = None,
         allow_dancing_bears: bool = False,
         home_currency: str = None,
-        *args,
         **kwargs,
     ) -> None:
         """Instantiates AutoData.
@@ -43,12 +43,18 @@ class AutoData:
         home_currency : str, optional
             The home currency to use when fetching quote data. The default
             is None.
+        kwargs : optional
 
         Returns
         -------
         None
             AutoData will be instantiated and ready to fetch price data.
         """
+        # Merge kwargs and data_config
+        if data_config is None and kwargs is not None:
+            data_config = {}
+        for key, item in kwargs.items():
+            data_config.setdefault(key, item)
 
         def configure_local_feed(data_config):
             """Configures the attributes for a local data feed."""

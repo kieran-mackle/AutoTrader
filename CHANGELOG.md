@@ -1,5 +1,10 @@
 # AutoTrader Changelog
 
+## Version 0.7.2
+### Features
+- `AutoData` is more intelligent when creating a new instance; `kwargs` can
+  be used in place of `data_config` dictionary, simplifying instantiation.
+
 ## Version 0.7.1
 ### Changes
 - Oanda configuration keys in `keys.yaml` have changed for clarification
