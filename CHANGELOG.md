@@ -1,5 +1,16 @@
 # AutoTrader Changelog
 
+## Version 0.7.1
+### Changes
+- Oanda configuration keys in `keys.yaml` have changed for clarification
+
+### Fixes
+- Oanda `data_config` includes account id, restoring automated data retrieval
+
+### Features 
+- Improved portfolio plot type
+- Improved printouts
+
 ## Version 0.7.0
 AUGUST 2022
 

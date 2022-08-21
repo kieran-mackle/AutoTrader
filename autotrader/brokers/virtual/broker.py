@@ -252,8 +252,7 @@ class Broker:
         if autodata_config is not None:
             # Instantiate AutoData from config
             data_config = get_data_config(
-                global_config=autodata_config["global_config"],
-                feed=autodata_config["feed"],
+                **autodata_config,
             )
             self._autodata = AutoData(data_config, **autodata_config)
 

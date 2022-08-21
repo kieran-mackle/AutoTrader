@@ -171,7 +171,9 @@ class AutoTraderBot:
 
         # Get data feed configuration
         data_config = get_data_config(
-            feed=self._feed, global_config=self._global_config_dict
+            feed=self._feed,
+            global_config=self._global_config_dict,
+            environment=self._environment,
         )
 
         # Data retrieval

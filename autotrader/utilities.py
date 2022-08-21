@@ -167,7 +167,7 @@ def get_broker_config(
     return all_config
 
 
-def get_data_config(feed: str, global_config: dict = None) -> dict:
+def get_data_config(feed: str, global_config: dict = None, **kwargs) -> dict:
     """Returns a configuration dictionary for AutoData.
     Parameters
     ----------
@@ -201,9 +201,33 @@ def get_data_config(feed: str, global_config: dict = None) -> dict:
     config = {"data_source": feed.lower()}
 
     if feed.lower() == "oanda":
-        config["API"] = global_config["OANDA"]["LIVE_API"]
-        config["ACCESS_TOKEN"] = global_config["OANDA"]["ACCESS_TOKEN"]
-        config["PORT"] = global_config["OANDA"]["PORT"]
+        environment = kwargs["environment"]
+        api_key = "LIVE" if environment.lower() == "live" else "PRACTICE"
+        oanda_conf = global_config["OANDA"]
+
+        # Unpack
+        if f"{api_key}_API" in oanda_conf:
+            config["API"] = oanda_conf[f"{api_key}_API"]
+        else:
+            raise Exception(
+                f"Please define {api_key}_API in your "
+                + f"account configuration for {environment} trading."
+            )
+
+        if f"{api_key}_ACCESS_TOKEN" in oanda_conf:
+            config["ACCESS_TOKEN"] = oanda_conf[f"{api_key}_ACCESS_TOKEN"]
+        else:
+            raise Exception(
+                f"Please define {api_key}_ACCESS_TOKEN in "
+                + f"your account configuration for {environment} trading."
+            )
+
+        config["PORT"] = oanda_conf["PORT"]
+        config["ACCOUNT_ID"] = (
+            oanda_conf["DEFAULT_ACCOUNT_ID"]
+            if "custom_account_id" not in global_config
+            else global_config["custom_account_id"]
+        )
 
     elif feed.lower() == "ib":
         config["host"] = (

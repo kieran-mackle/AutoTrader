@@ -69,17 +69,16 @@ class AutoData:
         else:
             self._feed = data_config["data_source"].lower()
 
-            # TODO - add KeyError handling
             if data_config["data_source"].lower() == "oanda":
                 API = data_config["API"]
                 ACCESS_TOKEN = data_config["ACCESS_TOKEN"]
+                self.ACCOUNT_ID = data_config["ACCOUNT_ID"]
                 port = data_config["PORT"]
 
                 try:
                     import v20
 
                     self.api = v20.Context(hostname=API, token=ACCESS_TOKEN, port=port)
-                    self.ACCOUNT_ID = data_config["ACCOUNT_ID"]
                 except ImportError:
                     raise Exception("Please install v20 to use the Oanda data feed.")
 

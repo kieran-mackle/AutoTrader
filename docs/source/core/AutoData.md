@@ -48,8 +48,9 @@ ad = AutoData(data_config)
 data_config = {
     'data_source': "oanda",
     'API': "api-fxtrade.oanda.com",
-    'ACCESS_TOKEN': "xxxxx",
+    'ACCESS_TOKEN': "xxx-yyy",
     'PORT': 443,
+    'ACCOUNT_ID': "xxx-xxx-xxxxxxxx-xxx",
 }
 ad = AutoData(data_config)
 ```

@@ -1432,8 +1432,9 @@ class AutoTrader:
                     + "desired account in the keys config."
                 )
             else:
-                # Overwrite default account in global config
+                # Overwrite default account in config dicts
                 broker_config["ACCOUNT_ID"] = self._account_id
+                self._global_config_dict["custom_account_id"] = self._account_id
 
         # Append broker verbosity to broker_config
         if self._multiple_brokers:
