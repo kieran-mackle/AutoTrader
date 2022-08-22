@@ -163,6 +163,7 @@ def get_broker_config(
                 )
                 sandbox_mode = False if environment.lower() == "live" else True
                 config = {
+                    "data_source": "ccxt",
                     "exchange": exchange,
                     "api_key": api_key,
                     "secret": secret,
