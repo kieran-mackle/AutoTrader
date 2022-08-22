@@ -121,6 +121,11 @@ class AutoData:
                     if "config" in data_config:
                         # Use config dict provided
                         ccxt_config = data_config["config"]
+                    elif "secret" in data_config and "api_key" in data_config:
+                        ccxt_config = {
+                            "secret": data_config["secret"],
+                            "apiKey": data_config["api_key"],
+                        }
                     else:
                         # Create empty config dict
                         ccxt_config = {}
@@ -1144,6 +1149,17 @@ class AutoData:
             trades.append(unified_trade)
 
         return trades
+
+    def _ccxt_funding_rate(self, instrument: str):
+        """Returns the current funding rate."""
+        response = self.api.fetchFundingRate(instrument)
+
+        fr_dict = {
+            "symbol": instrument,
+            "rate": response["fundingRate"],
+            "time": response["fundingDatetime"],
+        }
+        return fr_dict
 
     def _ccxt_funding_history(
         self,
