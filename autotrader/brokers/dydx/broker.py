@@ -31,6 +31,9 @@ class Broker:
             default_ethereum_address=config["ETH_ADDRESS"],
         )
 
+        # Create AutoData instance
+        self.autodata = AutoData(data_source="dydx")
+
     def __repr__(self):
         return "AutoTrader-dYdX interface"
 
@@ -144,8 +147,8 @@ class Broker:
 
     def get_orderbook(self, instrument):
         # Get Orderbook
-        orderbook = self.api.public.get_orderbook(market=instrument)
-        return orderbook.data
+        orderbook = self.autodata.L2(instrument=instrument)
+        return orderbook
 
     def get_market_stats(self):
         # Get Market Statistics

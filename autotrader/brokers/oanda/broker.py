@@ -8,12 +8,13 @@ import datetime
 import traceback
 import numpy as np
 import pandas as pd
+from autotrader import utilities, AutoData
 from autotrader.brokers.broker_utils import BrokerUtils
 from autotrader.brokers.trading import Order, IsolatedPosition, Position, Trade
 
 
 class Broker:
-    def __init__(self, oanda_config: dict, utils: BrokerUtils):
+    def __init__(self, oanda_config: dict, utils: BrokerUtils = None):
         """Create v20 context."""
         self.API = oanda_config["API"]
         self.ACCESS_TOKEN = oanda_config["ACCESS_TOKEN"]
@@ -28,7 +29,15 @@ class Broker:
             hostname=self.STREAM_API, token=self.ACCESS_TOKEN, port=self.port
         )
         self.open_positions = {}
+
+        # Assign broker utilities
+        if utils is None:
+            utils = BrokerUtils()
         self.utils = utils
+
+        # Create AutoData instance
+        data_config = utilities.get_data_config(feed="oanda")
+        self.autodata = AutoData(data_config)
 
     def __repr__(self):
         return "AutoTrader-Oanda Broker Interface"
@@ -815,8 +824,8 @@ class Broker:
 
     def _get_order_book(self, instrument: str):
         """Returns the order book of the instrument specified."""
-        response = self.api.instrument.order_book(instrument)
-        return response.body["orderBook"]
+        orderbook = self.autodata.L2(instrument=instrument)
+        return orderbook
 
     def _get_position_book(self, instrument: str):
         """Returns the position book of the instrument specified."""

@@ -1,5 +1,9 @@
 # AutoTrader Changelog
 
+## Version 0.7.3
+### Fixes
+- Unification of `get_orderbook` in supporting `broker` modules.
+
 ## Version 0.7.2
 ### Fixes
 - Oanda live trade functionality restored (after `keys.yaml` rename).

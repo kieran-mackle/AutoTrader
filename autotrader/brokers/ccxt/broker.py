@@ -1,5 +1,6 @@
 import ccxt
 from datetime import datetime
+from autotrader import AutoData
 from autotrader.brokers.ccxt.utils import Utils, BrokerUtils
 from autotrader.brokers.trading import Order, Trade, Position
 
@@ -15,13 +16,17 @@ class Broker:
         )
         self.utils = utils if utils is not None else Utils()
 
-        # Load markets
-        markets = self.api.load_markets()
-
+        # Set sandbox mode
         if config["sandbox_mode"]:
             self.api.set_sandbox_mode(True)
 
+        # Load markets
+        markets = self.api.load_markets()
+
         self.base_currency = config["base_currency"]
+
+        # Create AutoData instance
+        self.autodata = AutoData(data_source="ccxt", exchange=self.exchange)
 
     def __repr__(self):
         return (
@@ -145,7 +150,7 @@ class Broker:
             elif self.api.has["fetchPositions"]:
                 positions = self.api.fetchPositions(symbols=None, params=kwargs)
                 positions = self._convert_list(positions, item_type="position")
-                positions = {instrument: positions[instrument]}
+                positions = positions.get(instrument, {})
             else:
                 raise Exception(
                     f"Exchange {self.exchange} does not have " + "fetchPosition method."
@@ -155,14 +160,7 @@ class Broker:
 
     def get_orderbook(self, instrument: str) -> dict:
         """Returns the orderbook"""
-        response = self.api.fetchOrderBook(symbol=instrument)
-
-        # Unify format
-        orderbook = {}
-        for side in ["bids", "asks"]:
-            orderbook[side] = []
-            for level in response[side]:
-                orderbook[side].append({"price": level[0], "size": level[1]})
+        orderbook = self.autodata.L2(instrument=instrument)
         return orderbook
 
     def _native_order(self, order):
