@@ -213,11 +213,20 @@ class Broker:
         """Returns a CCXT position structure as a native
         AutoTrader Position.
         """
+        # Get symbol
+        try:
+            symbol = position["info"]["symbol"]
+        except:
+            symbol = position["symbol"]
+
+        # Construct position
+        # TODO - add more attributes
         native_position = Position(
-            instrument=position["symbol"],
+            instrument=symbol,
             net_position=position["contracts"],
             PL=position["unrealizedPnl"],
             entry_price=position["entryPrice"],
+            ccxt=position,
         )
         return native_position
 

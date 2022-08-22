@@ -736,6 +736,9 @@ class Position:
         # dYdX Attributes
         self.entry_price = None
 
+        # CCXT Attributes
+        self.ccxt = None
+
         for item in kwargs:
             setattr(self, item, kwargs[item])
 

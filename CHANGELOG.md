@@ -4,6 +4,10 @@
 ### Fixes
 - Unification of `get_orderbook` in supporting `broker` modules.
 
+### Features
+- Trading object `Position` includes attribute `ccxt` to include the 
+  output from `CCXT` methods.
+
 ## Version 0.7.2
 ### Fixes
 - Oanda live trade functionality restored (after `keys.yaml` rename).
