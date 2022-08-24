@@ -1008,6 +1008,7 @@ class AutoData:
         count: int = None,
         start_time: datetime = None,
         end_time: datetime = None,
+        **kwargs,
     ) -> pd.DataFrame:
         """Retrieves historical price data of a instrument from an exchange
         instance of the CCXT package.
@@ -1055,7 +1056,11 @@ class AutoData:
             data = []
             while start_ts <= end_ts:
                 raw_data = self.api.fetchOHLCV(
-                    instrument, timeframe=granularity, since=start_ts, limit=count
+                    instrument,
+                    timeframe=granularity,
+                    since=start_ts,
+                    limit=count,
+                    params=kwargs,
                 )
                 # Append data
                 data += raw_data
@@ -1072,7 +1077,7 @@ class AutoData:
             if start_time is None and end_time is None:
                 # Fetch N most recent candles
                 raw_data = self.api.fetchOHLCV(
-                    instrument, timeframe=granularity, limit=count
+                    instrument, timeframe=granularity, limit=count, params=kwargs
                 )
             elif start_time is not None and end_time is None:
                 # Fetch N candles since start_time
@@ -1080,7 +1085,11 @@ class AutoData:
                     None if start_time is None else int(start_time.timestamp() * 1000)
                 )
                 raw_data = self.api.fetchOHLCV(
-                    instrument, timeframe=granularity, since=start_ts, limit=count
+                    instrument,
+                    timeframe=granularity,
+                    since=start_ts,
+                    limit=count,
+                    params=kwargs,
                 )
             elif end_time is not None and start_time is None:
                 raise Exception(
