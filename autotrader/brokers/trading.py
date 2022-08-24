@@ -65,6 +65,9 @@ class Order:
         is '0.015'.
     exchange : str
         The exchange to which the order should be submitted.
+    ccxt_params : dict, optional
+        The CCXT parameters dictionary to pass when creating an order. The
+        default is {}.
     """
 
     def __init__(
@@ -129,6 +132,9 @@ class Order:
         # dydx attributes
         self.post_only = False
         self.limit_fee = "0.015"
+
+        # CCXT attributes
+        self.ccxt_params = {}
 
         self.reason = None
 
