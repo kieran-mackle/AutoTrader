@@ -35,8 +35,8 @@ class AutoData:
         ----------
         data_config : dict, optional
             The configuration dictionary for the data source to be used. This
-            is created automatically in autotrader.utilities.get_config. The
-            default is None.
+            is created automatically in autotrader.utilities.get_data_config.
+            The default is None.
         allow_dancing_bears : bool, optional
             A flag to allow incomplete bars to be returned in the data. The
             default is False.
