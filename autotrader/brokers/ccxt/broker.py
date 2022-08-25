@@ -11,9 +11,13 @@ class Broker:
         # Unpack config and connect to broker-side API
         self.exchange = config["exchange"]
         exchange_instance = getattr(ccxt, self.exchange)
-        self.api = exchange_instance(
-            {"apiKey": config["api_key"], "secret": config["secret"]}
-        )
+        # TODO - allow expanded config here
+        ccxt_config = {
+            "apiKey": config["api_key"],
+            "secret": config["secret"],
+            "options": config["options"],
+        }
+        self.api = exchange_instance(ccxt_config)
         self.utils = utils if utils is not None else Utils()
 
         # Set sandbox mode
@@ -48,6 +52,7 @@ class Broker:
 
     def place_order(self, order: Order, **kwargs) -> None:
         """Disassemble order_details dictionary to place order."""
+        # TODO - include params from kwargs, also need to get params from Order
         # Call order to set order time
         order()
 
@@ -70,6 +75,7 @@ class Broker:
                 side=side,
                 amount=order.size,
                 price=order.order_limit_price,
+                params=order.ccxt_params,
             )
         return placed_order
 
@@ -77,6 +83,7 @@ class Broker:
         self, instrument: str = None, order_status: str = "open", **kwargs
     ) -> dict:
         """Returns orders associated with the account."""
+        # TODO - add exception handling
         if order_status == "open":
             # Fetch open orders (waiting to be filled)
             orders = self.api.fetchOpenOrders(instrument)
@@ -96,7 +103,7 @@ class Broker:
 
     def cancel_order(self, order_id: int, **kwargs) -> None:
         """Cancels order by order ID."""
-        cancelled_order = self.api.cancelOrder(order_id)
+        cancelled_order = self.api.cancelOrder(id=order_id, **kwargs)
         return cancelled_order
 
     def get_trades(self, instrument: str = None, **kwargs) -> dict:
@@ -148,15 +155,20 @@ class Broker:
                 position = self.api.fetchPosition(instrument, params=kwargs)
                 positions = self._native_position(position)
             elif self.api.has["fetchPositions"]:
-                positions = self.api.fetchPositions(symbols=None, params=kwargs)
+                positions = self.api.fetchPositions(symbols=[instrument], params=kwargs)
                 positions = self._convert_list(positions, item_type="position")
-                positions = positions.get(instrument, {})
             else:
                 raise Exception(
                     f"Exchange {self.exchange} does not have " + "fetchPosition method."
                 )
 
-        return positions
+        # TODO - Check for zero-positions
+        positions_dict = {}
+        for symbol, pos in positions.items():
+            if pos.net_position != 0:
+                positions_dict[symbol] = pos
+
+        return positions_dict
 
     def get_orderbook(self, instrument: str) -> dict:
         """Returns the orderbook"""

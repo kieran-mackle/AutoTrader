@@ -155,11 +155,13 @@ def get_broker_config(
 
         elif broker.lower() == "ccxt":
             try:
-                config = global_config[broker_key.upper()]
-                api_key = config["api_key"] if "api_key" in config else None
-                secret = config["secret"] if "secret" in config else None
+                config_data = global_config[broker_key.upper()]
+                api_key = config_data["api_key"] if "api_key" in config_data else None
+                secret = config_data["secret"] if "secret" in config_data else None
                 currency = (
-                    config["base_currency"] if "base_currency" in config else "USDT"
+                    config_data["base_currency"]
+                    if "base_currency" in config_data
+                    else "USDT"
                 )
                 sandbox_mode = False if environment.lower() == "live" else True
                 config = {
@@ -170,6 +172,10 @@ def get_broker_config(
                     "sandbox_mode": sandbox_mode,
                     "base_currency": currency,
                 }
+                if "options" in config_data:
+                    config["options"] = config_data["options"]
+                else:
+                    config["options"] = {}
             except KeyError:
                 raise Exception(
                     "Using CCXT for trading requires authentication via "
