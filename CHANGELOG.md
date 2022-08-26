@@ -3,10 +3,12 @@
 ## Version 0.7.3
 ### Fixes
 - Unification of `get_orderbook` in supporting `broker` modules.
+- Expected behaviour of `get_positions` method in CCXT broker module.
 
 ### Features
 - Trading object `Position` includes attribute `ccxt` to include the 
   output from `CCXT` methods.
+- Improved configuration options for CCXT exchanges in `keys.yaml` file.
 
 ## Version 0.7.2
 ### Fixes

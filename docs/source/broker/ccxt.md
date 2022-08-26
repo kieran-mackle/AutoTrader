@@ -30,14 +30,20 @@ broker=ccxt:binance
 
 ## Configuration
 
-Trading through CCXT requires the following configuration details.
+Trading through CCXT requires the following configuration details. Note that
+the heading key given for each exchange must match both the format specified
+above (eg. `ccxt:binance`), and the exchange name format required by 
+[CCXT](https://github.com/ccxt/ccxt).
 
 ````{tab} keys.yaml configuration
 ```yaml
 CCXT:EXCHANGE:
   api_key: "xxxx"
   secret: "xxxx"
+  password: "abcDEF"
   base_currency: "USDT"
+  options:
+    defaultType: "swap"
 ```
 ````
 ````{tab} Dictionary configuration
@@ -46,7 +52,11 @@ CCXT:EXCHANGE:
    {
       "api_key": "xxxx",
       "secret": "xxxx",
+      "password": "abcDEF"
       "base_currency": "USDT",
+      "options": {
+         "defaultType": "swap",
+      }
    }
 }
 ```
