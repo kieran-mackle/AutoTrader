@@ -236,11 +236,14 @@ class Broker:
         except:
             symbol = position["symbol"]
 
-        # Construct position
+        direction = 1 if position["side"] == "long" else -1
+
+        # Construct position object
         # TODO - add more attributes
         native_position = Position(
             instrument=symbol,
-            net_position=position["contracts"],
+            net_position=position["contracts"] * direction,
+            net_exposure=position["notional"],
             PL=position["unrealizedPnl"],
             entry_price=position["entryPrice"],
             ccxt=position,
