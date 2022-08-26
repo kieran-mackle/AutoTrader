@@ -104,7 +104,10 @@ class Broker:
 
     def cancel_order(self, order_id: int, **kwargs) -> None:
         """Cancels order by order ID."""
-        cancelled_order = self.api.cancelOrder(id=order_id, **kwargs)
+        try:
+            cancelled_order = self.api.cancelOrder(id=order_id, **kwargs)
+        except Exception as e:
+            cancelled_order = e
         return cancelled_order
 
     def get_trades(self, instrument: str = None, **kwargs) -> dict:
