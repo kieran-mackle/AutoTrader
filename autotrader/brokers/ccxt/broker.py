@@ -154,7 +154,11 @@ class Broker:
             # Get position in instrument provided
             if self.api.has["fetchPosition"]:
                 position = self.api.fetchPosition(instrument, params=kwargs)
-                positions = self._native_position(position)
+                if position is not None:
+                    positions = self._native_position(position)
+                else:
+                    positions = {}
+
             elif self.api.has["fetchPositions"]:
                 positions = self.api.fetchPositions(symbols=[instrument], params=kwargs)
                 positions = self._convert_list(positions, item_type="position")
