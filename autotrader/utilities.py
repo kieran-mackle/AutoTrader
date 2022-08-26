@@ -172,10 +172,13 @@ def get_broker_config(
                     "sandbox_mode": sandbox_mode,
                     "base_currency": currency,
                 }
-                if "options" in config_data:
-                    config["options"] = config_data["options"]
-                else:
-                    config["options"] = {}
+                other_args = {"options": {}, "password": None}
+                for key, default_val in other_args.items():
+                    if key in config_data:
+                        config[key] = config_data[key]
+                    else:
+                        config[key] = default_val
+
             except KeyError:
                 raise Exception(
                     "Using CCXT for trading requires authentication via "

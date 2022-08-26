@@ -16,6 +16,7 @@ class Broker:
             "apiKey": config["api_key"],
             "secret": config["secret"],
             "options": config["options"],
+            "password": config["password"],
         }
         self.api = exchange_instance(ccxt_config)
         self.utils = utils if utils is not None else Utils()
