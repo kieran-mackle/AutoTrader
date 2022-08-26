@@ -155,7 +155,7 @@ class Broker:
             if self.api.has["fetchPosition"]:
                 position = self.api.fetchPosition(instrument, params=kwargs)
                 if position is not None:
-                    positions = self._native_position(position)
+                    positions = {instrument: self._native_position(position)}
                 else:
                     positions = {}
 
@@ -167,7 +167,7 @@ class Broker:
                     f"Exchange {self.exchange} does not have " + "fetchPosition method."
                 )
 
-        # TODO - Check for zero-positions
+        # Check for zero-positions
         positions_dict = {}
         for symbol, pos in positions.items():
             if pos.net_position != 0:
