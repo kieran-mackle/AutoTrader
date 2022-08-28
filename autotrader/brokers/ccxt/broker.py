@@ -53,10 +53,7 @@ class Broker:
 
     def place_order(self, order: Order, **kwargs) -> None:
         """Disassemble order_details dictionary to place order."""
-        # TODO - include params from kwargs, also need to get params from Order
-        # Call order to set order time
         order()
-
         # Submit order to broker
         if order.order_type == "modify":
             placed_order = self._modify_order(order)
@@ -66,18 +63,25 @@ class Broker:
         ]:
             raise NotImplementedError(
                 f"Order type '{order.order_type}' has not "
-                + "been implemented for CCXT yet."
+                + "been implemented for the CCXT interface yet."
             )
         else:
+            # Regular order
             side = "buy" if order.direction > 0 else "sell"
-            placed_order = self.api.createOrder(
-                symbol=order.instrument,
-                type=order.order_type,
-                side=side,
-                amount=order.size,
-                price=order.order_limit_price,
-                params=order.ccxt_params,
-            )
+            try:
+                # Submit the order
+                placed_order = self.api.createOrder(
+                    symbol=order.instrument,
+                    type=order.order_type,
+                    side=side,
+                    amount=order.size,
+                    price=order.order_limit_price,
+                    params=order.ccxt_params,
+                )
+            except Exception as e:
+                # An error occured, return the exception
+                placed_order = e
+
         return placed_order
 
     def get_orders(
@@ -267,12 +271,15 @@ class Broker:
         """Modify the size, type and price of an existing order."""
         # TODO - support changing order_type, not sure how it will be carried
         side = "buy" if order.direction > 0 else "sell"
-        modified_order = self.api.editOrder(
-            id=order.related_orders[0],
-            symbol=order.instrument,
-            side=side,
-            type=None,
-            amount=order.size,
-            price=order.order_limit_price,
-        )
+        try:
+            modified_order = self.api.editOrder(
+                id=order.related_orders[0],
+                symbol=order.instrument,
+                side=side,
+                type=None,
+                amount=order.size,
+                price=order.order_limit_price,
+            )
+        except Exception as e:
+            modified_order = e
         return modified_order
