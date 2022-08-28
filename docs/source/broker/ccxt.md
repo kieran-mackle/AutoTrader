@@ -62,6 +62,30 @@ CCXT:EXCHANGE:
 ```
 ````
 
+### Mainnet and Testnet Configurations
+If you have api keys for an exchanges mainnet and testnet, you 
+can include both in your `keys.yaml` file using the format shown
+below. The `mainnet` configuration is used when the 
+[`environment`](autotrader-configure) is set to `"live"`, while 
+the `testnet` configuration is used when it is set to `"paper"`.
+
+```yaml
+CCXT:EXCHANGE:
+  mainnet:
+    api_key: "xxxx"
+    secret: "xxxx"
+    password: "abcDEF"
+    base_currency: "USDT"
+    options:
+      defaultType: "swap"
+  testnet:
+    api_key: "yyyy"
+    secret: "yyyy"
+    password: "ABC123"
+    base_currency: "USDT"
+    options:
+      defaultType: "swap"
+```
 
 
 ## API Reference

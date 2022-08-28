@@ -84,8 +84,8 @@ def get_broker_config(
         if broker.lower() not in supported_brokers:
             raise Exception(f"Unsupported broker: '{broker}'")
 
-        if environment.lower() not in ["live", "paper"]:
-            raise Exception("Trading environment can either be 'live' or 'paper'.")
+        if broker != "ccxt" and environment.lower() not in ["live", "paper"]:
+            raise Exception("Trading environment must either be 'live' or 'paper'.")
 
         # Live trading
         if broker.lower() == "oanda":
@@ -156,6 +156,15 @@ def get_broker_config(
         elif broker.lower() == "ccxt":
             try:
                 config_data = global_config[broker_key.upper()]
+
+                # Select config based on environment
+                if environment.lower() in config_data:
+                    config_data = config_data[environment.lower()]
+                elif "mainnet" in config_data and environment.lower() == "live":
+                    config_data = config_data["mainnet"]
+                elif "testnet" in config_data and environment.lower() == "paper":
+                    config_data = config_data["testnet"]
+
                 api_key = config_data["api_key"] if "api_key" in config_data else None
                 secret = config_data["secret"] if "secret" in config_data else None
                 currency = (

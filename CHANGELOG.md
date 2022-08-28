@@ -1,5 +1,11 @@
 # AutoTrader Changelog
 
+## Version 0.7.4
+### Features
+- Better exception handling in CCXT broker interface
+- Ability to specify `mainnet` and `testnet` API keys in your
+  `keys.yaml` file.
+
 ## Version 0.7.3
 ### Fixes
 - Unification of `get_orderbook` in supporting `broker` modules.
