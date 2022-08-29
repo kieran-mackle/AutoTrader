@@ -300,7 +300,14 @@ def get_data_config(feed: str, global_config: dict = None, **kwargs) -> dict:
         )
 
     elif feed.lower() == "ccxt":
-        config["exchange"] = exchange
+        # Try add authentication with global config
+        if global_config is not None:
+            environment = kwargs["environment"] if "environment" in kwargs else "paper"
+            config = get_broker_config(
+                broker=f"{feed.lower()}:{exchange}", environment=environment
+            )
+        else:
+            config["exchange"] = exchange
 
     return config
 

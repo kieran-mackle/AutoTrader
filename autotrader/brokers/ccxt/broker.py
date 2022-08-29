@@ -31,7 +31,11 @@ class Broker:
         self.base_currency = config["base_currency"]
 
         # Create AutoData instance
-        self.autodata = AutoData(data_source="ccxt", exchange=self.exchange)
+        self.autodata = AutoData(
+            data_source="ccxt",
+            exchange=self.exchange,
+            api=self.api,
+        )
 
     def __repr__(self):
         return (

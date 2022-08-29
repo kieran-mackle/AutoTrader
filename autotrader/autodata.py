@@ -1,3 +1,4 @@
+from distutils.command.config import config
 import os
 import time
 import pandas as pd
@@ -117,23 +118,38 @@ class AutoData:
 
                     self._ccxt_exchange = data_config["exchange"]
 
-                    # Check if exchange options were provided
-                    if "config" in data_config:
-                        # Use config dict provided
-                        ccxt_config = data_config["config"]
-                    elif "secret" in data_config and "api_key" in data_config:
-                        ccxt_config = {
-                            "secret": data_config["secret"],
-                            "apiKey": data_config["api_key"],
-                        }
-                    else:
-                        # Create empty config dict
-                        ccxt_config = {}
+                    if "api" in kwargs:
+                        # Use API instance provided
+                        self.api = kwargs["api"]
 
-                    # Create CCXT instance
-                    self.api = getattr(ccxt, data_config["exchange"])(
-                        config=ccxt_config
-                    )
+                    else:
+                        # Check if exchange options were provided
+                        if "config" in data_config:
+                            # Use config dictionary provided directly
+                            ccxt_config = data_config["config"]
+                        elif "secret" in data_config and "api_key" in data_config:
+                            # Create config dict with api key and secret
+                            ccxt_config = {
+                                "secret": data_config["secret"],
+                                "apiKey": data_config["api_key"],
+                            }
+                        else:
+                            # Create empty config dict
+                            ccxt_config = {}
+
+                        # Add any other keys to the config
+                        extra_keys = ["options", "password"]
+                        for key in extra_keys:
+                            if key in data_config:
+                                ccxt_config[key] = data_config[key]
+
+                        # Create CCXT instance
+                        exchange_module = getattr(ccxt, data_config["exchange"])
+                        self.api = exchange_module(config=ccxt_config)
+
+                        # Check sandbox mode
+                        if "sandbox_mode" in data_config:
+                            self.api.set_sandbox_mode(True)
 
                 except ImportError:
                     raise Exception("Please install ccxt to use the CCXT data feed.")
