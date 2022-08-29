@@ -22,8 +22,10 @@ class Broker:
         self.utils = utils if utils is not None else Utils()
 
         # Set sandbox mode
+        self._sandbox_str = ""
         if config["sandbox_mode"]:
             self.api.set_sandbox_mode(True)
+            self._sandbox_str = " (sandbox mode)"
 
         # Load markets
         markets = self.api.load_markets()
@@ -41,6 +43,7 @@ class Broker:
         return (
             f"AutoTrader-{self.exchange[0].upper()}"
             + f"{self.exchange[1:].lower()} interface"
+            + self._sandbox_str
         )
 
     def __str__(self):
