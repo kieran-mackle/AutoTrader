@@ -98,15 +98,15 @@ class Broker:
         # TODO - add exception handling
         if order_status == "open":
             # Fetch open orders (waiting to be filled)
-            orders = self.api.fetchOpenOrders(instrument)
+            orders = self.api.fetchOpenOrders(instrument, **kwargs)
 
         elif order_status == "cancelled":
             # Fetch cancelled orders
-            orders = self.api.fetchCanceledOrders(instrument)
+            orders = self.api.fetchCanceledOrders(instrument, **kwargs)
 
         elif order_status == "closed":
             # Fetch closed orders
-            orders = self.api.fetchClosedOrders(instrument)
+            orders = self.api.fetchClosedOrders(instrument, **kwargs)
 
         # Convert
         orders = self._convert_list(orders, item_type="order")
