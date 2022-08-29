@@ -1501,15 +1501,13 @@ class AutoTrader:
                 if self._scan_mode:
                     print("SCAN MODE")
                 elif self._papertrading:
-                    extra_str = (
-                        "" if len(self._bots_deployed) > 0 else " (manual trade)"
-                    )
-                    print("PAPERTRADE MODE" + extra_str)
+                    trade_mode = "auto" if len(self._bots_deployed) > 0 else "manual"
+                    extra_str = f"{trade_mode} trade in {self._environment} environment"
+                    print(f"PAPERTRADE MODE ({extra_str})")
                 else:
-                    extra_str = (
-                        "" if len(self._bots_deployed) > 0 else " (manual trade)"
-                    )
-                    print("LIVETRADE MODE" + extra_str)
+                    trade_mode = "auto" if len(self._bots_deployed) > 0 else "manual"
+                    extra_str = f"{trade_mode} trade in {self._environment} environment"
+                    print(f"LIVETRADE MODE ({extra_str})")
                 print(
                     "Current time: {}".format(
                         datetime.now().strftime("%A, %B %d %Y, " + "%H:%M:%S")
