@@ -1,6 +1,6 @@
 # AutoTrader Changelog
 
-## Version 0.7.4 (Unreleased)
+## Version 0.7.4
 ### Features
 - Better exception handling in CCXT broker interface.
 - Ability to specify `mainnet` and `testnet` API keys in your
