@@ -1,10 +1,12 @@
 # AutoTrader Changelog
 
-## Version 0.7.4
+## Version 0.7.4 (Unreleased)
 ### Features
 - Better exception handling in CCXT broker interface
 - Ability to specify `mainnet` and `testnet` API keys in your
   `keys.yaml` file.
+- Ability to provide slippage models for backtests (via 
+  `at.configure()`)
 
 ## Version 0.7.3
 ### Fixes

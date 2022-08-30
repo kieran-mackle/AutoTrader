@@ -955,7 +955,8 @@ class AutoData:
         spread : float, optional
             The bid/ask spread value.
         spread_units : float, optional
-            The units to which the spread refers to.
+            The units to which the spread refers to. Can be either 'price' or
+            'percentage'.
         midprice : float, optional
             The midprice to use as a reference price.
         """

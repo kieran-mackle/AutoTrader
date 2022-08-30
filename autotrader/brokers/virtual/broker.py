@@ -4,6 +4,7 @@ import pickle
 import numpy as np
 import pandas as pd
 from decimal import Decimal
+from typing import Callable
 from datetime import date, datetime
 from autotrader.autodata import AutoData
 from autotrader.utilities import get_data_config
@@ -86,6 +87,10 @@ class Broker:
         # Fills (executed trades)
         self._fills = []
 
+        # Slippage model
+        self._default_slippage_model = lambda n: 0
+        self._slippage_models = {}
+
         # Account
         self._base_currency = "AUD"
         self._NAV = 0  # Net asset value
@@ -152,6 +157,8 @@ class Broker:
         paper_mode: bool = None,
         public_trade_access: bool = None,
         margin_closeout: float = None,
+        default_slippage_model: Callable = None,
+        slippage_models: dict = None,
         autodata_config: dict = None,
         picklefile: str = None,
         **kwargs,
@@ -208,6 +215,12 @@ class Broker:
         margin_closeout : float, optional
             The fraction of margin usage at which a margin call will occur.
             The default is 0.
+        default_slippage_model : Callable, optional
+            The default model to use when calculating the percentage slippage
+            on the fill price, for a given order size. The default functon
+            returns zero.
+        slippage_models : dict, optional
+            A dictionary of callable slippage models, keyed by instrument.
         picklefile : str, optional
             The filename of the picklefile to load state from. If you do not
             wish to load from state, leave this as None. The default is None.
@@ -247,6 +260,16 @@ class Broker:
         )
         self._taker_commission = (
             taker_commission if taker_commission is not None else self._commission
+        )
+
+        # Configure slippage models
+        self._default_slippage_model = (
+            default_slippage_model
+            if default_slippage_model is not None
+            else self._default_slippage_model
+        )
+        self._slippage_models = (
+            slippage_models if slippage_models is not None else self._slippage_models
         )
 
         if autodata_config is not None:
@@ -1469,6 +1492,16 @@ class Broker:
         avg_fill_price = sum(
             [fill_sizes[i] * fill_prices[i] for i in range(len(fill_prices))]
         ) / sum(fill_sizes)
+
+        # Apply slippage function
+        if not self._paper_trading:
+            # Currently backtesting - apply slippage function to fill price
+            slippage_model = self._slippage_models.setdefault(
+                instrument,
+                self._default_slippage_model,
+            )
+            slippage_pc = slippage_model(size)
+            avg_fill_price *= 1 + direction * slippage_pc
 
         if precision is not None:
             # Round price to precision

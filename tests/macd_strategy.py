@@ -110,7 +110,7 @@ if __name__ == "__main__":
         "NAME": "MACD Strategy",
         "MODULE": "macd_strategy",
         "CLASS": "SimpleMACD",
-        "INTERVAL": "H4",
+        "INTERVAL": "4h",
         "PERIOD": 300,
         "RISK_PC": 1.5,
         "SIZING": "risk",
@@ -134,7 +134,12 @@ if __name__ == "__main__":
     )
     at.backtest(start="1/1/2015", end="1/3/2022")
     at.virtual_account_config(
-        initial_balance=1000, leverage=30, spread=0.5 * 1e-4, commission=0.005
+        initial_balance=1000,
+        leverage=30,
+        spread=0.05,
+        spread_units="percentage",
+        commission=0.005,
+        default_slippage_model=lambda x: 0.0000005 * x / 100,
     )
     at.run()
 

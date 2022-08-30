@@ -8,6 +8,7 @@ import traceback
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
+from typing import Callable
 from threading import Thread
 from ast import literal_eval
 from scipy.optimize import brute
@@ -430,6 +431,8 @@ class AutoTrader:
         leverage: int = 1,
         hedging: bool = False,
         margin_call_fraction: float = 0,
+        default_slippage_model: Callable = None,
+        slippage_models: dict = None,
         picklefile: str = None,
         exchange: str = None,
         tradeable_instruments: list = None,
@@ -479,6 +482,12 @@ class AutoTrader:
         margin_call_fraction : float, optional
             The fraction of margin usage at which a margin call will occur.
             The default is 0.
+        default_slippage_model : Callable, optional
+            The default model to use when calculating the percentage slippage
+            on the fill price, for a given order size. The default functon
+            returns zero.
+        slippage_models : dict, optional
+            A dictionary of callable slippage models, keyed by instrument.
         picklefile : str, optional
             The filename of the picklefile to load state from. If you do not
             wish to load from state, leave this as None. The default is None.
@@ -545,6 +554,8 @@ class AutoTrader:
             "paper_mode": self._papertrading,
             "public_trade_access": False,  # Not yet implemented
             "margin_closeout": margin_call_fraction,
+            "default_slippage_model": default_slippage_model,
+            "slippage_models": slippage_models,
             "picklefile": picklefile,
             # Extra parameters
             "execution_feed": exchange,
