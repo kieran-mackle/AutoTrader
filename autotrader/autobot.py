@@ -798,7 +798,6 @@ class AutoTraderBot:
         -------
         dict
             The checked auxiliary data.
-
         """
         processed_auxdata = {}
         for key, item in auxdata.items():
@@ -861,6 +860,7 @@ class AutoTraderBot:
 
             if isinstance(original_strat_data, dict):
                 if "aux" in original_strat_data:
+                    # Auxiliary data is being used
                     base_data = original_strat_data["base"]
                     processed_auxdata = self._check_auxdata(
                         original_strat_data["aux"],
@@ -875,9 +875,18 @@ class AutoTraderBot:
 
                 # Process base OHLC data
                 processed_basedata = {}
-                for granularity, data in base_data.items():
-                    processed_basedata[granularity] = self._check_ohlc_data(
-                        data, timestamp, indexing, no_bars, check_for_future_data
+                if isinstance(base_data, dict):
+                    # Base data is multi-timeframe; process each timeframe
+                    for granularity, data in base_data.items():
+                        processed_basedata[granularity] = self._check_ohlc_data(
+                            data, timestamp, indexing, no_bars, check_for_future_data
+                        )
+                elif isinstance(base_data, pd.DataFrame) or isinstance(
+                    base_data, pd.Series
+                ):
+                    # Base data is a timeseries already, check directly
+                    processed_basedata = self._check_ohlc_data(
+                        base_data, timestamp, indexing, no_bars, check_for_future_data
                     )
 
                 # Combine the results of the conditionals above

@@ -1131,7 +1131,11 @@ class DataStream:
         Parameters
         ----------
         timestamp : datetime, optional
-            The current timestamp. The default is None.
+            The current timestamp, which can be used to fetch
+            data if need. Note that look-ahead is checked for in
+            AutoTrader.autobot, so the data returned from this
+            method can include all available data. The default is
+            None.
 
         Returns
         -------
@@ -1366,7 +1370,7 @@ class DataStream:
         processed_strategy_data: dict = None,
     ) -> dict:
         """Returns a dictionary of the current bars of the products being
-        traded, based on the up-to-date data.
+        traded, based on the up-to-date data passed from autobot.
 
         Parameters
         ----------
@@ -1381,7 +1385,7 @@ class DataStream:
         Returns
         -------
         dict
-            A dictionary of bars, keyed by the product name.
+            A dictionary of OHLC bars, keyed by the product name.
 
         Notes
         -----
