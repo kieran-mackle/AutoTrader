@@ -2,11 +2,15 @@
 
 ## Version 0.7.4 (Unreleased)
 ### Features
-- Better exception handling in CCXT broker interface
+- Better exception handling in CCXT broker interface.
 - Ability to specify `mainnet` and `testnet` API keys in your
   `keys.yaml` file.
 - Ability to provide slippage models for backtests (via 
-  `at.configure()`)
+  `at.configure()`).
+
+### Fixes
+- Inifite `while` loop bug in virtual broker `_reduce_position`
+  method due to machine precision.
 
 ## Version 0.7.3
 ### Fixes

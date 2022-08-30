@@ -1290,7 +1290,7 @@ class Broker:
         )
         executed_prices = []
         executed_sizes = []
-        while units_to_reduce > 0:
+        while round(units_to_reduce, order.size_precision) > 0:
             # There are units to be reduced
             open_trades = self.get_isolated_positions(order.instrument)
             # TODO - issue when a margin call happens during this process,
