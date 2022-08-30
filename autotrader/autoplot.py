@@ -17,7 +17,7 @@ from bokeh.models import (
 )
 from bokeh.layouts import gridplot, layout
 from bokeh.transform import factor_cmap, cumsum, transform
-from bokeh.palettes import Category20c
+from bokeh.palettes import Category20c, Turbo256
 from autotrader.utilities import TradeAnalysis
 
 try:
@@ -640,9 +640,9 @@ class AutoPlot:
         pos_source.add(np.ones(len(position_history)) * -1.1, "Low")
         pos_source.add(np.ones(len(position_history)) * 1.1, "High")
         position_figs = []
-        max_pos_charts = 4
+        max_pos_charts = self._max_indis_below
         for n, instrument in enumerate(trade_results.instruments_traded):
-            if n <= max_pos_charts:
+            if n < max_pos_charts:
                 posfig = figure(
                     plot_width=self._ohlc_width,
                     plot_height=self._top_fig_height,
@@ -706,8 +706,10 @@ class AutoPlot:
         pie_data["angle"] = pie_data["trades"] / pie_data["trades"].sum() * 2 * pi
         if no_instruments < 3:
             pie_data["color"] = Category20c[3][0:no_instruments]
-        else:
+        elif no_instruments <= 18:
             pie_data["color"] = Category20c[no_instruments]
+        else:
+            pie_data["color"] = Turbo256[no_instruments]
 
         pie = self._plot_pie(pie_data, fig_title="Trade Distribution")
 

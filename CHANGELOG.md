@@ -11,6 +11,8 @@
 ### Fixes
 - Inifite `while` loop bug in virtual broker `_reduce_position`
   method due to machine precision.
+- Backtest portfolio plotting of more than 18 instruments is 
+  possible now due to an increased color pallete.
 
 ## Version 0.7.3
 ### Fixes
