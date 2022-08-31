@@ -5,7 +5,8 @@ from autotrader.comms import emailing
 from datetime import datetime, timezone
 from autotrader.autodata import AutoData
 from autotrader.brokers.trading import Order
-from autotrader.utilities import read_yaml, get_data_config, TradeAnalysis
+from concurrent.futures import ThreadPoolExecutor
+from autotrader.utilities import get_data_config, TradeAnalysis
 
 
 class AutoTraderBot:
@@ -307,32 +308,35 @@ class AutoTraderBot:
             self._qualify_orders(orders, current_bars, quote_bars)
 
             # Submit orders
-            for order in orders:
-                if self._scan_mode:
-                    # Bot is scanning
-                    scan_hit = {
-                        "size": order.size,
-                        "entry": current_bars[order.instrument].Close,
-                        "stop": order.stop_loss,
-                        "take": order.take_profit,
-                        "signal": order.direction,
-                    }
-                    self._scan_results[self.instrument] = scan_hit
+            with ThreadPoolExecutor(max_workers=8) as executor:
+                for order in orders:
+                    if self._scan_mode:
+                        # Bot is scanning
+                        scan_hit = {
+                            "size": order.size,
+                            "entry": current_bars[order.instrument].Close,
+                            "stop": order.stop_loss,
+                            "take": order.take_profit,
+                            "signal": order.direction,
+                        }
+                        self._scan_results[self.instrument] = scan_hit
 
-                else:
-                    # Bot is trading
-                    try:
-                        order_time = current_bars[order.instrument].name
-                    except:
-                        if self._feed == "none":
-                            order_time = datetime.now()
-                        else:
-                            order_time = current_bars[order.data_name].name
+                    else:
+                        # Bot is trading
+                        try:
+                            order_time = current_bars[order.instrument].name
+                        except:
+                            if self._feed == "none":
+                                order_time = datetime.now()
+                            else:
+                                order_time = current_bars[order.data_name].name
 
-                    # Submit order to relevant exchange
-                    self._brokers[order.exchange].place_order(
-                        order, order_time=order_time
-                    )
+                        # Submit order to relevant exchange
+                        executor.submit(
+                            self._brokers[order.exchange].place_order,
+                            order=order,
+                            order_time=order_time,
+                        )
 
             if self._papertrading:
                 # Update virtual broker again to trigger any orders

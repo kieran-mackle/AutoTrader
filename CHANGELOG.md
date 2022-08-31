@@ -1,5 +1,10 @@
 # AutoTrader Changelog
 
+## Version 0.7.5
+### Features
+- AutoBot submits orders using `ThreadPoolExecutor` to speedup
+  submission of multiple orders.
+
 ## Version 0.7.4
 ### Features
 - Better exception handling in CCXT broker interface.
