@@ -1051,10 +1051,10 @@ class AutoData:
         """
 
         # Check requested start and end times
-        if end_time is not None and end_time > datetime.now():
+        if end_time is not None and end_time > datetime.now(tz=end_time.tzinfo):
             raise Exception("End time cannot be later than the current time.")
 
-        if start_time is not None and start_time > datetime.now():
+        if start_time is not None and start_time > datetime.now(tz=start_time.tzinfo):
             raise Exception("Start time cannot be later than the current time.")
 
         if start_time is not None and end_time is not None and start_time > end_time:
