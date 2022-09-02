@@ -149,7 +149,7 @@ class AutoData:
 
                         # Check sandbox mode
                         if "sandbox_mode" in data_config:
-                            self.api.set_sandbox_mode(True)
+                            self.api.set_sandbox_mode(data_config["sandbox_mode"])
 
                 except ImportError:
                     raise Exception("Please install ccxt to use the CCXT data feed.")
