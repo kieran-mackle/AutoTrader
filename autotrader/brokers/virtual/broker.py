@@ -88,7 +88,7 @@ class Broker:
         self._fills = []
 
         # Slippage model
-        self._default_slippage_model = lambda n: 0
+        self._default_slippage_model = self._zero_slippage_model
         self._slippage_models = {}
 
         # Account
@@ -1697,6 +1697,10 @@ class Broker:
                 orderbook[side]
 
         return orderbook
+
+    def _zero_slippage_model(*args, **kwargs):
+        "Returns zero slippage."
+        return 0
 
     def _save_state(self):
         """Pickles the current state of the broker."""
