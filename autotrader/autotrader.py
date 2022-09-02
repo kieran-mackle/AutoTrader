@@ -2019,7 +2019,7 @@ class AutoTrader:
                                 except:
                                     if int(self._verbosity) > 0:
                                         print(
-                                            "Error: failed to update bot running"
+                                            "Error: failed to update bot running "
                                             + f"{bot._strategy_name} ({bot.instrument})"
                                         )
                                         traceback.print_exc()
