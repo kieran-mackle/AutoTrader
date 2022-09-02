@@ -46,4 +46,8 @@ class Utils(BrokerUtils):
 
     def _get_market(self, instrument, *args, **kwargs):
         """Returns the raw get_market response from a CCXT exchange"""
-        return self.markets[instrument]
+        if instrument in self.markets:
+            market = self.markets[instrument]
+        elif instrument.split(":")[0] in self.markets:
+            market = self.markets[instrument.split(":")[0]]
+        return market
