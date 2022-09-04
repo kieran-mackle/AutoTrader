@@ -1698,6 +1698,7 @@ class Broker:
 
         return orderbook
 
+    @staticmethod
     def _zero_slippage_model(*args, **kwargs):
         "Returns zero slippage."
         return 0
