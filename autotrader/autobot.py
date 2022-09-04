@@ -80,6 +80,12 @@ class AutoTraderBot:
         self.instrument = instrument
         self._broker = broker
 
+        # # Define execution framework
+        if self._execution_method is None:
+            self._execution_method = self._submit_order
+        # # TODO - allow custom spec
+        # self._execution_method = self._submit_order
+
         # Check for muliple brokers and construct mapper
         if self._multiple_brokers:
             # Trading across multiple venues
@@ -333,7 +339,8 @@ class AutoTraderBot:
 
                         # Submit order to relevant exchange
                         executor.submit(
-                            self._brokers[order.exchange].place_order,
+                            self._execution_method,
+                            broker=self._brokers[order.exchange],
                             order=order,
                             order_time=order_time,
                         )
@@ -1058,3 +1065,8 @@ class AutoTraderBot:
         """
         self.data = data
         self._strategy.data = data
+
+    @staticmethod
+    def _submit_order(broker, order, *args, **kwargs):
+        "The default order execution method."
+        broker.place_order(order, *args, **kwargs)

@@ -99,6 +99,7 @@ class AutoTrader:
         self._maintain_broker_thread = False
 
         # Broker parameters
+        self._execution_method = None  # Execution method
         self._broker = None  # Broker instance(s)
         self._broker_name = ""  # Broker name(s)
         self._broker_utils = None  # Broker utilities
@@ -176,6 +177,7 @@ class AutoTrader:
         self,
         verbosity: int = 1,
         broker: str = None,
+        execution_method: Callable = None,
         feed: str = None,
         req_liveprice: bool = False,
         notify: int = 0,
@@ -203,6 +205,10 @@ class AutoTrader:
         broker : str, optional
             The broker(s) to connect to for trade execution. Multiple exchanges
             can be provided using comma separattion. The default is 'virtual'.
+        execution_method : Callable, optional
+            The execution model to call when submitting orders to the broker.
+            This method must accept the broker instance, the order object,
+            order_time and any *args, **kwargs.
         feed : str, optional
             The data feed to be used. This can be the same as the broker
             being used, or another data source. Options include 'yahoo',
@@ -270,6 +276,7 @@ class AutoTrader:
         self._feed = feed
         self._req_liveprice = req_liveprice
         self._broker_name = broker if broker is not None else self._broker_name
+        self._execution_method = execution_method
         self._notify = notify
         self._home_dir = home_dir if home_dir is not None else os.getcwd()
         self._allow_dancing_bears = allow_dancing_bears

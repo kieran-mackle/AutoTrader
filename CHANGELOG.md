@@ -1,9 +1,11 @@
 # AutoTrader Changelog
 
-## Version 0.7.5
+## Version 0.7.5 (Unreleased)
 ### Features
 - AutoBot submits orders using `ThreadPoolExecutor` to speedup
   submission of multiple orders.
+- Ability to provide custom execution methods via 
+  `AutoTrader.configure(execution_method=)`. 
 
 ## Version 0.7.4
 ### Features
