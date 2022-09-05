@@ -975,12 +975,20 @@ class TradeAnalysis:
                 # Position has not been closed yet
                 trade_results["all_trades"]["avg_trade_duration"] = None
 
-            min_trade_duration = np.nanmin(
-                self.isolated_position_history.trade_duration.values
-            )
-            max_trade_duration = np.nanmax(
-                self.isolated_position_history.trade_duration.values
-            )
+            # Trade durations
+            duration_list = [
+                i
+                for i in self.isolated_position_history.trade_duration.values
+                if i is not None
+            ]
+            if len(duration_list) > 0:
+                min_trade_duration = np.nanmin(duration_list)
+                max_trade_duration = np.nanmax(duration_list)
+            else:
+                min_trade_duration = None
+                max_trade_duration = None
+
+            # Fees
             total_fees = self.trade_history.fee.sum()
 
             trade_results["all_trades"]["avg_win"] = avg_win
