@@ -537,7 +537,6 @@ class AutoTrader:
             sys.exit(0)
             # self._broker_name += broker_name + ', '
 
-        self._environment = "paper"
         self._papertrading = False if self._backtest_mode else papertrade
         self._broker_refresh_freq = refresh_freq
 

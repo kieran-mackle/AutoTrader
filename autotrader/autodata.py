@@ -151,6 +151,9 @@ class AutoData:
                         if "sandbox_mode" in data_config:
                             self.api.set_sandbox_mode(data_config["sandbox_mode"])
 
+                        # Load markets
+                        markets = self.api.load_markets()
+
                 except ImportError:
                     raise Exception("Please install ccxt to use the CCXT data feed.")
 
