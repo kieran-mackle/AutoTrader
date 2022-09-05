@@ -309,7 +309,9 @@ def get_data_config(feed: str, global_config: dict = None, **kwargs) -> dict:
                     kwargs["environment"] if "environment" in kwargs else "paper"
                 )
                 config = get_broker_config(
-                    broker=f"{feed.lower()}:{exchange}", environment=environment
+                    broker=f"{feed.lower()}:{exchange}",
+                    global_config=global_config,
+                    environment=environment,
                 )
             except:
                 # Didn't work, just set exchange
