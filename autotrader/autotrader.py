@@ -960,13 +960,13 @@ class AutoTrader:
                 self._notify = 0
 
             # Check that the backtest does not request future data
-            if self._data_end > datetime.now(tz=timezone.utc):
+            if self._data_end > datetime.now(tz=self._data_end.tzinfo):
                 print(
                     "Warning: you have requested backtest data into the "
                     + "future. The backtest end date will be adjsuted to "
                     + "the current time."
                 )
-                self._data_end = datetime.now(tz=timezone.utc)
+                self._data_end = datetime.now(tz=self._data_end.tzinfo)
 
             # Check if the broker has been configured
             if len(self._virtual_broker_config) != self._no_brokers:
@@ -2021,6 +2021,7 @@ class AutoTrader:
                         try:
                             for bot in self._bots_deployed:
                                 try:
+                                    # TODO - why UTC?
                                     bot._update(timestamp=datetime.now(timezone.utc))
 
                                 except:
