@@ -14,7 +14,7 @@ class Broker:
     def __init__(self, config: dict, utils: BrokerUtils = None) -> None:
         """AutoTrader Broker Class constructor."""
 
-        self.utils = utils if utils is not None else BrokerUtils()
+        self._utils = utils if utils is not None else BrokerUtils()
 
         # Unpack config and connect to broker-side API
 

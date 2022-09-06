@@ -9,7 +9,7 @@ from autotrader.brokers.trading import Order, Position, Trade
 class Broker:
     def __init__(self, config: dict, utils: BrokerUtils = None) -> None:
         """AutoTrader Broker Class constructor."""
-        self.utils = utils if utils is not None else Utils()
+        self._utils = utils if utils is not None else Utils()
 
         # Unpack config to obtain STARK and API keys
         client = Client(

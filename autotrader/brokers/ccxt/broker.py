@@ -19,7 +19,7 @@ class Broker:
             "password": config["password"],
         }
         self.api = exchange_instance(ccxt_config)
-        self.utils = utils if utils is not None else Utils()
+        self._utils = utils if utils is not None else Utils()
 
         # Set sandbox mode
         self._sandbox_str = ""
