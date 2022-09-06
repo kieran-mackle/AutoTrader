@@ -452,7 +452,9 @@ class AutoTraderBot:
                     + "insufficient data, or no new data. If you believe "
                     + "this is an error, try setting allow_dancing_bears to "
                     + "True, or set allow_duplicate_bars to True in "
-                    + "AutoTrader.configure()."
+                    + "AutoTrader.configure().\n"
+                    + f"Sufficient data: {sufficient_data}\n"
+                    + f"New data: {new_data}"
                 )
 
     def _refresh_data(self, timestamp: datetime = None, **kwargs):
