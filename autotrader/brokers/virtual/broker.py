@@ -132,6 +132,9 @@ class Broker:
         self._state = None  # Last state snapshot
         self._picklefile = None  # Pickle filename
 
+        # CCXT unification
+        self.exchange = ""
+
     def __repr__(self):
         data_feed = self._autodata._feed
         if data_feed == "ccxt":
@@ -451,6 +454,7 @@ class Broker:
         reason: str = None,
         from_dict: str = "_open_orders",
         timestamp: datetime = None,
+        **kwargs,
     ) -> None:
         """Cancels the order.
 
@@ -792,6 +796,8 @@ class Broker:
             if order.order_type == "market":
                 # Market order type - proceed to fill
                 reference_price = get_market_ref_price(order.direction)
+                if order.order_price is None:
+                    order.order_price = reference_price
                 self._process_order(
                     order=order, fill_time=latest_time, reference_price=reference_price
                 )
