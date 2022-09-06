@@ -34,9 +34,19 @@ class Utils(BrokerUtils):
             # Fetch precision
             market = self._get_market(instrument)
             precision = market["precision"]
+
+            size_precision = precision["amount"]
+            price_precision = precision["price"]
+
+            # Check for any decimals
+            if "." in str(size_precision):
+                size_precision = str(size_precision)[::-1].find(".")
+            if "." in str(price_precision):
+                price_precision = str(price_precision)[::-1].find(".")
+
             unified_response = {
-                "size": precision["amount"],
-                "price": precision["price"],
+                "size": size_precision,
+                "price": price_precision,
             }
 
             # Store for later use
