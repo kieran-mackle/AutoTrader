@@ -221,7 +221,6 @@ class Broker:
         """Returns a CCXT trade as a native AutoTrader Trade."""
         direction = 1 if trade["side"] == "buy" else -1
 
-        # parent_order_id = trade['info']['orderId']
         order_id_keys = ["orderID", "orderId2"]
         oid_assigned = False
         for key in order_id_keys:
