@@ -254,9 +254,9 @@ class Broker:
         """
         # Get symbol
         try:
-            symbol = position["info"]["symbol"]
-        except:
             symbol = position["symbol"]
+        except:
+            symbol = position["info"]["symbol"]
 
         direction = 1 if position["side"] == "long" else -1
 
