@@ -155,7 +155,9 @@ def demo():
 
 @click.command()
 @click.option("-p", "--port", default=8009, help="The port to serve data to.")
-@click.option("-n", "--nav", default=1000, help="The reference NAV to use for PnL.")
+@click.option(
+    "-n", "--nav", default=None, help="The reference NAV to use for relative PnL."
+)
 @click.option(
     "-f", "--file", help="The pickle file containing a virtual broker instance."
 )
@@ -239,6 +241,8 @@ def monitor(port, nav, file, broker, environment):
 
             # Query broker
             nav = broker.get_NAV()
+            if ref_nav is None:
+                ref_nav = nav
             positions = broker.get_positions()
             pnl = nav - ref_nav
             rel_pnl = pnl / ref_nav
