@@ -1,11 +1,20 @@
 # AutoTrader Changelog
 
-## Version 0.7.5 (Unreleased)
+## Version 0.7.5
 ### Features
 - AutoBot submits orders using `ThreadPoolExecutor` to speedup
   submission of multiple orders.
 - Ability to provide custom execution methods via 
   `AutoTrader.configure(execution_method=)`. 
+- Improved verbosity from `autobot`s.
+
+### Fixes
+- Handling of testnet/mainnet keys when paper/virtual/live trading.
+- Inclusion of `__init__.py` file in `autotrader/brokers/ccxt/`.
+- Timezone handling.
+- Virtual broker does not use lambda functions to allow pickling.
+- Unified `broker._utils` attribute naming.
+
 
 ## Version 0.7.4
 ### Features
