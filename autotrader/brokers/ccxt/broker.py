@@ -222,7 +222,16 @@ class Broker:
         direction = 1 if trade["side"] == "buy" else -1
 
         # parent_order_id = trade['info']['orderId']
-        parent_order_id = trade["info"]["orderID"]
+        order_id_keys = ["orderID", "orderId2"]
+        oid_assigned = False
+        for key in order_id_keys:
+            if key in trade["info"]:
+                parent_order_id = trade["info"][key]
+                oid_assigned = True
+                break
+
+        if not oid_assigned:
+            parent_order_id = None
 
         native_trade = Trade(
             instrument=trade["symbol"],
