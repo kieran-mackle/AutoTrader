@@ -156,10 +156,37 @@ def demo():
 @click.command()
 @click.option("-p", "--port", default=8009, help="The port to serve data to.")
 @click.option("-n", "--nav", default=1000, help="The reference NAV to use for PnL.")
-@click.argument("pickle")
-def monitor(port, nav, pickle):
-    """Monitors a broker PICKLE and serves the information
+@click.option(
+    "-f", "--file", help="The pickle file containing a virtual broker instance."
+)
+@click.option("-b", "--broker", help="The name of the broker to connect to.")
+@click.option("-e", "--environment", default="paper", help="The trading environment.")
+def monitor(port, nav, file, broker, environment):
+    """Monitors a broker and serves the information
     to a prometheus database."""
+    broker_name = broker
+
+    def start_server(port):
+        """Starts the http server for Prometheus."""
+        start_http_server(port)
+        print(f"Server started on port {port}.")
+
+    def get_broker(broker):
+        """Returns the broker object."""
+        if broker is not None:
+            # Use existing broker instance
+            pass
+        elif file is not None:
+            # Unpickle latest broker instance
+            broker = unpickle_broker(picklefile=picklepath)
+        elif broker_name is not None:
+            # Create broker instance
+            print(f"Connecting to {broker_name}...")
+            at = autotrader.AutoTrader()
+            at.configure(broker=broker_name, environment=environment, verbosity=0)
+            broker = at.run()
+            print("  Done.")
+        return broker
 
     # Import packages
     from autotrader.utilities import unpickle_broker
@@ -167,20 +194,16 @@ def monitor(port, nav, pickle):
 
     print_banner()
 
-    def start_server(port):
-        """Starts the http server for Prometheus."""
-        start_http_server(port)
-        print(f"Server started on port {port}.")
-
     # Unpack inputs
     ref_nav = nav
-    picklepath = pickle
+    picklepath = file
 
-    # Check picklefile exists
-    if not os.path.exists(picklepath):
-        raise Exception(f"\nPicklefile '{pickle}' does not exist!")
-    else:
-        print(f"Monitoring {pickle}.")
+    if picklepath is not None:
+        # Check picklefile exists
+        if not os.path.exists(picklepath):
+            raise Exception(f"\nPicklefile '{file}' does not exist!")
+        else:
+            print(f"Monitoring {file}.")
 
     # Set up instrumentation
     nav_gauge = Gauge("nav_gauge", "Net Asset Value gauge.")
@@ -208,10 +231,11 @@ def monitor(port, nav, pickle):
         start_server(port)
 
     # Begin loop
+    broker = None
     while True:
         try:
-            # Unpickle latest broker instance
-            broker = unpickle_broker(picklefile=picklepath)
+            # Get broker object
+            broker = get_broker(broker)
 
             # Query broker
             nav = broker.get_NAV()
