@@ -81,13 +81,14 @@ class Broker:
                     symbol=order.instrument,
                     type=order.order_type,
                     side=side,
-                    amount=order.size,
+                    amount=abs(order.size),
                     price=order.order_limit_price,
                     params=order.ccxt_params,
                 )
             except Exception as e:
                 # An error occured, return the exception
                 placed_order = e
+                # print("Exception causing order: ", order)
 
         return placed_order
 
