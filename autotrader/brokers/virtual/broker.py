@@ -1298,32 +1298,34 @@ class Broker:
         executed_sizes = []
         while round(units_to_reduce, order.size_precision) > 0:
             # There are units to be reduced
-            open_trades = self.get_isolated_positions(order.instrument)
+            open_iso_pos = self.get_isolated_positions(order.instrument)
             # TODO - issue when a margin call happens during this process,
-            # and the open_trades dict is no longer truthful. Need to review
+            # and the open_iso_pos dict is no longer truthful. Need to review
             # margin call process, as reducing should not increase margin
             # requirements
-            for trade_id, trade in open_trades.items():
-                if trade.direction != order.direction:
-                    # Reduce this trade
-                    if units_to_reduce >= trade.size:
-                        # Entire trade must be closed
+            for trade_id, pos in open_iso_pos.items():
+                if pos.direction != order.direction:
+                    # Reduce this pos
+                    if round(units_to_reduce, order.size_precision) >= round(
+                        pos.size, order.size_precision
+                    ):
+                        # Entire pos must be closed
                         exit_price = self._close_isolated_position(
-                            trade=trade,
+                            trade=pos,
                             exit_price=reference_price,
                             exit_time=exit_time,
                             order_type=order.order_type,
                         )
 
                         # Update units_to_reduce
-                        units_to_reduce -= abs(trade.size)
+                        units_to_reduce -= abs(pos.size)
                         executed_prices.append(exit_price)
-                        executed_sizes.append(trade.size)
+                        executed_sizes.append(pos.size)
 
-                    elif units_to_reduce > 0:
-                        # Partially close trade (0 < units_to_reduce < trade.size)
+                    elif round(units_to_reduce, order.size_precision) > 0:
+                        # Partially close pos (0 < units_to_reduce < pos.size)
                         exit_price = self._reduce_isolated_position(
-                            trade=trade,
+                            trade=pos,
                             units=units_to_reduce,
                             exit_price=reference_price,
                             exit_time=exit_time,
@@ -1571,8 +1573,8 @@ class Broker:
         floating_pnl = 0
         open_interest = 0
 
-        open_trades = self.get_isolated_positions()
-        for trade_id, trade in open_trades.items():
+        open_iso_pos = self.get_isolated_positions()
+        for trade_id, trade in open_iso_pos.items():
             size = trade.size
             HCF = trade.HCF
             last_price = trade.last_price
