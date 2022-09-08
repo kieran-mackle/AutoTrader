@@ -650,6 +650,7 @@ class Trade:
         order_time: datetime,
         order_type: str,
         size: float,
+        last_price: float,
         fill_time: datetime,
         fill_price: float,
         fill_direction: int,
@@ -662,6 +663,7 @@ class Trade:
         self.fill_price = fill_price
         self.direction = fill_direction
         self.fee = fee
+        self.last_price = last_price
         self.order_price = order_price
         self.order_time = order_time
         self.order_type = order_type
@@ -722,6 +724,7 @@ class Position:
 
     def __init__(self, **kwargs):
         self.instrument = None
+        self.net_position = None
         self.pnl = None
         self.long_units = None
         self.long_PL = None
@@ -731,8 +734,20 @@ class Position:
         self.short_margin = None
         self.total_margin = None
         self.trade_IDs = None
-        self.net_position = None
         self.net_exposure = None
+
+        # TODO - include size/price precision
+        # TODO - include position open time, close time
+        # Also need to track max units ? I think that can all be built
+        # from fills
+        self.HCF = 1
+
+        self.avg_price = None
+
+        self.last_price = None
+        self.last_time = None
+
+        self.entry_time = None
 
         # IB Attributes
         self.PL = None
@@ -753,6 +768,48 @@ class Position:
 
     def __str__(self):
         return "AutoTrader Position"
+
+    def _update_with_fill(self, trade: Trade):
+        """Updates the position with the order provided."""
+        net_position_before_fill = self.net_position
+
+        # Update net position
+        self.net_position += trade.size * trade.direction
+
+        # Update average entry price
+        if self.net_position * net_position_before_fill > 0:
+            # Position has not flipped
+            if abs(self.net_position) > abs(net_position_before_fill):
+                # Position has increased
+                self.avg_price = (
+                    self.avg_price * abs(self.net_position)
+                    + trade.fill_price * trade.size
+                ) / (abs(self.net_position) + trade.size)
+        else:
+            # Position has flipped
+            self.avg_price = trade.fill_price
+
+        # Update last price and last time
+        self.last_price = trade.last_price
+        self.last_time = trade.fill_time
+
+        # TODO - update value of position
+        # self.net_exposure
+
+    @classmethod
+    def _from_fill(cls, trade: Trade):
+        """Returns a Position from a fill."""
+        position = cls(
+            instrument=trade.instrument,
+            net_position=trade.size * trade.direction,
+            last_price=trade.last_price,
+            last_time=trade.fill_time,
+            entry_time=trade.fill_time,
+            avg_price=trade.fill_price,
+        )
+        # TODO - update attributes created
+        # - exposure, value, etc.
+        return position
 
     def as_dict(self) -> dict:
         """Converts Position object to dictionary.
