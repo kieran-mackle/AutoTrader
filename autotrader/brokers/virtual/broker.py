@@ -82,7 +82,7 @@ class Broker:
         # Isolated positions (formerly "trades")
         self._open_iso_pos = {}
         self._closed_iso_pos = {}
-        self._trade_id_instrument = {}  # mapper from order_id to instrument
+        self._trade_id_instrument = {}  # mapper from trade_id to instrument
 
         # Fills (executed trades)
         self._fills = []
