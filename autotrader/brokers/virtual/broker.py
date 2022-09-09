@@ -670,7 +670,7 @@ class Broker:
                             order.order_type = "limit"
                         else:
                             # Stop order triggered - proceed to market fill
-                            reference_price = get_market_ref_price(order.direction)
+                            reference_price = order.order_stop_price
                             order.order_price = reference_price
                             order.order_type = "market"
                             self._process_order(
@@ -1004,9 +1004,6 @@ class Broker:
         liquidation_order : bool, optional
             A flag whether this is a liquidation order from the broker.
         """
-        # TODO - check order.reduce_only - this will impact how it
-        # can change the position. Pay attention to order direction.
-
         if not liquidation_order:
             # Filling an order changes its status to 'filled'
             self._move_order(
