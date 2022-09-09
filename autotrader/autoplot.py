@@ -1989,7 +1989,7 @@ class AutoPlot:
                     list(shorts_trades.data_index.values),
                     list(shorts_trades.fill_price.values),
                     "inverted_triangle",
-                    "lightgreen",
+                    "orangered",
                     "Short trades",
                     linked_fig,
                 )

@@ -152,7 +152,11 @@ at.backtest(
     end="1/3/2022",
 )
 at.virtual_account_config(
-    initial_balance=1000, leverage=30, spread=0.5 * 1e-4, commission=0.005
+    # initial_balance=1000, leverage=30, spread=0.5 * 1e-4, commission=0.005
+    initial_balance=1000,
+    leverage=30,
+    spread=0,
+    commission=0.0,
 )
 at.run()
 

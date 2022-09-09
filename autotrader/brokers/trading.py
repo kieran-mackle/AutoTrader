@@ -757,6 +757,7 @@ class Position:
         self.HCF = 1
 
         self.avg_price = None
+        self._prev_avg_price = None
 
         self.notional = 0
 
@@ -796,17 +797,22 @@ class Position:
         self.net_position += trade.size * trade.direction
 
         # Update average entry price
+        self._prev_avg_price = self.avg_price
         if self.net_position * net_position_before_fill > 0:
             # Position has not flipped
             if abs(self.net_position) > abs(net_position_before_fill):
                 # Position has increased
-                self.avg_price = (
-                    self.avg_price * abs(self.net_position)
-                    + trade.fill_price * trade.size
-                ) / (abs(self.net_position) + trade.size)
+                self.avg_price = round(
+                    (
+                        self.avg_price * abs(self.net_position)
+                        + trade.fill_price * trade.size
+                    )
+                    / (abs(self.net_position) + trade.size),
+                    self.price_precision,
+                )
         else:
             # Position has flipped
-            self.avg_price = trade.fill_price
+            self.avg_price = round(trade.fill_price, self.price_precision)
 
         # Update last price and last time
         self.last_price = trade.last_price

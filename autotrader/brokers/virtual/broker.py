@@ -911,9 +911,29 @@ class Broker:
             self._positions[trade.instrument]._update_with_fill(
                 trade=trade,
             )
+            new_net_position = self._positions[trade.instrument].net_position
+
+            # Check if position has been reduced
+            if np.sign(new_net_position - starting_net_position) != np.sign(
+                starting_net_position
+            ):
+                # Update account with position pnl
+                units_reduced = min(
+                    abs(new_net_position - starting_net_position),
+                    abs(starting_net_position),
+                )
+                reduction_direction = np.sign(starting_net_position - new_net_position)
+                pnl = (
+                    reduction_direction
+                    * units_reduced
+                    * (
+                        trade.fill_price
+                        - self._positions[trade.instrument]._prev_avg_price
+                    )
+                )
+                self._adjust_balance(pnl)
 
             # Check if position is zero
-            new_net_position = self._positions[trade.instrument].net_position
             if round(new_net_position, price_precision) == 0:
                 # Move to closed positions
                 popped_position = self._positions.pop(trade.instrument)
@@ -929,6 +949,8 @@ class Broker:
             ):
                 # Position has swapped sides
                 a = 10
+                # TODO - cancel any old SL or TP orders (will need to keep
+                # track of them as created in fill_order)
 
         else:
             # Create new position
