@@ -148,7 +148,7 @@ at.add_data(
     data_directory=data_dir,
 )
 at.backtest(
-    start="1/10/2021",
+    start="1/1/2021",
     end="1/3/2022",
 )
 at.virtual_account_config(

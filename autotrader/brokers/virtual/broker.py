@@ -88,6 +88,9 @@ class Broker:
         self._positions = {}
         self._closed_positions = {}
 
+        # SL and TP order IDs
+        self._sl_tp_ids = {}
+
         # Fills (executed trades)
         self._fills = []
 
@@ -948,9 +951,15 @@ class Broker:
                 starting_net_position
             ):
                 # Position has swapped sides
-                a = 10
-                # TODO - cancel any old SL or TP orders (will need to keep
-                # track of them as created in fill_order)
+                for order_id in self._sl_tp_ids[trade.instrument]:
+                    try:
+                        self.cancel_order(order_id=order_id, reason="Position closed.")
+                    except:
+                        print("oops")
+                        pass
+
+                # Empty self._sl_tp_ids[trade.instrument] to reset
+                self._sl_tp_ids[trade.instrument] = []
 
         else:
             # Create new position
@@ -1045,6 +1054,12 @@ class Broker:
             except KeyError:
                 self._open_orders[sl_order.instrument] = {sl_order.id: sl_order}
 
+            # Add to SL/TP order ID map
+            try:
+                self._sl_tp_ids[sl_order.instrument].append(sl_order.id)
+            except KeyError:
+                self._sl_tp_ids[sl_order.instrument] = [sl_order.id]
+
             # Add to map
             self._order_id_instrument[sl_order.id] = sl_order.instrument
 
@@ -1071,6 +1086,12 @@ class Broker:
                 self._open_orders[tp_order.instrument][tp_order.id] = tp_order
             except KeyError:
                 self._open_orders[tp_order.instrument] = {tp_order.id: tp_order}
+
+            # Add to SL/TP order ID map
+            try:
+                self._sl_tp_ids[tp_order.instrument].append(tp_order.id)
+            except KeyError:
+                self._sl_tp_ids[tp_order.instrument] = [tp_order.id]
 
             # Add to map
             self._order_id_instrument[tp_order.id] = tp_order.instrument
