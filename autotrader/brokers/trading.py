@@ -680,6 +680,10 @@ class Trade:
         self.size = size
         self.instrument = instrument
 
+        # Precision attributes
+        self._price_precision = 5
+        self._size_precision = 5
+
         # Meta-data
         self.id = None
         self.order_id = None
@@ -754,6 +758,11 @@ class Position:
 
         self.avg_price = None
 
+        self.notional = 0
+
+        price_precision = 5
+        size_precision = 5
+
         self.last_price = None
         self.last_time = None
 
@@ -805,17 +814,21 @@ class Position:
 
         # TODO - update value of position
         # self.net_exposure
+        self.notional = self.last_price * abs(self.net_position)
 
     @classmethod
     def _from_fill(cls, trade: Trade):
         """Returns a Position from a fill."""
         position = cls(
             instrument=trade.instrument,
-            net_position=trade.size * trade.direction,
+            net_position=abs(trade.size) * trade.direction,
             last_price=trade.last_price,
             last_time=trade.fill_time,
             entry_time=trade.fill_time,
             avg_price=trade.fill_price,
+            notional=trade.fill_price * abs(trade.size),
+            price_precision=trade._price_precision,
+            size_precision=trade._size_precision,
         )
         # TODO - update attributes created
         # - exposure, value, etc.
