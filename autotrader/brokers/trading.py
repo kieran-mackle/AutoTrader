@@ -739,7 +739,7 @@ class Position:
     def __init__(self, **kwargs):
         self.instrument = None
         self.net_position = None
-        self.pnl = None
+        self.pnl = 0
         self.long_units = None
         self.long_PL = None
         self.long_margin = None
@@ -760,8 +760,8 @@ class Position:
 
         self.notional = 0
 
-        price_precision = 5
-        size_precision = 5
+        self.price_precision = 5
+        self.size_precision = 5
 
         self.last_price = None
         self.last_time = None

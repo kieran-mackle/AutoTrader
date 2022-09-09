@@ -1268,11 +1268,11 @@ class AutoTrader:
                 print(
                     "Longest losing streak:   {} positions".format(longest_lose_streak)
                 )
-                print(
-                    "Average trade duration:  {}".format(
-                        trade_summary["all_trades"]["avg_trade_duration"]
-                    )
-                )
+                # print(
+                #     "Average trade duration:  {}".format(
+                #         trade_summary["all_trades"]["avg_trade_duration"]
+                #     )
+                # )
 
                 no_open = trade_summary["no_open"]
                 if no_open > 0:
@@ -1286,7 +1286,8 @@ class AutoTrader:
                 print("Cancelled orders:        {}".format(no_cancelled))
 
             # Long trades
-            no_long = trade_summary["long_positions"]["total"]
+            # no_long = trade_summary["long_positions"]["total"]
+            no_long = 0
             print("\n          Summary of long positions")
             print("----------------------------------------------")
             if no_long > 0:
@@ -1306,7 +1307,8 @@ class AutoTrader:
                 print("There were no long positions.")
 
             # Short trades
-            no_short = trade_summary["short_positions"]["total"]
+            # no_short = trade_summary["short_positions"]["total"]
+            no_short = 0
             print("\n         Summary of short positions")
             print("----------------------------------------------")
             if no_short > 0:
@@ -1932,10 +1934,7 @@ class AutoTrader:
                 )
                 self.print_trade_results()
 
-            if (
-                self._show_plot
-                and len(self.trade_results.isolated_position_history) > 0
-            ):
+            if self._show_plot and len(self.trade_results.trade_history) > 0:
                 self.plot_backtest()
 
         elif self._scan_mode and self._show_plot:

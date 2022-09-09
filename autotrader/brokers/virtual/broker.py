@@ -323,6 +323,7 @@ class Broker:
 
         elif order.order_type == "modify":
             # Get direction of related trade
+            # TODO - outdated
             related_trade = self._open_iso_pos[order.instrument][order.related_orders]
             order.direction = related_trade.direction
             ref_price = order.order_price
@@ -501,7 +502,7 @@ class Broker:
             The instrument to fetch trades under. The default is None.
         """
 
-        # Get all instrument isolated positions
+        # Get all instrument fills
         all_trades = self._fills
 
         if instrument:
@@ -517,50 +518,6 @@ class Broker:
 
         # Return a copy to prevent unintended manipulation
         return trades_dict.copy()
-
-    def get_isolated_positions(
-        self, instrument: str = None, status: str = "open", **kwargs
-    ):
-        """Returns isolated positions for the specified instrument.
-        This method has been implemented for the users of Oanda, which treats
-        trades as isolated positions.
-
-        Parameters
-        ----------
-        instrument : str, optional
-            The instrument to fetch trades under. The default is None.
-        status : str, optional
-            The status of the isolated positions to fetch ('open' or 'closed'). The
-            default is 'open'.
-        """
-        # Get all instrument isolated positions
-        all_iso_pos = getattr(self, f"_{status}_iso_pos")
-
-        if instrument:
-            # Specific instrument(s) requested
-            try:
-                pos = all_iso_pos[instrument]
-            except KeyError:
-                # No isolated positions for this instrument
-                pos = {}
-        else:
-            # Return all currently open isolated positions
-            pos = {}
-            for instr, instr_trades in all_iso_pos.items():
-                pos.update(instr_trades)
-
-        # Return a copy to prevent unintended manipulation
-        return pos.copy()
-
-    def get_trade_details(self, trade_ID: int) -> IsolatedPosition:
-        """Returns the trade specified by trade_ID."""
-        raise DeprecationWarning(
-            "This method is deprecated, and will "
-            + "be removed in a future release. Please use the "
-            + "get_trades method instead."
-        )
-        instrument = self._trade_id_instrument[trade_ID]
-        return self._open_iso_pos[instrument][trade_ID]
 
     def get_positions(self, instrument: str = None) -> dict:
         """Returns the positions held by the account, sorted by
@@ -871,18 +828,6 @@ class Broker:
         trade_size : float, optional
             The size of a public trade being used to fill orders (papertrade
             mode). The default is None.
-
-        Notes
-        -----
-        If hedging is not enabled, any orders which are contrary to an open
-        position will first reduce (or close) the open position before
-        being filled via market orders. If the remaining units of the order
-        (after reducing the open position) exceed margin requirements, the
-        entire order will be cancelled, and the original position will not
-        be impacted.
-
-        If hedging is enabled, trades can be opened against one another, and
-        will be treated in isolation.
         """
 
         # Check if papertrading
@@ -948,8 +893,7 @@ class Broker:
         if trade.instrument in self._positions:
             # Instrument already has a position
             price_precision = self._positions[trade.instrument].price_precision
-            # TODO - maybe assign prev_net_position, then compare after
-            # noting that np.sign(0) == 0
+            starting_net_position = self._positions[trade.instrument].net_position
 
             if reduce_only:
                 # Make sure the trade can only reduce (not swap) the position
@@ -958,25 +902,19 @@ class Broker:
                     abs(self._positions[trade.instrument].net_position),
                 )
 
-                if trade.direction == np.sign(
-                    self._positions[trade.instrument].net_position
-                ):
-                    # The reduce order is on the wrong side
-                    # Cancel it?
-                    # TODO - Also make sure it can only reduce in the specified
-                    # direction (if the position was swapped, the SL and TP orders
-                    # are hopefully already cancelled)
-                    pass
+                if trade.direction == np.sign(starting_net_position):
+                    # The reduce order is on the wrong side, cancel the fill
+                    del self._fills[-1]
+                    return
 
+            # Update the position with the trade
             self._positions[trade.instrument]._update_with_fill(
                 trade=trade,
             )
 
             # Check if position is zero
-            if (
-                round(self._positions[trade.instrument].net_position, price_precision)
-                == 0
-            ):
+            new_net_position = self._positions[trade.instrument].net_position
+            if round(new_net_position, price_precision) == 0:
                 # Move to closed positions
                 popped_position = self._positions.pop(trade.instrument)
                 if trade.instrument in self._closed_positions:
@@ -986,9 +924,11 @@ class Broker:
                     # Create new entry
                     self._closed_positions[trade.instrument] = [popped_position]
 
-            # TODO - check if position swapped side
-            # If so, cancel SL and TP orders
-            # Can keep track of them in an attr when built in fill_order
+            elif np.sign(self._positions[trade.instrument].net_position) != np.sign(
+                starting_net_position
+            ):
+                # Position has swapped sides
+                a = 10
 
         else:
             # Create new position
@@ -1077,6 +1017,8 @@ class Broker:
                 id=self._get_new_order_id(),
                 parent_order=order.id,
                 status="open",
+                order_time=fill_time,
+                order_price=fill_price,
             )
             # Add to open orders
             try:
@@ -1102,6 +1044,8 @@ class Broker:
                 status="open",
                 price_precision=order.price_precision,
                 size_precision=order.size_precision,
+                order_time=fill_time,
+                order_price=fill_price,
             )
             # Add to open orders
             try:
@@ -1163,7 +1107,6 @@ class Broker:
 
         # Update position with fill
         self._modify_position(trade=trade, reduce_only=order.reduce_only)
-        pause = 0
 
     def _move_order(
         self,
@@ -1181,219 +1124,6 @@ class Broker:
             to_dict[order.instrument][order.id] = popped_item
         except KeyError:
             to_dict[order.instrument] = {order.id: popped_item}
-
-    def _move_isolated_position(
-        self,
-        trade: IsolatedPosition,
-        from_dict: str = None,
-        to_dict: str = "_open_iso_pos",
-        new_status="open",
-    ) -> None:
-        """Moves an isolated position from the from_dict to the to_dict."""
-        trade.status = new_status
-        to_dict = getattr(self, to_dict)
-        if from_dict is not None:
-            # From dict exists, pop trade from it
-            from_dict = getattr(self, from_dict)[trade.instrument]
-            popped_item = from_dict.pop(trade.id)
-
-        else:
-            # Use trade directly
-            popped_item = trade
-
-        # Make the move
-        try:
-            to_dict[trade.instrument][trade.id] = popped_item
-        except KeyError:
-            to_dict[trade.instrument] = {trade.id: popped_item}
-
-    def _reduce_position(
-        self,
-        order: Order = None,
-        exit_price: float = None,
-        exit_time: datetime = None,
-    ) -> None:
-        """Reduces the position of the specified instrument using an order. If the
-        order.size exceeds the net position, the entire existing position will be
-        closed out.
-
-        Parameters
-        -----------
-
-        Returns
-        -------
-        avg_exit_price : float
-            The average execution price used when reducing the position.
-        """
-        # Assign reference price: use limit price for limit order, else market price
-        reference_price = (
-            order.order_limit_price
-            if order.order_limit_price is not None
-            else exit_price
-        )
-
-        # Get current position in instrument
-        position = self.get_positions(order.instrument)
-
-        # Modify existing trades until there are no more units to reduce
-        units_to_reduce = min(
-            abs(order.size), abs(position[order.instrument].net_position)
-        )
-        executed_prices = []
-        executed_sizes = []
-        while round(units_to_reduce, order.size_precision) > 0:
-            # There are units to be reduced
-            open_iso_pos = self.get_isolated_positions(order.instrument)
-            # TODO - issue when a margin call happens during this process,
-            # and the open_iso_pos dict is no longer truthful. Need to review
-            # margin call process, as reducing should not increase margin
-            # requirements
-            for trade_id, pos in open_iso_pos.items():
-                if pos.direction != order.direction:
-                    # Reduce this pos
-                    if round(units_to_reduce, order.size_precision) >= round(
-                        pos.size, order.size_precision
-                    ):
-                        # Entire pos must be closed
-                        exit_price = self._close_isolated_position(
-                            trade=pos,
-                            exit_price=reference_price,
-                            exit_time=exit_time,
-                            order_type=order.order_type,
-                        )
-
-                        # Update units_to_reduce
-                        units_to_reduce -= abs(pos.size)
-                        executed_prices.append(exit_price)
-                        executed_sizes.append(pos.size)
-
-                    elif round(units_to_reduce, order.size_precision) > 0:
-                        # Partially close pos (0 < units_to_reduce < pos.size)
-                        exit_price = self._reduce_isolated_position(
-                            trade=pos,
-                            units=units_to_reduce,
-                            exit_price=reference_price,
-                            exit_time=exit_time,
-                            order_type=order.order_type,
-                        )
-
-                        # Update units_to_reduce
-                        executed_prices.append(exit_price)
-                        executed_sizes.append(units_to_reduce)
-                        units_to_reduce = 0
-
-        avg_exit_price = sum(
-            [
-                executed_sizes[i] * executed_prices[i]
-                for i in range(len(executed_prices))
-            ]
-        ) / sum(executed_sizes)
-        return avg_exit_price
-
-    def _reduce_isolated_position(
-        self,
-        trade: IsolatedPosition,
-        units: float,
-        exit_price: float = None,
-        exit_time: datetime = None,
-        order_type: str = "market",
-    ) -> None:
-        """Splits an isolated position into two, to reduce it by a fractional
-        amount. The original ID remains, but the size is reduced. The portion
-        that gets closed is assigned a new ID.
-
-        Returns
-        -------
-        exit_price : float
-            The execution price used to reduce the isolated position.
-        """
-        # Create new trade for the amount to be reduced
-        partial_trade = IsolatedPosition._split(trade, units)
-        partial_trade_id = self._get_new_trade_id()
-        partial_trade.id = partial_trade_id
-
-        # Add partial trade to open trades, then immediately close it
-        self._open_iso_pos[trade.instrument][partial_trade_id] = partial_trade
-        exit_price = self._close_isolated_position(
-            trade=partial_trade,
-            exit_price=exit_price,
-            exit_time=exit_time,
-            order_type=order_type,
-        )
-
-        # Keep track of partial trade id instrument for reference
-        self._trade_id_instrument[partial_trade_id] = trade.instrument
-
-        return exit_price
-
-    def _close_isolated_position(
-        self,
-        trade: IsolatedPosition,
-        exit_price: float = None,
-        exit_time: datetime = None,
-        order_type: str = "market",
-    ) -> None:
-        """Closes an isolated position by ID.
-
-        Parameters
-        ----------
-        trade_id : int, optional
-            The trade id. The default is None.
-        exit_price : float, optional
-            The trade exit price. If none is provided, the market price
-            will be used. The default is None.
-        exit_time : datetime, optional
-            The trade exit time. The default is None.
-        order_type : str, optional
-            The order type used to calculate commissions. The default
-            is 'market'.
-
-        Returns
-        -------
-        exit_price : float
-            The price executed for the closeout of the isolated position.
-        """
-        fill_price = trade.fill_price
-        size = trade.size
-        direction = trade.direction
-
-        reference_price = exit_price if exit_price is not None else trade.last_price
-        if order_type == "limit":
-            # Limit order, use exit price provided
-            exit_price = reference_price
-
-        else:
-            # Trade through book, exit price provided as reference for midprice
-            exit_price = self._trade_through_book(
-                instrument=trade.instrument,
-                direction=-direction,
-                size=size,
-                reference_price=reference_price,
-                precision=trade.price_precision,
-            )
-
-        # Update portfolio with profit/loss
-        pnl = direction * size * (float(exit_price) - float(fill_price)) * trade.HCF
-
-        # Update trade closure attributes
-        trade.profit = pnl
-        trade.balance = self._equity
-        trade.exit_price = exit_price
-        # trade.fees = commission
-        trade.exit_time = exit_time if exit_time is not None else trade.last_time
-
-        # Add trade to closed positions
-        self._move_isolated_position(
-            trade,
-            from_dict="_open_iso_pos",
-            to_dict="_closed_iso_pos",
-            new_status="closed",
-        )
-
-        # Update account with position pnl
-        self._adjust_balance(pnl)
-
-        return exit_price
 
     def _trade_through_book(
         self,
@@ -1524,25 +1254,6 @@ class Broker:
             floating_pnl += position.pnl
             open_interest += position.notional
 
-        # open_iso_pos = self.get_isolated_positions()
-        # for trade_id, trade in open_iso_pos.items():
-        #     size = trade.size
-        #     HCF = trade.HCF
-        #     last_price = trade.last_price
-        #     trade_value = abs(size) * last_price * HCF if last_price else trade.value
-        #     margin_required = self._calculate_margin(trade_value)
-        #     margin_used += margin_required
-
-        #     # Update margin required in trade dict
-        #     trade.margin_required = margin_required
-        #     trade.value = trade_value
-
-        #     # Floating pnl
-        #     floating_pnl += trade.unrealised_PL
-
-        #     # Open interest
-        #     open_interest += abs(trade.value)
-
         # Update unrealised PnL
         self._floating_pnl = floating_pnl
 
@@ -1636,7 +1347,6 @@ class Broker:
         )
 
         # Fire the order
-        # fill_price = self._reduce_position(order=closeout_order, exit_time=latest_time)
         fill_price = self._trade_through_book(
             instrument=instrument,
             direction=-direction,

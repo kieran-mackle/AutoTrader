@@ -316,9 +316,9 @@ class AutoPlot:
             topsource.add(account_hist[["NAV", "equity"]].max(1), "High")
 
             # Get isolated position summary
-            trade_summary = trade_results.isolated_position_history
+            trade_summary = trade_results.trade_history
             indicators = trade_results.indicators
-            open_trades = trade_results.open_isolated_positions
+            # open_trades = trade_results.open_isolated_positions
             cancelled_trades = trade_results.cancelled_orders
 
             top_fig = self._plot_lineV2(
@@ -369,8 +369,8 @@ class AutoPlot:
                     self._plot_trade_history(
                         cancelled_trades, main_plot, cancelled_summary=True
                     )
-                if len(open_trades) > 0:
-                    self._plot_trade_history(open_trades, main_plot, open_summary=True)
+                # if len(open_trades) > 0:
+                #     self._plot_trade_history(open_trades, main_plot, open_summary=True)
 
         # Indicators
         if indicators is not None:
@@ -1958,72 +1958,91 @@ class AutoPlot:
         shorts_trades = trade_summary[trade_summary["direction"] < 0]
 
         if cancelled_summary is False and open_summary is False:
+            # Plotting historical trades taken
+            # if self._backtest_data is not None:
+            #     # Charting on different timeframe data
+            #     exit_summary = pd.merge(
+            #         self._backtest_data,
+            #         exit_summary,
+            #         left_index=True,
+            #         right_on="exit_time",
+            #     )
+            # else:
+            #     exit_summary = pd.merge(
+            #         self._data, exit_summary, left_on="date", right_on="exit_time"
+            #     )
 
-            if any(exit_summary.status == "closed"):
-                if self._backtest_data is not None:
-                    # Charting on different timeframe data
-                    exit_summary = pd.merge(
-                        self._backtest_data,
-                        exit_summary,
-                        left_index=True,
-                        right_on="exit_time",
-                    )
-                else:
-                    exit_summary = pd.merge(
-                        self._data, exit_summary, left_on="date", right_on="exit_time"
-                    )
-            else:
-                # No trades were closed
-                exit_summary = None
-
-            profitable_longs = long_trades[(long_trades["profit"] > 0)]
-            unprofitable_longs = long_trades[(long_trades["profit"] < 0)]
-            profitable_shorts = shorts_trades[(shorts_trades["profit"] > 0)]
-            unprofitable_shorts = shorts_trades[(shorts_trades["profit"] < 0)]
-
-            # Profitable long trades
-            if len(profitable_longs) > 0:
+            # Long trades
+            if len(long_trades) > 0:
                 self._plot_trade(
-                    list(profitable_longs.data_index.values),
-                    list(profitable_longs.fill_price.values),
+                    list(long_trades.data_index.values),
+                    list(long_trades.fill_price.values),
                     "triangle",
                     "lightgreen",
-                    "Profitable long trades",
+                    "Long trades",
                     linked_fig,
                 )
 
-            # Profitable short trades
-            if len(profitable_shorts) > 0:
+            # Short trades
+            if len(shorts_trades) > 0:
                 self._plot_trade(
-                    list(profitable_shorts.data_index.values),
-                    list(profitable_shorts.fill_price.values),
+                    list(shorts_trades.data_index.values),
+                    list(shorts_trades.fill_price.values),
                     "inverted_triangle",
                     "lightgreen",
-                    "Profitable short trades",
+                    "Short trades",
                     linked_fig,
                 )
 
-            # Unprofitable long trades
-            if len(unprofitable_longs) > 0:
-                self._plot_trade(
-                    list(unprofitable_longs.data_index.values),
-                    list(unprofitable_longs.fill_price.values),
-                    "triangle",
-                    "orangered",
-                    "Unprofitable long trades",
-                    linked_fig,
-                )
+            # profitable_longs = long_trades[(long_trades["profit"] > 0)]
+            # unprofitable_longs = long_trades[(long_trades["profit"] < 0)]
+            # profitable_shorts = shorts_trades[(shorts_trades["profit"] > 0)]
+            # unprofitable_shorts = shorts_trades[(shorts_trades["profit"] < 0)]
 
-            # Unprofitable short trades
-            if len(unprofitable_shorts) > 0:
-                self._plot_trade(
-                    list(unprofitable_shorts.data_index.values),
-                    list(unprofitable_shorts.fill_price.values),
-                    "inverted_triangle",
-                    "orangered",
-                    "Unprofitable short trades",
-                    linked_fig,
-                )
+            # # Profitable long trades
+            # if len(profitable_longs) > 0:
+            #     self._plot_trade(
+            #         list(profitable_longs.data_index.values),
+            #         list(profitable_longs.fill_price.values),
+            #         "triangle",
+            #         "lightgreen",
+            #         "Profitable long trades",
+            #         linked_fig,
+            #     )
+
+            # # Profitable short trades
+            # if len(profitable_shorts) > 0:
+            #     self._plot_trade(
+            #         list(profitable_shorts.data_index.values),
+            #         list(profitable_shorts.fill_price.values),
+            #         "inverted_triangle",
+            #         "lightgreen",
+            #         "Profitable short trades",
+            #         linked_fig,
+            #     )
+
+            # # Unprofitable long trades
+            # if len(unprofitable_longs) > 0:
+            #     self._plot_trade(
+            #         list(unprofitable_longs.data_index.values),
+            #         list(unprofitable_longs.fill_price.values),
+            #         "triangle",
+            #         "orangered",
+            #         "Unprofitable long trades",
+            #         linked_fig,
+            #     )
+
+            # # Unprofitable short trades
+            # if len(unprofitable_shorts) > 0:
+            #     self._plot_trade(
+            #         list(unprofitable_shorts.data_index.values),
+            #         list(unprofitable_shorts.fill_price.values),
+            #         "inverted_triangle",
+            #         "orangered",
+            #         "Unprofitable short trades",
+            #         linked_fig,
+            #     )
+
         else:
             if cancelled_summary:
                 long_legend_label = "Cancelled long trades"
@@ -2059,42 +2078,42 @@ class AutoPlot:
                 )
 
         # Stop loss  levels
-        if None not in trade_summary.stop_loss.values:
-            self._plot_trade(
-                list(trade_summary.data_index.values),
-                list(trade_summary.stop_loss.fillna("").values),
-                "dash",
-                "black",
-                "Stop loss",
-                linked_fig,
-            )
+        # if None not in trade_summary.stop_loss.values:
+        #     self._plot_trade(
+        #         list(trade_summary.data_index.values),
+        #         list(trade_summary.stop_loss.fillna("").values),
+        #         "dash",
+        #         "black",
+        #         "Stop loss",
+        #         linked_fig,
+        #     )
 
-        # Take profit levels
-        if None not in trade_summary.take_profit.values:
-            self._plot_trade(
-                list(trade_summary.data_index.values),
-                list(trade_summary.take_profit.fillna("").values),
-                "dash",
-                "black",
-                "Take profit",
-                linked_fig,
-            )
+        # # Take profit levels
+        # if None not in trade_summary.take_profit.values:
+        #     self._plot_trade(
+        #         list(trade_summary.data_index.values),
+        #         list(trade_summary.take_profit.fillna("").values),
+        #         "dash",
+        #         "black",
+        #         "Take profit",
+        #         linked_fig,
+        #     )
 
         # Position exits
-        if (
-            cancelled_summary is False
-            and open_summary is False
-            and exit_summary is not None
-        ):
-            self._plot_trade(
-                list(exit_summary.data_index),
-                list(exit_summary.exit_price.values),
-                "circle",
-                "black",
-                "Position exit",
-                linked_fig,
-                scatter_size=7,
-            )
+        # if (
+        #     cancelled_summary is False
+        #     and open_summary is False
+        #     and exit_summary is not None
+        # ):
+        #     self._plot_trade(
+        #         list(exit_summary.data_index),
+        #         list(exit_summary.exit_price.values),
+        #         "circle",
+        #         "black",
+        #         "Position exit",
+        #         linked_fig,
+        #         scatter_size=7,
+        #     )
 
     """ --------------------- BOTTOM FIG PLOTTING ------------------------- """
 
