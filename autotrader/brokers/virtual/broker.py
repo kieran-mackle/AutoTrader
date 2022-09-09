@@ -951,15 +951,16 @@ class Broker:
                 starting_net_position
             ):
                 # Position has swapped sides
-                for order_id in self._sl_tp_ids[trade.instrument]:
-                    try:
-                        self.cancel_order(order_id=order_id, reason="Position closed.")
-                    except:
-                        print("oops")
-                        pass
+                pass
+                # for order_id in self._sl_tp_ids[trade.instrument]:
+                #     try:
+                #         self.cancel_order(order_id=order_id, reason="Position closed.")
+                #     except:
+                #         print("oops")
+                #         pass
 
                 # Empty self._sl_tp_ids[trade.instrument] to reset
-                self._sl_tp_ids[trade.instrument] = []
+                # self._sl_tp_ids[trade.instrument] = []
 
         else:
             # Create new position
@@ -1023,6 +1024,7 @@ class Broker:
             )
 
         # Infer attributes from provided order
+        # TODO - clean up func args, dont input the below
         instrument = order.instrument
         order_price = order.order_price
         order_time = order.order_time
