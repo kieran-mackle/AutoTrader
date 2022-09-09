@@ -743,11 +743,22 @@ class Broker:
                     order=order, fill_time=latest_time, reference_price=reference_price
                 )
 
-            elif order.order_type == "stop-limit":
+            elif "stop" in order.order_type:
                 # Check if order_stop_price has been reached yet
                 if stop_trigger_condition(order.order_stop_price, order.direction):
-                    # order_stop_price has been reached, change order type to 'limit'
-                    order.order_type = "limit"
+                    # order_stop_price has been reached
+                    if order.order_type == "stop-limit":
+                        # Change order type to 'limit'
+                        order.order_type = "limit"
+                    else:
+                        # Stop order triggered - proceed to market fill
+                        reference_price = get_market_ref_price(order.direction)
+                        order.order_price = reference_price
+                        self._process_order(
+                            order=order,
+                            fill_time=latest_time,
+                            reference_price=reference_price,
+                        )
 
             elif order.order_type == "modify":
                 # Modification order
@@ -1154,6 +1165,10 @@ class Broker:
         """
 
         if order is not None:
+
+            # TODO - check order.reduce_only - this will impact how it
+            # can change the position. Pay attention to order direction.
+
             if not liquidation_order:
                 # Filling an order changes its status to 'filled'
                 self._move_order(
@@ -1172,6 +1187,53 @@ class Broker:
             direction = order.direction
             order_id = order.id
             fill_price = round(fill_price, order.price_precision)
+
+            # Check for SL
+            if order.stop_loss is not None:
+                # Create SL order
+                sl_order = Order(
+                    instrument=order.instrument,
+                    direction=-order.direction,
+                    size=abs(order.size),
+                    order_type="stop",
+                    order_stop_price=round(order.stop_loss, order.price_precision),
+                    reduce_only=True,
+                    id=self._get_new_order_id(),
+                    parent_order=order.id,
+                    status="open",
+                )
+                # Add to open orders
+                try:
+                    self._open_orders[sl_order.instrument][sl_order.id] = sl_order
+                except KeyError:
+                    self._open_orders[sl_order.instrument] = {sl_order.id: sl_order}
+
+            # Check for TP
+            if order.take_profit is not None:
+                # Create TP order
+                tp_order = Order(
+                    instrument=order.instrument,
+                    direction=-order.direction,
+                    size=abs(order.size),
+                    order_type="limit",
+                    order_limit_price=round(order.take_profit, order.price_precision),
+                    reduce_only=True,
+                    id=self._get_new_order_id(),
+                    parent_order=order.id,
+                    status="open",
+                    price_precision=order.price_precision,
+                    size_precision=order.size_precision,
+                )
+                # Add to open orders
+                try:
+                    self._open_orders[tp_order.instrument][tp_order.id] = tp_order
+                except KeyError:
+                    self._open_orders[tp_order.instrument] = {tp_order.id: tp_order}
+
+            # Link SL to TP OCO style
+            if order.stop_loss is not None and order.take_profit is not None:
+                tp_order.OCO.append(sl_order.id)
+                sl_order.OCO.append(tp_order.id)
 
         # Charge trading fees
         commission = self._calculate_commissions(

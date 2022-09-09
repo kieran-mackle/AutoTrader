@@ -118,6 +118,11 @@ class Order:
 
         self.related_orders = None
 
+        # Reduce only order
+        self.parent_order = None  # Parent order ID
+        self.reduce_only = False
+        self.OCO = []  # One-cancels-other
+
         self.data_name = None  # When using custom DataStream
 
         # IB attributes
@@ -189,6 +194,11 @@ class Order:
                     elif self.order_stop_price is None:
                         return "Invalid order (stop price not provided)"
                     string += f" @ {self.order_stop_price} / {self.order_limit_price}"
+
+                elif self.order_type == "stop":
+                    if self.order_stop_price is None:
+                        return "Invalid order (stop price not provided)"
+                    string += f" @ {self.order_stop_price}"
 
                 return string
 
