@@ -749,25 +749,20 @@ class Position:
         self.total_margin = None
         self.trade_IDs = None
         self.net_exposure = None
+        self.notional = 0
+        self.price_precision = 5
+        self.size_precision = 5
+        self.avg_price = None
+        self._prev_avg_price = None
 
-        # TODO - include size/price precision
         # TODO - include position open time, close time
         # Also need to track max units ? I think that can all be built
         # from fills
         self.HCF = 1
 
-        self.avg_price = None
-        self._prev_avg_price = None
-
-        self.notional = 0
-
-        self.price_precision = 5
-        self.size_precision = 5
-
+        self.entry_time = None
         self.last_price = None
         self.last_time = None
-
-        self.entry_time = None
 
         # IB Attributes
         self.PL = None
