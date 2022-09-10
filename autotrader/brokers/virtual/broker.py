@@ -88,8 +88,8 @@ class Broker:
         self._positions = {}
         self._closed_positions = {}
 
-        # SL and TP order IDs
-        self._sl_tp_ids = {}
+        # Margin call flag
+        self._margin_calling = False
 
         # Fills (executed trades)
         self._fills = []
@@ -740,16 +740,12 @@ class Broker:
         open_orders = self.get_orders(instrument)
         process_orders_in_dict(open_orders)
 
-        # TODO - at this point, there may be new orders (eg. SL and TP)
-        # which must be processed in the same manner above...
-        # TODO - the below flow can definitely be improved / generalised
+        # Check for any SL/TP orders spawned
         currently_open_orders = self.get_orders(instrument=instrument)
         newly_opened_orders = dict(
             set(currently_open_orders.items()) - set(open_orders.items())
         )
         process_orders_in_dict(newly_opened_orders)
-        # TODO - alternative method - append the newly opened orders (in fill_order
-        # method) to an attribute list, which will get called upon
 
         # Update position
         position = self.get_positions(instrument=instrument)
@@ -952,15 +948,6 @@ class Broker:
             ):
                 # Position has swapped sides
                 pass
-                # for order_id in self._sl_tp_ids[trade.instrument]:
-                #     try:
-                #         self.cancel_order(order_id=order_id, reason="Position closed.")
-                #     except:
-                #         print("oops")
-                #         pass
-
-                # Empty self._sl_tp_ids[trade.instrument] to reset
-                # self._sl_tp_ids[trade.instrument] = []
 
         else:
             # Create new position
@@ -1056,12 +1043,6 @@ class Broker:
             except KeyError:
                 self._open_orders[sl_order.instrument] = {sl_order.id: sl_order}
 
-            # Add to SL/TP order ID map
-            try:
-                self._sl_tp_ids[sl_order.instrument].append(sl_order.id)
-            except KeyError:
-                self._sl_tp_ids[sl_order.instrument] = [sl_order.id]
-
             # Add to map
             self._order_id_instrument[sl_order.id] = sl_order.instrument
 
@@ -1088,12 +1069,6 @@ class Broker:
                 self._open_orders[tp_order.instrument][tp_order.id] = tp_order
             except KeyError:
                 self._open_orders[tp_order.instrument] = {tp_order.id: tp_order}
-
-            # Add to SL/TP order ID map
-            try:
-                self._sl_tp_ids[tp_order.instrument].append(tp_order.id)
-            except KeyError:
-                self._sl_tp_ids[tp_order.instrument] = [tp_order.id]
 
             # Add to map
             self._order_id_instrument[tp_order.id] = tp_order.instrument
@@ -1285,7 +1260,6 @@ class Broker:
     ) -> None:
         """Updates the margin available in the account."""
         # TODO - only update with instrument
-
         margin_used = 0
         floating_pnl = 0
         open_interest = 0
@@ -1309,14 +1283,19 @@ class Broker:
         if (
             self._leverage > 1
             and self._margin_available / self._NAV < self._margin_closeout
+            and not self._margin_calling
         ):
             # Margin call - close all positions
+            self._margin_calling = True
             if self._verbosity > 0:
                 print("MARGIN CALL: closing all positions.")
             positions = self.get_positions()
             for instrument, position in positions.items():
                 last_price = position.last_price
                 self._margin_call(instrument, latest_time, last_price)
+
+            # Reset margin call flag
+            self._margin_calling = False
 
     def _modify_order(self, order: Order) -> None:
         """Modify order with updated parameters. Called when
