@@ -568,24 +568,10 @@ class TradeAnalysis:
                 fills=broker._fills, broker_name=broker_name
             )
 
-            # account_history = pd.DataFrame(
-            #     data={
-            #         "NAV": broker._NAV_hist,
-            #         "equity": broker._equity_hist,
-            #         "margin": broker._margin_hist,
-            #         "open_interest": broker._open_interest_hist,
-            #     },
-            #     index=broker._time_hist,
-            # )
             account_history = pd.DataFrame(
                 data=broker_histories[broker_name],
             )
             account_history.set_index("time", inplace=True)
-
-            # Remove duplicates
-            # account_history = account_history[
-            #     ~account_history.index.duplicated(keep="last")
-            # ]
 
             position_history = TradeAnalysis.create_position_history(
                 trade_history=trade_history,

@@ -798,7 +798,7 @@ class Position:
 
         # Update average entry price
         self._prev_avg_price = self.avg_price
-        if self.net_position * net_position_before_fill > 0:
+        if self.net_position * net_position_before_fill >= 0:
             # Position has not flipped
             if abs(self.net_position) > abs(net_position_before_fill):
                 # Position has increased
@@ -810,6 +810,7 @@ class Position:
                     / (abs(self.net_position) + trade.size),
                     self.price_precision,
                 )
+            # If position has reduced, average entry price will not change
         else:
             # Position has flipped
             self.avg_price = round(trade.fill_price, self.price_precision)

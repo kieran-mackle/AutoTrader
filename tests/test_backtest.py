@@ -173,9 +173,3 @@ def test_margin_call_backtest():
     assert round(bt_results["ending_balance"], 3) == 970.769, (
         "Incorrect " + "ending balance (margin call backtest)"
     )
-
-
-test_macd_backtest()
-test_multibot_macd_backtest()
-test_limit_backtest()
-test_margin_call_backtest()
