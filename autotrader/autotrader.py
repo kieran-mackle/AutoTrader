@@ -101,6 +101,7 @@ class AutoTrader:
         # Broker parameters
         self._execution_method = None  # Execution method
         self._broker = None  # Broker instance(s)
+        self._brokers_dict = None  # Dictionary of brokers
         self._broker_name = ""  # Broker name(s)
         self._broker_utils = None  # Broker utilities
         self._broker_verbosity = 0  # Broker verbosity
@@ -122,6 +123,7 @@ class AutoTrader:
         self._backtest_mode = False
         self._data_start = None
         self._data_end = None
+        self._broker_histories = None
 
         # Local Data Parameters
         self._data_indexing = "open"
@@ -983,7 +985,7 @@ class AutoTrader:
                         + f" Number of virtual accounts configured: {len(self._virtual_broker_config)}"
                     )
 
-        # Preliminary checks complete, continue
+        # Preliminary checks complete, continue initialisation
         if self._optimise_mode:
             # Run optimisation
             if self._backtest_mode:
@@ -1474,6 +1476,18 @@ class AutoTrader:
         self._assign_broker(broker_config)
         self._configure_emailing(self._global_config_dict)
 
+        # Initialise broker histories
+        self._broker_histories = {
+            key: {
+                "NAV": [],
+                "equity": [],
+                "margin": [],
+                "open_interest": [],
+                "time": [],
+            }
+            for key in self._brokers_dict
+        }
+
         if int(self._verbosity) > 0:
             print(pyfiglet.figlet_format("AutoTrader", font="slant"))
 
@@ -1682,6 +1696,10 @@ class AutoTrader:
             brokers[broker_key] = broker
             brokers_utils[broker_key] = utils
 
+        # Save broker dict
+        self._brokers_dict = brokers
+
+        # Check
         if not self._multiple_brokers:
             # Extract single broker
             brokers = broker
@@ -1930,11 +1948,14 @@ class AutoTrader:
         # Run instance shut-down routine
         if self._backtest_mode:
             # Create overall backtest results
-            self.trade_results = TradeAnalysis(self._broker)
+            self.trade_results = TradeAnalysis(
+                broker=self._broker,
+                broker_histories=self._broker_histories,
+            )
 
             # Create trade results for each bot
             for bot in self._bots_deployed:
-                bot._create_trade_results()
+                bot._create_trade_results(broker_histories=self._broker_histories)
 
             if int(self._verbosity) > 0:
                 print(
@@ -2009,6 +2030,15 @@ class AutoTrader:
                         for bot in self._bots_deployed:
                             bot._update(timestamp=timestamp)
 
+                        # Update histories
+                        for name, broker in self._brokers_dict.items():
+                            hist_dict = self._broker_histories[name]
+                            hist_dict["NAV"].append(broker._NAV)
+                            hist_dict["equity"].append(broker._equity)
+                            hist_dict["margin"].append(broker._margin_available)
+                            hist_dict["open_interest"].append(broker._open_interest)
+                            hist_dict["time"].append(timestamp)
+
                         # Iterate through time
                         timestamp += self._timestep
                         pbar.update(self._timestep.total_seconds())
@@ -2071,6 +2101,15 @@ class AutoTrader:
                         # Update each bot with latest data to generate signal
                         for bot in self._bots_deployed:
                             bot._update(i=i)
+
+                        # Update histories
+                        for name, broker in self._brokers_dict.items():
+                            hist_dict = self._broker_histories[name]
+                            hist_dict["NAV"].append(broker._NAV)
+                            hist_dict["equity"].append(broker._equity)
+                            hist_dict["margin"].append(broker._margin_available)
+                            hist_dict["open_interest"].append(broker._open_interest)
+                            hist_dict["time"].append(broker._latest_time)
 
                 else:
                     # Live trading

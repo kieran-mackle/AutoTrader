@@ -515,7 +515,7 @@ class TradeAnalysis:
 
     """
 
-    def __init__(self, broker, instrument: str = None):
+    def __init__(self, broker, broker_histories: dict, instrument: str = None):
         # Meta data
         self.brokers_used = None
         self.broker_results = None
@@ -530,7 +530,7 @@ class TradeAnalysis:
         self.trade_history = None
 
         # Perform analysis
-        self.analyse_account(broker, instrument)
+        self.analyse_account(broker, broker_histories, instrument)
 
     def __str__(self):
         return "AutoTrader Trading Results"
@@ -541,12 +541,13 @@ class TradeAnalysis:
     def analyse_account(
         self,
         broker,
+        broker_histories: dict,
         instrument: str = None,
     ) -> None:
         """Analyses trade account and creates summary of key details."""
         if not isinstance(broker, dict):
             # Single broker - create dummy dict
-            broker_instances = {"broker": broker}
+            broker_instances = {list(broker_histories.keys())[0]: broker}
         else:
             # Multiple brokers passed in as dict
             broker_instances = broker
@@ -567,20 +568,24 @@ class TradeAnalysis:
                 fills=broker._fills, broker_name=broker_name
             )
 
+            # account_history = pd.DataFrame(
+            #     data={
+            #         "NAV": broker._NAV_hist,
+            #         "equity": broker._equity_hist,
+            #         "margin": broker._margin_hist,
+            #         "open_interest": broker._open_interest_hist,
+            #     },
+            #     index=broker._time_hist,
+            # )
             account_history = pd.DataFrame(
-                data={
-                    "NAV": broker._NAV_hist,
-                    "equity": broker._equity_hist,
-                    "margin": broker._margin_hist,
-                    "open_interest": broker._open_interest_hist,
-                },
-                index=broker._time_hist,
+                data=broker_histories[broker_name],
             )
+            account_history.set_index("time", inplace=True)
 
             # Remove duplicates
-            account_history = account_history[
-                ~account_history.index.duplicated(keep="last")
-            ]
+            # account_history = account_history[
+            #     ~account_history.index.duplicated(keep="last")
+            # ]
 
             position_history = TradeAnalysis.create_position_history(
                 trade_history=trade_history,
@@ -975,7 +980,11 @@ class TradeAnalysis:
             trade_results["all_trades"] = {}
 
             # Calculate positions still open
-            trade_results["no_open"] = sum(self.position_history.iloc[-1] > 0)
+            # TODO - debug below with multi asset backtest
+            try:
+                trade_results["no_open"] = sum(self.position_history.iloc[-1] > 0)
+            except:
+                trade_results["no_open"] = 0
 
             # Analyse winning positions
             # wins = self.isolated_position_history[

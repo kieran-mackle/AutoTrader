@@ -121,11 +121,7 @@ class Broker:
         self._taker_commission = 0  # Liquidity 'taker' trade commission
 
         # History
-        self._NAV_hist = []
-        self._equity_hist = []
-        self._margin_hist = []
-        self._open_interest_hist = []
-        self._time_hist = []
+        self._latest_time = None
 
         # Last order and trade counts
         self._last_order_id = 0
@@ -773,11 +769,7 @@ class Broker:
         self._NAV = self._equity + self._floating_pnl
 
         # Update account history
-        self._NAV_hist.append(self._NAV)
-        self._equity_hist.append(self._equity)
-        self._margin_hist.append(self._margin_available)
-        self._open_interest_hist.append(self._open_interest)
-        self._time_hist.append(latest_time)
+        self._latest_time = latest_time
 
         # Save state
         if self._paper_trading and self._picklefile is not None:

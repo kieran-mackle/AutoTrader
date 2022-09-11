@@ -139,7 +139,7 @@ home_dir = os.getcwd()
 data_dir = "/home/kmackle/Documents/AutoTrader/tests/data"
 
 at = AutoTrader()
-at.configure(verbosity=1, show_plot=True)
+at.configure(verbosity=1, show_plot=True)  # , broker='ccxt:binanceusdm, ccxt:bitmex')
 at.add_strategy(config_dict=config, strategy=SimpleMACD)
 at.plot_settings(show_cancelled=False)
 at.add_data(
@@ -157,6 +157,17 @@ at.virtual_account_config(
     leverage=30,
     spread=0,
     commission=0.0,
+    # exchange='ccxt:binanceusdm',
+    # tradeable_instruments=["EUR_USD"],
+)
+at.virtual_account_config(
+    # initial_balance=1000, leverage=30, spread=0.5 * 1e-4, commission=0.005
+    initial_balance=1000,
+    leverage=30,
+    spread=0,
+    commission=0.0,
+    # exchange='ccxt:bitmex',
+    # tradeable_instruments=["EUR_USD"],
 )
 at.run()
 

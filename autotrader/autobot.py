@@ -701,9 +701,9 @@ class AutoTraderBot:
                 for broker in brokers:
                     broker._update_positions(instrument=product, candle=bar)
 
-    def _create_trade_results(self) -> dict:
+    def _create_trade_results(self, broker_histories: dict) -> dict:
         """Constructs bot-specific trade summary for post-processing."""
-        trade_results = TradeAnalysis(self._broker, self.instrument)
+        trade_results = TradeAnalysis(self._broker, broker_histories, self.instrument)
         trade_results.indicators = (
             self._strategy.indicators if hasattr(self._strategy, "indicators") else None
         )
