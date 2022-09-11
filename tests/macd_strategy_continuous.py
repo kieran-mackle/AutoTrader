@@ -149,7 +149,7 @@ at.add_data(
 )
 at.backtest(
     start="1/1/2021",
-    end="1/3/2022",
+    end="1/6/2021",
 )
 at.virtual_account_config(
     # initial_balance=1000, leverage=30, spread=0.5 * 1e-4, commission=0.005

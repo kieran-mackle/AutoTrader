@@ -506,12 +506,8 @@ class TradeAnalysis:
     holding_history : pd.DataFrame
         A timeseries summary of holdings during the trading period, by portfolio
         allocation fraction.
-    isolated_position_history : pd.DataFrame
-        A timeseries history of trades taken during the trading period.
     order_history : pd.DataFrame
         A timeseries history of orders placed during the trading period.
-    open_isolated_positions : pd.DataFrame
-        Positions which remained open at the end of the trading period.
     cancelled_orders : pd.DataFrame
         Orders which were cancelled during the trading period.
     trade_history : pd.DataFrame
@@ -528,6 +524,7 @@ class TradeAnalysis:
         # Histories
         self.account_history = None
         self.position_history = None
+        self.position_summary = None
         self.order_history = None
         self.cancelled_orders = None
         self.trade_history = None
@@ -590,6 +587,10 @@ class TradeAnalysis:
                 account_history=account_history,
             )
 
+            position_summary = TradeAnalysis._create_position_summary(
+                broker._positions, broker._closed_positions
+            )
+
             # Calculate drawdown
             account_history["drawdown"] = (
                 account_history.NAV / account_history.NAV.cummax() - 1
@@ -600,6 +601,7 @@ class TradeAnalysis:
                 "instruments_traded": list(orders.instrument.unique()),
                 "account_history": account_history,
                 "position_history": position_history,
+                "position_summary": position_summary,
                 "order_history": orders,
                 "cancelled_orders": orders[orders.status == "cancelled"],
                 "trade_history": trade_history,
@@ -651,12 +653,59 @@ class TradeAnalysis:
 
         return position_histories
 
+    @staticmethod
+    def _create_position_summary(open_positions, closed_positions):
+        """Creates a summary of positions held."""
+        # Analyse closed positions (currently unused)
+        open_positions_summary = {}
+        for instrument, positions in closed_positions.items():
+            directions = [p.direction for p in positions]
+
+            # Save analysis
+            open_positions_summary[instrument] = {
+                "directions": directions,
+                "no_long": directions.count(1),
+                "no_short": directions.count(-1),
+            }
+
+        # Analyse closed positions
+        closed_positions_results = {}
+        closed_positions_summary = {}
+        for instrument, positions in closed_positions.items():
+            directions = [p.direction for p in positions]
+            durations = [p.exit_time - p.entry_time for p in positions]
+
+            # Save analysis
+            closed_positions_results[instrument] = {
+                "directions": directions,
+                "durations": durations,
+            }
+            closed_positions_summary[instrument] = {
+                "no_long": directions.count(1),
+                "no_short": directions.count(-1),
+                "avg_duration": np.mean(durations),
+                "avg_long_duration": np.mean(
+                    np.array(durations)[np.array(directions) == 1]
+                ),
+                "avg_short_duration": np.mean(
+                    np.array(durations)[np.array(directions) == -1]
+                ),
+            }
+
+        # Create summary dataframe
+        summary = pd.DataFrame(
+            data=closed_positions_summary,
+        )
+
+        return summary
+
     def _aggregate_across_brokers(self, broker_results):
         """Aggregates trading history across all broker instances."""
         brokers_used = []
         instruments_traded = []
         cancelled_orders = pd.DataFrame()
         position_history = pd.DataFrame()
+        position_summary = pd.DataFrame()
         order_history = pd.DataFrame()
         trade_history = pd.DataFrame()
         account_history = None
@@ -701,12 +750,15 @@ class TradeAnalysis:
             position_history = pd.concat(
                 [position_history, results["position_history"]]
             )
+            # TODO - implement position summary for multiple exchanges
+            position_summary = results["position_summary"]
 
         # Assign attributes
         self.brokers_used = brokers_used
         self.instruments_traded = instruments_traded
         self.account_history = account_history
         self.position_history = position_history
+        self.position_summary = position_summary
         self.order_history = order_history
         self.cancelled_orders = cancelled_orders
         self.trade_history = trade_history

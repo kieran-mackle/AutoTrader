@@ -80,8 +80,8 @@ class Broker:
         self._order_id_instrument = {}  # mapper from order_id to instrument
 
         # Isolated positions (formerly "trades")
-        self._open_iso_pos = {}
-        self._closed_iso_pos = {}
+        # self._open_iso_pos = {}
+        # self._closed_iso_pos = {}
         self._trade_id_instrument = {}  # mapper from trade_id to instrument
 
         # Positions
@@ -934,8 +934,10 @@ class Broker:
 
             # Check if position is zero
             if round(new_net_position, price_precision) == 0:
-                # Move to closed positions
+                # Move to closed positions (and add exit time)
                 popped_position = self._positions.pop(trade.instrument)
+                popped_position.exit_time = trade.fill_time
+                popped_position.exit_price = trade.fill_price
                 if trade.instrument in self._closed_positions:
                     # Append
                     self._closed_positions[trade.instrument].append(popped_position)

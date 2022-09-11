@@ -763,6 +763,11 @@ class Position:
         self.entry_time = None
         self.last_price = None
         self.last_time = None
+        self.exit_time = None
+        self.exit_price = None
+
+        self.direction = None
+        # self.max_size = None # ?
 
         # IB Attributes
         self.PL = None
@@ -826,10 +831,12 @@ class Position:
             last_price=trade.last_price,
             last_time=trade.fill_time,
             entry_time=trade.fill_time,
+            entry_price=trade.fill_price,
             avg_price=trade.fill_price,
             notional=trade.fill_price * abs(trade.size),
             price_precision=trade._price_precision,
             size_precision=trade._size_precision,
+            direction=trade.direction,
         )
         # TODO - update attributes created
         # - exposure, value, etc.

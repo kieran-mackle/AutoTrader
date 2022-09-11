@@ -534,8 +534,8 @@ class AutoPlot:
         # Extract results
         account_history = self._reindex_data(trade_results.account_history)
         position_history = self._reindex_data(np.sign(trade_results.position_history))
-        iso_pos_history = self._reindex_data(trade_results.isolated_position_history)
-        iso_pos_history = iso_pos_history[iso_pos_history["status"] == "closed"]
+        # iso_pos_history = self._reindex_data(trade_results.isolated_position_history)
+        # iso_pos_history = iso_pos_history[iso_pos_history["status"] == "closed"]
 
         # Plot account balance history
         topsource = ColumnDataSource(account_history)
@@ -726,26 +726,26 @@ class AutoPlot:
         pie.legend.label_text_font_size = "8pt"
 
         # Plot returns distribution (across all positions)
-        isopos_returns = (
-            iso_pos_history.direction
-            * (iso_pos_history.exit_price - iso_pos_history.fill_price)
-            / iso_pos_history.fill_price
-        )
-        h, edges = np.histogram(
-            isopos_returns, bins=max(10, int(0.1 * len(isopos_returns)))
-        )
-        returnsfig = figure(
-            title="Distribution of Returns",
-            toolbar_location=None,
-            plot_height=250,
-        )
-        returnsfig.quad(
-            top=h,
-            bottom=0,
-            left=edges[:-1],
-            right=edges[1:],
-        )
-        returnsfig.sizing_mode = "stretch_width"
+        # isopos_returns = (
+        #     iso_pos_history.direction
+        #     * (iso_pos_history.exit_price - iso_pos_history.fill_price)
+        #     / iso_pos_history.fill_price
+        # )
+        # h, edges = np.histogram(
+        #     isopos_returns, bins=max(10, int(0.1 * len(isopos_returns)))
+        # )
+        # returnsfig = figure(
+        #     title="Distribution of Returns",
+        #     toolbar_location=None,
+        #     plot_height=250,
+        # )
+        # returnsfig.quad(
+        #     top=h,
+        #     bottom=0,
+        #     left=edges[:-1],
+        #     right=edges[1:],
+        # )
+        # returnsfig.sizing_mode = "stretch_width"
 
         subfig = gridplot(
             plots,
@@ -757,7 +757,7 @@ class AutoPlot:
         fig = layout(
             [
                 [subfig],
-                [pie, returnsfig],
+                [pie],  # , returnsfig],
             ],
         )
         fig.sizing_mode = "scale_width"
