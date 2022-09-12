@@ -374,7 +374,13 @@ class TradeAnalysis:
 
     """
 
-    def __init__(self, broker, broker_histories: dict, instrument: str = None):
+    def __init__(
+        self,
+        broker,
+        broker_histories: dict,
+        instrument: str = None,
+        price_history: pd.DataFrame = None,
+    ):
         # Meta data
         self.brokers_used = None
         self.broker_results = None
@@ -387,6 +393,7 @@ class TradeAnalysis:
         self.order_history = None
         self.cancelled_orders = None
         self.trade_history = None
+        self.price_history = price_history
 
         # Perform analysis
         self.analyse_account(broker, broker_histories, instrument)

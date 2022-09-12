@@ -534,6 +534,7 @@ class AutoPlot:
         # Extract results
         account_history = self._reindex_data(trade_results.account_history)
         position_history = self._reindex_data(np.sign(trade_results.position_history))
+        no_instruments = len(trade_results.instruments_traded)
         # iso_pos_history = self._reindex_data(trade_results.isolated_position_history)
         # iso_pos_history = iso_pos_history[iso_pos_history["status"] == "closed"]
 
@@ -610,6 +611,54 @@ class AutoPlot:
         # Add to autoscale args
         self.autoscale_args = {"y_range": navfig.y_range, "source": topsource}
 
+        # Create colour pallete
+        if no_instruments < 3:
+            colors = Category20c[3][0:no_instruments]
+        elif no_instruments <= 20:
+            colors = Category20c[no_instruments]
+        else:
+            colors = Turbo256[:no_instruments]
+
+        if trade_results.price_history is not None:
+            # Match price history index to position history
+            price_hist = trade_results.price_history.reindex(
+                trade_results.position_history.index
+            )
+
+            # Multiply position history by prices to get values
+            position_values = (price_hist * trade_results.position_history).abs()
+
+            # Normalise values to % of total
+            position_values = position_values.div(
+                position_values.sum(axis=1).values, axis=0
+            )
+
+            # Create source
+            pos_vals = self._reindex_data(position_values)
+            compsource = ColumnDataSource(pos_vals)
+
+            # Plot portfolio composition history
+            compfig = figure(
+                plot_width=self._ohlc_width,
+                plot_height=self._top_fig_height,
+                title="Portfolio Composition History",
+                x_range=navfig.x_range,
+                y_range=(0, 1),
+                active_drag="pan",
+                active_scroll="xwheel_zoom",
+                tools="pan,xwheel_zoom,hover",
+                tooltips="$name",
+            )
+            compfig.varea_stack(
+                stackers=position_values.columns,
+                x="data_index",
+                source=compsource,
+                color=colors,
+            )
+            compfig = [compfig]
+        else:
+            compfig = []
+
         # Plot leverage history
         leverage = (
             account_history["open_interest"] / account_history["equity"]
@@ -666,7 +715,7 @@ class AutoPlot:
         navfig.x_range.js_on_change("end", js)
 
         # Construct final figure
-        plots = [navfig, levfig] + position_figs
+        plots = [navfig, levfig] + compfig + position_figs
 
         for plot in plots:
             plot.sizing_mode = "stretch_width"
@@ -694,7 +743,6 @@ class AutoPlot:
             }
 
         # Pie chart of trades per instrument
-        no_instruments = len(trade_results.instruments_traded)
         trades_per_instrument = [
             sum(trade_results.trade_history["instrument"] == inst)
             for inst in trade_results.instruments_traded
@@ -704,13 +752,7 @@ class AutoPlot:
             index=trade_results.instruments_traded,
         ).fillna(0)
         pie_data["angle"] = pie_data["trades"] / pie_data["trades"].sum() * 2 * pi
-        if no_instruments < 3:
-            pie_data["color"] = Category20c[3][0:no_instruments]
-        elif no_instruments <= 18:
-            pie_data["color"] = Category20c[no_instruments]
-        else:
-            pie_data["color"] = Turbo256[no_instruments]
-
+        pie_data["color"] = colors
         pie = self._plot_pie(pie_data, fig_title="Trade Distribution")
 
         pie.axis.axis_label = None

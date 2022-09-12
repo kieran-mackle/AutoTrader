@@ -1945,9 +1945,14 @@ class AutoTrader:
         # Run instance shut-down routine
         if self._backtest_mode:
             # Create overall backtest results
+            if len(self._bots_deployed) == 1:
+                price_history = self._bots_deployed[0].data
+            else:
+                price_history = None
             self.trade_results = TradeAnalysis(
                 broker=self._broker,
                 broker_histories=self._broker_histories,
+                price_history=price_history,
             )
 
             # Create trade results for each bot
