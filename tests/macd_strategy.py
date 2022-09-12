@@ -119,19 +119,23 @@ if __name__ == "__main__":
             "MACD_fast": 5,
             "MACD_slow": 19,
             "MACD_smoothing": 9,
-            "RR": 1.5,
+            "RR": 0.5,
         },
-        "WATCHLIST": ["EUR_USD"],
+        "WATCHLIST": ["EUR_USD"],  # , "EUR_USD2"],
     }
     home_dir = os.getcwd()
 
     at = AutoTrader()
-    at.configure(verbosity=1, show_plot=False, mode="periodic")
+    at.configure(verbosity=1, show_plot=True, mode="periodic")
     at.add_strategy(config_dict=config, strategy=SimpleMACD)
     at.plot_settings(show_cancelled=False)
     at.add_data(
         {"EUR_USD": "EUR_USD_H4.csv"}, data_directory=os.path.join(home_dir, "data")
     )
+    # at.add_data(
+    #     {"EUR_USD": "EUR_USD_H4.csv", "EUR_USD2": "EUR_USD_H4.csv"},
+    #     data_directory=os.path.join(home_dir, "data"),
+    # )
     at.backtest(start="1/1/2015", end="1/3/2022")
     at.virtual_account_config(
         initial_balance=1000,
@@ -139,7 +143,7 @@ if __name__ == "__main__":
         spread=0.05,
         spread_units="percentage",
         commission=0.005,
-        default_slippage_model=lambda x: 0.0000005 * x / 100,
+        # default_slippage_model=lambda x: 0.0000005 * x / 100,
     )
     at.run()
 

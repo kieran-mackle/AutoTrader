@@ -1259,17 +1259,17 @@ class AutoTrader:
                 print("No. long trades:         {}".format(no_long_trades))
                 print("No. short trades:        {}".format(no_short_trades))
                 print("Total fees paid:         ${}".format(round(total_fees, 3)))
-                print("Win rate:                {}%".format(round(win_rate, 1)))
-                print("Max win:                 ${}".format(round(max_win, 2)))
-                print("Average win:             ${}".format(round(avg_win, 2)))
-                print("Max loss:                -${}".format(round(max_loss, 2)))
-                print("Average loss:            -${}".format(round(avg_loss, 2)))
-                print(
-                    "Longest winning streak:  {} positions".format(longest_win_streak)
-                )
-                print(
-                    "Longest losing streak:   {} positions".format(longest_lose_streak)
-                )
+                # print("Win rate:                {}%".format(round(win_rate, 1)))
+                # print("Max win:                 ${}".format(round(max_win, 2)))
+                # print("Average win:             ${}".format(round(avg_win, 2)))
+                # print("Max loss:                -${}".format(round(max_loss, 2)))
+                # print("Average loss:            -${}".format(round(avg_loss, 2)))
+                # print(
+                #     "Longest winning streak:  {} positions".format(longest_win_streak)
+                # )
+                # print(
+                #     "Longest losing streak:   {} positions".format(longest_lose_streak)
+                # )
                 if len(trade_results.position_summary) > 0:
                     avg_pos_dur = np.mean(
                         trade_results.position_summary.loc["avg_duration"].values

@@ -574,7 +574,7 @@ class AutoTraderBot:
                     else:
                         raise Exception(f"Invalid order submitted: {item}")
             else:
-                raise Exception(f"Invalid order/s submitted: '{orders}' recieved")
+                raise Exception(f"Invalid order/s submitted: '{orders}' received")
 
             return checked_orders
 

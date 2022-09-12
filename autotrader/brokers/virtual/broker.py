@@ -432,7 +432,7 @@ class Broker:
             # Print
             if self._verbosity > 0:
                 print(
-                    f"{datetime_stamp}: Order {order.id} recieved: {order.__repr__()}"
+                    f"{datetime_stamp}: Order {order.id} received: {order.__repr__()}"
                 )
 
     def get_orders(self, instrument: str = None, order_status: str = "open") -> dict:
@@ -649,6 +649,11 @@ class Broker:
 
         def process_orders_in_dict(orders):
             for order_id, order in orders.items():
+                # Check if order has been cancelled (OCO)
+                if order.id not in self._open_orders[order.instrument]:
+                    continue
+
+                # Order is still open, process it
                 if order.order_type == "market":
                     # Market order type - proceed to fill
                     reference_price = get_market_ref_price(order.direction)
@@ -717,7 +722,7 @@ class Broker:
                 # No trade either, exit
                 return
             else:
-                # Public trade recieved, only update limit orders
+                # Public trade received, only update limit orders
                 self._public_trade(instrument, trade)
                 return
 
