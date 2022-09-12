@@ -631,10 +631,10 @@ class AutoPlot:
             # Normalise values to % of total
             position_values = position_values.div(
                 position_values.sum(axis=1).values, axis=0
-            )
+            ).fillna(value=0)
 
             # Create source
-            pos_vals = self._reindex_data(position_values)
+            pos_vals = self._reindex_data(position_values)[position_values.columns]
             compsource = ColumnDataSource(pos_vals)
 
             # Plot portfolio composition history
@@ -646,12 +646,12 @@ class AutoPlot:
                 y_range=(0, 1),
                 active_drag="pan",
                 active_scroll="xwheel_zoom",
-                tools="pan,xwheel_zoom,hover",
+                tools="pan,xwheel_zoom,hover,box_zoom",
                 tooltips="$name",
             )
             compfig.varea_stack(
                 stackers=position_values.columns,
-                x="data_index",
+                x="index",
                 source=compsource,
                 color=colors,
             )
