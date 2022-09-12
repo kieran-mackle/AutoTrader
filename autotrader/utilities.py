@@ -1,4 +1,3 @@
-from glob import glob
 import sys
 import yaml
 import pickle
@@ -475,7 +474,7 @@ class TradeAnalysis:
         # Use fills to reconstruct position history, in terms of units held
         instruments_traded = list(trade_history["instrument"].unique())
 
-        position_histories = pd.DataFrame()
+        position_histories_dict = {}
         for instrument in instruments_traded:
             instrument_trade_hist = trade_history[
                 trade_history["instrument"] == instrument
@@ -496,12 +495,9 @@ class TradeAnalysis:
             ).fillna(0)
 
             # Save result
-            position_histories[instrument] = net_position_hist
+            position_histories_dict[instrument] = net_position_hist
 
-        # Eventually, using the price history, the value of the holding can be
-        # tracked too, or maybe the change in value over the life of the
-        # position
-
+        position_histories = pd.concat(position_histories_dict, axis=1)
         return position_histories
 
     @staticmethod

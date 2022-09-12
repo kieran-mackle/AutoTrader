@@ -18,7 +18,6 @@ from autotrader.autobot import AutoTraderBot
 from autotrader.utilities import (
     read_yaml,
     get_broker_config,
-    get_watchlist,
     DataStream,
     TradeAnalysis,
     unpickle_broker,
@@ -880,11 +879,7 @@ class AutoTrader:
             self.add_strategy(strategy_dict=strategy_dict)
 
         # If scan index provided, use that. Else, use strategy watchlist
-        if scan_index is not None:
-            self._scan_watchlist = get_watchlist(scan_index, self._feed)
-
-        else:
-            scan_index = "Strategy watchlist"
+        scan_index = "Strategy watchlist"
 
         self._scan_mode = True
         self._scan_index = scan_index
