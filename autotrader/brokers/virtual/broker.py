@@ -879,7 +879,11 @@ class Broker:
 
         else:
             # Cancel order
-            cancel_reason = "Insufficient margin to fill order."
+            cancel_reason = (
+                "Insufficient margin to fill order "
+                + f"(${margin_required} required, ${self._margin_available} "
+                + "available)."
+            )
             self.cancel_order(
                 order_id=order.id, reason=cancel_reason, timestamp=fill_time
             )
