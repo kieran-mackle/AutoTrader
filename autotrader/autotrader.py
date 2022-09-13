@@ -1288,7 +1288,9 @@ class AutoTrader:
 
             if len(trade_results.position_summary) > 0:
                 # Long positions
-                no_long = trade_results.position_summary.sum(axis=1)["no_long"]
+                no_long = trade_results.position_summary.sum(axis=1, numeric_only=True)[
+                    "no_long"
+                ]
                 print("\n          Summary of long positions")
                 print("----------------------------------------------")
                 if no_long > 0:
@@ -1312,7 +1314,9 @@ class AutoTrader:
                     print("There were no long positions.")
 
                 # Short trades
-                no_short = trade_results.position_summary.sum(axis=1)["no_short"]
+                no_short = trade_results.position_summary.sum(
+                    axis=1, numeric_only=True
+                )["no_short"]
                 print("\n         Summary of short positions")
                 print("----------------------------------------------")
                 if no_short > 0:
