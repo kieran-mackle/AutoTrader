@@ -75,20 +75,15 @@ class Broker:
         else:
             # Regular order
             side = "buy" if order.direction > 0 else "sell"
-            try:
-                # Submit the order
-                placed_order = self.api.createOrder(
-                    symbol=order.instrument,
-                    type=order.order_type,
-                    side=side,
-                    amount=abs(order.size),
-                    price=order.order_limit_price,
-                    params=order.ccxt_params,
-                )
-            except Exception as e:
-                # An error occured, return the exception
-                placed_order = e
-                # print("Exception causing order: ", order)
+            # Submit the order
+            placed_order = self.api.createOrder(
+                symbol=order.instrument,
+                type=order.order_type,
+                side=side,
+                amount=abs(order.size),
+                price=order.order_limit_price,
+                params=order.ccxt_params,
+            )
 
         return placed_order
 
