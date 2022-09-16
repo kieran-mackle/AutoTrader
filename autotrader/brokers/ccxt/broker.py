@@ -262,9 +262,14 @@ class Broker:
             instrument=symbol,
             net_position=position["contracts"] * direction,
             net_exposure=position["notional"],
+            notional=position["notional"],
+            pnl=position["unrealizedPnl"],
             PL=position["unrealizedPnl"],
             entry_price=position["entryPrice"],
+            direction=direction,
             ccxt=position,
+            avg_price=position["entryPrice"],
+            total_margin=position["initialMargin"],
         )
         return native_position
 
