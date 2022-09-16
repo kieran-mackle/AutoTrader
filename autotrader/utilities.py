@@ -678,6 +678,7 @@ class TradeAnalysis:
         direction = []
         stop_price = []
         take_price = []
+        reason = []
 
         if trades is not None:
             entry_time = []
@@ -699,6 +700,7 @@ class TradeAnalysis:
             order_price.append(item.order_price)
             stop_price.append(item.stop_loss)
             take_price.append(item.take_profit)
+            reason.append(item.reason)
 
         if trades is not None:
             for trade_id, trade in iter_dict.items():
@@ -761,6 +763,7 @@ class TradeAnalysis:
             dataframe.balance.fillna(method="ffill", inplace=True)
 
         else:
+            # Order summary
             dataframe = pd.DataFrame(
                 {
                     "instrument": product,
@@ -772,6 +775,7 @@ class TradeAnalysis:
                     "direction": direction,
                     "stop_loss": stop_price,
                     "take_profit": take_price,
+                    "reason": reason,
                 },
                 index=pd.to_datetime(times_list),
             )
