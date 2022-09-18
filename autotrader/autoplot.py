@@ -638,24 +638,25 @@ class AutoPlot:
             compsource = ColumnDataSource(pos_vals)
 
             # Plot portfolio composition history
-            compfig = figure(
-                plot_width=self._ohlc_width,
-                plot_height=self._top_fig_height,
-                title="Portfolio Composition History",
-                x_range=navfig.x_range,
-                y_range=(0, 1),
-                active_drag="pan",
-                active_scroll="xwheel_zoom",
-                tools="pan,xwheel_zoom,hover,box_zoom",
-                tooltips="$name",
-            )
-            compfig.varea_stack(
-                stackers=position_values.columns,
-                x="index",
-                source=compsource,
-                color=colors,
-            )
-            compfig = [compfig]
+            # compfig = figure(
+            #     plot_width=self._ohlc_width,
+            #     plot_height=self._top_fig_height,
+            #     title="Portfolio Composition History",
+            #     x_range=navfig.x_range,
+            #     y_range=(0, 1),
+            #     active_drag="pan",
+            #     active_scroll="xwheel_zoom",
+            #     tools="pan,xwheel_zoom,hover,box_zoom",
+            #     tooltips="$name",
+            # )
+            # compfig.varea_stack(
+            #     stackers=position_values.columns,
+            #     x="index",
+            #     source=compsource,
+            #     color=colors,
+            # )
+            # compfig = [compfig]
+            compfig = []
         else:
             compfig = []
 
