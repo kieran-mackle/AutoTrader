@@ -885,6 +885,11 @@ class TradeAnalysis:
             # Fees
             total_fees = self.trade_history.fee.sum()
 
+            # Volume traded
+            total_volume = (
+                self.trade_history["size"] * self.trade_history["fill_price"]
+            ).values.sum()
+
             # trade_results["all_trades"]["avg_win"] = avg_win
             # trade_results["all_trades"]["max_win"] = max_win
             # trade_results["all_trades"]["avg_loss"] = avg_loss
@@ -899,6 +904,7 @@ class TradeAnalysis:
             trade_results["all_trades"]["win_rate"] = 0
             trade_results["all_trades"]["win_streak"] = 0
             trade_results["all_trades"]["lose_streak"] = 0
+            trade_results["all_trades"]["total_volume"] = total_volume
             max_trade_duration = None
             min_trade_duration = None
 

@@ -1233,6 +1233,8 @@ class AutoTrader:
                 longest_win_streak = trade_summary["all_trades"]["win_streak"]
                 longest_lose_streak = trade_summary["all_trades"]["lose_streak"]
                 total_fees = trade_summary["all_trades"]["total_fees"]
+                total_volume = trade_summary["all_trades"]["total_volume"]
+                adv = total_volume / duration.days
 
             print("\n----------------------------------------------")
             print("               Trading Results")
@@ -1254,6 +1256,8 @@ class AutoTrader:
                 print("No. long trades:         {}".format(no_long_trades))
                 print("No. short trades:        {}".format(no_short_trades))
                 print("Total fees paid:         ${}".format(round(total_fees, 3)))
+                print("Total volume traded:     ${}".format(round(total_volume, 2)))
+                print("Average daily volume:    ${}".format(round(adv, 2)))
                 # print("Win rate:                {}%".format(round(win_rate, 1)))
                 # print("Max win:                 ${}".format(round(max_win, 2)))
                 # print("Average win:             ${}".format(round(avg_win, 2)))
