@@ -362,7 +362,7 @@ class AutoTraderBot:
                         order_string = (
                             f"{current_time}: {order.instrument} "
                             + f"{direction} {order.order_type} order of "
-                            + f"{order.size} units placed at {order.order_price}."
+                            + f"{order.size} units placed."
                         )
                         print(order_string)
                 else:
