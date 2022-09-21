@@ -227,8 +227,8 @@ class OrderBook:
         # Quantize
         # TODO - use ticksize and step size to quantize
         ref = Decimal(str(self.bids["price"][0]))
-        self.spread = Decimal(spread).quantize(ref)
-        self.midprice = Decimal(midprice).quantize(ref)
+        self.spread = float(Decimal(spread).quantize(ref))
+        self.midprice = float(Decimal(midprice).quantize(ref))
 
     def __repr__(self):
         return f"{self.instrument} Order Book snapshot"
