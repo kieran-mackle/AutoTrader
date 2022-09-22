@@ -497,6 +497,7 @@ class TradeAnalysis:
             ]
 
             # Reindex to account history index
+            net_position_hist = net_position_hist[~net_position_hist.index.isna()]
             net_position_hist = net_position_hist.reindex(
                 index=account_history.index, method="ffill"
             ).fillna(0)
@@ -510,17 +511,17 @@ class TradeAnalysis:
     @staticmethod
     def _create_position_summary(open_positions, closed_positions):
         """Creates a summary of positions held."""
-        # Analyse closed positions (currently unused)
-        open_positions_summary = {}
-        for instrument, positions in closed_positions.items():
-            directions = [p.direction for p in positions]
+        # # Analyse closed positions (currently unused)
+        # open_positions_summary = {}
+        # for instrument, position in open_positions.items():
+        #     directions = [p.direction for p in positions]
 
-            # Save analysis
-            open_positions_summary[instrument] = {
-                "directions": directions,
-                "no_long": directions.count(1),
-                "no_short": directions.count(-1),
-            }
+        #     # Save analysis
+        #     open_positions_summary[instrument] = {
+        #         "directions": directions,
+        #         "no_long": directions.count(1),
+        #         "no_short": directions.count(-1),
+        #     }
 
         # Analyse closed positions
         closed_positions_results = {}
@@ -537,14 +538,23 @@ class TradeAnalysis:
             closed_positions_summary[instrument] = {
                 "no_long": directions.count(1),
                 "no_short": directions.count(-1),
-                "avg_duration": np.mean(durations),
-                "avg_long_duration": np.mean(
-                    np.array(durations)[np.array(directions) == 1]
-                ),
-                "avg_short_duration": np.mean(
-                    np.array(durations)[np.array(directions) == -1]
-                ),
             }
+            if len(durations) > 0:
+                closed_positions_summary[instrument]["avg_duration"] = np.mean(
+                    durations
+                )
+                if directions.count(1) > 0:
+                    closed_positions_summary[instrument]["avg_long_duration"] = np.mean(
+                        np.array(durations)[np.array(directions) == 1]
+                    )
+                else:
+                    closed_positions_summary[instrument]["avg_long_duration"] = None
+                if directions.count(-1) > 0:
+                    closed_positions_summary[instrument][
+                        "avg_short_duration"
+                    ] = np.mean(np.array(durations)[np.array(directions) == -1])
+                else:
+                    closed_positions_summary[instrument]["avg_short_duration"] = None
 
         # Create summary dataframe
         summary = pd.DataFrame(
