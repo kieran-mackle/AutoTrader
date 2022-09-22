@@ -93,6 +93,7 @@ class AutoTrader:
         self._order_summary_fp = None
 
         # Livetrade Parameters
+        self._deploy_time = None
         self._check_data_alignment = True
         self._allow_dancing_bears = False
         self._maintain_broker_thread = False
@@ -196,6 +197,7 @@ class AutoTrader:
         broker_verbosity: int = 0,
         home_currency: str = None,
         allow_duplicate_bars: bool = False,
+        deploy_time: datetime = None,
     ) -> None:
         """Configures run settings for AutoTrader.
 
@@ -266,6 +268,12 @@ class AutoTrader:
         allow_duplicate_bars : bool, optional
             Allow duplicate bars to be passed on to the strategy. The default
             is False.
+        deploy_time : datetime, optional
+            The time to deploy the bots. If this is a future time, AutoTrader
+            will wait until it is reached before deploying. It will also be used
+            as an anchor to synchronise future bot updates. If not specified,
+            bots will be deployed as soon as possible, with successive updates
+            synchronised to the deployment time.
 
         Returns
         -------
@@ -297,6 +305,7 @@ class AutoTrader:
         self._instance_str = instance_str
         self._broker_verbosity = broker_verbosity
         self._base_currency = home_currency
+        self._deploy_time = deploy_time
 
     def add_strategy(
         self,
@@ -2030,6 +2039,7 @@ class AutoTrader:
                     # Backtesting
                     end_time = self._data_end  # datetime
                     timestamp = self._data_start + self._warmup_period  # datetime
+                    # TODO - allow specifying start timestamp
                     pbar = tqdm(
                         total=int((self._data_end - timestamp).total_seconds()),
                         position=0,
@@ -2063,12 +2073,28 @@ class AutoTrader:
                         else self._instance_str
                     )
                     instance_file_exists = self._check_instance_file(instance_str, True)
-                    deploy_time = time.time()
+
+                    # Get deploy timestamp
+                    if self._deploy_time is not None:
+                        deploy_time = self._deploy_time.timestamp()
+                        if self._verbosity > 0 and datetime.now() < self._deploy_time:
+                            print(f"\nDeploying bots at {self._deploy_time}.")
+
+                    else:
+                        deploy_time = time.time()
+
+                    # Wait until deployment time
+                    while datetime.now().timestamp() < deploy_time - 0.5:
+                        time.sleep(0.5)
+
                     while instance_file_exists:
+                        # Bot instance file exists
                         try:
+                            # Update bots
+                            # TODO - threadpool executor
                             for bot in self._bots_deployed:
                                 try:
-                                    # TODO - why UTC?
+                                    # TODO - why UTC? Allow setting manually
                                     bot._update(timestamp=datetime.now(timezone.utc))
 
                                 except:
