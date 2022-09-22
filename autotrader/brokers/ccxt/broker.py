@@ -104,6 +104,11 @@ class Broker:
             # Fetch closed orders
             orders = self.api.fetchClosedOrders(instrument, **kwargs)
 
+        elif order_status == "conditional":
+            orders = self.api.fetchOpenOrders(
+                instrument, params={"orderType": "conditional"}
+            )
+
         # Convert
         orders = self._convert_list(orders, item_type="order")
 
@@ -200,6 +205,10 @@ class Broker:
         else:
             limit_price = None
 
+        stop_price = (
+            float(order["stopPrice"]) if order["stopPrice"] is not None else None
+        )
+
         native_order = Order(
             instrument=order["symbol"],
             direction=direction,
@@ -208,7 +217,7 @@ class Broker:
             size=abs(order["amount"]),
             id=order["id"],
             order_limit_price=limit_price,
-            order_stop_price=order["stopPrice"],
+            order_stop_price=stop_price,
             order_time=datetime.fromtimestamp(order["timestamp"] / 1000),
         )
         return native_order
