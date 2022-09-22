@@ -1085,7 +1085,7 @@ class Broker:
         commission = self._calculate_commissions(
             price=fill_price, units=order_size, HCF=HCF, order_type=order_type
         )
-        self._adjust_balance(-commission)
+        self._adjust_balance(-commission, latest_time=fill_time)
 
         # Create Trade and append to fills
         # Note that this object may be modified by _modify_position
@@ -1240,10 +1240,10 @@ class Broker:
 
         return commission
 
-    def _adjust_balance(self, amount: float) -> None:
+    def _adjust_balance(self, amount: float, latest_time: datetime = None) -> None:
         """Adjusts the balance of the account."""
         self._equity += amount
-        self._update_margin()
+        self._update_margin(latest_time=latest_time)
 
     def _make_deposit(self, deposit: float) -> None:
         """Adds deposit to account balance and NAV."""
