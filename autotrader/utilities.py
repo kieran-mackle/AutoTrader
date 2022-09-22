@@ -1121,13 +1121,10 @@ class DataStream:
 
             else:
                 # Single instrument strategy
-                filepath = self.data_path_mapper(instrument)
+                filepath = self.data_path_mapper(self.instrument)
                 granularity = self.strategy_params["granularity"]
                 data = self.get_data._local(filepath, self.data_start, self.data_end)
-                multi_data[granularity] = data
-
-            # Extract first dataset as base data (arbitrary)
-            data = multi_data[list(multi_data.keys())[0]]
+                multi_data = None
 
         else:
             # Download data
