@@ -1278,80 +1278,80 @@ class AutoTrader:
                 # print(
                 #     "Longest losing streak:   {} positions".format(longest_lose_streak)
                 # )
-                if len(trade_results.position_summary) > 0:
-                    avg_pos_dur = np.mean(
-                        trade_results.position_summary.loc["avg_duration"].values
-                    )
-                    print(
-                        "Avg. position duration:  {}".format(
-                            avg_pos_dur,
-                        )
-                    )
+                # if len(trade_results.position_summary) > 0:
+                #     avg_pos_dur = np.mean(
+                #         trade_results.position_summary.loc["avg_duration"].values
+                #     )
+                #     print(
+                #         "Avg. position duration:  {}".format(
+                #             avg_pos_dur,
+                #         )
+                #     )
 
                 no_open = trade_summary["no_open"]
                 if no_open > 0:
                     print("Positions still open:    {}".format(no_open))
 
             else:
-                print("\n No trades closed.")
+                print("\n No trades made.")
 
             no_cancelled = trade_summary["no_cancelled"]
             if no_cancelled > 0:
                 print("Cancelled orders:        {}".format(no_cancelled))
 
-            if len(trade_results.position_summary) > 0:
-                # Long positions
-                no_long = trade_results.position_summary.sum(axis=1, numeric_only=True)[
-                    "no_long"
-                ]
-                print("\n          Summary of long positions")
-                print("----------------------------------------------")
-                if no_long > 0:
-                    # avg_long_win = trade_summary["long_positions"]["avg_long_win"]
-                    # max_long_win = trade_summary["long_positions"]["max_long_win"]
-                    # avg_long_loss = trade_summary["long_positions"]["avg_long_loss"]
-                    # max_long_loss = trade_summary["long_positions"]["max_long_loss"]
-                    # long_wr = trade_summary["long_positions"]["long_wr"]
-                    avg_long_dur = np.mean(
-                        trade_results.position_summary.loc["avg_long_duration"].values
-                    )
+            # if len(trade_results.position_summary) > 0:
+            #     # Long positions
+            #     no_long = trade_results.position_summary.sum(axis=1, numeric_only=True)[
+            #         "no_long"
+            #     ]
+            #     print("\n          Summary of long positions")
+            #     print("----------------------------------------------")
+            #     if no_long > 0:
+            #         # avg_long_win = trade_summary["long_positions"]["avg_long_win"]
+            #         # max_long_win = trade_summary["long_positions"]["max_long_win"]
+            #         # avg_long_loss = trade_summary["long_positions"]["avg_long_loss"]
+            #         # max_long_loss = trade_summary["long_positions"]["max_long_loss"]
+            #         # long_wr = trade_summary["long_positions"]["long_wr"]
+            #         avg_long_dur = np.mean(
+            #             trade_results.position_summary.loc["avg_long_duration"].values
+            #         )
 
-                    print("No. long positions:      {}".format(no_long))
-                    print("Avg. position duration:  {}".format(avg_long_dur))
-                    # print("Win rate:                {}%".format(round(long_wr, 1)))
-                    # print("Max win:                 ${}".format(round(max_long_win, 2)))
-                    # print("Average win:             ${}".format(round(avg_long_win, 2)))
-                    # print("Max loss:                -${}".format(round(max_long_loss, 2)))
-                    # print("Average loss:            -${}".format(round(avg_long_loss, 2)))
-                else:
-                    print("There were no long positions.")
+            #         print("No. long positions:      {}".format(no_long))
+            #         print("Avg. position duration:  {}".format(avg_long_dur))
+            #         # print("Win rate:                {}%".format(round(long_wr, 1)))
+            #         # print("Max win:                 ${}".format(round(max_long_win, 2)))
+            #         # print("Average win:             ${}".format(round(avg_long_win, 2)))
+            #         # print("Max loss:                -${}".format(round(max_long_loss, 2)))
+            #         # print("Average loss:            -${}".format(round(avg_long_loss, 2)))
+            #     else:
+            #         print("There were no long positions.")
 
-                # Short trades
-                no_short = trade_results.position_summary.sum(
-                    axis=1, numeric_only=True
-                )["no_short"]
-                print("\n         Summary of short positions")
-                print("----------------------------------------------")
-                if no_short > 0:
-                    # avg_short_win = trade_summary["short_positions"]["avg_short_win"]
-                    # max_short_win = trade_summary["short_positions"]["max_short_win"]
-                    # avg_short_loss = trade_summary["short_positions"]["avg_short_loss"]
-                    # max_short_loss = trade_summary["short_positions"]["max_short_loss"]
-                    # short_wr = trade_summary["short_positions"]["short_wr"]
-                    avg_short_dur = np.mean(
-                        trade_results.position_summary.loc["avg_long_duration"].values
-                    )
+            #     # Short trades
+            #     no_short = trade_results.position_summary.sum(
+            #         axis=1, numeric_only=True
+            #     )["no_short"]
+            #     print("\n         Summary of short positions")
+            #     print("----------------------------------------------")
+            #     if no_short > 0:
+            #         # avg_short_win = trade_summary["short_positions"]["avg_short_win"]
+            #         # max_short_win = trade_summary["short_positions"]["max_short_win"]
+            #         # avg_short_loss = trade_summary["short_positions"]["avg_short_loss"]
+            #         # max_short_loss = trade_summary["short_positions"]["max_short_loss"]
+            #         # short_wr = trade_summary["short_positions"]["short_wr"]
+            #         avg_short_dur = np.mean(
+            #             trade_results.position_summary.loc["avg_long_duration"].values
+            #         )
 
-                    print("No. short positions:     {}".format(no_short))
-                    print("Avg. position duration:  {}".format(avg_short_dur))
-                    # print("Win rate:                {}%".format(round(short_wr, 1)))
-                    # print("Max win:                 ${}".format(round(max_short_win, 2)))
-                    # print("Average win:             ${}".format(round(avg_short_win, 2)))
-                    # print("Max loss:                -${}".format(round(max_short_loss, 2)))
-                    # print("Average loss:            -${}".format(round(avg_short_loss, 2)))
+            #         print("No. short positions:     {}".format(no_short))
+            #         print("Avg. position duration:  {}".format(avg_short_dur))
+            #         # print("Win rate:                {}%".format(round(short_wr, 1)))
+            #         # print("Max win:                 ${}".format(round(max_short_win, 2)))
+            #         # print("Average win:             ${}".format(round(avg_short_win, 2)))
+            #         # print("Max loss:                -${}".format(round(max_short_loss, 2)))
+            #         # print("Average loss:            -${}".format(round(avg_short_loss, 2)))
 
-                else:
-                    print("There were no short positions.")
+            #     else:
+            #         print("There were no short positions.")
 
             # Check for multiple instruments
             if len(trade_results.instruments_traded) > 1:
@@ -2039,7 +2039,6 @@ class AutoTrader:
                     # Backtesting
                     end_time = self._data_end  # datetime
                     timestamp = self._data_start + self._warmup_period  # datetime
-                    # TODO - allow specifying start timestamp
                     pbar = tqdm(
                         total=int((self._data_end - timestamp).total_seconds()),
                         position=0,
