@@ -63,3 +63,9 @@ class Utils(BrokerUtils):
         else:
             raise Exception(f"{instrument} is not listed.")
         return market
+
+    def get_stepsize(self, instrument, *args, **kwargs):
+        """Returns the stepsize for an instrument."""
+        market = self._get_market(instrument)
+        stepsize = market["info"]["filters"][1]["stepSize"]
+        return stepsize
