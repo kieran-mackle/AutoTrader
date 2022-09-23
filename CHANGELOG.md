@@ -1,10 +1,15 @@
 # AutoTrader Changelog
 
-## Version 0.7.7 (Unreleased)
+## Version 0.7.8 (Unreleased)
 ### Features
 - Upgraded virtual broker
 - Ability to specify `deploy_time` in `AutoTrader.configure()`, a datetime 
   object for when to release trading bots.
+- Improved verbosity from main module when running.
+
+## Version 0.7.7
+### Fixes
+- Decimal error when placing market orders with `dydx` module.
 
 ## Version 0.7.6
 ### Fixes

@@ -73,6 +73,20 @@ class Broker:
         position_id = self._get_account()["positionId"]
         limit_fee = order.limit_fee
 
+        kwargs = {}
+        if trigger_price is not None:
+            kwargs["trigger_price"] = trigger_price
+        if order_type == "MARKET":
+            kwargs["time_in_force"] = "IOC"
+
+        # TODO - allow more kwargs to be parsed from order
+
+        if order_price is None:
+            # Create order price
+            midprice = self.autodata.L2(order.instrument).midprice
+            multiple = 1.05 if side == "BUY" else 0.95
+            order_price = (Decimal(multiple) * midprice).quantize(midprice)
+
         # Submit order to dydx
         order = self.api.private.create_order(
             position_id=position_id,
@@ -81,10 +95,10 @@ class Broker:
             order_type=order_type,
             post_only=order.post_only,
             size=str(order.size),
-            price=order_price,
+            price=str(order_price),
             limit_fee=limit_fee,
-            trigger_price=trigger_price,
             expiration_epoch_seconds=expiration,
+            **kwargs,
         )
 
         return self._native_order(order.data["order"])
