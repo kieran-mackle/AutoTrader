@@ -896,6 +896,10 @@ class AutoTrader:
 
     def run(self) -> None:
         """Performs essential checks and runs AutoTrader."""
+        # Print Banner
+        if int(self._verbosity) > 0:
+            print(pyfiglet.figlet_format("AutoTrader", font="slant"))
+
         # Define home_dir if undefined
         if self._home_dir is None:
             self._home_dir = os.getcwd()
@@ -1078,6 +1082,8 @@ class AutoTrader:
                         )
 
             # All checks passed, proceed to run main
+            if self._verbosity > 1:
+                print("All preliminary checks complete, proceeding.")
             self._main()
 
             if self._papertrading or len(self._bots_deployed) == 0:
@@ -1487,7 +1493,14 @@ class AutoTrader:
         else:
             broker_config["verbosity"] = self._broker_verbosity
 
+        # Connect to exchanges
+        if self._verbosity > 1:
+            print("Connecting to exchanges...")
         self._assign_broker(broker_config)
+        if self._verbosity > 1:
+            print("  Done.")
+
+        # Configure emailing
         self._configure_emailing(self._global_config_dict)
 
         # Initialise broker histories
@@ -1502,10 +1515,9 @@ class AutoTrader:
             for key in self._brokers_dict
         }
 
-        if int(self._verbosity) > 0:
-            print(pyfiglet.figlet_format("AutoTrader", font="slant"))
-
         # Assign trading bots to each strategy
+        if self._verbosity > 1:
+            print("Spawning trading bots...")
         for strategy, config in self._strategy_configs.items():
             # Check for portfolio strategy
             portfolio = config["PORTFOLIO"] if "PORTFOLIO" in config else False
