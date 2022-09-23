@@ -112,6 +112,12 @@ class Broker:
         self._hedging = False  # Allow simultaneous trades on opposing sides
         self._margin_closeout = 0.0  # Fraction at margin call
 
+        # Funding rate (for perpetual contracts)
+        self._charge_funding = False
+        self._funding_rate_history = None
+        self._funding_history = []
+        self._update_freq = None  # Backtest trading update frequency
+
         # Commissions
         self._commission_scheme = (
             "percentage"  # Either percentage, fixed_per_unit or flat
@@ -165,6 +171,8 @@ class Broker:
         margin_closeout: float = None,
         default_slippage_model: Callable = None,
         slippage_models: dict = None,
+        charge_funding: bool = None,
+        funding_history: pd.DataFrame = None,
         autodata_config: dict = None,
         picklefile: str = None,
         **kwargs,
@@ -227,6 +235,14 @@ class Broker:
             returns zero.
         slippage_models : dict, optional
             A dictionary of callable slippage models, keyed by instrument.
+        charge_funding : bool, optional
+            A boolean flag to charge funding rates. The default is False.
+        funding_history : pd.DataFrame, optional
+            A DataFrame of funding rate histories for instruments being traded,
+            to backtest trading perpetual futures.
+            This is a single frame with as many columns as instruments being
+            traded. If an instrument is not present, the funding rate will be
+            zero.
         picklefile : str, optional
             The filename of the picklefile to load state from. If you do not
             wish to load from state, leave this as None. The default is None.
@@ -276,6 +292,16 @@ class Broker:
         )
         self._slippage_models = (
             slippage_models if slippage_models is not None else self._slippage_models
+        )
+
+        # Configure funding rate mechanics
+        self._charge_funding = (
+            charge_funding if charge_funding is not None else self._charge_funding
+        )
+        self._funding_rate_history = (
+            funding_history
+            if funding_history is not None
+            else self._funding_rate_history
         )
 
         if autodata_config is not None:
@@ -626,15 +652,6 @@ class Broker:
                 reference_price = candle.Open
             return reference_price
 
-        def get_new_stop(trade_direction, distance):
-            """Returns the new stop loss for a trailing SL order."""
-            if L1 is not None:
-                ref_price = L1["ask"] if trade_direction > 0 else L1["bid"]
-            else:
-                ref_price = candle.High if trade_direction > 0 else candle.Low
-            new_stop = ref_price - trade_direction * distance
-            return new_stop
-
         def limit_trigger_condition(order_direction, order_limit_price):
             """Returns True if the order limit price has been triggered
             else False."""
@@ -763,6 +780,15 @@ class Broker:
                 * (position.last_price - position.avg_price)
                 * position.HCF
             )
+
+            # Charge funding fees
+            # if self._charge_funding:
+            #     # TODO - move to unified backtest/livetrade method
+            #     last_settlement = self._funding_rate_history.index.get_indexer([pd.Timestamp(latest_time).floor(self._update_freq)], method="nearest")[0]
+            #     last_rate = self._funding_rate_history.iloc[last_settlement][instrument]
+
+            #     # Set to zero to prevent re-charging
+            #     self._funding_rate_history.iloc[last_settlement][instrument] = 0
 
         # Update floating pnl and margin available
         self._update_margin(
