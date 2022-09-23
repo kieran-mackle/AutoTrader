@@ -1,5 +1,9 @@
 # AutoTrader Changelog
 
+## Version 0.7.6
+### Fixes
+- Import error of `AutoData` in `dydx` module.
+
 ## Version 0.7.5
 ### Features
 - AutoBot submits orders using `ThreadPoolExecutor` to speedup
