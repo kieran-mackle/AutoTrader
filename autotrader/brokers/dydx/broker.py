@@ -1,6 +1,7 @@
 import pandas as pd
 from decimal import Decimal
 from datetime import datetime
+from autotrader import AutoData
 from dydx3 import Client, constants
 from autotrader.brokers.dydx.utils import Utils, BrokerUtils
 from autotrader.brokers.trading import Order, Position, Trade
