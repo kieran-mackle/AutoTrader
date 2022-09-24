@@ -639,7 +639,11 @@ class AutoTraderBot:
             broker = self._brokers[order.exchange]
 
             # Fetch precision for instrument
-            precision = broker._utils.get_precision(order.instrument)
+            try:
+                precision = broker._utils.get_precision(order.instrument)
+            except Exception as e:
+                # Print exception
+                print("Exception:", e)
 
             if self._feed != "none":
                 # Get order price from current bars
