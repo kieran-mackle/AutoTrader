@@ -582,9 +582,21 @@ class Broker:
         # Get public orderbook
         if self._paper_trading:
             # Papertrading, try get realtime orderbook
-            orderbook = self._autodata.L2(
-                instrument, spread_units=self._spread_units, spread=self._spread
-            )
+            try:
+                orderbook = self._autodata.L2(
+                    instrument, spread_units=self._spread_units, spread=self._spread
+                )
+            except Exception as e:
+                # Fetching orderbook failed, revert to local orderbook
+                print("Exception:", e)
+                print("  Instrument:", instrument)
+                orderbook = self._autodata._local_orderbook(
+                    instrument=instrument,
+                    spread_units=self._spread_units,
+                    spread=self._spread,
+                    midprice=midprice,
+                )
+
         else:
             # Backtesting, use local pseudo-orderbook
             orderbook = self._autodata._local_orderbook(
