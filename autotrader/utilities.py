@@ -497,10 +497,14 @@ class TradeAnalysis:
             ]
 
             # Reindex to account history index
+            # TODO - match index timezone info
             net_position_hist = net_position_hist[~net_position_hist.index.isna()]
-            net_position_hist = net_position_hist.reindex(
-                index=account_history.index, method="ffill"
-            ).fillna(0)
+            try:
+                net_position_hist = net_position_hist.reindex(
+                    index=account_history.index, method="ffill"
+                ).fillna(0)
+            except:
+                print("Could not reindex position history on account history index.")
 
             # Save result
             position_histories_dict[instrument] = net_position_hist

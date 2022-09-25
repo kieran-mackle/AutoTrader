@@ -870,7 +870,8 @@ class Broker:
         if self._paper_trading:
             # Use current time as fill time
             tz = fill_time.tzinfo  # inherit timezone of dataset
-            fill_time = datetime.now(tz=tz)
+            if tz is not None:
+                fill_time = datetime.now(tz=tz)
 
         # Check for public trade to fill order
         if trade_size is not None:

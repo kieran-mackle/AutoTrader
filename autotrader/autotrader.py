@@ -1,6 +1,7 @@
 import os
 import sys
 import time
+import pickle
 import timeit
 import pyfiglet
 import importlib
@@ -2012,7 +2013,9 @@ class AutoTrader:
 
             elif self._papertrading:
                 # Paper trade through virtual broker
-                self.trade_results = TradeAnalysis(self._broker)
+                self.trade_results = TradeAnalysis(
+                    broker=self._broker, broker_histories=self._broker_histories
+                )
                 self.print_trade_results(self.trade_results)
 
                 picklefile_list = [
@@ -2116,6 +2119,23 @@ class AutoTrader:
                                         )
                                         traceback.print_exc()
 
+                            if self._papertrading:
+                                # Update broker histories
+                                for name, broker in self._brokers_dict.items():
+                                    hist_dict = self._broker_histories[name]
+                                    hist_dict["NAV"].append(broker._NAV)
+                                    hist_dict["equity"].append(broker._equity)
+                                    hist_dict["margin"].append(broker._margin_available)
+                                    hist_dict["open_interest"].append(
+                                        broker._open_interest
+                                    )
+                                    # TODO - check timezone below
+                                    hist_dict["time"].append(datetime.now(timezone.utc))
+
+                                # Dump history file to pickle
+                                with open(f".paper_broker_hist", "wb") as file:
+                                    pickle.dump(self._broker_histories, file)
+
                             # Go to sleep until next update
                             time.sleep(
                                 self._timestep.seconds
@@ -2167,11 +2187,22 @@ class AutoTrader:
             self.shutdown()
 
     @staticmethod
-    def papertrade_snapshot(broker_picklefile: str = ".virtual_broker"):
-        """Prints a snapshot of the virtual broker from a pickle. and
+    def papertrade_snapshot(
+        broker_picklefile: str = ".virtual_broker",
+        history_picklefile: str = ".paper_broker_hist",
+    ):
+        """Prints a snapshot of the virtual broker from a single pickle. and
         returns the TradeAnalysis object."""
         broker = unpickle_broker(broker_picklefile)
-        results = TradeAnalysis(broker)
+        with open(history_picklefile, "rb") as file:
+            broker_hist = pickle.load(file)
+
+        # Extract relevant broker history
+
+        # TODO - review functionality for multiple brokers: will need to pass
+        # in as dict. Consider pickling self._brokers_dict
+
+        results = TradeAnalysis(broker, broker_hist)
         at = AutoTrader()
         at.print_trade_results(results)
         return results
