@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 from decimal import Decimal
 from typing import Callable
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from autotrader.autodata import AutoData
 from autotrader.utilities import get_data_config
 from autotrader.brokers.broker_utils import BrokerUtils
@@ -337,7 +337,9 @@ class Broker:
         """Place order with broker."""
         # Call order to set order time
         datetime_stamp = (
-            kwargs["order_time"] if "order_time" in kwargs else datetime.now()
+            kwargs["order_time"]
+            if "order_time" in kwargs
+            else datetime.now(timezone.utc)
         )
         order(order_time=datetime_stamp)
 
@@ -739,7 +741,7 @@ class Broker:
         # Check for data availability
         if L1 is not None:
             # Using L1 data to update
-            latest_time = datetime.now()
+            latest_time = datetime.now(timezone.utc)
 
         elif candle is not None:
             # Using OHLC data to update
