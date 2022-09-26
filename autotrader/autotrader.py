@@ -1596,8 +1596,16 @@ class AutoTrader:
                 )
 
             for bot in self._bots_deployed:
+                if isinstance(bot.instrument, str):
+                    instr_str = bot.instrument
+                else:
+                    instr_str = (
+                        bot.instrument
+                        if len(bot.instrument) < 5
+                        else f"a portfolio of {len(bot.instrument)} instruments"
+                    )
                 print(
-                    f"\nAutoTraderBot assigned to trade {bot.instrument}",
+                    f"\nAutoTraderBot assigned to trade {instr_str}",
                     f"with {bot._broker_name} broker using {bot._strategy_name}.",
                 )
 
