@@ -87,6 +87,7 @@ class AutoTrader:
         self._warmup_period = pd.Timedelta("0s").to_pytimedelta()
         self._feed = None
         self._req_liveprice = False
+        self._max_workers = None
 
         # Communications
         self._notify = 0
@@ -199,6 +200,7 @@ class AutoTrader:
         home_currency: str = None,
         allow_duplicate_bars: bool = False,
         deploy_time: datetime = None,
+        max_workers: int = None,
     ) -> None:
         """Configures run settings for AutoTrader.
 
@@ -275,6 +277,9 @@ class AutoTrader:
             as an anchor to synchronise future bot updates. If not specified,
             bots will be deployed as soon as possible, with successive updates
             synchronised to the deployment time.
+        max_workers : int, optional
+            The maximum number of workers to use when spawning threads. The
+            default is None.
 
         Returns
         -------
@@ -307,6 +312,7 @@ class AutoTrader:
         self._broker_verbosity = broker_verbosity
         self._base_currency = home_currency
         self._deploy_time = deploy_time
+        self._max_workers = max_workers
 
     def add_strategy(
         self,

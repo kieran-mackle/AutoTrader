@@ -314,7 +314,12 @@ class AutoTraderBot:
             self._qualify_orders(orders, current_bars, quote_bars)
 
             # Submit orders
-            with ThreadPoolExecutor(max_workers=8) as executor:
+            if self._max_workers is not None:
+                workers = min(self._max_workers, len(orders))
+            else:
+                workers = None
+            with ThreadPoolExecutor(max_workers=workers) as executor:
+                futures = []
                 for order in orders:
                     if self._scan_mode:
                         # Bot is scanning
@@ -333,17 +338,26 @@ class AutoTraderBot:
                             order_time = current_bars[order.instrument].name
                         except:
                             if self._feed == "none":
-                                order_time = datetime.now()
+                                order_time = datetime.now(timezone.utc)
                             else:
                                 order_time = current_bars[order.data_name].name
 
                         # Submit order to relevant exchange
-                        executor.submit(
-                            self._execution_method,
-                            broker=self._brokers[order.exchange],
-                            order=order,
-                            order_time=order_time,
+                        futures.append(
+                            executor.submit(
+                                self._execution_method,
+                                broker=self._brokers[order.exchange],
+                                order=order,
+                                order_time=order_time,
+                            )
                         )
+
+            # Check for exceptions
+            for f in futures:
+                try:
+                    f.result()
+                except Exception as e:
+                    print("Exception when submitting order: ", e)
 
             if self._papertrading:
                 # Update virtual broker again to trigger any orders
