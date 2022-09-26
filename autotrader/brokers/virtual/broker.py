@@ -105,7 +105,16 @@ class Broker:
         self._floating_pnl = 0
         self._margin_available = 0
         self._open_interest = 0
+        self._long_exposure = 0
+        self._short_exposure = 0
+        self._long_unrealised_pnl = 0
+        self._short_unrealised_pnl = 0
 
+        # Evolving metrics
+        self._long_realised_pnl = 0
+        self._short_realised_pnl = 0
+
+        # Margin
         self._leverage = 1  # The account leverage
         self._spread = 0  # The bid/ask spread
         self._spread_units = "price"  # The units of the spread
@@ -974,6 +983,14 @@ class Broker:
                 )
                 self._adjust_balance(pnl)
 
+                # Update realised PnL metrics
+                if np.sign(starting_net_position) > 0:
+                    # Long position reduced
+                    self._long_realised_pnl += pnl
+                else:
+                    # Short position reduced
+                    self._short_realised_pnl += pnl
+
             # Check if position is zero
             if round(new_net_position, price_precision) == 0:
                 # Move to closed positions (and add exit time)
@@ -1309,12 +1326,27 @@ class Broker:
         open_interest = 0
 
         positions = self.get_positions()
+        long_exposure = 0
+        short_exposure = 0
+        long_upnl = 0
+        short_upnl = 0
         for instrument, position in positions.items():
             margin_used += self._calculate_margin(position.notional)
             floating_pnl += position.pnl
             open_interest += position.notional
 
+            if position.direction > 0:
+                long_upnl += position.pnl
+                long_exposure += position.notional
+            else:
+                short_upnl += position.pnl
+                short_exposure += position.notional
+
         # Update unrealised PnL
+        self._long_unrealised_pnl = long_upnl
+        self._short_unrealised_pnl = short_upnl
+        self._long_exposure = long_exposure
+        self._short_exposure = short_exposure
         self._floating_pnl = floating_pnl
 
         # Update margin available

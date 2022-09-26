@@ -1517,6 +1517,12 @@ class AutoTrader:
                 "equity": [],
                 "margin": [],
                 "open_interest": [],
+                "long_exposure": [],
+                "short_exposure": [],
+                "long_unrealised_pnl": [],
+                "short_unrealised_pnl": [],
+                "long_pnl": [],
+                "short_pnl": [],
                 "time": [],
             }
             for key in self._brokers_dict
@@ -2077,6 +2083,16 @@ class AutoTrader:
                             hist_dict["equity"].append(broker._equity)
                             hist_dict["margin"].append(broker._margin_available)
                             hist_dict["open_interest"].append(broker._open_interest)
+                            hist_dict["long_exposure"].append(broker._long_exposure)
+                            hist_dict["short_exposure"].append(broker._short_exposure)
+                            hist_dict["long_unrealised_pnl"].append(
+                                broker._long_unrealised_pnl
+                            )
+                            hist_dict["short_unrealised_pnl"].append(
+                                broker._short_unrealised_pnl
+                            )
+                            hist_dict["long_pnl"].append(broker._long_realised_pnl)
+                            hist_dict["short_pnl"].append(broker._short_realised_pnl)
                             hist_dict["time"].append(timestamp)
 
                         # Iterate through time
@@ -2132,6 +2148,24 @@ class AutoTrader:
                                     hist_dict["NAV"].append(broker._NAV)
                                     hist_dict["equity"].append(broker._equity)
                                     hist_dict["margin"].append(broker._margin_available)
+                                    hist_dict["long_exposure"].append(
+                                        broker._long_exposure
+                                    )
+                                    hist_dict["short_exposure"].append(
+                                        broker._short_exposure
+                                    )
+                                    hist_dict["long_unrealised_pnl"].append(
+                                        broker._long_unrealised_pnl
+                                    )
+                                    hist_dict["short_unrealised_pnl"].append(
+                                        broker._short_unrealised_pnl
+                                    )
+                                    hist_dict["long_pnl"].append(
+                                        broker._long_realised_pnl
+                                    )
+                                    hist_dict["short_pnl"].append(
+                                        broker._short_realised_pnl
+                                    )
                                     hist_dict["open_interest"].append(
                                         broker._open_interest
                                     )
@@ -2182,6 +2216,16 @@ class AutoTrader:
                             hist_dict["equity"].append(broker._equity)
                             hist_dict["margin"].append(broker._margin_available)
                             hist_dict["open_interest"].append(broker._open_interest)
+                            hist_dict["long_exposure"].append(broker._long_exposure)
+                            hist_dict["short_exposure"].append(broker._short_exposure)
+                            hist_dict["long_unrealised_pnl"].append(
+                                broker._long_unrealised_pnl
+                            )
+                            hist_dict["short_unrealised_pnl"].append(
+                                broker._short_unrealised_pnl
+                            )
+                            hist_dict["long_pnl"].append(broker._long_realised_pnl)
+                            hist_dict["short_pnl"].append(broker._short_realised_pnl)
                             hist_dict["time"].append(broker._latest_time)
 
                 else:
