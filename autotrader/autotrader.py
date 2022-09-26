@@ -1889,9 +1889,9 @@ class AutoTrader:
             # Re-assign bot data
             self._bots_deployed[i]._replace_data(adj_data)
 
-    def _get_instance_id(self):
+    def _get_instance_id(self, dir_name: str = "active_bots"):
         """Returns an ID for the active AutoTrader instance."""
-        dirpath = os.path.join(self._home_dir, "active_bots")
+        dirpath = os.path.join(self._home_dir, dir_name)
 
         # Check if active_bots directory exists
         if not os.path.isdir(dirpath):
@@ -1917,30 +1917,36 @@ class AutoTrader:
 
         return instance_id
 
-    def _check_instance_file(self, instance_str, initialisation=False):
+    def _check_instance_file(
+        self,
+        instance_str: str,
+        initialisation: bool = False,
+        dir_name: str = "active_bots",
+        live_check: bool = True,
+    ):
         """Checks if the AutoTrader instance exists."""
         if initialisation:
             # Create the file
-            filepath = os.path.join(self._home_dir, "active_bots", instance_str)
+            filepath = os.path.join(self._home_dir, dir_name, instance_str)
             with open(filepath, mode="w") as f:
                 f.write("This instance of AutoTrader contains the following bots:\n")
                 for bot in self._bots_deployed:
                     f.write(bot._strategy_name + f" ({bot.instrument})\n")
             instance_file_exists = True
 
-            if int(self._verbosity) > 0:
+            if int(self._verbosity) > 0 and live_check:
                 print(f"Active AutoTrader instance file: active_bots/{instance_str}")
 
         else:
-            dirpath = os.path.join(self._home_dir, "active_bots")
+            dirpath = os.path.join(self._home_dir, dir_name)
             instances = [
                 f
                 for f in os.listdir(dirpath)
-                if os.path.isfile(os.path.join("active_bots", f))
+                if os.path.isfile(os.path.join(dir_name, f))
             ]
             instance_file_exists = instance_str in instances
 
-        if int(self._verbosity) > 0 and not instance_file_exists:
+        if int(self._verbosity) > 0 and not instance_file_exists and live_check:
             print(
                 f"Instance file '{instance_str}' deleted. AutoTrader",
                 "will now shut down.",
@@ -2264,3 +2270,47 @@ class AutoTrader:
         at = AutoTrader()
         at.print_trade_results(results)
         return results
+
+    def save_state(self):
+        """Dumps the current AutoTrader instance to a pickle."""
+        instance_id = self._get_instance_id(dir_name="pickled_instances")
+
+        instance_name = (
+            f"autotrader_instance_{instance_id}"
+            if self._instance_str is None
+            else self._instance_str
+        )
+        instance_file_exists = self._check_instance_file(
+            instance_str=instance_name, dir_name="pickled_instances", live_check=False
+        )
+
+        write = "y"
+        if instance_file_exists:
+            # The file already exists, check to overwrite
+            write = input(
+                f"The instance file '{instance_name}' already "
+                + "exists. Would you like to overwrite it? ([y]/n)  "
+            )
+
+        if "y" in write.lower():
+            # Write to file
+            try:
+                filepath = f"pickled_instances/{instance_name}"
+                with open(filepath, "wb") as file:
+                    pickle.dump(self, file)
+            except pickle.PicklingError:
+                print("Error - cannot pickle this AutoTrader instance.")
+
+    @staticmethod
+    def load_state(instance_name, verbosity: int = 0):
+        """Loads a pickled AutoTrader instance from file."""
+        try:
+            filepath = f"pickled_instances/{instance_name}"
+            with open(filepath, "rb") as file:
+                at = pickle.load(file)
+            return at
+        except Exception as e:
+            print(f"Something went wrong while tring to load '{instance_name}'.")
+
+            if verbosity > 0:
+                print("Exception:", e)
