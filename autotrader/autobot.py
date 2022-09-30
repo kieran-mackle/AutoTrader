@@ -658,7 +658,10 @@ class AutoTraderBot:
                 precision = broker._utils.get_precision(order.instrument)
             except Exception as e:
                 # Print exception
-                print("Exception:", e)
+                print("AutoTrader exception when qualifying order:", e)
+
+                # Skip this order
+                continue
 
             if self._feed != "none":
                 # Get order price from current bars
