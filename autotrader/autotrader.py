@@ -128,6 +128,7 @@ class AutoTrader:
         self._broker_histories = None
 
         # Local Data Parameters
+        self._data_directory = None
         self._data_indexing = "open"
         self._data_stream_object = DataStream
         self._data_file = None
@@ -790,6 +791,7 @@ class AutoTrader:
                            }
 
         """
+        self._data_directory = data_directory
         dir_path = (
             abs_dir_path
             if abs_dir_path is not None
