@@ -65,7 +65,6 @@ class Broker:
 
     def __init__(self, broker_config: dict = None, utils: BrokerUtils = None) -> None:
         """Initialise virtual broker."""
-        # TODO - improve floating point precision coverage
         if broker_config is not None:
             self._verbosity = broker_config["verbosity"]
         else:
@@ -793,8 +792,6 @@ class Broker:
         if position:
             position = position[instrument]
             # Position held, update it
-            # TODO - this is where PnL of the position can be updated,
-            # last price, margin, exposure, etc.
             position.last_price = get_last_price(np.sign(position.net_position))
             position.last_time = latest_time
             position.notional = position.last_price * abs(position.net_position)
@@ -1022,14 +1019,6 @@ class Broker:
         fill_price: float,
         fill_time: datetime,
         order: Order = None,
-        instrument: str = None,
-        order_price: float = None,
-        order_time: datetime = None,
-        order_size: float = None,
-        order_type: str = None,
-        direction: int = None,
-        order_id: int = None,
-        HCF: float = 1,
         liquidation_order: bool = False,
     ) -> None:
         """Marks an order as filled and records the trade as a Fill.
@@ -1043,22 +1032,6 @@ class Broker:
         order : Order, optional
             The order to fill. The default is None, in which case the arguments
             below must be specified.
-        instrument : str, optional
-            The trading instrument name.
-        order_price : float, optional
-            The price at which the order was created.
-        order_time : datetime, optional
-            The time at which the order was created.
-        order_size : float, optional
-            The size of the order, in number of units.
-        order_type : str, optional
-            The type of order ('limit' or 'market').
-        direction : int, optional
-            The direction of the fill (1 for a buy, -1 for sell).
-        order_id : int, optional
-            The ID of the order.
-        HCF : float, optional
-            The instruments home conversion factor (FX).
         liquidation_order : bool, optional
             A flag whether this is a liquidation order from the broker.
         """
@@ -1072,7 +1045,6 @@ class Broker:
             )
 
         # Infer attributes from provided order
-        # TODO - clean up func args, dont input the below
         instrument = order.instrument
         order_price = order.order_price
         order_time = order.order_time
@@ -1080,6 +1052,7 @@ class Broker:
         order_type = order.order_type
         direction = order.direction
         order_id = order.id
+        HCF = order.HCF
         fill_price = round(fill_price, order.price_precision)
 
         # Check for SL
