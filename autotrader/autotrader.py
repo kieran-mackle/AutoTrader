@@ -3,12 +3,12 @@ import sys
 import time
 import pickle
 import timeit
-import pyfiglet
 import importlib
 import traceback
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
+from art import tprint
 from typing import Callable
 from threading import Thread
 from ast import literal_eval
@@ -907,7 +907,7 @@ class AutoTrader:
         """Performs essential checks and runs AutoTrader."""
         # Print Banner
         if int(self._verbosity) > 0:
-            print(pyfiglet.figlet_format("AutoTrader", font="slant"))
+            tprint("AutoTrader", font="tarty1")
 
         # Define home_dir if undefined
         if self._home_dir is None:
