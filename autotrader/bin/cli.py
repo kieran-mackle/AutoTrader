@@ -2,13 +2,13 @@ import os
 import time
 import click
 import shutil
-import pyfiglet
 import requests
 import autotrader
+from art import tprint
 
 
 def print_banner():
-    print(pyfiglet.figlet_format("AutoTrader", font="slant"))
+    tprint("AutoTrader", font="tarty1")
 
 
 def download_file(url):
