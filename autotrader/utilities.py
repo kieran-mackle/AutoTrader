@@ -1,4 +1,3 @@
-from glob import glob
 import sys
 import yaml
 import pickle
@@ -323,146 +322,6 @@ def get_data_config(feed: str, global_config: dict = None, **kwargs) -> dict:
     return config
 
 
-def get_watchlist(index, feed):
-    """Returns a watchlist of instruments.
-
-    Notes
-    ------
-    The current implementation only support forex indices, with Oanda
-    formatting.
-
-    Examples
-    --------
-    >>> get_warchlist('forex:major')
-        [Out]: list of major forex pairs
-    """
-
-    if len(index) == 0:
-        print("\nArgument for scan missing. Please specify instrument/index to scan.")
-        print("Try $ ./AutoTrader.py -h s for more help.\n")
-        sys.exit(0)
-
-    if index == "all":
-        """Returns all currency pairs."""
-        watchlist = [
-            "EUR_USD",
-            "USD_JPY",
-            "GBP_USD",
-            "AUD_USD",
-            "USD_CAD",
-            "USD_CHF",
-            "NZD_USD",
-            "EUR_GBP",
-            "EUR_AUD",
-            "EUR_CAD",
-            "EUR_CHF",
-            "EUR_JPY",
-            "EUR_NZD",
-            "GBP_JPY",
-            "GBP_AUD",
-            "GBP_CAD",
-            "GBP_CHF",
-            "GBP_NZD",
-            "AUD_CAD",
-            "AUD_CHF",
-            "AUD_JPY",
-            "AUD_NZD",
-            "CAD_CHF",
-            "CAD_JPY",
-            "CHF_JPY",
-            "NZD_CHF",
-            "NZD_JPY",
-        ]
-
-    elif index == "major":
-        """Returns major currency pairs."""
-        if feed.lower() == "oanda":
-            watchlist = [
-                "EUR_USD",
-                "USD_JPY",
-                "GBP_USD",
-                "AUD_USD",
-                "USD_CAD",
-                "USD_CHF",
-                "NZD_USD",
-            ]
-
-        elif feed.lower() == "yahoo":
-            watchlist = [
-                "EURUSD=X",
-                "USDJPY=X",
-                "GBPUSD=X",
-                "AUDUSD=X",
-                "USDCAD=X",
-                "USDCHF=X",
-                "NZDUSD=X",
-            ]
-
-    elif index == "minor":
-        """Returns minor currency pairs."""
-
-        if feed.lower() == "oanda":
-            watchlist = [
-                "EUR_GBP",
-                "EUR_AUD",
-                "EUR_CAD",
-                "EUR_CHF",
-                "EUR_JPY",
-                "EUR_NZD",
-                "GBP_JPY",
-                "GBP_AUD",
-                "GBP_CAD",
-                "GBP_CHF",
-                "GBP_NZD",
-                "AUD_CAD",
-                "AUD_CHF",
-                "AUD_JPY",
-                "AUD_NZD",
-                "CAD_CHF",
-                "CAD_JPY",
-                "CHF_JPY",
-                "NZD_CHF",
-                "NZD_JPY",
-            ]
-
-        elif feed.lower() == "yahoo":
-            watchlist = [
-                "EURGBP=X",
-                "EURAUD=X",
-                "EURCAD=X",
-                "EURCHF=X",
-                "EURJPY=X",
-                "EURNZD=X",
-                "GBPJPY=X",
-                "GBPAUD=X",
-                "GBPCAD=X",
-                "GBPCHF=X",
-                "GBPNZD=X",
-                "AUDCAD=X",
-                "AUDCHF=X",
-                "AUDJPY=X",
-                "AUDNZD=X",
-                "CADCHF=X",
-                "CADJPY=X",
-                "CHFJPY=X",
-                "NZDCHF=X",
-                "NZDJPY=X",
-            ]
-
-    elif index == "exotic":
-        """Returns exotic currency pairs."""
-        watchlist = ["EUR_TRY", "USD_HKD", "JPY_NOK", "NZD_SGD", "GBP_ZAR", "AUD_MXN"]
-
-    elif index[3] == "_":
-        watchlist = [index]
-
-    else:
-        print("Not supported.")
-        sys.exit(0)
-
-    return watchlist
-
-
 def get_streaks(trade_summary):
     """Calculates longest winning and losing streaks from trade summary."""
     profit_list = trade_summary[trade_summary["status"] == "closed"].profit.values
@@ -506,12 +365,8 @@ class TradeAnalysis:
     holding_history : pd.DataFrame
         A timeseries summary of holdings during the trading period, by portfolio
         allocation fraction.
-    isolated_position_history : pd.DataFrame
-        A timeseries history of trades taken during the trading period.
     order_history : pd.DataFrame
         A timeseries history of orders placed during the trading period.
-    open_isolated_positions : pd.DataFrame
-        Positions which remained open at the end of the trading period.
     cancelled_orders : pd.DataFrame
         Orders which were cancelled during the trading period.
     trade_history : pd.DataFrame
@@ -519,7 +374,13 @@ class TradeAnalysis:
 
     """
 
-    def __init__(self, broker, instrument: str = None):
+    def __init__(
+        self,
+        broker,
+        broker_histories: dict,
+        instrument: str = None,
+        price_history: pd.DataFrame = None,
+    ):
         # Meta data
         self.brokers_used = None
         self.broker_results = None
@@ -527,15 +388,15 @@ class TradeAnalysis:
 
         # Histories
         self.account_history = None
-        self.isolated_position_history = None
-        self.open_isolated_positions = None
         self.position_history = None
+        self.position_summary = None
         self.order_history = None
         self.cancelled_orders = None
         self.trade_history = None
+        self.price_history = price_history
 
         # Perform analysis
-        self.analyse_account(broker, instrument)
+        self.analyse_account(broker, broker_histories, instrument)
 
     def __str__(self):
         return "AutoTrader Trading Results"
@@ -546,12 +407,13 @@ class TradeAnalysis:
     def analyse_account(
         self,
         broker,
+        broker_histories: dict,
         instrument: str = None,
     ) -> None:
         """Analyses trade account and creates summary of key details."""
         if not isinstance(broker, dict):
             # Single broker - create dummy dict
-            broker_instances = {"broker": broker}
+            broker_instances = {list(broker_histories.keys())[0]: broker}
         else:
             # Multiple brokers passed in as dict
             broker_instances = broker
@@ -560,19 +422,11 @@ class TradeAnalysis:
         broker_results = {}
         for broker_name, broker in broker_instances.items():
             # Construct trade and order summaries
-            all_trades = {}
-            for status in ["open", "closed"]:
-                trades = broker.get_isolated_positions(status=status)
-                all_trades.update(trades)
-
             all_orders = {}
             for status in ["pending", "open", "filled", "cancelled"]:
                 orders = broker.get_orders(order_status=status)
                 all_orders.update(orders)
 
-            trades = TradeAnalysis.create_trade_summary(
-                trades=all_trades, instrument=instrument, broker_name=broker_name
-            )
             orders = TradeAnalysis.create_trade_summary(
                 orders=all_orders, instrument=instrument, broker_name=broker_name
             )
@@ -581,23 +435,17 @@ class TradeAnalysis:
             )
 
             account_history = pd.DataFrame(
-                data={
-                    "NAV": broker._NAV_hist,
-                    "equity": broker._equity_hist,
-                    "margin": broker._margin_hist,
-                    "open_interest": broker._open_interest_hist,
-                },
-                index=broker._time_hist,
+                data=broker_histories[broker_name],
             )
-
-            # Remove duplicates
-            account_history = account_history[
-                ~account_history.index.duplicated(keep="last")
-            ]
+            account_history.set_index("time", inplace=True)
 
             position_history = TradeAnalysis.create_position_history(
                 trade_history=trade_history,
                 account_history=account_history,
+            )
+
+            position_summary = TradeAnalysis._create_position_summary(
+                broker._positions, broker._closed_positions
             )
 
             # Calculate drawdown
@@ -609,10 +457,9 @@ class TradeAnalysis:
             broker_results[broker_name] = {
                 "instruments_traded": list(orders.instrument.unique()),
                 "account_history": account_history,
-                "isolated_position_history": trades,
                 "position_history": position_history,
+                "position_summary": position_summary,
                 "order_history": orders,
-                "open_isolated_positions": trades[trades.status == "open"],
                 "cancelled_orders": orders[orders.status == "cancelled"],
                 "trade_history": trade_history,
             }
@@ -634,7 +481,7 @@ class TradeAnalysis:
         # Use fills to reconstruct position history, in terms of units held
         instruments_traded = list(trade_history["instrument"].unique())
 
-        position_histories = pd.DataFrame()
+        position_histories_dict = {}
         for instrument in instruments_traded:
             instrument_trade_hist = trade_history[
                 trade_history["instrument"] == instrument
@@ -650,27 +497,83 @@ class TradeAnalysis:
             ]
 
             # Reindex to account history index
-            net_position_hist = net_position_hist.reindex(
-                index=account_history.index, method="ffill"
-            ).fillna(0)
+            # TODO - match index timezone info
+            net_position_hist = net_position_hist[~net_position_hist.index.isna()]
+            try:
+                net_position_hist = net_position_hist.reindex(
+                    index=account_history.index, method="ffill"
+                ).fillna(0)
+            except:
+                print("Could not reindex position history on account history index.")
 
             # Save result
-            position_histories[instrument] = net_position_hist
+            position_histories_dict[instrument] = net_position_hist
 
-        # Eventually, using the price history, the value of the holding can be
-        # tracked too, or maybe the change in value over the life of the
-        # position
-
+        position_histories = pd.concat(position_histories_dict, axis=1)
         return position_histories
+
+    @staticmethod
+    def _create_position_summary(open_positions, closed_positions):
+        """Creates a summary of positions held."""
+        # # Analyse closed positions (currently unused)
+        # open_positions_summary = {}
+        # for instrument, position in open_positions.items():
+        #     directions = [p.direction for p in positions]
+
+        #     # Save analysis
+        #     open_positions_summary[instrument] = {
+        #         "directions": directions,
+        #         "no_long": directions.count(1),
+        #         "no_short": directions.count(-1),
+        #     }
+
+        # Analyse closed positions
+        closed_positions_results = {}
+        closed_positions_summary = {}
+        for instrument, positions in closed_positions.items():
+            directions = [p.direction for p in positions]
+            durations = [p.exit_time - p.entry_time for p in positions]
+
+            # Save analysis
+            closed_positions_results[instrument] = {
+                "directions": directions,
+                "durations": durations,
+            }
+            closed_positions_summary[instrument] = {
+                "no_long": directions.count(1),
+                "no_short": directions.count(-1),
+            }
+            if len(durations) > 0:
+                closed_positions_summary[instrument]["avg_duration"] = np.mean(
+                    durations
+                )
+                if directions.count(1) > 0:
+                    closed_positions_summary[instrument]["avg_long_duration"] = np.mean(
+                        np.array(durations)[np.array(directions) == 1]
+                    )
+                else:
+                    closed_positions_summary[instrument]["avg_long_duration"] = None
+                if directions.count(-1) > 0:
+                    closed_positions_summary[instrument][
+                        "avg_short_duration"
+                    ] = np.mean(np.array(durations)[np.array(directions) == -1])
+                else:
+                    closed_positions_summary[instrument]["avg_short_duration"] = None
+
+        # Create summary dataframe
+        summary = pd.DataFrame(
+            data=closed_positions_summary,
+        )
+
+        return summary
 
     def _aggregate_across_brokers(self, broker_results):
         """Aggregates trading history across all broker instances."""
         brokers_used = []
         instruments_traded = []
-        open_isolated_positions = pd.DataFrame()
         cancelled_orders = pd.DataFrame()
-        isolated_position_history = pd.DataFrame()
         position_history = pd.DataFrame()
+        position_summary = pd.DataFrame()
         order_history = pd.DataFrame()
         trade_history = pd.DataFrame()
         account_history = None
@@ -707,29 +610,24 @@ class TradeAnalysis:
                     account_history = new_index + results["account_history"]
 
             # Concatenate trades, orders and trade_history
-            open_isolated_positions = pd.concat(
-                [open_isolated_positions, results["open_isolated_positions"]]
-            )
             cancelled_orders = pd.concat(
                 [cancelled_orders, results["cancelled_orders"]]
-            )
-            isolated_position_history = pd.concat(
-                [isolated_position_history, results["isolated_position_history"]]
             )
             order_history = pd.concat([order_history, results["order_history"]])
             trade_history = pd.concat([trade_history, results["trade_history"]])
             position_history = pd.concat(
                 [position_history, results["position_history"]]
             )
+            # TODO - implement position summary for multiple exchanges
+            position_summary = results["position_summary"]
 
         # Assign attributes
         self.brokers_used = brokers_used
         self.instruments_traded = instruments_traded
         self.account_history = account_history
-        self.isolated_position_history = isolated_position_history
         self.position_history = position_history
+        self.position_summary = position_summary
         self.order_history = order_history
-        self.open_isolated_positions = open_isolated_positions
         self.cancelled_orders = cancelled_orders
         self.trade_history = trade_history
 
@@ -794,6 +692,7 @@ class TradeAnalysis:
         direction = []
         stop_price = []
         take_price = []
+        reason = []
 
         if trades is not None:
             entry_time = []
@@ -815,6 +714,7 @@ class TradeAnalysis:
             order_price.append(item.order_price)
             stop_price.append(item.stop_loss)
             take_price.append(item.take_profit)
+            reason.append(item.reason)
 
         if trades is not None:
             for trade_id, trade in iter_dict.items():
@@ -877,17 +777,19 @@ class TradeAnalysis:
             dataframe.balance.fillna(method="ffill", inplace=True)
 
         else:
+            # Order summary
             dataframe = pd.DataFrame(
                 {
                     "instrument": product,
                     "status": status,
-                    "ID": ids,
+                    "order_id": ids,
                     "order_price": order_price,
                     "order_time": times_list,
                     "size": size,
                     "direction": direction,
                     "stop_loss": stop_price,
                     "take_profit": take_price,
+                    "reason": reason,
                 },
                 index=pd.to_datetime(times_list),
             )
@@ -945,61 +847,80 @@ class TradeAnalysis:
             trade_results["all_trades"] = {}
 
             # Calculate positions still open
-            trade_results["no_open"] = sum(self.position_history.iloc[-1] > 0)
+            # TODO - debug below with multi asset backtest
+            try:
+                trade_results["no_open"] = sum(self.position_history.iloc[-1] > 0)
+            except:
+                trade_results["no_open"] = 0
 
             # Analyse winning positions
-            wins = self.isolated_position_history[
-                self.isolated_position_history.profit > 0
-            ]
-            avg_win = np.mean(wins.profit)
-            max_win = np.max(wins.profit)
+            # wins = self.isolated_position_history[
+            #     self.isolated_position_history.profit > 0
+            # ]
+            # avg_win = np.mean(wins.profit)
+            # max_win = np.max(wins.profit)
 
             # Analyse losing positions
-            loss = self.isolated_position_history[
-                self.isolated_position_history.profit < 0
-            ]
-            avg_loss = abs(np.mean(loss.profit))
-            max_loss = abs(np.min(loss.profit))
+            # loss = self.isolated_position_history[
+            #     self.isolated_position_history.profit < 0
+            # ]
+            # avg_loss = abs(np.mean(loss.profit))
+            # max_loss = abs(np.min(loss.profit))
 
             # Performance
-            win_rate = 100 * len(wins) / no_trades
-            longest_win_streak, longest_lose_streak = get_streaks(
-                self.isolated_position_history
-            )
-            try:
-                avg_trade_duration = np.nanmean(
-                    self.isolated_position_history.trade_duration.values
-                )
-                trade_results["all_trades"]["avg_trade_duration"] = str(
-                    timedelta(seconds=int(avg_trade_duration))
-                )
-            except TypeError:
-                # Position has not been closed yet
-                trade_results["all_trades"]["avg_trade_duration"] = None
+            # win_rate = 100 * len(wins) / no_trades
+            # longest_win_streak, longest_lose_streak = get_streaks(
+            #     self.isolated_position_history
+            # )
+            # try:
+            #     avg_trade_duration = np.nanmean(
+            #         self.isolated_position_history.trade_duration.values
+            #     )
+            #     trade_results["all_trades"]["avg_trade_duration"] = str(
+            #         timedelta(seconds=int(avg_trade_duration))
+            #     )
+            # except TypeError:
+            #     # Position has not been closed yet
+            #     trade_results["all_trades"]["avg_trade_duration"] = None
 
             # Trade durations
-            duration_list = [
-                i
-                for i in self.isolated_position_history.trade_duration.values
-                if i is not None
-            ]
-            if len(duration_list) > 0:
-                min_trade_duration = np.nanmin(duration_list)
-                max_trade_duration = np.nanmax(duration_list)
-            else:
-                min_trade_duration = None
-                max_trade_duration = None
+            # duration_list = [
+            #     i
+            #     for i in self.isolated_position_history.trade_duration.values
+            #     if i is not None
+            # ]
+            # if len(duration_list) > 0:
+            #     min_trade_duration = np.nanmin(duration_list)
+            #     max_trade_duration = np.nanmax(duration_list)
+            # else:
+            #     min_trade_duration = None
+            #     max_trade_duration = None
 
             # Fees
             total_fees = self.trade_history.fee.sum()
 
-            trade_results["all_trades"]["avg_win"] = avg_win
-            trade_results["all_trades"]["max_win"] = max_win
-            trade_results["all_trades"]["avg_loss"] = avg_loss
-            trade_results["all_trades"]["max_loss"] = max_loss
-            trade_results["all_trades"]["win_rate"] = win_rate
-            trade_results["all_trades"]["win_streak"] = longest_win_streak
-            trade_results["all_trades"]["lose_streak"] = longest_lose_streak
+            # Volume traded
+            total_volume = (
+                self.trade_history["size"] * self.trade_history["fill_price"]
+            ).values.sum()
+
+            # trade_results["all_trades"]["avg_win"] = avg_win
+            # trade_results["all_trades"]["max_win"] = max_win
+            # trade_results["all_trades"]["avg_loss"] = avg_loss
+            # trade_results["all_trades"]["max_loss"] = max_loss
+            # trade_results["all_trades"]["win_rate"] = win_rate
+            # trade_results["all_trades"]["win_streak"] = longest_win_streak
+            # trade_results["all_trades"]["lose_streak"] = longest_lose_streak
+            trade_results["all_trades"]["avg_win"] = 0
+            trade_results["all_trades"]["max_win"] = 0
+            trade_results["all_trades"]["avg_loss"] = 0
+            trade_results["all_trades"]["max_loss"] = 0
+            trade_results["all_trades"]["win_rate"] = 0
+            trade_results["all_trades"]["win_streak"] = 0
+            trade_results["all_trades"]["lose_streak"] = 0
+            trade_results["all_trades"]["total_volume"] = total_volume
+            max_trade_duration = None
+            min_trade_duration = None
 
             if max_trade_duration is not None:
                 trade_results["all_trades"]["longest_trade"] = str(
@@ -1021,48 +942,48 @@ class TradeAnalysis:
         trade_results["no_cancelled"] = len(self.cancelled_orders)
 
         # Long positions
-        long_positions = self.isolated_position_history[
-            self.isolated_position_history["direction"] > 0
-        ]
-        no_long = len(long_positions)
-        trade_results["long_positions"] = {}
-        trade_results["long_positions"]["total"] = no_long
-        if no_long > 0:
-            long_wins = long_positions[long_positions.profit > 0]
-            avg_long_win = np.mean(long_wins.profit)
-            max_long_win = np.max(long_wins.profit)
-            long_loss = long_positions[long_positions.profit < 0]
-            avg_long_loss = abs(np.mean(long_loss.profit))
-            max_long_loss = abs(np.min(long_loss.profit))
-            long_wr = 100 * len(long_positions[long_positions.profit > 0]) / no_long
+        # long_positions = self.isolated_position_history[
+        #     self.isolated_position_history["direction"] > 0
+        # ]
+        # no_long = len(long_positions)
+        # trade_results["long_positions"] = {}
+        # trade_results["long_positions"]["total"] = no_long
+        # if no_long > 0:
+        #     long_wins = long_positions[long_positions.profit > 0]
+        #     avg_long_win = np.mean(long_wins.profit)
+        #     max_long_win = np.max(long_wins.profit)
+        #     long_loss = long_positions[long_positions.profit < 0]
+        #     avg_long_loss = abs(np.mean(long_loss.profit))
+        #     max_long_loss = abs(np.min(long_loss.profit))
+        #     long_wr = 100 * len(long_positions[long_positions.profit > 0]) / no_long
 
-            trade_results["long_positions"]["avg_long_win"] = avg_long_win
-            trade_results["long_positions"]["max_long_win"] = max_long_win
-            trade_results["long_positions"]["avg_long_loss"] = avg_long_loss
-            trade_results["long_positions"]["max_long_loss"] = max_long_loss
-            trade_results["long_positions"]["long_wr"] = long_wr
+        #     trade_results["long_positions"]["avg_long_win"] = avg_long_win
+        #     trade_results["long_positions"]["max_long_win"] = max_long_win
+        #     trade_results["long_positions"]["avg_long_loss"] = avg_long_loss
+        #     trade_results["long_positions"]["max_long_loss"] = max_long_loss
+        #     trade_results["long_positions"]["long_wr"] = long_wr
 
-        # Short positions
-        short_positions = self.isolated_position_history[
-            self.isolated_position_history["direction"] < 0
-        ]
-        no_short = len(short_positions)
-        trade_results["short_positions"] = {}
-        trade_results["short_positions"]["total"] = no_short
-        if no_short > 0:
-            short_wins = short_positions[short_positions.profit > 0]
-            avg_short_win = np.mean(short_wins.profit)
-            max_short_win = np.max(short_wins.profit)
-            short_loss = short_positions[short_positions.profit < 0]
-            avg_short_loss = abs(np.mean(short_loss.profit))
-            max_short_loss = abs(np.min(short_loss.profit))
-            short_wr = 100 * len(short_positions[short_positions.profit > 0]) / no_short
+        # # Short positions
+        # short_positions = self.isolated_position_history[
+        #     self.isolated_position_history["direction"] < 0
+        # ]
+        # no_short = len(short_positions)
+        # trade_results["short_positions"] = {}
+        # trade_results["short_positions"]["total"] = no_short
+        # if no_short > 0:
+        #     short_wins = short_positions[short_positions.profit > 0]
+        #     avg_short_win = np.mean(short_wins.profit)
+        #     max_short_win = np.max(short_wins.profit)
+        #     short_loss = short_positions[short_positions.profit < 0]
+        #     avg_short_loss = abs(np.mean(short_loss.profit))
+        #     max_short_loss = abs(np.min(short_loss.profit))
+        #     short_wr = 100 * len(short_positions[short_positions.profit > 0]) / no_short
 
-            trade_results["short_positions"]["avg_short_win"] = avg_short_win
-            trade_results["short_positions"]["max_short_win"] = max_short_win
-            trade_results["short_positions"]["avg_short_loss"] = avg_short_loss
-            trade_results["short_positions"]["max_short_loss"] = max_short_loss
-            trade_results["short_positions"]["short_wr"] = short_wr
+        #     trade_results["short_positions"]["avg_short_win"] = avg_short_win
+        #     trade_results["short_positions"]["max_short_win"] = max_short_win
+        #     trade_results["short_positions"]["avg_short_loss"] = avg_short_loss
+        #     trade_results["short_positions"]["max_short_loss"] = max_short_loss
+        #     trade_results["short_positions"]["short_wr"] = short_wr
 
         return trade_results
 
@@ -1214,13 +1135,10 @@ class DataStream:
 
             else:
                 # Single instrument strategy
-                filepath = self.data_path_mapper(instrument)
+                filepath = self.data_path_mapper(self.instrument)
                 granularity = self.strategy_params["granularity"]
                 data = self.get_data._local(filepath, self.data_start, self.data_end)
-                multi_data[granularity] = data
-
-            # Extract first dataset as base data (arbitrary)
-            data = multi_data[list(multi_data.keys())[0]]
+                multi_data = None
 
         else:
             # Download data

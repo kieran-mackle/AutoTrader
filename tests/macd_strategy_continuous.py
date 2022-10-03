@@ -139,7 +139,7 @@ home_dir = os.getcwd()
 data_dir = "/home/kmackle/Documents/AutoTrader/tests/data"
 
 at = AutoTrader()
-at.configure(verbosity=1, show_plot=True)
+at.configure(verbosity=1, show_plot=True)  # , broker='ccxt:binanceusdm, ccxt:bitmex')
 at.add_strategy(config_dict=config, strategy=SimpleMACD)
 at.plot_settings(show_cancelled=False)
 at.add_data(
@@ -149,10 +149,25 @@ at.add_data(
 )
 at.backtest(
     start="1/1/2021",
-    end="1/3/2022",
+    end="1/6/2021",
 )
 at.virtual_account_config(
-    initial_balance=1000, leverage=30, spread=0.5 * 1e-4, commission=0.005
+    # initial_balance=1000, leverage=30, spread=0.5 * 1e-4, commission=0.005
+    initial_balance=1000,
+    leverage=30,
+    spread=0,
+    commission=0.0,
+    # exchange='ccxt:binanceusdm',
+    # tradeable_instruments=["EUR_USD"],
+)
+at.virtual_account_config(
+    # initial_balance=1000, leverage=30, spread=0.5 * 1e-4, commission=0.005
+    initial_balance=1000,
+    leverage=30,
+    spread=0,
+    commission=0.0,
+    # exchange='ccxt:bitmex',
+    # tradeable_instruments=["EUR_USD"],
 )
 at.run()
 

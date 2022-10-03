@@ -1,13 +1,14 @@
 import os
 import sys
 import time
+import pickle
 import timeit
-import pyfiglet
 import importlib
 import traceback
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
+from art import tprint
 from typing import Callable
 from threading import Thread
 from ast import literal_eval
@@ -18,7 +19,6 @@ from autotrader.autobot import AutoTraderBot
 from autotrader.utilities import (
     read_yaml,
     get_broker_config,
-    get_watchlist,
     DataStream,
     TradeAnalysis,
     unpickle_broker,
@@ -87,6 +87,7 @@ class AutoTrader:
         self._warmup_period = pd.Timedelta("0s").to_pytimedelta()
         self._feed = None
         self._req_liveprice = False
+        self._max_workers = None
 
         # Communications
         self._notify = 0
@@ -94,6 +95,7 @@ class AutoTrader:
         self._order_summary_fp = None
 
         # Livetrade Parameters
+        self._deploy_time = None
         self._check_data_alignment = True
         self._allow_dancing_bears = False
         self._maintain_broker_thread = False
@@ -101,6 +103,7 @@ class AutoTrader:
         # Broker parameters
         self._execution_method = None  # Execution method
         self._broker = None  # Broker instance(s)
+        self._brokers_dict = None  # Dictionary of brokers
         self._broker_name = ""  # Broker name(s)
         self._broker_utils = None  # Broker utilities
         self._broker_verbosity = 0  # Broker verbosity
@@ -122,8 +125,10 @@ class AutoTrader:
         self._backtest_mode = False
         self._data_start = None
         self._data_end = None
+        self._broker_histories = None
 
         # Local Data Parameters
+        self._data_directory = None
         self._data_indexing = "open"
         self._data_stream_object = DataStream
         self._data_file = None
@@ -195,6 +200,8 @@ class AutoTrader:
         broker_verbosity: int = 0,
         home_currency: str = None,
         allow_duplicate_bars: bool = False,
+        deploy_time: datetime = None,
+        max_workers: int = None,
     ) -> None:
         """Configures run settings for AutoTrader.
 
@@ -265,6 +272,15 @@ class AutoTrader:
         allow_duplicate_bars : bool, optional
             Allow duplicate bars to be passed on to the strategy. The default
             is False.
+        deploy_time : datetime, optional
+            The time to deploy the bots. If this is a future time, AutoTrader
+            will wait until it is reached before deploying. It will also be used
+            as an anchor to synchronise future bot updates. If not specified,
+            bots will be deployed as soon as possible, with successive updates
+            synchronised to the deployment time.
+        max_workers : int, optional
+            The maximum number of workers to use when spawning threads. The
+            default is None.
 
         Returns
         -------
@@ -296,6 +312,8 @@ class AutoTrader:
         self._instance_str = instance_str
         self._broker_verbosity = broker_verbosity
         self._base_currency = home_currency
+        self._deploy_time = deploy_time
+        self._max_workers = max_workers
 
     def add_strategy(
         self,
@@ -773,6 +791,7 @@ class AutoTrader:
                            }
 
         """
+        self._data_directory = data_directory
         dir_path = (
             abs_dir_path
             if abs_dir_path is not None
@@ -878,11 +897,7 @@ class AutoTrader:
             self.add_strategy(strategy_dict=strategy_dict)
 
         # If scan index provided, use that. Else, use strategy watchlist
-        if scan_index is not None:
-            self._scan_watchlist = get_watchlist(scan_index, self._feed)
-
-        else:
-            scan_index = "Strategy watchlist"
+        scan_index = "Strategy watchlist"
 
         self._scan_mode = True
         self._scan_index = scan_index
@@ -890,6 +905,10 @@ class AutoTrader:
 
     def run(self) -> None:
         """Performs essential checks and runs AutoTrader."""
+        # Print Banner
+        if int(self._verbosity) > 0:
+            tprint("AutoTrader", font="tarty1")
+
         # Define home_dir if undefined
         if self._home_dir is None:
             self._home_dir = os.getcwd()
@@ -983,7 +1002,7 @@ class AutoTrader:
                         + f" Number of virtual accounts configured: {len(self._virtual_broker_config)}"
                     )
 
-        # Preliminary checks complete, continue
+        # Preliminary checks complete, continue initialisation
         if self._optimise_mode:
             # Run optimisation
             if self._backtest_mode:
@@ -1072,6 +1091,8 @@ class AutoTrader:
                         )
 
             # All checks passed, proceed to run main
+            if self._verbosity > 1:
+                print("All preliminary checks complete, proceeding.")
             self._main()
 
             if self._papertrading or len(self._bots_deployed) == 0:
@@ -1236,6 +1257,8 @@ class AutoTrader:
                 longest_win_streak = trade_summary["all_trades"]["win_streak"]
                 longest_lose_streak = trade_summary["all_trades"]["lose_streak"]
                 total_fees = trade_summary["all_trades"]["total_fees"]
+                total_volume = trade_summary["all_trades"]["total_volume"]
+                adv = total_volume / duration.days
 
             print("\n----------------------------------------------")
             print("               Trading Results")
@@ -1257,120 +1280,139 @@ class AutoTrader:
                 print("No. long trades:         {}".format(no_long_trades))
                 print("No. short trades:        {}".format(no_short_trades))
                 print("Total fees paid:         ${}".format(round(total_fees, 3)))
-                print("Win rate:                {}%".format(round(win_rate, 1)))
-                print("Max win:                 ${}".format(round(max_win, 2)))
-                print("Average win:             ${}".format(round(avg_win, 2)))
-                print("Max loss:                -${}".format(round(max_loss, 2)))
-                print("Average loss:            -${}".format(round(avg_loss, 2)))
-                print(
-                    "Longest winning streak:  {} positions".format(longest_win_streak)
-                )
-                print(
-                    "Longest losing streak:   {} positions".format(longest_lose_streak)
-                )
-                print(
-                    "Average trade duration:  {}".format(
-                        trade_summary["all_trades"]["avg_trade_duration"]
-                    )
-                )
+                print("Total volume traded:     ${}".format(round(total_volume, 2)))
+                print("Average daily volume:    ${}".format(round(adv, 2)))
+                # print("Win rate:                {}%".format(round(win_rate, 1)))
+                # print("Max win:                 ${}".format(round(max_win, 2)))
+                # print("Average win:             ${}".format(round(avg_win, 2)))
+                # print("Max loss:                -${}".format(round(max_loss, 2)))
+                # print("Average loss:            -${}".format(round(avg_loss, 2)))
+                # print(
+                #     "Longest winning streak:  {} positions".format(longest_win_streak)
+                # )
+                # print(
+                #     "Longest losing streak:   {} positions".format(longest_lose_streak)
+                # )
+                # if len(trade_results.position_summary) > 0:
+                #     avg_pos_dur = np.mean(
+                #         trade_results.position_summary.loc["avg_duration"].values
+                #     )
+                #     print(
+                #         "Avg. position duration:  {}".format(
+                #             avg_pos_dur,
+                #         )
+                #     )
 
                 no_open = trade_summary["no_open"]
                 if no_open > 0:
                     print("Positions still open:    {}".format(no_open))
 
             else:
-                print("\n No trades closed.")
+                print("\n No trades made.")
 
             no_cancelled = trade_summary["no_cancelled"]
             if no_cancelled > 0:
                 print("Cancelled orders:        {}".format(no_cancelled))
 
-            # Long trades
-            no_long = trade_summary["long_positions"]["total"]
-            print("\n          Summary of long positions")
-            print("----------------------------------------------")
-            if no_long > 0:
-                avg_long_win = trade_summary["long_positions"]["avg_long_win"]
-                max_long_win = trade_summary["long_positions"]["max_long_win"]
-                avg_long_loss = trade_summary["long_positions"]["avg_long_loss"]
-                max_long_loss = trade_summary["long_positions"]["max_long_loss"]
-                long_wr = trade_summary["long_positions"]["long_wr"]
+            # if len(trade_results.position_summary) > 0:
+            #     # Long positions
+            #     no_long = trade_results.position_summary.sum(axis=1, numeric_only=True)[
+            #         "no_long"
+            #     ]
+            #     print("\n          Summary of long positions")
+            #     print("----------------------------------------------")
+            #     if no_long > 0:
+            #         # avg_long_win = trade_summary["long_positions"]["avg_long_win"]
+            #         # max_long_win = trade_summary["long_positions"]["max_long_win"]
+            #         # avg_long_loss = trade_summary["long_positions"]["avg_long_loss"]
+            #         # max_long_loss = trade_summary["long_positions"]["max_long_loss"]
+            #         # long_wr = trade_summary["long_positions"]["long_wr"]
+            #         avg_long_dur = np.mean(
+            #             trade_results.position_summary.loc["avg_long_duration"].values
+            #         )
 
-                print("No. long positions:      {}".format(no_long))
-                print("Win rate:                {}%".format(round(long_wr, 1)))
-                print("Max win:                 ${}".format(round(max_long_win, 2)))
-                print("Average win:             ${}".format(round(avg_long_win, 2)))
-                print("Max loss:                -${}".format(round(max_long_loss, 2)))
-                print("Average loss:            -${}".format(round(avg_long_loss, 2)))
-            else:
-                print("There were no long positions.")
+            #         print("No. long positions:      {}".format(no_long))
+            #         print("Avg. position duration:  {}".format(avg_long_dur))
+            #         # print("Win rate:                {}%".format(round(long_wr, 1)))
+            #         # print("Max win:                 ${}".format(round(max_long_win, 2)))
+            #         # print("Average win:             ${}".format(round(avg_long_win, 2)))
+            #         # print("Max loss:                -${}".format(round(max_long_loss, 2)))
+            #         # print("Average loss:            -${}".format(round(avg_long_loss, 2)))
+            #     else:
+            #         print("There were no long positions.")
 
-            # Short trades
-            no_short = trade_summary["short_positions"]["total"]
-            print("\n         Summary of short positions")
-            print("----------------------------------------------")
-            if no_short > 0:
-                avg_short_win = trade_summary["short_positions"]["avg_short_win"]
-                max_short_win = trade_summary["short_positions"]["max_short_win"]
-                avg_short_loss = trade_summary["short_positions"]["avg_short_loss"]
-                max_short_loss = trade_summary["short_positions"]["max_short_loss"]
-                short_wr = trade_summary["short_positions"]["short_wr"]
+            #     # Short trades
+            #     no_short = trade_results.position_summary.sum(
+            #         axis=1, numeric_only=True
+            #     )["no_short"]
+            #     print("\n         Summary of short positions")
+            #     print("----------------------------------------------")
+            #     if no_short > 0:
+            #         # avg_short_win = trade_summary["short_positions"]["avg_short_win"]
+            #         # max_short_win = trade_summary["short_positions"]["max_short_win"]
+            #         # avg_short_loss = trade_summary["short_positions"]["avg_short_loss"]
+            #         # max_short_loss = trade_summary["short_positions"]["max_short_loss"]
+            #         # short_wr = trade_summary["short_positions"]["short_wr"]
+            #         avg_short_dur = np.mean(
+            #             trade_results.position_summary.loc["avg_long_duration"].values
+            #         )
 
-                print("No. short positions:     {}".format(no_short))
-                print("Win rate:                {}%".format(round(short_wr, 1)))
-                print("Max win:                 ${}".format(round(max_short_win, 2)))
-                print("Average win:             ${}".format(round(avg_short_win, 2)))
-                print("Max loss:                -${}".format(round(max_short_loss, 2)))
-                print("Average loss:            -${}".format(round(avg_short_loss, 2)))
+            #         print("No. short positions:     {}".format(no_short))
+            #         print("Avg. position duration:  {}".format(avg_short_dur))
+            #         # print("Win rate:                {}%".format(round(short_wr, 1)))
+            #         # print("Max win:                 ${}".format(round(max_short_win, 2)))
+            #         # print("Average win:             ${}".format(round(avg_short_win, 2)))
+            #         # print("Max loss:                -${}".format(round(max_short_loss, 2)))
+            #         # print("Average loss:            -${}".format(round(avg_short_loss, 2)))
 
-            else:
-                print("There were no short positions.")
+            #     else:
+            #         print("There were no short positions.")
 
             # Check for multiple instruments
             if len(trade_results.instruments_traded) > 1:
                 # Mutliple instruments traded
                 instruments = trade_results.instruments_traded
-                trade_history = trade_results.isolated_position_history
+            #     trade_history = trade_results.isolated_position_history
 
-                total_no_trades = []
-                max_wins = []
-                max_losses = []
-                avg_wins = []
-                avg_losses = []
-                profitable_trades = []
-                win_rates = []
-                for i in range(len(instruments)):
-                    instrument_trades = trade_history[
-                        trade_history.instrument == instruments[i]
-                    ]
-                    no_trades = len(instrument_trades)
-                    total_no_trades.append(no_trades)
-                    max_wins.append(instrument_trades.profit.max())
-                    max_losses.append(instrument_trades.profit.min())
-                    avg_wins.append(
-                        instrument_trades.profit[instrument_trades.profit > 0].mean()
-                    )
-                    avg_losses.append(
-                        instrument_trades.profit[instrument_trades.profit < 0].mean()
-                    )
-                    profitable_trades.append((instrument_trades.profit > 0).sum())
-                    win_rates.append(
-                        100 * profitable_trades[i] / no_trades if no_trades > 0 else 0.0
-                    )
+            #     total_no_trades = []
+            #     max_wins = []
+            #     max_losses = []
+            #     avg_wins = []
+            #     avg_losses = []
+            #     profitable_trades = []
+            #     win_rates = []
+            #     for i in range(len(instruments)):
+            #         instrument_trades = trade_history[
+            #             trade_history.instrument == instruments[i]
+            #         ]
+            #         no_trades = len(instrument_trades)
+            #         total_no_trades.append(no_trades)
+            #         max_wins.append(instrument_trades.profit.max())
+            #         max_losses.append(instrument_trades.profit.min())
+            #         avg_wins.append(
+            #             instrument_trades.profit[instrument_trades.profit > 0].mean()
+            #         )
+            #         avg_losses.append(
+            #             instrument_trades.profit[instrument_trades.profit < 0].mean()
+            #         )
+            #         profitable_trades.append((instrument_trades.profit > 0).sum())
+            #         win_rates.append(
+            #             100 * profitable_trades[i] / no_trades if no_trades > 0 else 0.0
+            #         )
 
-                results = pd.DataFrame(
-                    data={
-                        "Instrument": instruments,
-                        "Max. Win": max_wins,
-                        "Max. Loss": max_losses,
-                        "Avg. Win": avg_wins,
-                        "Avg. Loss": avg_losses,
-                        "Win Rate": win_rates,
-                    }
-                ).fillna(0)
+            #     results = pd.DataFrame(
+            #         data={
+            #             "Instrument": instruments,
+            #             "Max. Win": max_wins,
+            #             "Max. Loss": max_losses,
+            #             "Avg. Win": avg_wins,
+            #             "Avg. Loss": avg_losses,
+            #             "Win Rate": win_rates,
+            #         }
+            #     ).fillna(0)
 
-                print("\n Instrument Breakdown:")
-                print(results.to_string(index=False))
+            #     print("\n Instrument Breakdown:")
+            #     print(results.to_string(index=False))
 
         else:
             print("No updates to report.")
@@ -1460,13 +1502,37 @@ class AutoTrader:
         else:
             broker_config["verbosity"] = self._broker_verbosity
 
+        # Connect to exchanges
+        if self._verbosity > 1:
+            print("Connecting to exchanges...")
         self._assign_broker(broker_config)
+        if self._verbosity > 1:
+            print("  Done.")
+
+        # Configure emailing
         self._configure_emailing(self._global_config_dict)
 
-        if int(self._verbosity) > 0:
-            print(pyfiglet.figlet_format("AutoTrader", font="slant"))
+        # Initialise broker histories
+        self._broker_histories = {
+            key: {
+                "NAV": [],
+                "equity": [],
+                "margin": [],
+                "open_interest": [],
+                "long_exposure": [],
+                "short_exposure": [],
+                "long_unrealised_pnl": [],
+                "short_unrealised_pnl": [],
+                "long_pnl": [],
+                "short_pnl": [],
+                "time": [],
+            }
+            for key in self._brokers_dict
+        }
 
         # Assign trading bots to each strategy
+        if self._verbosity > 1:
+            print("Spawning trading bots...")
         for strategy, config in self._strategy_configs.items():
             # Check for portfolio strategy
             portfolio = config["PORTFOLIO"] if "PORTFOLIO" in config else False
@@ -1532,8 +1598,16 @@ class AutoTrader:
                 )
 
             for bot in self._bots_deployed:
+                if isinstance(bot.instrument, str):
+                    instr_str = bot.instrument
+                else:
+                    instr_str = (
+                        bot.instrument
+                        if len(bot.instrument) < 5
+                        else f"a portfolio of {len(bot.instrument)} instruments"
+                    )
                 print(
-                    f"\nAutoTraderBot assigned to trade {bot.instrument}",
+                    f"\nAutoTraderBot assigned to trade {instr_str}",
                     f"with {bot._broker_name} broker using {bot._strategy_name}.",
                 )
 
@@ -1671,6 +1745,10 @@ class AutoTrader:
             brokers[broker_key] = broker
             brokers_utils[broker_key] = utils
 
+        # Save broker dict
+        self._brokers_dict = brokers
+
+        # Check
         if not self._multiple_brokers:
             # Extract single broker
             brokers = broker
@@ -1813,9 +1891,9 @@ class AutoTrader:
             # Re-assign bot data
             self._bots_deployed[i]._replace_data(adj_data)
 
-    def _get_instance_id(self):
+    def _get_instance_id(self, dir_name: str = "active_bots"):
         """Returns an ID for the active AutoTrader instance."""
-        dirpath = os.path.join(self._home_dir, "active_bots")
+        dirpath = os.path.join(self._home_dir, dir_name)
 
         # Check if active_bots directory exists
         if not os.path.isdir(dirpath):
@@ -1841,30 +1919,36 @@ class AutoTrader:
 
         return instance_id
 
-    def _check_instance_file(self, instance_str, initialisation=False):
+    def _check_instance_file(
+        self,
+        instance_str: str,
+        initialisation: bool = False,
+        dir_name: str = "active_bots",
+        live_check: bool = True,
+    ):
         """Checks if the AutoTrader instance exists."""
         if initialisation:
             # Create the file
-            filepath = os.path.join(self._home_dir, "active_bots", instance_str)
+            filepath = os.path.join(self._home_dir, dir_name, instance_str)
             with open(filepath, mode="w") as f:
                 f.write("This instance of AutoTrader contains the following bots:\n")
                 for bot in self._bots_deployed:
                     f.write(bot._strategy_name + f" ({bot.instrument})\n")
             instance_file_exists = True
 
-            if int(self._verbosity) > 0:
+            if int(self._verbosity) > 0 and live_check:
                 print(f"Active AutoTrader instance file: active_bots/{instance_str}")
 
         else:
-            dirpath = os.path.join(self._home_dir, "active_bots")
+            dirpath = os.path.join(self._home_dir, dir_name)
             instances = [
                 f
                 for f in os.listdir(dirpath)
-                if os.path.isfile(os.path.join("active_bots", f))
+                if os.path.isfile(os.path.join(dir_name, f))
             ]
             instance_file_exists = instance_str in instances
 
-        if int(self._verbosity) > 0 and not instance_file_exists:
+        if int(self._verbosity) > 0 and not instance_file_exists and live_check:
             print(
                 f"Instance file '{instance_str}' deleted. AutoTrader",
                 "will now shut down.",
@@ -1919,11 +2003,19 @@ class AutoTrader:
         # Run instance shut-down routine
         if self._backtest_mode:
             # Create overall backtest results
-            self.trade_results = TradeAnalysis(self._broker)
+            if len(self._bots_deployed) == 1:
+                price_history = self._bots_deployed[0].data
+            else:
+                price_history = None
+            self.trade_results = TradeAnalysis(
+                broker=self._broker,
+                broker_histories=self._broker_histories,
+                price_history=price_history,
+            )
 
             # Create trade results for each bot
             for bot in self._bots_deployed:
-                bot._create_trade_results()
+                bot._create_trade_results(broker_histories=self._broker_histories)
 
             if int(self._verbosity) > 0:
                 print(
@@ -1932,10 +2024,7 @@ class AutoTrader:
                 )
                 self.print_trade_results()
 
-            if (
-                self._show_plot
-                and len(self.trade_results.isolated_position_history) > 0
-            ):
+            if self._show_plot and len(self.trade_results.trade_history) > 0:
                 self.plot_backtest()
 
         elif self._scan_mode and self._show_plot:
@@ -1952,7 +2041,9 @@ class AutoTrader:
 
             elif self._papertrading:
                 # Paper trade through virtual broker
-                self.trade_results = TradeAnalysis(self._broker)
+                self.trade_results = TradeAnalysis(
+                    broker=self._broker, broker_histories=self._broker_histories
+                )
                 self.print_trade_results(self.trade_results)
 
                 picklefile_list = [
@@ -2001,6 +2092,25 @@ class AutoTrader:
                         for bot in self._bots_deployed:
                             bot._update(timestamp=timestamp)
 
+                        # Update histories
+                        for name, broker in self._brokers_dict.items():
+                            hist_dict = self._broker_histories[name]
+                            hist_dict["NAV"].append(broker._NAV)
+                            hist_dict["equity"].append(broker._equity)
+                            hist_dict["margin"].append(broker._margin_available)
+                            hist_dict["open_interest"].append(broker._open_interest)
+                            hist_dict["long_exposure"].append(broker._long_exposure)
+                            hist_dict["short_exposure"].append(broker._short_exposure)
+                            hist_dict["long_unrealised_pnl"].append(
+                                broker._long_unrealised_pnl
+                            )
+                            hist_dict["short_unrealised_pnl"].append(
+                                broker._short_unrealised_pnl
+                            )
+                            hist_dict["long_pnl"].append(broker._long_realised_pnl)
+                            hist_dict["short_pnl"].append(broker._short_realised_pnl)
+                            hist_dict["time"].append(timestamp)
+
                         # Iterate through time
                         timestamp += self._timestep
                         pbar.update(self._timestep.total_seconds())
@@ -2015,12 +2125,28 @@ class AutoTrader:
                         else self._instance_str
                     )
                     instance_file_exists = self._check_instance_file(instance_str, True)
-                    deploy_time = time.time()
+
+                    # Get deploy timestamp
+                    if self._deploy_time is not None:
+                        deploy_time = self._deploy_time.timestamp()
+                        if self._verbosity > 0 and datetime.now() < self._deploy_time:
+                            print(f"\nDeploying bots at {self._deploy_time}.")
+
+                    else:
+                        deploy_time = time.time()
+
+                    # Wait until deployment time
+                    while datetime.now().timestamp() < deploy_time - 0.5:
+                        time.sleep(0.5)
+
                     while instance_file_exists:
+                        # Bot instance file exists
                         try:
+                            # Update bots
+                            # TODO - threadpool executor
                             for bot in self._bots_deployed:
                                 try:
-                                    # TODO - why UTC?
+                                    # TODO - why UTC? Allow setting manually
                                     bot._update(timestamp=datetime.now(timezone.utc))
 
                                 except:
@@ -2030,6 +2156,41 @@ class AutoTrader:
                                             + f"{bot._strategy_name} ({bot.instrument})"
                                         )
                                         traceback.print_exc()
+
+                            if self._papertrading:
+                                # Update broker histories
+                                for name, broker in self._brokers_dict.items():
+                                    hist_dict = self._broker_histories[name]
+                                    hist_dict["NAV"].append(broker._NAV)
+                                    hist_dict["equity"].append(broker._equity)
+                                    hist_dict["margin"].append(broker._margin_available)
+                                    hist_dict["long_exposure"].append(
+                                        broker._long_exposure
+                                    )
+                                    hist_dict["short_exposure"].append(
+                                        broker._short_exposure
+                                    )
+                                    hist_dict["long_unrealised_pnl"].append(
+                                        broker._long_unrealised_pnl
+                                    )
+                                    hist_dict["short_unrealised_pnl"].append(
+                                        broker._short_unrealised_pnl
+                                    )
+                                    hist_dict["long_pnl"].append(
+                                        broker._long_realised_pnl
+                                    )
+                                    hist_dict["short_pnl"].append(
+                                        broker._short_realised_pnl
+                                    )
+                                    hist_dict["open_interest"].append(
+                                        broker._open_interest
+                                    )
+                                    # TODO - check timezone below
+                                    hist_dict["time"].append(datetime.now(timezone.utc))
+
+                                # Dump history file to pickle
+                                with open(f".paper_broker_hist", "wb") as file:
+                                    pickle.dump(self._broker_histories, file)
 
                             # Go to sleep until next update
                             time.sleep(
@@ -2064,6 +2225,25 @@ class AutoTrader:
                         for bot in self._bots_deployed:
                             bot._update(i=i)
 
+                        # Update histories
+                        for name, broker in self._brokers_dict.items():
+                            hist_dict = self._broker_histories[name]
+                            hist_dict["NAV"].append(broker._NAV)
+                            hist_dict["equity"].append(broker._equity)
+                            hist_dict["margin"].append(broker._margin_available)
+                            hist_dict["open_interest"].append(broker._open_interest)
+                            hist_dict["long_exposure"].append(broker._long_exposure)
+                            hist_dict["short_exposure"].append(broker._short_exposure)
+                            hist_dict["long_unrealised_pnl"].append(
+                                broker._long_unrealised_pnl
+                            )
+                            hist_dict["short_unrealised_pnl"].append(
+                                broker._short_unrealised_pnl
+                            )
+                            hist_dict["long_pnl"].append(broker._long_realised_pnl)
+                            hist_dict["short_pnl"].append(broker._short_realised_pnl)
+                            hist_dict["time"].append(broker._latest_time)
+
                 else:
                     # Live trading
                     for bot in self._bots_deployed:
@@ -2073,11 +2253,66 @@ class AutoTrader:
             self.shutdown()
 
     @staticmethod
-    def papertrade_snapshot(broker_picklefile: str = ".virtual_broker"):
-        """Prints a snapshot of the virtual broker from a pickle. and
+    def papertrade_snapshot(
+        broker_picklefile: str = ".virtual_broker",
+        history_picklefile: str = ".paper_broker_hist",
+    ):
+        """Prints a snapshot of the virtual broker from a single pickle. and
         returns the TradeAnalysis object."""
         broker = unpickle_broker(broker_picklefile)
-        results = TradeAnalysis(broker)
+        with open(history_picklefile, "rb") as file:
+            broker_hist = pickle.load(file)
+
+        # Extract relevant broker history
+
+        # TODO - review functionality for multiple brokers: will need to pass
+        # in as dict. Consider pickling self._brokers_dict
+
+        results = TradeAnalysis(broker, broker_hist)
         at = AutoTrader()
         at.print_trade_results(results)
         return results
+
+    def save_state(self):
+        """Dumps the current AutoTrader instance to a pickle."""
+        instance_id = self._get_instance_id(dir_name="pickled_instances")
+
+        instance_name = (
+            f"autotrader_instance_{instance_id}"
+            if self._instance_str is None
+            else self._instance_str
+        )
+        instance_file_exists = self._check_instance_file(
+            instance_str=instance_name, dir_name="pickled_instances", live_check=False
+        )
+
+        write = "y"
+        if instance_file_exists:
+            # The file already exists, check to overwrite
+            write = input(
+                f"The instance file '{instance_name}' already "
+                + "exists. Would you like to overwrite it? ([y]/n)  "
+            )
+
+        if "y" in write.lower():
+            # Write to file
+            try:
+                filepath = f"pickled_instances/{instance_name}"
+                with open(filepath, "wb") as file:
+                    pickle.dump(self, file)
+            except pickle.PicklingError:
+                print("Error - cannot pickle this AutoTrader instance.")
+
+    @staticmethod
+    def load_state(instance_name, verbosity: int = 0):
+        """Loads a pickled AutoTrader instance from file."""
+        try:
+            filepath = f"pickled_instances/{instance_name}"
+            with open(filepath, "rb") as file:
+                at = pickle.load(file)
+            return at
+        except Exception as e:
+            print(f"Something went wrong while tring to load '{instance_name}'.")
+
+            if verbosity > 0:
+                print("Exception:", e)

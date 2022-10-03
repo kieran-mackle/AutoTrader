@@ -217,6 +217,8 @@ class AutoTraderBot:
             "feed": self._feed,
             "portfolio": portfolio,
             "data_path_mapper": self._data_path_mapper,
+            "data_dir": self._data_directory,
+            "backtest_mode": self._backtest_mode,
         }
         self.Stream = self._data_stream_object(**stream_attributes)
 
@@ -314,7 +316,12 @@ class AutoTraderBot:
             self._qualify_orders(orders, current_bars, quote_bars)
 
             # Submit orders
-            with ThreadPoolExecutor(max_workers=8) as executor:
+            if self._max_workers is not None:
+                workers = min(self._max_workers, len(orders))
+            else:
+                workers = None
+            with ThreadPoolExecutor(max_workers=workers) as executor:
+                futures = []
                 for order in orders:
                     if self._scan_mode:
                         # Bot is scanning
@@ -333,17 +340,26 @@ class AutoTraderBot:
                             order_time = current_bars[order.instrument].name
                         except:
                             if self._feed == "none":
-                                order_time = datetime.now()
+                                order_time = datetime.now(timezone.utc)
                             else:
                                 order_time = current_bars[order.data_name].name
 
                         # Submit order to relevant exchange
-                        executor.submit(
-                            self._execution_method,
-                            broker=self._brokers[order.exchange],
-                            order=order,
-                            order_time=order_time,
+                        futures.append(
+                            executor.submit(
+                                self._execution_method,
+                                broker=self._brokers[order.exchange],
+                                order=order,
+                                order_time=order_time,
+                            )
                         )
+
+            # Check for exceptions
+            for f in futures:
+                try:
+                    f.result()
+                except Exception as e:
+                    print("Exception when submitting order: ", e)
 
             if self._papertrading:
                 # Update virtual broker again to trigger any orders
@@ -362,7 +378,7 @@ class AutoTraderBot:
                         order_string = (
                             f"{current_time}: {order.instrument} "
                             + f"{direction} {order.order_type} order of "
-                            + f"{order.size} units placed at {order.order_price}."
+                            + f"{order.size} units placed."
                         )
                         print(order_string)
                 else:
@@ -574,7 +590,7 @@ class AutoTraderBot:
                     else:
                         raise Exception(f"Invalid order submitted: {item}")
             else:
-                raise Exception(f"Invalid order/s submitted: '{orders}' recieved")
+                raise Exception(f"Invalid order/s submitted: '{orders}' received")
 
             return checked_orders
 
@@ -639,7 +655,14 @@ class AutoTraderBot:
             broker = self._brokers[order.exchange]
 
             # Fetch precision for instrument
-            precision = broker._utils.get_precision(order.instrument)
+            try:
+                precision = broker._utils.get_precision(order.instrument)
+            except Exception as e:
+                # Print exception
+                print("AutoTrader exception when qualifying order:", e)
+
+                # Skip this order
+                continue
 
             if self._feed != "none":
                 # Get order price from current bars
@@ -701,9 +724,9 @@ class AutoTraderBot:
                 for broker in brokers:
                     broker._update_positions(instrument=product, candle=bar)
 
-    def _create_trade_results(self) -> dict:
+    def _create_trade_results(self, broker_histories: dict) -> dict:
         """Constructs bot-specific trade summary for post-processing."""
-        trade_results = TradeAnalysis(self._broker, self.instrument)
+        trade_results = TradeAnalysis(self._broker, broker_histories, self.instrument)
         trade_results.indicators = (
             self._strategy.indicators if hasattr(self._strategy, "indicators") else None
         )

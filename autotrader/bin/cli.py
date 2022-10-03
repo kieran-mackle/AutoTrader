@@ -2,13 +2,13 @@ import os
 import time
 import click
 import shutil
-import pyfiglet
 import requests
 import autotrader
+from art import tprint
 
 
 def print_banner():
-    print(pyfiglet.figlet_format("AutoTrader", font="slant"))
+    tprint("AutoTrader", font="tarty1")
 
 
 def download_file(url):
@@ -175,12 +175,12 @@ def monitor(port, nav, file, broker, environment):
 
     def get_broker(broker):
         """Returns the broker object."""
-        if broker is not None:
-            # Use existing broker instance
-            pass
-        elif file is not None:
+        if file is not None:
             # Unpickle latest broker instance
             broker = unpickle_broker(picklefile=picklepath)
+        elif broker is not None:
+            # Use existing broker instance
+            pass
         elif broker_name is not None:
             # Create broker instance
             print(f"Connecting to {broker_name}...")
@@ -251,8 +251,8 @@ def monitor(port, nav, file, broker, environment):
             total_exposure = 0
             net_exposure = 0
             for instrument, position in positions.items():
-                total_exposure += abs(position.net_exposure)
-                net_exposure += position.net_exposure
+                total_exposure += abs(position.notional)
+                net_exposure += position.direction * position.notional
 
             # Calculate leverage
             leverage = total_exposure / nav
@@ -273,8 +273,9 @@ def monitor(port, nav, file, broker, environment):
             print("\n\nStopping monitoring.")
             break
 
-        except:
+        except Exception as e:
             # Unexpected exception, sleep briefly
+            print(e)
             time.sleep(3)
 
 

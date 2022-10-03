@@ -75,20 +75,15 @@ class Broker:
         else:
             # Regular order
             side = "buy" if order.direction > 0 else "sell"
-            try:
-                # Submit the order
-                placed_order = self.api.createOrder(
-                    symbol=order.instrument,
-                    type=order.order_type,
-                    side=side,
-                    amount=abs(order.size),
-                    price=order.order_limit_price,
-                    params=order.ccxt_params,
-                )
-            except Exception as e:
-                # An error occured, return the exception
-                placed_order = e
-                # print("Exception causing order: ", order)
+            # Submit the order
+            placed_order = self.api.createOrder(
+                symbol=order.instrument,
+                type=order.order_type,
+                side=side,
+                amount=abs(order.size),
+                price=order.order_limit_price,
+                params=order.ccxt_params,
+            )
 
         return placed_order
 
@@ -108,6 +103,11 @@ class Broker:
         elif order_status == "closed":
             # Fetch closed orders
             orders = self.api.fetchClosedOrders(instrument, **kwargs)
+
+        elif order_status == "conditional":
+            orders = self.api.fetchOpenOrders(
+                instrument, params={"orderType": "conditional"}
+            )
 
         # Convert
         orders = self._convert_list(orders, item_type="order")
@@ -205,6 +205,10 @@ class Broker:
         else:
             limit_price = None
 
+        stop_price = (
+            float(order["stopPrice"]) if order["stopPrice"] is not None else None
+        )
+
         native_order = Order(
             instrument=order["symbol"],
             direction=direction,
@@ -213,7 +217,7 @@ class Broker:
             size=abs(order["amount"]),
             id=order["id"],
             order_limit_price=limit_price,
-            order_stop_price=order["stopPrice"],
+            order_stop_price=stop_price,
             order_time=datetime.fromtimestamp(order["timestamp"] / 1000),
         )
         return native_order
@@ -267,9 +271,14 @@ class Broker:
             instrument=symbol,
             net_position=position["contracts"] * direction,
             net_exposure=position["notional"],
+            notional=position["notional"],
+            pnl=position["unrealizedPnl"],
             PL=position["unrealizedPnl"],
             entry_price=position["entryPrice"],
+            direction=direction,
             ccxt=position,
+            avg_price=position["entryPrice"],
+            total_margin=position["initialMargin"],
         )
         return native_position
 

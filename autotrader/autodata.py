@@ -1069,17 +1069,24 @@ class AutoData:
 
         def fetch_between_dates():
             # Fetches data between two dates
-            count = 1000
+            max_count = 1000
             start_ts = int(start_time.timestamp() * 1000)
             end_ts = int(end_time.timestamp() * 1000)
 
             data = []
-            while start_ts <= end_ts:
+            while start_ts < end_ts:
+                count = min(
+                    max_count,
+                    1
+                    + (end_ts - start_ts)
+                    / pd.Timedelta(granularity).total_seconds()
+                    / 1000,
+                )
                 raw_data = self.api.fetchOHLCV(
                     instrument,
                     timeframe=granularity,
                     since=start_ts,
-                    limit=count,
+                    limit=int(count),
                     params=kwargs,
                 )
                 # Append data

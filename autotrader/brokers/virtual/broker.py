@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 from decimal import Decimal
 from typing import Callable
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from autotrader.autodata import AutoData
 from autotrader.utilities import get_data_config
 from autotrader.brokers.broker_utils import BrokerUtils
@@ -65,7 +65,6 @@ class Broker:
 
     def __init__(self, broker_config: dict = None, utils: BrokerUtils = None) -> None:
         """Initialise virtual broker."""
-        # TODO - improve floating point precision coverage
         if broker_config is not None:
             self._verbosity = broker_config["verbosity"]
         else:
@@ -80,9 +79,16 @@ class Broker:
         self._order_id_instrument = {}  # mapper from order_id to instrument
 
         # Isolated positions (formerly "trades")
-        self._open_iso_pos = {}
-        self._closed_iso_pos = {}
+        # self._open_iso_pos = {}
+        # self._closed_iso_pos = {}
         self._trade_id_instrument = {}  # mapper from trade_id to instrument
+
+        # Positions
+        self._positions = {}
+        self._closed_positions = {}
+
+        # Margin call flag
+        self._margin_calling = False
 
         # Fills (executed trades)
         self._fills = []
@@ -98,12 +104,27 @@ class Broker:
         self._floating_pnl = 0
         self._margin_available = 0
         self._open_interest = 0
+        self._long_exposure = 0
+        self._short_exposure = 0
+        self._long_unrealised_pnl = 0
+        self._short_unrealised_pnl = 0
 
+        # Evolving metrics
+        self._long_realised_pnl = 0
+        self._short_realised_pnl = 0
+
+        # Margin
         self._leverage = 1  # The account leverage
         self._spread = 0  # The bid/ask spread
         self._spread_units = "price"  # The units of the spread
         self._hedging = False  # Allow simultaneous trades on opposing sides
         self._margin_closeout = 0.0  # Fraction at margin call
+
+        # Funding rate (for perpetual contracts)
+        self._charge_funding = False
+        self._funding_rate_history = None
+        self._funding_history = []
+        self._update_freq = None  # Backtest trading update frequency
 
         # Commissions
         self._commission_scheme = (
@@ -114,11 +135,7 @@ class Broker:
         self._taker_commission = 0  # Liquidity 'taker' trade commission
 
         # History
-        self._NAV_hist = []
-        self._equity_hist = []
-        self._margin_hist = []
-        self._open_interest_hist = []
-        self._time_hist = []
+        self._latest_time = None
 
         # Last order and trade counts
         self._last_order_id = 0
@@ -162,6 +179,8 @@ class Broker:
         margin_closeout: float = None,
         default_slippage_model: Callable = None,
         slippage_models: dict = None,
+        charge_funding: bool = None,
+        funding_history: pd.DataFrame = None,
         autodata_config: dict = None,
         picklefile: str = None,
         **kwargs,
@@ -224,6 +243,14 @@ class Broker:
             returns zero.
         slippage_models : dict, optional
             A dictionary of callable slippage models, keyed by instrument.
+        charge_funding : bool, optional
+            A boolean flag to charge funding rates. The default is False.
+        funding_history : pd.DataFrame, optional
+            A DataFrame of funding rate histories for instruments being traded,
+            to backtest trading perpetual futures.
+            This is a single frame with as many columns as instruments being
+            traded. If an instrument is not present, the funding rate will be
+            zero.
         picklefile : str, optional
             The filename of the picklefile to load state from. If you do not
             wish to load from state, leave this as None. The default is None.
@@ -275,6 +302,16 @@ class Broker:
             slippage_models if slippage_models is not None else self._slippage_models
         )
 
+        # Configure funding rate mechanics
+        self._charge_funding = (
+            charge_funding if charge_funding is not None else self._charge_funding
+        )
+        self._funding_rate_history = (
+            funding_history
+            if funding_history is not None
+            else self._funding_rate_history
+        )
+
         if autodata_config is not None:
             # Instantiate AutoData from config
             data_config = get_data_config(
@@ -308,7 +345,9 @@ class Broker:
         """Place order with broker."""
         # Call order to set order time
         datetime_stamp = (
-            kwargs["order_time"] if "order_time" in kwargs else datetime.now()
+            kwargs["order_time"]
+            if "order_time" in kwargs
+            else datetime.now(timezone.utc)
         )
         order(order_time=datetime_stamp)
 
@@ -316,12 +355,6 @@ class Broker:
         if order.order_type == "limit" or order.order_type == "stop-limit":
             # Use limit price
             ref_price = order.order_limit_price
-
-        elif order.order_type == "modify":
-            # Get direction of related trade
-            related_trade = self._open_iso_pos[order.instrument][order.related_orders]
-            order.direction = related_trade.direction
-            ref_price = order.order_price
 
         else:
             # Use order price
@@ -415,7 +448,7 @@ class Broker:
 
         else:
             # Move order to open_orders or leave in pending
-            immediate_orders = ["modify"]
+            immediate_orders = []
             if order.order_type in immediate_orders or self._paper_trading:
                 # Move to open orders
                 self._move_order(
@@ -428,7 +461,7 @@ class Broker:
             # Print
             if self._verbosity > 0:
                 print(
-                    f"{datetime_stamp}: Order {order.id} recieved: {order.__repr__()}"
+                    f"{datetime_stamp}: Order {order.id} received: {order.__repr__()}"
                 )
 
     def get_orders(self, instrument: str = None, order_status: str = "open") -> dict:
@@ -497,7 +530,7 @@ class Broker:
             The instrument to fetch trades under. The default is None.
         """
 
-        # Get all instrument isolated positions
+        # Get all instrument fills
         all_trades = self._fills
 
         if instrument:
@@ -513,50 +546,6 @@ class Broker:
 
         # Return a copy to prevent unintended manipulation
         return trades_dict.copy()
-
-    def get_isolated_positions(
-        self, instrument: str = None, status: str = "open", **kwargs
-    ):
-        """Returns isolated positions for the specified instrument.
-        This method has been implemented for the users of Oanda, which treats
-        trades as isolated positions.
-
-        Parameters
-        ----------
-        instrument : str, optional
-            The instrument to fetch trades under. The default is None.
-        status : str, optional
-            The status of the isolated positions to fetch ('open' or 'closed'). The
-            default is 'open'.
-        """
-        # Get all instrument isolated positions
-        all_iso_pos = getattr(self, f"_{status}_iso_pos")
-
-        if instrument:
-            # Specific instrument(s) requested
-            try:
-                pos = all_iso_pos[instrument]
-            except KeyError:
-                # No isolated positions for this instrument
-                pos = {}
-        else:
-            # Return all currently open isolated positions
-            pos = {}
-            for instr, instr_trades in all_iso_pos.items():
-                pos.update(instr_trades)
-
-        # Return a copy to prevent unintended manipulation
-        return pos.copy()
-
-    def get_trade_details(self, trade_ID: int) -> IsolatedPosition:
-        """Returns the trade specified by trade_ID."""
-        raise DeprecationWarning(
-            "This method is deprecated, and will "
-            + "be removed in a future release. Please use the "
-            + "get_trades method instead."
-        )
-        instrument = self._trade_id_instrument[trade_ID]
-        return self._open_iso_pos[instrument][trade_ID]
 
     def get_positions(self, instrument: str = None) -> dict:
         """Returns the positions held by the account, sorted by
@@ -579,76 +568,13 @@ class Broker:
 
         """
         if instrument:
-            # instrument provided
-            instruments = [instrument]
+            # Instrument provided
+            if instrument in self._positions:
+                return {instrument: self._positions[instrument]}
+            else:
+                return {}
         else:
-            # No specific instrument requested, use all
-            instruments = list(self._open_iso_pos.keys())
-
-        open_positions = {}
-        for instrument in instruments:
-            # First get open isolated positions
-            open_iso_positions = self.get_isolated_positions(instrument)
-            if len(open_iso_positions) > 0:
-                long_units = 0
-                long_PL = 0
-                long_margin = 0
-                short_units = 0
-                short_PL = 0
-                short_margin = 0
-                total_margin = 0
-                pnl = 0
-                last_price = None
-                trade_IDs = []
-
-                for trade_id, trade in open_iso_positions.items():
-                    trade_IDs.append(trade.id)
-                    last_price = (
-                        trade.last_price if trade.last_price is not None else last_price
-                    )
-                    total_margin += trade.margin_required
-                    pnl += trade.unrealised_PL
-                    if trade.direction > 0:
-                        # Long trade
-                        long_units += trade.size
-                        long_PL += trade.unrealised_PL
-                        long_margin += trade.margin_required
-                    else:
-                        # Short trade
-                        short_units += trade.size
-                        short_PL += trade.unrealised_PL
-                        short_margin += trade.margin_required
-
-                # Construct instrument position dict
-                net_position = long_units - short_units
-                try:
-                    net_exposure = net_position * last_price
-                except TypeError:
-                    # Last price has not been updated yet
-                    net_exposure = None
-                instrument_position = {
-                    "long_units": long_units,
-                    "long_PL": long_PL,
-                    "long_margin": long_margin,
-                    "short_units": short_units,
-                    "short_PL": short_PL,
-                    "short_margin": short_margin,
-                    "total_margin": total_margin,
-                    "trade_IDs": trade_IDs,
-                    "instrument": instrument,
-                    "net_position": net_position,
-                    "net_exposure": net_exposure,
-                    "last_price": last_price,
-                    "pnl": pnl,
-                }
-
-                # Create Position instance
-                instrument_position = Position(**instrument_position)
-
-                # Append Position to open_positions dict
-                open_positions[instrument] = instrument_position
-
-        return open_positions.copy()
+            return self._positions.copy()
 
     def get_margin_available(self) -> float:
         """Returns the margin available on the account."""
@@ -659,9 +585,21 @@ class Broker:
         # Get public orderbook
         if self._paper_trading:
             # Papertrading, try get realtime orderbook
-            orderbook = self._autodata.L2(
-                instrument, spread_units=self._spread_units, spread=self._spread
-            )
+            try:
+                orderbook = self._autodata.L2(
+                    instrument, spread_units=self._spread_units, spread=self._spread
+                )
+            except Exception as e:
+                # Fetching orderbook failed, revert to local orderbook
+                print("Exception:", e)
+                print("  Instrument:", instrument)
+                orderbook = self._autodata._local_orderbook(
+                    instrument=instrument,
+                    spread_units=self._spread_units,
+                    spread=self._spread,
+                    midprice=midprice,
+                )
+
         else:
             # Backtesting, use local pseudo-orderbook
             orderbook = self._autodata._local_orderbook(
@@ -708,7 +646,7 @@ class Broker:
 
             else:
                 # Use OHLC data to trigger
-                triggered = candle.Low < order.order_stop_price < candle.High
+                triggered = candle.Low < order_stop_price < candle.High
             return triggered
 
         def get_last_price(trade_direction):
@@ -729,25 +667,6 @@ class Broker:
                 reference_price = candle.Open
             return reference_price
 
-        def get_new_stop(trade_direction, distance):
-            """Returns the new stop loss for a trailing SL order."""
-            if L1 is not None:
-                ref_price = L1["ask"] if trade_direction > 0 else L1["bid"]
-            else:
-                ref_price = candle.High if trade_direction > 0 else candle.Low
-            new_stop = ref_price - trade_direction * distance
-            return new_stop
-
-        def get_sl_tp_ref_prices(trade_direction):
-            """Returns the SL and TP reference prices."""
-            if L1 is not None:
-                sl_ref = L1["ask"] if trade_direction > 0 else L1["bid"]
-                tp_ref = sl_ref
-            else:
-                sl_ref = getattr(candle, "Low" if trade_direction > 0 else "High")
-                tp_ref = getattr(candle, "High" if trade_direction > 0 else "Low")
-            return sl_ref, tp_ref
-
         def limit_trigger_condition(order_direction, order_limit_price):
             """Returns True if the order limit price has been triggered
             else False."""
@@ -760,10 +679,66 @@ class Broker:
             triggered = order_direction * (ref_price - float(order_limit_price)) <= 0
             return triggered
 
+        def process_orders_in_dict(orders):
+            for order_id, order in orders.items():
+                # Check if order has been cancelled (OCO)
+                if order.id not in self._open_orders[order.instrument]:
+                    continue
+
+                # Order is still open, process it
+                if order.order_type == "market":
+                    # Market order type - proceed to fill
+                    reference_price = get_market_ref_price(order.direction)
+                    if order.order_price is None:
+                        order.order_price = reference_price
+                    self._process_order(
+                        order=order,
+                        fill_time=latest_time,
+                        reference_price=reference_price,
+                    )
+
+                elif "stop" in order.order_type:
+                    # Check if order_stop_price has been reached yet
+                    if stop_trigger_condition(order.order_stop_price, order.direction):
+                        # order_stop_price has been reached
+                        if order.order_type == "stop-limit":
+                            # Change order type to 'limit'
+                            order.order_type = "limit"
+                        else:
+                            # Stop order triggered - proceed to market fill
+                            reference_price = order.order_stop_price
+                            order.order_price = reference_price
+                            order.order_type = "market"
+                            self._process_order(
+                                order=order,
+                                fill_time=latest_time,
+                                reference_price=reference_price,
+                            )
+
+                # Check limit orders
+                if order.order_type == "limit":
+                    # Limit order type
+                    if not self._public_trade_access:
+                        # Update limit orders based on price feed
+                        triggered = limit_trigger_condition(
+                            order.direction, order.order_limit_price
+                        )
+                        if triggered:
+                            # Limit price triggered, proceed
+                            self._process_order(
+                                order=order,
+                                fill_time=latest_time,
+                                reference_price=order.order_limit_price,
+                            )
+                    else:
+                        # Update limit orders based on trade feed
+                        if trade is not None:
+                            self._public_trade(instrument, trade)
+
         # Check for data availability
         if L1 is not None:
             # Using L1 data to update
-            latest_time = datetime.now()
+            latest_time = datetime.now(timezone.utc)
 
         elif candle is not None:
             # Using OHLC data to update
@@ -775,12 +750,12 @@ class Broker:
                 # No trade either, exit
                 return
             else:
-                # Public trade recieved, only update limit orders
+                # Public trade received, only update limit orders
                 self._public_trade(instrument, trade)
                 return
 
         # Open pending orders
-        pending_orders = self.get_orders(instrument, "pending").copy()
+        pending_orders = self.get_orders(instrument, "pending")
         for order_id, order in pending_orders.items():
             if latest_time > order.order_time:
                 self._move_order(
@@ -791,126 +766,38 @@ class Broker:
                 )
 
         # Update open orders for current instrument
-        open_orders = self.get_orders(instrument).copy()
-        for order_id, order in open_orders.items():
-            if order.order_type == "market":
-                # Market order type - proceed to fill
-                reference_price = get_market_ref_price(order.direction)
-                if order.order_price is None:
-                    order.order_price = reference_price
-                self._process_order(
-                    order=order, fill_time=latest_time, reference_price=reference_price
-                )
+        open_orders = self.get_orders(instrument)
+        process_orders_in_dict(open_orders)
 
-            elif order.order_type == "stop-limit":
-                # Check if order_stop_price has been reached yet
-                if stop_trigger_condition(order.order_stop_price, order.direction):
-                    # order_stop_price has been reached, change order type to 'limit'
-                    order.order_type = "limit"
+        # Check for any SL/TP orders spawned
+        currently_open_orders = self.get_orders(instrument=instrument)
+        newly_opened_orders = dict(
+            set(currently_open_orders.items()) - set(open_orders.items())
+        )
+        process_orders_in_dict(newly_opened_orders)
 
-            elif order.order_type == "modify":
-                # Modification order
-                self._modify_order(order)
+        # Update position
+        position = self.get_positions(instrument=instrument)
+        if position:
+            position = position[instrument]
+            # Position held, update it
+            position.last_price = get_last_price(np.sign(position.net_position))
+            position.last_time = latest_time
+            position.notional = position.last_price * abs(position.net_position)
+            position.pnl = (
+                position.net_position
+                * (position.last_price - position.avg_price)
+                * position.HCF
+            )
 
-            # Check limit orders
-            if order.order_type == "limit":
-                # Limit order type
-                if not self._public_trade_access:
-                    # Update limit orders based on price feed
-                    triggered = limit_trigger_condition(
-                        order.direction, order.order_limit_price
-                    )
-                    if triggered:
-                        self._process_order(
-                            order=order,
-                            fill_time=latest_time,
-                            reference_price=order.order_limit_price,
-                        )
-                else:
-                    # Update limit orders based on trade feed
-                    if trade is not None:
-                        self._public_trade(instrument, trade)
+            # Charge funding fees
+            # if self._charge_funding:
+            #     # TODO - move to unified backtest/livetrade method
+            #     last_settlement = self._funding_rate_history.index.get_indexer([pd.Timestamp(latest_time).floor(self._update_freq)], method="nearest")[0]
+            #     last_rate = self._funding_rate_history.iloc[last_settlement][instrument]
 
-        # Update open isolated positions
-        open_iso_positions = self.get_isolated_positions(instrument).copy()
-        for trade_id, trade in open_iso_positions.items():
-            # Update stop losses
-            if trade.stop_type == "trailing":
-                # Trailing stop loss type, check if price has moved SL
-                if trade.stop_distance is not None:
-                    pip_distance = trade.stop_distance
-                    distance = pip_distance * trade.pip_value  # price units
-                else:
-                    distance = abs(trade.fill_price - trade.stop_loss)
-                    trade.stop_distance = distance / trade.pip_value
-
-                # Update price of stop loss
-                new_stop = get_new_stop(trade.direction, distance)
-                if trade.direction * (new_stop - trade.stop_loss) > 0:
-                    self._update_stop_loss(
-                        instrument, trade_id, new_stop, new_stop_type="trailing"
-                    )
-
-            # Check if SL or TP have been hit
-            sl_ref, tp_ref = get_sl_tp_ref_prices(trade.direction)
-            if trade.stop_loss and trade.direction * (sl_ref - trade.stop_loss) < 0:
-                # Stop loss hit - close isolated position via limit order
-                exit_price = self._close_isolated_position(
-                    trade=trade,
-                    exit_price=trade.stop_loss,
-                    exit_time=latest_time,
-                    order_type="limit",
-                )
-
-                # Create order fill from SL
-                self._fill_order(
-                    fill_price=exit_price,
-                    fill_time=latest_time,
-                    instrument=instrument,
-                    order_price=trade.stop_loss,
-                    order_time=latest_time,
-                    order_size=trade.size,
-                    order_type="limit",
-                    direction=-trade.direction,
-                    order_id=trade.parent_id,
-                    HCF=trade.HCF,
-                )
-
-            elif (
-                trade.take_profit and trade.direction * (tp_ref - trade.take_profit) > 0
-            ):
-                # Take Profit hit - close isolated position via market order
-                exit_price = self._close_isolated_position(
-                    trade=trade,
-                    exit_price=trade.take_profit,
-                    exit_time=latest_time,
-                    order_type="market",
-                )
-
-                # Create order fill from TP
-                self._fill_order(
-                    fill_price=exit_price,
-                    fill_time=latest_time,
-                    instrument=instrument,
-                    order_price=trade.take_profit,
-                    order_time=latest_time,
-                    order_size=trade.size,
-                    order_type="market",
-                    direction=-trade.direction,
-                    order_id=trade.parent_id,
-                    HCF=trade.HCF,
-                )
-
-            else:
-                # Position is still open, update value of holding
-                trade.last_price = get_last_price(trade.direction)
-                trade.last_time = latest_time
-                trade.unrealised_PL = (
-                    trade.direction
-                    * trade.size
-                    * (trade.last_price - trade.fill_price)
-                    * trade.HCF
-                )
+            #     # Set to zero to prevent re-charging
+            #     self._funding_rate_history.iloc[last_settlement][instrument] = 0
 
         # Update floating pnl and margin available
         self._update_margin(
@@ -922,11 +809,7 @@ class Broker:
         self._NAV = self._equity + self._floating_pnl
 
         # Update account history
-        self._NAV_hist.append(self._NAV)
-        self._equity_hist.append(self._equity)
-        self._margin_hist.append(self._margin_available)
-        self._open_interest_hist.append(self._open_interest)
-        self._time_hist.append(latest_time)
+        self._latest_time = latest_time
 
         # Save state
         if self._paper_trading and self._picklefile is not None:
@@ -934,24 +817,13 @@ class Broker:
 
     def _update_all(self):
         """Convenience method to update all open positions when paper trading."""
-        # TODO - update with public trades too ?
-        # Get latest trades
-        # trades = broker._autodata.trades(symbol)
-        # tw.update(trades)
-
-        # # Update broker trades
-        # for trade in tw.get_latest_trades():
-        # 	broker._update_positions(instrument=symbol, trade=trade)
-
         # Update orders
-        orders = self._open_orders
-        for instrument in orders:
+        for instrument in self._open_orders:
             l1 = self._autodata.L1(instrument=instrument)
             self._update_positions(instrument=instrument, L1=l1)
 
         # Update positions
-        positions = self.get_positions()
-        for instrument in positions:
+        for instrument in self._positions.keys():
             l1 = self._autodata.L1(instrument=instrument)
             self._update_positions(instrument=instrument, L1=l1)
 
@@ -961,8 +833,8 @@ class Broker:
         """
         # Check for existing orders or position in this instrument
         orders = self.get_orders(instrument=instrument)
-        positions = self.get_positions(instrument=instrument)
-        if len(orders) + len(positions) > 0:
+        position = self.get_positions(instrument=instrument)
+        if len(orders) + len(position) > 0:
             # Order or position exists for this instrument, update it
             l1 = self._autodata.L1(instrument=instrument)
             self._update_positions(instrument=instrument, L1=l1)
@@ -987,25 +859,14 @@ class Broker:
         trade_size : float, optional
             The size of a public trade being used to fill orders (papertrade
             mode). The default is None.
-
-        Notes
-        -----
-        If hedging is not enabled, any orders which are contrary to an open
-        position will first reduce (or close) the open position before
-        being filled via market orders. If the remaining units of the order
-        (after reducing the open position) exceed margin requirements, the
-        entire order will be cancelled, and the original position will not
-        be impacted.
-
-        If hedging is enabled, trades can be opened against one another, and
-        will be treated in isolation.
         """
 
         # Check if papertrading
         if self._paper_trading:
             # Use current time as fill time
             tz = fill_time.tzinfo  # inherit timezone of dataset
-            fill_time = datetime.now(tz=tz)
+            if tz is not None:
+                fill_time = datetime.now(tz=tz)
 
         # Check for public trade to fill order
         if trade_size is not None:
@@ -1022,122 +883,134 @@ class Broker:
                 # The original order will remain with reduced size
                 self._open_orders[order.instrument][order.id] = order
 
-        # Check order against current position
-        close_existing_position = False  # initialisation
-        ref_size = order.size  # initialise of reference size
-        if not self._hedging:
-            # Check if current order will reduce or add to existing position
-            current_position = self.get_positions(order.instrument)
-            if current_position:
-                # Currently hold a position in the instrument
-                net_position = current_position[order.instrument].net_position
+        order_notional = order.size * reference_price * order.HCF
+        margin_required = self._calculate_margin(order_notional)
 
-                if order.direction != np.sign(net_position):
-                    # The incoming order opposes the current position
-                    if order.size > abs(net_position):
-                        # Order will close out existing position
-                        close_existing_position = True
-
-                        # Modify reference size to the net remaining units
-                        ref_size -= abs(net_position)
-
-                    else:
-                        # Order size is less than or equal to current position,
-                        # reduce it by filling the order
-                        avg_exit_price = self._reduce_position(
-                            order=order, exit_price=reference_price, exit_time=fill_time
-                        )
-
-                        # Fill the original order then exit
-                        self._fill_order(
-                            order=order, fill_price=avg_exit_price, fill_time=fill_time
-                        )
-                        return
-
-        # Calculate margin requirements
-        # Order.size is net of the current position if not hedging
-        position_value = order.size * float(reference_price) * order.HCF
-        margin_required = self._calculate_margin(position_value)
-
-        if margin_required < self._margin_available:
-            # Initialise lists
-            exit_prices = []
-            exit_size = []
-
-            # Check for position closeout
-            if close_existing_position:
-                # Close the open position before proceeding
-                avg_exit_price = self._reduce_position(
-                    order=order, exit_price=reference_price, exit_time=fill_time
-                )
-
-                # Append price and size for closing position
-                exit_prices.append(avg_exit_price)
-                exit_size.append(abs(net_position))
-
-            # Enough margin in account to fill order, determine average fill
-            # price on remaining units (ref_size) of order
+        if margin_required < self._margin_available or order.reduce_only:
+            # Order can be filled
             if order.order_type == "limit":
                 # Limit order, use limit price for execution
-                avg_fill_price = order.order_limit_price
+                fill_price = order.order_limit_price
 
             elif order.order_type == "market":
                 # Market order, trade through the book using reference size
-                avg_fill_price = self._trade_through_book(
+                fill_price = self._trade_through_book(
                     instrument=order.instrument,
                     direction=order.direction,
-                    size=ref_size,
+                    size=order.size,
                     reference_price=reference_price,
                     precision=order.price_precision,
                 )
             else:
+                # Unrecognised order type
                 raise Exception(f"Unrecognised order type: {order.order_type}")
 
-            # Append avg_fill_price
-            exit_prices.append(avg_fill_price)
-            exit_size.append(ref_size)
-
             # Fill order
-            fill_price = sum(
-                [exit_size[i] * exit_prices[i] for i in range(len(exit_prices))]
-            ) / sum(exit_size)
-            self._fill_order(order=order, fill_price=fill_price, fill_time=fill_time)
-
-            # Make isolated position
-            isopos = IsolatedPosition(order)
-            isopos.id = self._get_new_trade_id()
-            isopos.fill_price = float(avg_fill_price)
-            isopos.time_filled = fill_time
-            isopos.margin_required = margin_required
-            isopos.value = position_value
-            self._trade_id_instrument[isopos.id] = order.instrument
-
-            # Move trade to open isolated positions
-            self._move_isolated_position(isopos)
+            self._fill_order(
+                last_price=reference_price,
+                order=order,
+                fill_price=fill_price,
+                fill_time=fill_time,
+            )
 
         else:
             # Cancel order
-            cancel_reason = "Insufficient margin to fill order."
+            cancel_reason = (
+                "Insufficient margin to fill order "
+                + f"(${margin_required} required, ${self._margin_available} "
+                + "available)."
+            )
             self.cancel_order(
                 order_id=order.id, reason=cancel_reason, timestamp=fill_time
             )
 
+    def _modify_position(self, trade: Trade, reduce_only: bool):
+        """Modifies the position in a position."""
+        if trade.instrument in self._positions:
+            # Instrument already has a position
+            price_precision = self._positions[trade.instrument].price_precision
+            starting_net_position = self._positions[trade.instrument].net_position
+
+            if reduce_only:
+                # Make sure the trade can only reduce (not swap) the position
+                trade.size = min(
+                    trade.size,
+                    abs(self._positions[trade.instrument].net_position),
+                )
+
+                if trade.direction == np.sign(starting_net_position):
+                    # The reduce order is on the wrong side, cancel the fill
+                    del self._fills[-1]
+                    return
+
+            # Update the position with the trade
+            self._positions[trade.instrument]._update_with_fill(
+                trade=trade,
+            )
+            new_net_position = self._positions[trade.instrument].net_position
+
+            # Check if position has been reduced
+            if np.sign(new_net_position - starting_net_position) != np.sign(
+                starting_net_position
+            ):
+                # Update account with position pnl
+                units_reduced = min(
+                    abs(new_net_position - starting_net_position),
+                    abs(starting_net_position),
+                )
+                reduction_direction = np.sign(starting_net_position - new_net_position)
+                pnl = (
+                    reduction_direction
+                    * units_reduced
+                    * (
+                        trade.fill_price
+                        - self._positions[trade.instrument]._prev_avg_price
+                    )
+                )
+                self._adjust_balance(pnl)
+
+                # Update realised PnL metrics
+                if np.sign(starting_net_position) > 0:
+                    # Long position reduced
+                    self._long_realised_pnl += pnl
+                else:
+                    # Short position reduced
+                    self._short_realised_pnl += pnl
+
+            # Check if position is zero
+            if round(new_net_position, price_precision) == 0:
+                # Move to closed positions (and add exit time)
+                popped_position = self._positions.pop(trade.instrument)
+                popped_position.exit_time = trade.fill_time
+                popped_position.exit_price = trade.fill_price
+                if trade.instrument in self._closed_positions:
+                    # Append
+                    self._closed_positions[trade.instrument].append(popped_position)
+                else:
+                    # Create new entry
+                    self._closed_positions[trade.instrument] = [popped_position]
+
+            elif np.sign(self._positions[trade.instrument].net_position) != np.sign(
+                starting_net_position
+            ):
+                # Position has swapped sides
+                pass
+
+        else:
+            # Create new position
+            self._positions[trade.instrument] = Position._from_fill(
+                trade=trade,
+            )
+
     def _fill_order(
         self,
+        last_price: float,
         fill_price: float,
         fill_time: datetime,
         order: Order = None,
-        instrument: str = None,
-        order_price: float = None,
-        order_time: datetime = None,
-        order_size: float = None,
-        order_type: str = None,
-        direction: int = None,
-        order_id: int = None,
-        HCF: float = 1,
         liquidation_order: bool = False,
     ) -> None:
-        """Fills an order and records the trade as a Fill.
+        """Marks an order as filled and records the trade as a Fill.
 
         Parameters
         ----------
@@ -1148,58 +1021,100 @@ class Broker:
         order : Order, optional
             The order to fill. The default is None, in which case the arguments
             below must be specified.
-        instrument : str, optional
-            The trading instrument name.
-        order_price : float, optional
-            The price at which the order was created.
-        order_time : datetime, optional
-            The time at which the order was created.
-        order_size : float, optional
-            The size of the order, in number of units.
-        order_type : str, optional
-            The type of order ('limit' or 'market').
-        direction : int, optional
-            The direction of the fill (1 for a buy, -1 for sell).
-        order_id : int, optional
-            The ID of the order.
-        HCF : float, optional
-            The instruments home conversion factor (FX).
         liquidation_order : bool, optional
             A flag whether this is a liquidation order from the broker.
         """
+        if not liquidation_order:
+            # Filling an order changes its status to 'filled'
+            self._move_order(
+                order=order,
+                from_dict="_open_orders",
+                to_dict="_filled_orders",
+                new_status="filled",
+            )
 
-        if order is not None:
-            if not liquidation_order:
-                # Filling an order changes its status to 'filled'
-                self._move_order(
-                    order=order,
-                    from_dict="_open_orders",
-                    to_dict="_filled_orders",
-                    new_status="filled",
-                )
+        # Infer attributes from provided order
+        instrument = order.instrument
+        order_price = order.order_price
+        order_time = order.order_time
+        order_size = order.size
+        order_type = order.order_type
+        direction = order.direction
+        order_id = order.id
+        HCF = order.HCF
+        fill_price = round(fill_price, order.price_precision)
 
-            # Infer attributes from provided order
-            instrument = order.instrument
-            order_price = order.order_price
-            order_time = order.order_time
-            order_size = order.size
-            order_type = order.order_type
-            direction = order.direction
-            order_id = order.id
-            fill_price = round(fill_price, order.price_precision)
+        # Check for SL
+        if order.stop_loss is not None:
+            # Create SL order
+            sl_order = Order(
+                instrument=order.instrument,
+                direction=-order.direction,
+                size=abs(order.size),
+                order_type="stop",
+                order_stop_price=round(order.stop_loss, order.price_precision),
+                reduce_only=True,
+                id=self._get_new_order_id(),
+                parent_order=order.id,
+                status="open",
+                order_time=fill_time,
+                order_price=fill_price,
+            )
+            # Add to open orders
+            try:
+                self._open_orders[sl_order.instrument][sl_order.id] = sl_order
+            except KeyError:
+                self._open_orders[sl_order.instrument] = {sl_order.id: sl_order}
+
+            # Add to map
+            self._order_id_instrument[sl_order.id] = sl_order.instrument
+
+        # Check for TP
+        if order.take_profit is not None:
+            # Create TP order
+            tp_order = Order(
+                instrument=order.instrument,
+                direction=-order.direction,
+                size=abs(order.size),
+                order_type="limit",
+                order_limit_price=round(order.take_profit, order.price_precision),
+                reduce_only=True,
+                id=self._get_new_order_id(),
+                parent_order=order.id,
+                status="open",
+                price_precision=order.price_precision,
+                size_precision=order.size_precision,
+                order_time=fill_time,
+                order_price=fill_price,
+            )
+            # Add to open orders
+            try:
+                self._open_orders[tp_order.instrument][tp_order.id] = tp_order
+            except KeyError:
+                self._open_orders[tp_order.instrument] = {tp_order.id: tp_order}
+
+            # Add to map
+            self._order_id_instrument[tp_order.id] = tp_order.instrument
+
+        # Link SL to TP OCO style
+        if order.stop_loss is not None and order.take_profit is not None:
+            tp_order.OCO.append(sl_order.id)
+            sl_order.OCO.append(tp_order.id)
 
         # Charge trading fees
         commission = self._calculate_commissions(
             price=fill_price, units=order_size, HCF=HCF, order_type=order_type
         )
-        self._adjust_balance(-commission)
+        self._adjust_balance(-commission, latest_time=fill_time)
 
         # Create Trade and append to fills
+        # Note that this object may be modified by _modify_position
         trade = Trade(
             instrument=instrument,
             order_price=order_price,
             order_time=order_time,
             size=order_size,
+            last_price=last_price,
             fill_time=fill_time,
             fill_price=fill_price,
             fill_direction=direction,
@@ -1207,8 +1122,18 @@ class Broker:
             id=self._get_new_fill_id(),
             order_id=order_id,
             order_type=order_type,
+            _price_precision=order.price_precision,
+            _size_precision=order.size_precision,
         )
         self._fills.append(trade)
+
+        # Check OCO orders
+        for order_id in order.OCO:
+            self.cancel_order(
+                order_id=order_id,
+                reason="Linked order cancellation.",
+                timestamp=fill_time,
+            )
 
         # Print fill to console
         if self._verbosity > 0:
@@ -1219,6 +1144,9 @@ class Broker:
                 + f"units of {instrument} @ {fill_price} {side}"
             )
             print(fill_str)
+
+        # Update position with fill
+        self._modify_position(trade=trade, reduce_only=order.reduce_only)
 
     def _move_order(
         self,
@@ -1236,219 +1164,6 @@ class Broker:
             to_dict[order.instrument][order.id] = popped_item
         except KeyError:
             to_dict[order.instrument] = {order.id: popped_item}
-
-    def _move_isolated_position(
-        self,
-        trade: IsolatedPosition,
-        from_dict: str = None,
-        to_dict: str = "_open_iso_pos",
-        new_status="open",
-    ) -> None:
-        """Moves an isolated position from the from_dict to the to_dict."""
-        trade.status = new_status
-        to_dict = getattr(self, to_dict)
-        if from_dict is not None:
-            # From dict exists, pop trade from it
-            from_dict = getattr(self, from_dict)[trade.instrument]
-            popped_item = from_dict.pop(trade.id)
-
-        else:
-            # Use trade directly
-            popped_item = trade
-
-        # Make the move
-        try:
-            to_dict[trade.instrument][trade.id] = popped_item
-        except KeyError:
-            to_dict[trade.instrument] = {trade.id: popped_item}
-
-    def _reduce_position(
-        self,
-        order: Order = None,
-        exit_price: float = None,
-        exit_time: datetime = None,
-    ) -> None:
-        """Reduces the position of the specified instrument using an order. If the
-        order.size exceeds the net position, the entire existing position will be
-        closed out.
-
-        Parameters
-        -----------
-
-        Returns
-        -------
-        avg_exit_price : float
-            The average execution price used when reducing the position.
-        """
-        # Assign reference price: use limit price for limit order, else market price
-        reference_price = (
-            order.order_limit_price
-            if order.order_limit_price is not None
-            else exit_price
-        )
-
-        # Get current position in instrument
-        position = self.get_positions(order.instrument)
-
-        # Modify existing trades until there are no more units to reduce
-        units_to_reduce = min(
-            abs(order.size), abs(position[order.instrument].net_position)
-        )
-        executed_prices = []
-        executed_sizes = []
-        while round(units_to_reduce, order.size_precision) > 0:
-            # There are units to be reduced
-            open_iso_pos = self.get_isolated_positions(order.instrument)
-            # TODO - issue when a margin call happens during this process,
-            # and the open_iso_pos dict is no longer truthful. Need to review
-            # margin call process, as reducing should not increase margin
-            # requirements
-            for trade_id, pos in open_iso_pos.items():
-                if pos.direction != order.direction:
-                    # Reduce this pos
-                    if round(units_to_reduce, order.size_precision) >= round(
-                        pos.size, order.size_precision
-                    ):
-                        # Entire pos must be closed
-                        exit_price = self._close_isolated_position(
-                            trade=pos,
-                            exit_price=reference_price,
-                            exit_time=exit_time,
-                            order_type=order.order_type,
-                        )
-
-                        # Update units_to_reduce
-                        units_to_reduce -= abs(pos.size)
-                        executed_prices.append(exit_price)
-                        executed_sizes.append(pos.size)
-
-                    elif round(units_to_reduce, order.size_precision) > 0:
-                        # Partially close pos (0 < units_to_reduce < pos.size)
-                        exit_price = self._reduce_isolated_position(
-                            trade=pos,
-                            units=units_to_reduce,
-                            exit_price=reference_price,
-                            exit_time=exit_time,
-                            order_type=order.order_type,
-                        )
-
-                        # Update units_to_reduce
-                        executed_prices.append(exit_price)
-                        executed_sizes.append(units_to_reduce)
-                        units_to_reduce = 0
-
-        avg_exit_price = sum(
-            [
-                executed_sizes[i] * executed_prices[i]
-                for i in range(len(executed_prices))
-            ]
-        ) / sum(executed_sizes)
-        return avg_exit_price
-
-    def _reduce_isolated_position(
-        self,
-        trade: IsolatedPosition,
-        units: float,
-        exit_price: float = None,
-        exit_time: datetime = None,
-        order_type: str = "market",
-    ) -> None:
-        """Splits an isolated position into two, to reduce it by a fractional
-        amount. The original ID remains, but the size is reduced. The portion
-        that gets closed is assigned a new ID.
-
-        Returns
-        -------
-        exit_price : float
-            The execution price used to reduce the isolated position.
-        """
-        # Create new trade for the amount to be reduced
-        partial_trade = IsolatedPosition._split(trade, units)
-        partial_trade_id = self._get_new_trade_id()
-        partial_trade.id = partial_trade_id
-
-        # Add partial trade to open trades, then immediately close it
-        self._open_iso_pos[trade.instrument][partial_trade_id] = partial_trade
-        exit_price = self._close_isolated_position(
-            trade=partial_trade,
-            exit_price=exit_price,
-            exit_time=exit_time,
-            order_type=order_type,
-        )
-
-        # Keep track of partial trade id instrument for reference
-        self._trade_id_instrument[partial_trade_id] = trade.instrument
-
-        return exit_price
-
-    def _close_isolated_position(
-        self,
-        trade: IsolatedPosition,
-        exit_price: float = None,
-        exit_time: datetime = None,
-        order_type: str = "market",
-    ) -> None:
-        """Closes an isolated position by ID.
-
-        Parameters
-        ----------
-        trade_id : int, optional
-            The trade id. The default is None.
-        exit_price : float, optional
-            The trade exit price. If none is provided, the market price
-            will be used. The default is None.
-        exit_time : datetime, optional
-            The trade exit time. The default is None.
-        order_type : str, optional
-            The order type used to calculate commissions. The default
-            is 'market'.
-
-        Returns
-        -------
-        exit_price : float
-            The price executed for the closeout of the isolated position.
-        """
-        fill_price = trade.fill_price
-        size = trade.size
-        direction = trade.direction
-
-        reference_price = exit_price if exit_price is not None else trade.last_price
-        if order_type == "limit":
-            # Limit order, use exit price provided
-            exit_price = reference_price
-
-        else:
-            # Trade through book, exit price provided as reference for midprice
-            exit_price = self._trade_through_book(
-                instrument=trade.instrument,
-                direction=-direction,
-                size=size,
-                reference_price=reference_price,
-                precision=trade.price_precision,
-            )
-
-        # Update portfolio with profit/loss
-        pnl = direction * size * (float(exit_price) - float(fill_price)) * trade.HCF
-
-        # Update trade closure attributes
-        trade.profit = pnl
-        trade.balance = self._equity
-        trade.exit_price = exit_price
-        # trade.fees = commission
-        trade.exit_time = exit_time if exit_time is not None else trade.last_time
-
-        # Add trade to closed positions
-        self._move_isolated_position(
-            trade,
-            from_dict="_open_iso_pos",
-            to_dict="_closed_iso_pos",
-            new_status="closed",
-        )
-
-        # Update account with position pnl
-        self._adjust_balance(pnl)
-
-        return exit_price
 
     def _trade_through_book(
         self,
@@ -1545,10 +1260,10 @@ class Broker:
 
         return commission
 
-    def _adjust_balance(self, amount: float) -> None:
+    def _adjust_balance(self, amount: float, latest_time: datetime = None) -> None:
         """Adjusts the balance of the account."""
         self._equity += amount
-        self._update_margin()
+        self._update_margin(latest_time=latest_time)
 
     def _make_deposit(self, deposit: float) -> None:
         """Adds deposit to account balance and NAV."""
@@ -1568,31 +1283,32 @@ class Broker:
     ) -> None:
         """Updates the margin available in the account."""
         # TODO - only update with instrument
-
         margin_used = 0
         floating_pnl = 0
         open_interest = 0
 
-        open_iso_pos = self.get_isolated_positions()
-        for trade_id, trade in open_iso_pos.items():
-            size = trade.size
-            HCF = trade.HCF
-            last_price = trade.last_price
-            trade_value = abs(size) * last_price * HCF if last_price else trade.value
-            margin_required = self._calculate_margin(trade_value)
-            margin_used += margin_required
+        positions = self.get_positions()
+        long_exposure = 0
+        short_exposure = 0
+        long_upnl = 0
+        short_upnl = 0
+        for instrument, position in positions.items():
+            margin_used += self._calculate_margin(position.notional)
+            floating_pnl += position.pnl
+            open_interest += position.notional
 
-            # Update margin required in trade dict
-            trade.margin_required = margin_required
-            trade.value = trade_value
-
-            # Floating pnl
-            floating_pnl += trade.unrealised_PL
-
-            # Open interest
-            open_interest += abs(trade.value)
+            if position.direction > 0:
+                long_upnl += position.pnl
+                long_exposure += position.notional
+            else:
+                short_upnl += position.pnl
+                short_exposure += position.notional
 
         # Update unrealised PnL
+        self._long_unrealised_pnl = long_upnl
+        self._short_unrealised_pnl = short_upnl
+        self._long_exposure = long_exposure
+        self._short_exposure = short_exposure
         self._floating_pnl = floating_pnl
 
         # Update margin available
@@ -1605,8 +1321,10 @@ class Broker:
         if (
             self._leverage > 1
             and self._margin_available / self._NAV < self._margin_closeout
+            and not self._margin_calling
         ):
             # Margin call - close all positions
+            self._margin_calling = True
             if self._verbosity > 0:
                 print("MARGIN CALL: closing all positions.")
             positions = self.get_positions()
@@ -1614,43 +1332,8 @@ class Broker:
                 last_price = position.last_price
                 self._margin_call(instrument, latest_time, last_price)
 
-    def _modify_order(self, order: Order) -> None:
-        """Modify order with updated parameters. Called when
-        order_type = 'modify', modifies trade specified by
-        related_orders key.
-        """
-        # Get ID of trade to modify
-        modify_trade_id = order.related_orders
-        instrument = order.instrument
-
-        if order.stop_loss is not None:
-            # New stop loss provided
-            self._update_stop_loss(
-                instrument, modify_trade_id, order.stop_loss, order.stop_type
-            )
-
-        if order.take_profit is not None:
-            self._update_take_profit(instrument, modify_trade_id, order.take_profit)
-
-        # Move order to filled_orders dict
-        self._move_order(order)
-
-    def _update_stop_loss(
-        self,
-        instrument: str,
-        trade_id: int,
-        new_stop_loss: float,
-        new_stop_type: str = "limit",
-    ) -> None:
-        """Updates stop loss on open trade."""
-        self._open_iso_pos[instrument][trade_id].stop_loss = new_stop_loss
-        self._open_iso_pos[instrument][trade_id].stop_type = new_stop_type
-
-    def _update_take_profit(
-        self, instrument: str, trade_id: int, new_take_profit: float
-    ) -> None:
-        """Updates take profit on open trade."""
-        self._open_iso_pos[instrument][trade_id].take_profit = new_take_profit
+            # Reset margin call flag
+            self._margin_calling = False
 
     def _get_new_order_id(self):
         self._last_order_id += 1
@@ -1685,8 +1368,14 @@ class Broker:
         )
 
         # Fire the order
-        fill_price = self._reduce_position(order=closeout_order, exit_time=latest_time)
+        fill_price = self._trade_through_book(
+            instrument=instrument,
+            direction=-direction,
+            size=size,
+            reference_price=latest_price,
+        )
         self._fill_order(
+            last_price=latest_price,
             fill_price=fill_price,
             fill_time=ref_time,
             order=closeout_order,
