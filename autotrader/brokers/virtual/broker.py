@@ -356,13 +356,6 @@ class Broker:
             # Use limit price
             ref_price = order.order_limit_price
 
-        elif order.order_type == "modify":
-            # Get direction of related trade
-            # TODO - outdated
-            related_trade = self._open_iso_pos[order.instrument][order.related_orders]
-            order.direction = related_trade.direction
-            ref_price = order.order_price
-
         else:
             # Use order price
             ref_price = order.order_price
@@ -455,7 +448,7 @@ class Broker:
 
         else:
             # Move order to open_orders or leave in pending
-            immediate_orders = ["modify"]
+            immediate_orders = []
             if order.order_type in immediate_orders or self._paper_trading:
                 # Move to open orders
                 self._move_order(
@@ -721,10 +714,6 @@ class Broker:
                                 fill_time=latest_time,
                                 reference_price=reference_price,
                             )
-
-                elif order.order_type == "modify":
-                    # Modification order
-                    self._modify_order(order)
 
                 # Check limit orders
                 if order.order_type == "limit":
@@ -1345,44 +1334,6 @@ class Broker:
 
             # Reset margin call flag
             self._margin_calling = False
-
-    def _modify_order(self, order: Order) -> None:
-        """Modify order with updated parameters. Called when
-        order_type = 'modify', modifies trade specified by
-        related_orders key.
-        """
-        # Get ID of trade to modify
-        modify_trade_id = order.related_orders
-        instrument = order.instrument
-
-        if order.stop_loss is not None:
-            # New stop loss provided
-            self._update_stop_loss(
-                instrument, modify_trade_id, order.stop_loss, order.stop_type
-            )
-
-        if order.take_profit is not None:
-            self._update_take_profit(instrument, modify_trade_id, order.take_profit)
-
-        # Move order to filled_orders dict
-        self._move_order(order)
-
-    def _update_stop_loss(
-        self,
-        instrument: str,
-        trade_id: int,
-        new_stop_loss: float,
-        new_stop_type: str = "limit",
-    ) -> None:
-        """Updates stop loss on open trade."""
-        self._open_iso_pos[instrument][trade_id].stop_loss = new_stop_loss
-        self._open_iso_pos[instrument][trade_id].stop_type = new_stop_type
-
-    def _update_take_profit(
-        self, instrument: str, trade_id: int, new_take_profit: float
-    ) -> None:
-        """Updates take profit on open trade."""
-        self._open_iso_pos[instrument][trade_id].take_profit = new_take_profit
 
     def _get_new_order_id(self):
         self._last_order_id += 1
