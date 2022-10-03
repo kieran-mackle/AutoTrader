@@ -145,7 +145,7 @@ class Broker:
         # Paper trading mode
         self._paper_trading = False  # Paper trading mode boolean
         self._public_trade_access = False  # Use public trades to update orders
-        self._autodata = None  # AutoData instance
+        self.autodata = None  # AutoData instance
         self._state = None  # Last state snapshot
         self._picklefile = None  # Pickle filename
 
@@ -153,9 +153,9 @@ class Broker:
         self.exchange = ""
 
     def __repr__(self):
-        data_feed = self._autodata._feed
+        data_feed = self.autodata._feed
         if data_feed == "ccxt":
-            data_feed = self._autodata._ccxt_exchange
+            data_feed = self.autodata._ccxt_exchange
         return f"AutoTrader Virtual Broker ({data_feed} data feed)"
 
     def __str__(self):
@@ -317,11 +317,11 @@ class Broker:
             data_config = get_data_config(
                 **autodata_config,
             )
-            self._autodata = AutoData(data_config, **autodata_config)
+            self.autodata = AutoData(data_config, **autodata_config)
 
         else:
             # Create local data instance
-            self._autodata = AutoData()
+            self.autodata = AutoData()
 
         # Initialise balance
         if initial_balance is not None:
@@ -586,14 +586,14 @@ class Broker:
         if self._paper_trading:
             # Papertrading, try get realtime orderbook
             try:
-                orderbook = self._autodata.L2(
+                orderbook = self.autodata.L2(
                     instrument, spread_units=self._spread_units, spread=self._spread
                 )
             except Exception as e:
                 # Fetching orderbook failed, revert to local orderbook
                 print("Exception:", e)
                 print("  Instrument:", instrument)
-                orderbook = self._autodata._local_orderbook(
+                orderbook = self.autodata._local_orderbook(
                     instrument=instrument,
                     spread_units=self._spread_units,
                     spread=self._spread,
@@ -602,7 +602,7 @@ class Broker:
 
         else:
             # Backtesting, use local pseudo-orderbook
-            orderbook = self._autodata._local_orderbook(
+            orderbook = self.autodata._local_orderbook(
                 instrument=instrument,
                 spread_units=self._spread_units,
                 spread=self._spread,
@@ -819,12 +819,12 @@ class Broker:
         """Convenience method to update all open positions when paper trading."""
         # Update orders
         for instrument in self._open_orders:
-            l1 = self._autodata.L1(instrument=instrument)
+            l1 = self.autodata.L1(instrument=instrument)
             self._update_positions(instrument=instrument, L1=l1)
 
         # Update positions
         for instrument in self._positions.keys():
-            l1 = self._autodata.L1(instrument=instrument)
+            l1 = self.autodata.L1(instrument=instrument)
             self._update_positions(instrument=instrument, L1=l1)
 
     def _update_instrument(self, instrument):
@@ -836,7 +836,7 @@ class Broker:
         position = self.get_positions(instrument=instrument)
         if len(orders) + len(position) > 0:
             # Order or position exists for this instrument, update it
-            l1 = self._autodata.L1(instrument=instrument)
+            l1 = self.autodata.L1(instrument=instrument)
             self._update_positions(instrument=instrument, L1=l1)
 
     def _process_order(
