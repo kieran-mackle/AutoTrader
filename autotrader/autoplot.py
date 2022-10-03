@@ -1648,26 +1648,31 @@ class AutoPlot:
         open_summary: bool = False,
     ):
         """Plots trades taken over an ohlc chart."""
-        # Merge order summary based on trade fill times
-        merged_os = pd.merge(
-            order_summary, trade_summary, left_on="order_id", right_on="order_id"
-        )
-        sl_tp = merged_os[["stop_loss", "take_profit", "fill_time"]]
+        if order_summary is not None:
+            # Merge order summary based on trade fill times
+            merged_os = pd.merge(
+                order_summary, trade_summary, left_on="order_id", right_on="order_id"
+            )
+            sl_tp = merged_os[["stop_loss", "take_profit", "fill_time"]]
 
         if self._backtest_data is not None:
             # Charting on different timeframe data
             trade_summary = pd.merge(
                 self._backtest_data, trade_summary, left_index=True, right_index=True
             )
-            sl_tp = pd.merge(
-                self._backtest_data, sl_tp, left_index=True, right_on="fill_time"
-            )
+            if order_summary is not None:
+                sl_tp = pd.merge(
+                    self._backtest_data, sl_tp, left_index=True, right_on="fill_time"
+                )
         else:
             # Charting on same timeframe data
             trade_summary = pd.merge(
                 self._data, trade_summary, left_on="date", right_index=True
             )
-            sl_tp = pd.merge(self._data, sl_tp, left_on="date", right_on="fill_time")
+            if order_summary is not None:
+                sl_tp = pd.merge(
+                    self._data, sl_tp, left_on="date", right_on="fill_time"
+                )
 
         # Backtesting signals
         long_trades = trade_summary[trade_summary["direction"] > 0]
@@ -1731,26 +1736,27 @@ class AutoPlot:
                 )
 
         # Stop loss levels
-        if None not in sl_tp["stop_loss"].values:
-            self._plot_trade(
-                list(sl_tp.data_index.values),
-                list(sl_tp["stop_loss"].fillna("").values),
-                "dash",
-                "black",
-                "Stop loss",
-                linked_fig,
-            )
+        if order_summary is not None:
+            if None not in sl_tp["stop_loss"].values:
+                self._plot_trade(
+                    list(sl_tp.data_index.values),
+                    list(sl_tp["stop_loss"].fillna("").values),
+                    "dash",
+                    "black",
+                    "Stop loss",
+                    linked_fig,
+                )
 
-        # Take profit levels
-        if None not in sl_tp["take_profit"].values:
-            self._plot_trade(
-                list(sl_tp.data_index.values),
-                list(sl_tp["take_profit"].fillna("").values),
-                "dash",
-                "black",
-                "Take profit",
-                linked_fig,
-            )
+            # Take profit levels
+            if None not in sl_tp["take_profit"].values:
+                self._plot_trade(
+                    list(sl_tp.data_index.values),
+                    list(sl_tp["take_profit"].fillna("").values),
+                    "dash",
+                    "black",
+                    "Take profit",
+                    linked_fig,
+                )
 
     def _plot_macd(self, x_range, macd_data, linked_fig):
         """Plots MACD indicator."""
