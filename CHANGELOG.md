@@ -1,8 +1,8 @@
 # AutoTrader Changelog
 
-## Version 0.7.8 (Unreleased)
+## Version 0.7.8
 ### Features
-- Upgraded virtual broker
+- Upgraded virtual broker: backtest speedup for large portfolio's 
 - Ability to specify `deploy_time` in `AutoTrader.configure()`, a datetime 
   object for when to release trading bots.
 - Improved verbosity from main module when running.
