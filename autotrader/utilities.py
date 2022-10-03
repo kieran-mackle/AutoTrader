@@ -782,7 +782,7 @@ class TradeAnalysis:
                 {
                     "instrument": product,
                     "status": status,
-                    "ID": ids,
+                    "order_id": ids,
                     "order_price": order_price,
                     "order_time": times_list,
                     "size": size,

@@ -317,7 +317,8 @@ class AutoPlot:
 
             # Get isolated position summary
             trade_summary = trade_results.trade_history
-            indicators = trade_results.indicators
+            order_summary = trade_results.order_history
+            indicators = trade_results.indicators  # TODO - where is this assigned
             # open_trades = trade_results.open_isolated_positions
             cancelled_trades = trade_results.cancelled_orders
 
@@ -364,7 +365,9 @@ class AutoPlot:
             if not self._use_strat_plot_data:
                 # Overlay trades
                 # TODO - add way to visualise trades without candles
-                self._plot_trade_history(trade_summary, main_plot)
+                self._plot_trade_history(
+                    trade_summary, main_plot, order_summary=order_summary
+                )
                 if len(cancelled_trades) > 0 and self._show_cancelled:
                     self._plot_trade_history(
                         cancelled_trades, main_plot, cancelled_summary=True
@@ -526,8 +529,6 @@ class AutoPlot:
         self._backtest_data = temp_data.reindex(
             backtest_price_data.index, method="ffill"
         )
-
-    """ ------------------- FIGURE MANAGEMENT METHODS --------------------- """
 
     def _portfolio_plot(self, trade_results: TradeAnalysis):
         """Creates a positions history chart."""
@@ -810,343 +811,6 @@ class AutoPlot:
         if self._jupyter_notebook:
             output_notebook()
         show(fig)
-
-    def _plot_multibot_backtest(self, backtest_results):
-        """DEPRECATED
-        Creates multi-bot backtest figure.
-        """
-        # Preparation
-        instruments = backtest_results.instruments_traded
-        no_instruments = len(instruments)
-        output_file(
-            "autotrader_backtest.html", title="AutoTrader Multi-Bot Backtest Results"
-        )
-        linked_crosshair = CrosshairTool(dimensions="both")
-        reindexed_acc_hist = self._reindex_data(backtest_results.account_history)
-        trade_history = backtest_results.isolated_position_history
-        # holding_history = backtest_results.holding_history
-
-        # Account Balance
-        acc_hist = ColumnDataSource(reindexed_acc_hist)
-        acc_hist.add(reindexed_acc_hist[["NAV", "equity"]].min(1), "Low")
-        acc_hist.add(reindexed_acc_hist[["NAV", "equity"]].max(1), "High")
-        navfig = figure(
-            plot_width=self._ohlc_width,
-            plot_height=self._top_fig_height,
-            title="Backtest Account History",
-            active_drag="pan",
-            active_scroll="wheel_zoom",
-        )
-
-        # Add glyphs
-        navfig.line(
-            "data_index",
-            "NAV",
-            line_color="black",
-            legend_label="Backtest Net Asset Value",
-            source=acc_hist,
-        )
-        navfig.line(
-            "data_index",
-            "equity",
-            line_color="blue",
-            legend_label="Backtest Equity",
-            source=acc_hist,
-        )
-
-        navfig.xaxis.major_label_overrides = {
-            i: date.strftime("%b %d %Y")
-            for i, date in enumerate(pd.to_datetime(reindexed_acc_hist["date"]))
-        }
-        navfig.xaxis.bounds = (0, reindexed_acc_hist.index[-1])
-        navfig.sizing_mode = "stretch_width"
-        navfig.legend.location = "top_left"
-        navfig.legend.border_line_width = 1
-        navfig.legend.border_line_color = "#333333"
-        navfig.legend.padding = 5
-        navfig.legend.spacing = 0
-        navfig.legend.margin = 0
-        navfig.legend.label_text_font_size = "8pt"
-        navfig.add_tools(linked_crosshair)
-
-        # Initialise autoscale arguments
-        self.autoscale_args = {"y_range": navfig.y_range, "source": acc_hist}
-
-        # Cumultive returns plot
-        # TODO - review calculation
-        returns_per_instrument = [
-            trade_history.profit[trade_history.instrument == i].cumsum()
-            for i in instruments
-        ]
-        cplfig = figure(
-            plot_width=navfig.plot_width,
-            plot_height=self._top_fig_height,
-            title="Cumulative Returns per Instrument",
-            active_drag="pan",
-            active_scroll="wheel_zoom",
-            x_range=navfig.x_range,
-        )
-
-        if no_instruments < 3:
-            colors = Category20c[3][0:no_instruments]
-            portfolio_colors = Category20c[3][0 : no_instruments + 1]
-        else:
-            colors = Category20c[no_instruments]
-            portfolio_colors = Category20c[no_instruments + 1]
-
-        for i in range(len(instruments)):
-            cpldata = returns_per_instrument[i].to_frame()
-            cpldata["date"] = cpldata.index
-            cpldata = cpldata.reset_index(drop=True)
-
-            cpldata = pd.merge(
-                reindexed_acc_hist, cpldata, left_on="date", right_on="date"
-            )
-            concatted = pd.concat([reindexed_acc_hist, cpldata])
-            non_duplicated = concatted[~concatted.data_index.duplicated(keep="last")][
-                ["data_index", "profit"]
-            ]
-            sorted_data = (
-                non_duplicated.sort_values("data_index")
-                .fillna(method="ffill")
-                .fillna(0)
-            )
-
-            cplsource = ColumnDataSource(sorted_data)
-            cplfig.line(
-                "data_index",
-                "profit",
-                legend_label=f"{instruments[i]}",
-                line_color=colors[i],
-                source=cplsource,
-            )
-
-        cplfig.legend.location = "top_left"
-        cplfig.legend.border_line_width = 1
-        cplfig.legend.border_line_color = "#333333"
-        cplfig.legend.padding = 5
-        cplfig.legend.spacing = 0
-        cplfig.legend.margin = 0
-        cplfig.legend.label_text_font_size = "8pt"
-        cplfig.sizing_mode = "stretch_width"
-        cplfig.add_tools(linked_crosshair)
-
-        cplfig.xaxis.major_label_overrides = {
-            i: date.strftime("%b %d %Y")
-            for i, date in enumerate(pd.to_datetime(reindexed_acc_hist["date"]))
-        }
-        cplfig.xaxis.bounds = (0, reindexed_acc_hist.index[-1])
-
-        # Portoflio distribution
-        # names = list(holding_history.columns)
-        # holding_history['date'] = holding_history.index
-        # holding_hist_source = ColumnDataSource(pd.merge(reindexed_acc_hist,
-        #                                                 holding_history,
-        #                                                 left_on='date',
-        #                                                 right_on='date').fillna(0))
-        # portfolio = figure(plot_width = navfig.plot_width,
-        #                    plot_height = self._top_fig_height,
-        #                    title = "Asset Allocation History",
-        #                    active_drag = 'pan',
-        #                    active_scroll = 'wheel_zoom',
-        #                    x_range = navfig.x_range)
-        # portfolio.grid.minor_grid_line_color = '#eeeeee'
-
-        # portfolio.varea_stack(stackers=names,
-        #                       x='data_index',
-        #                       color=portfolio_colors,
-        #                       legend_label=names,
-        #                       source=holding_hist_source)
-
-        # portfolio.legend.orientation = "horizontal"
-        # portfolio.legend.background_fill_color = "#fafafa"
-        # portfolio.legend.location = 'top_left'
-        # portfolio.legend.border_line_width = 1
-        # portfolio.legend.border_line_color = '#333333'
-        # portfolio.legend.padding = 5
-        # portfolio.legend.spacing = 0
-        # portfolio.legend.margin = 0
-        # portfolio.legend.label_text_font_size = '8pt'
-        # portfolio.sizing_mode = 'stretch_width'
-        # portfolio.add_tools(linked_crosshair)
-        # portfolio.xaxis.major_label_overrides = {
-        #             i: date.strftime('%b %d %Y') for i, date in enumerate(pd.to_datetime(reindexed_acc_hist["date"]))
-        #         }
-        # portfolio.xaxis.bounds = (0, reindexed_acc_hist.index[-1])
-
-        # Define autoscale arguments
-        # holding_hist_source.add(np.ones(len(holding_history)), 'High')
-        # holding_hist_source.add(np.zeros(len(holding_history)), 'Low')
-        # self._add_to_autoscale_args(holding_hist_source, portfolio.y_range)
-
-        # Pie chart of trades per instrument
-        trades_per_instrument = [
-            sum(trade_history.instrument == i) for i in instruments
-        ]
-        pie_data = pd.DataFrame(
-            data={"trades": trades_per_instrument}, index=instruments
-        ).fillna(0)
-        pie_data["angle"] = pie_data["trades"] / pie_data["trades"].sum() * 2 * pi
-        if no_instruments < 3:
-            pie_data["color"] = Category20c[3][0:no_instruments]
-        else:
-            pie_data["color"] = Category20c[no_instruments]
-
-        pie = self._plot_pie(pie_data, fig_title="Trade Distribution")
-
-        pie.axis.axis_label = None
-        pie.axis.visible = False
-        pie.grid.grid_line_color = None
-        pie.sizing_mode = "stretch_width"
-        pie.legend.location = "top_left"
-        pie.legend.border_line_width = 1
-        pie.legend.border_line_color = "#333333"
-        pie.legend.padding = 5
-        pie.legend.spacing = 0
-        pie.legend.margin = 0
-        pie.legend.label_text_font_size = "8pt"
-
-        # Bar plot for avg/max win/loss
-        win_metrics = ["Average Win", "Max. Win"]
-        lose_metrics = ["Average Loss", "Max. Loss"]
-
-        instrument_trades = [
-            trade_history[trade_history.instrument == i].fillna("") for i in instruments
-        ]
-        total_no_trades = [len(instrument_trades[i]) for i in range(len(instruments))]
-        max_wins = [
-            instrument_trades[i].profit.max() if total_no_trades[i] > 0 else 0
-            for i in range(len(instruments))
-        ]
-        max_losses = [
-            instrument_trades[i].profit.min() if total_no_trades[i] > 0 else 0
-            for i in range(len(instruments))
-        ]
-        avg_wins = [
-            instrument_trades[i].profit[instrument_trades[i].profit > 0].mean()
-            if total_no_trades[i] > 0
-            else 0
-            for i in range(len(instruments))
-        ]
-        avg_losses = [
-            instrument_trades[i].profit[instrument_trades[i].profit < 0].mean()
-            if total_no_trades[i] > 0
-            else 0
-            for i in range(len(instruments))
-        ]
-
-        abs_max_loss = 1.2 * min(max_losses)
-        abs_max_win = 1.2 * max(max_wins)
-
-        pldata = pd.DataFrame(
-            {
-                "instruments": instruments,
-                "Average Win": avg_wins,
-                "Max. Win": [max_wins[i] - avg_wins[i] for i in range(len(max_wins))],
-                "Average Loss": avg_losses,
-                "Max. Loss": [
-                    max_losses[i] - avg_losses[i] for i in range(len(max_losses))
-                ],
-            }
-        ).fillna(0)
-
-        TOOLTIPS = [
-            ("Instrument:", "@instruments"),
-            ("Max win", "@{Max. Win}"),
-            ("Avg. win", "@{Average Win}"),
-            ("Max Loss", "@{Max. Loss}"),
-            ("Avg. loss", "@{Average Loss}"),
-        ]
-
-        plbars = figure(
-            x_range=instruments,
-            y_range=(abs_max_loss, abs_max_win),
-            title="Win/Loss Breakdown",
-            toolbar_location=None,
-            tools="hover",
-            tooltips=TOOLTIPS,
-            plot_height=250,
-        )
-
-        plbars.vbar_stack(
-            win_metrics,
-            x="instruments",
-            width=0.9,
-            color=("#008000", "#FFFFFF"),
-            line_color="black",
-            source=ColumnDataSource(pldata),
-            legend_label=["%s" % x for x in win_metrics],
-        )
-
-        plbars.vbar_stack(
-            lose_metrics,
-            x="instruments",
-            width=0.9,
-            color=("#ff0000", "#FFFFFF"),
-            line_color="black",
-            source=ColumnDataSource(pldata),
-            legend_label=["%s" % x for x in lose_metrics],
-        )
-
-        plbars.x_range.range_padding = 0.1
-        plbars.ygrid.grid_line_color = None
-        plbars.legend.location = "bottom_center"
-        plbars.legend.border_line_width = 1
-        plbars.legend.border_line_color = "#333333"
-        plbars.legend.padding = 5
-        plbars.legend.spacing = 0
-        plbars.legend.margin = 0
-        plbars.legend.label_text_font_size = "8pt"
-        plbars.axis.minor_tick_line_color = None
-        plbars.outline_line_color = None
-        plbars.sizing_mode = "stretch_width"
-
-        # Win rate bar chart
-        profitable_trades = [
-            (instrument_trades[i].profit > 0).sum() for i in range(len(instruments))
-        ]
-        win_rates = [
-            100 * profitable_trades[i] / total_no_trades[i]
-            if total_no_trades[i] > 0
-            else 0
-            for i in range(len(instruments))
-        ]
-        WRsource = ColumnDataSource(
-            pd.DataFrame(
-                data={"win_rate": win_rates, "color": colors}, index=instruments
-            ).fillna(0)
-        )
-        winrate = self._plot_bars(
-            instruments,
-            "win_rate",
-            WRsource,
-            fig_title="Instrument win rate (%)",
-            hover_name="win_rate%",
-        )
-        winrate.sizing_mode = "stretch_width"
-
-        # Autoscaling
-        navfig.x_range.js_on_change(
-            "end", CustomJS(args=self.autoscale_args, code=self._autoscale_code)
-        )
-
-        # Construct final figure
-        final_fig = layout(
-            [
-                [navfig],
-                #    [portfolio],
-                [cplfig],
-                [pie, plbars, winrate],
-            ]
-        )
-        final_fig.sizing_mode = "scale_width"
-
-        # Set theme - # TODO - adapt line colours based on theme
-        curdoc().theme = self._chart_theme
-
-        if self._jupyter_notebook:
-            output_notebook()
-        show(final_fig)
 
     def _plot_indicators(self, indicators: dict, linked_fig):
         """Plots indicators based on indicator type. If inidcator type is
@@ -1583,8 +1247,6 @@ class AutoPlot:
         source = ColumnDataSource(merged_data)
         fig.circle("data_index", "plot_data", legend_label=legend_label, source=source)
 
-    """ ------------------------ OVERLAY PLOTTING ------------------------- """
-
     def _plot_candles(self, source):
         """Plots OHLC data onto new figure."""
         bull_colour = "#D5E1DD"
@@ -1956,8 +1618,6 @@ class AutoPlot:
             legend_label=f"{session} trading session",
         )
 
-    """ ----------------------- TOP FIG PLOTTING -------------------------- """
-
     def _plot_trade(
         self,
         x_data,
@@ -1980,41 +1640,40 @@ class AutoPlot:
         )
 
     def _plot_trade_history(
-        self, trade_summary, linked_fig, cancelled_summary=False, open_summary=False
+        self,
+        trade_summary: pd.DataFrame,
+        linked_fig,
+        order_summary: pd.DataFrame = None,
+        cancelled_summary: bool = False,
+        open_summary: bool = False,
     ):
-        """Plots trades taken over ohlc chart."""
-
-        exit_summary = trade_summary.copy()
+        """Plots trades taken over an ohlc chart."""
+        # Merge order summary based on trade fill times
+        merged_os = pd.merge(
+            order_summary, trade_summary, left_on="order_id", right_on="order_id"
+        )
+        sl_tp = merged_os[["stop_loss", "take_profit", "fill_time"]]
 
         if self._backtest_data is not None:
             # Charting on different timeframe data
             trade_summary = pd.merge(
                 self._backtest_data, trade_summary, left_index=True, right_index=True
             )
+            sl_tp = pd.merge(
+                self._backtest_data, sl_tp, left_index=True, right_on="fill_time"
+            )
         else:
+            # Charting on same timeframe data
             trade_summary = pd.merge(
                 self._data, trade_summary, left_on="date", right_index=True
             )
+            sl_tp = pd.merge(self._data, sl_tp, left_on="date", right_on="fill_time")
 
         # Backtesting signals
         long_trades = trade_summary[trade_summary["direction"] > 0]
         shorts_trades = trade_summary[trade_summary["direction"] < 0]
 
         if cancelled_summary is False and open_summary is False:
-            # Plotting historical trades taken
-            # if self._backtest_data is not None:
-            #     # Charting on different timeframe data
-            #     exit_summary = pd.merge(
-            #         self._backtest_data,
-            #         exit_summary,
-            #         left_index=True,
-            #         right_on="exit_time",
-            #     )
-            # else:
-            #     exit_summary = pd.merge(
-            #         self._data, exit_summary, left_on="date", right_on="exit_time"
-            #     )
-
             # Long trades
             if len(long_trades) > 0:
                 self._plot_trade(
@@ -2036,55 +1695,6 @@ class AutoPlot:
                     "Short trades",
                     linked_fig,
                 )
-
-            # profitable_longs = long_trades[(long_trades["profit"] > 0)]
-            # unprofitable_longs = long_trades[(long_trades["profit"] < 0)]
-            # profitable_shorts = shorts_trades[(shorts_trades["profit"] > 0)]
-            # unprofitable_shorts = shorts_trades[(shorts_trades["profit"] < 0)]
-
-            # # Profitable long trades
-            # if len(profitable_longs) > 0:
-            #     self._plot_trade(
-            #         list(profitable_longs.data_index.values),
-            #         list(profitable_longs.fill_price.values),
-            #         "triangle",
-            #         "lightgreen",
-            #         "Profitable long trades",
-            #         linked_fig,
-            #     )
-
-            # # Profitable short trades
-            # if len(profitable_shorts) > 0:
-            #     self._plot_trade(
-            #         list(profitable_shorts.data_index.values),
-            #         list(profitable_shorts.fill_price.values),
-            #         "inverted_triangle",
-            #         "lightgreen",
-            #         "Profitable short trades",
-            #         linked_fig,
-            #     )
-
-            # # Unprofitable long trades
-            # if len(unprofitable_longs) > 0:
-            #     self._plot_trade(
-            #         list(unprofitable_longs.data_index.values),
-            #         list(unprofitable_longs.fill_price.values),
-            #         "triangle",
-            #         "orangered",
-            #         "Unprofitable long trades",
-            #         linked_fig,
-            #     )
-
-            # # Unprofitable short trades
-            # if len(unprofitable_shorts) > 0:
-            #     self._plot_trade(
-            #         list(unprofitable_shorts.data_index.values),
-            #         list(unprofitable_shorts.fill_price.values),
-            #         "inverted_triangle",
-            #         "orangered",
-            #         "Unprofitable short trades",
-            #         linked_fig,
-            #     )
 
         else:
             if cancelled_summary:
@@ -2120,45 +1730,27 @@ class AutoPlot:
                     legend_label=short_legend_label,
                 )
 
-        # Stop loss  levels
-        # if None not in trade_summary.stop_loss.values:
-        #     self._plot_trade(
-        #         list(trade_summary.data_index.values),
-        #         list(trade_summary.stop_loss.fillna("").values),
-        #         "dash",
-        #         "black",
-        #         "Stop loss",
-        #         linked_fig,
-        #     )
+        # Stop loss levels
+        if None not in sl_tp["stop_loss"].values:
+            self._plot_trade(
+                list(sl_tp.data_index.values),
+                list(sl_tp["stop_loss"].fillna("").values),
+                "dash",
+                "black",
+                "Stop loss",
+                linked_fig,
+            )
 
-        # # Take profit levels
-        # if None not in trade_summary.take_profit.values:
-        #     self._plot_trade(
-        #         list(trade_summary.data_index.values),
-        #         list(trade_summary.take_profit.fillna("").values),
-        #         "dash",
-        #         "black",
-        #         "Take profit",
-        #         linked_fig,
-        #     )
-
-        # Position exits
-        # if (
-        #     cancelled_summary is False
-        #     and open_summary is False
-        #     and exit_summary is not None
-        # ):
-        #     self._plot_trade(
-        #         list(exit_summary.data_index),
-        #         list(exit_summary.exit_price.values),
-        #         "circle",
-        #         "black",
-        #         "Position exit",
-        #         linked_fig,
-        #         scatter_size=7,
-        #     )
-
-    """ --------------------- BOTTOM FIG PLOTTING ------------------------- """
+        # Take profit levels
+        if None not in sl_tp["take_profit"].values:
+            self._plot_trade(
+                list(sl_tp.data_index.values),
+                list(sl_tp["take_profit"].fillna("").values),
+                "dash",
+                "black",
+                "Take profit",
+                linked_fig,
+            )
 
     def _plot_macd(self, x_range, macd_data, linked_fig):
         """Plots MACD indicator."""
@@ -2219,8 +1811,6 @@ class AutoPlot:
         self._add_to_autoscale_args(source, fig.y_range)
 
         return fig
-
-    """ -------------------- MISCELLANEOUS PLOTTING ----------------------- """
 
     def _plot_bars(
         self,
