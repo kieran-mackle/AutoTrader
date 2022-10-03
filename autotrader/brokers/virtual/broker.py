@@ -8,7 +8,7 @@ from typing import Callable
 from datetime import date, datetime, timezone
 from autotrader.autodata import AutoData
 from autotrader.utilities import get_data_config
-from autotrader.brokers.broker_utils import BrokerUtils
+from autotrader.brokers.broker_utils import OrderBook, BrokerUtils
 from autotrader.brokers.trading import Order, IsolatedPosition, Position, Trade
 
 
@@ -580,7 +580,7 @@ class Broker:
         """Returns the margin available on the account."""
         return self._margin_available
 
-    def get_orderbook(self, instrument: str, midprice: float = None):
+    def get_orderbook(self, instrument: str, midprice: float = None) -> OrderBook:
         """Returns the orderbook."""
         # Get public orderbook
         if self._paper_trading:

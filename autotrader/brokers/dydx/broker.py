@@ -3,6 +3,7 @@ from decimal import Decimal
 from datetime import datetime
 from autotrader import AutoData
 from dydx3 import Client, constants
+from autotrader.brokers.broker_utils import OrderBook
 from autotrader.brokers.dydx.utils import Utils, BrokerUtils
 from autotrader.brokers.trading import Order, Position, Trade
 
@@ -160,7 +161,7 @@ class Broker:
         market_df = pd.DataFrame(markets.data["markets"])
         return market_df
 
-    def get_orderbook(self, instrument):
+    def get_orderbook(self, instrument: str) -> OrderBook:
         # Get Orderbook
         orderbook = self.autodata.L2(instrument=instrument)
         return orderbook

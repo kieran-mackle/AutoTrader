@@ -1,6 +1,7 @@
 import ccxt
 from datetime import datetime
 from autotrader import AutoData
+from autotrader.brokers.broker_utils import OrderBook
 from autotrader.brokers.ccxt.utils import Utils, BrokerUtils
 from autotrader.brokers.trading import Order, Trade, Position
 
@@ -190,7 +191,7 @@ class Broker:
 
         return positions_dict
 
-    def get_orderbook(self, instrument: str) -> dict:
+    def get_orderbook(self, instrument: str) -> OrderBook:
         """Returns the orderbook"""
         orderbook = self.autodata.L2(instrument=instrument)
         return orderbook
