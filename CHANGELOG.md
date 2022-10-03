@@ -1,6 +1,6 @@
 # AutoTrader Changelog
 
-## Version 0.7.9 (Unreleased)
+## Version 0.7.9
 ### Fixes
 - Plotting bug when option to show cancelled orders is True.
 
