@@ -1,5 +1,9 @@
 # AutoTrader Changelog
 
+## Version 0.7.9 (Unreleased)
+### Fixes
+- Plotting bug when option to show cancelled orders is True.
+
 ## Version 0.7.8
 ### Features
 - Upgraded virtual broker: backtest speedup for large portfolio's 
