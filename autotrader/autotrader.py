@@ -2194,8 +2194,11 @@ class AutoTrader:
 
                             # Go to sleep until next update
                             time.sleep(
-                                self._timestep.seconds
-                                - ((time.time() - deploy_time) % self._timestep.seconds)
+                                self._timestep.total_seconds()
+                                - (
+                                    (time.time() - deploy_time)
+                                    % self._timestep.total_seconds()
+                                )
                             )
                             instance_file_exists = self._check_instance_file(
                                 instance_str
