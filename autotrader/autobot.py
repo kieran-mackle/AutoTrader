@@ -1,5 +1,6 @@
 import os
 import importlib
+import traceback
 import pandas as pd
 from autotrader.comms import emailing
 from datetime import datetime, timezone
@@ -359,7 +360,10 @@ class AutoTraderBot:
                 try:
                     f.result()
                 except Exception as e:
-                    print("Exception when submitting order: ", e)
+                    traceback_str = "".join(traceback.format_tb(e.__traceback__))
+                    exception_str = f"AutoTrader exception when submitting order: {e}"
+                    print_str = exception_str + "\nTraceback:\n" + traceback_str
+                    print(print_str)
 
             if self._papertrading:
                 # Update virtual broker again to trigger any orders

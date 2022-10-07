@@ -1,5 +1,9 @@
 # AutoTrader Changelog
 
+## Version 0.7.10 (Unreleased)
+### Changes
+- Improved verbosity for exception handling.
+
 ## Version 0.7.9
 ### Fixes
 - Plotting bug when option to show cancelled orders is True.
