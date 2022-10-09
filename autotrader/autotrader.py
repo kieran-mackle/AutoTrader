@@ -13,7 +13,7 @@ from typing import Callable
 from threading import Thread
 from ast import literal_eval
 from scipy.optimize import brute
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from autotrader.autoplot import AutoPlot
 from autotrader.autobot import AutoTraderBot
 from autotrader.utilities import (
@@ -2141,6 +2141,9 @@ class AutoTrader:
 
                     while instance_file_exists:
                         # Bot instance file exists
+                        if self._verbosity > 0:
+                            print(f"\nUpdating trading bots.")
+
                         try:
                             # Update bots
                             # TODO - threadpool executor
@@ -2148,6 +2151,11 @@ class AutoTrader:
                                 try:
                                     # TODO - why UTC? Allow setting manually
                                     bot._update(timestamp=datetime.now(timezone.utc))
+
+                                    if int(self._verbosity) > 0:
+                                        print(
+                                            f"\nBot update complete: {bot._strategy_name}"
+                                        )
 
                                 except:
                                     if int(self._verbosity) > 0:
@@ -2193,13 +2201,17 @@ class AutoTrader:
                                     pickle.dump(self._broker_histories, file)
 
                             # Go to sleep until next update
-                            time.sleep(
-                                self._timestep.total_seconds()
-                                - (
-                                    (time.time() - deploy_time)
-                                    % self._timestep.total_seconds()
-                                )
+                            sleep_time = self._timestep.total_seconds() - (
+                                (time.time() - deploy_time)
+                                % self._timestep.total_seconds()
                             )
+                            if int(self._verbosity) > 0:
+                                print(
+                                    f"AutoTrader sleeping until next update at {datetime.now()+timedelta(seconds=sleep_time)}."
+                                )
+                            time.sleep(sleep_time)
+
+                            # Check if instance file still exists
                             instance_file_exists = self._check_instance_file(
                                 instance_str
                             )

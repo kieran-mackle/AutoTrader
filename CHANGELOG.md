@@ -3,6 +3,7 @@
 ## Version 0.7.10 (Unreleased)
 ### Changes
 - Improved verbosity for exception handling.
+- Improved verbosity in `autotrader.py` for bot updates.
 
 ## Version 0.7.9
 ### Fixes
