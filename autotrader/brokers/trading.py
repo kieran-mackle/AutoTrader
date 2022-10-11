@@ -139,7 +139,8 @@ class Order:
         self.limit_fee = "0.015"
 
         # CCXT attributes
-        self.ccxt_params = {}
+        self.ccxt_params = {}  # CCXT order parameters
+        self.ccxt_order = {}  # CCXT native order structure
 
         self.reason = None
 

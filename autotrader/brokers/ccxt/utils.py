@@ -60,12 +60,32 @@ class Utils(BrokerUtils):
             market = self.markets[instrument]
         elif instrument.split(":")[0] in self.markets:
             market = self.markets[instrument.split(":")[0]]
+        elif f"{instrument.split('USDT')[0]}/USDT" in self.markets:
+            market = self.markets[f"{instrument.split('USDT')[0]}/USDT"]
         else:
-            raise Exception(f"{instrument} is not listed.")
+            raise Exception(
+                f"{instrument} does not appear to be listed. "
+                + "Please double check the naming."
+            )
         return market
 
     def get_stepsize(self, instrument, *args, **kwargs):
         """Returns the stepsize for an instrument."""
         market = self._get_market(instrument)
-        stepsize = market["info"]["filters"][1]["stepSize"]
+        stepsize = float(market["limits"]["amount"]["min"])
         return stepsize
+
+    def get_min_notional(self, instrument, *args, **kwargs):
+        """Returns the minimum notional value a trade should hold."""
+        market = self._get_market(instrument)
+        min_notional = float(market["limits"]["cost"]["min"])
+        return min_notional
+
+    def get_ticksize(self, instrument, *args, **kwargs):
+        """Returns the ticksize for an instrument."""
+        market = self._get_market(instrument)
+        try:
+            ticksize = float(market["info"]["filters"][0]["tickSize"])
+        except:
+            raise Exception("Cannot retrieve ticksize.")
+        return ticksize

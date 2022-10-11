@@ -4,6 +4,9 @@
 ### Changes
 - Improved verbosity for exception handling.
 - Improved verbosity in `autotrader.py` for bot updates.
+- Added utility to CCXT interface (`get_min_notional` and 
+  `get_ticksize` methods).
+- Improved CCXT `get_orders` capability.
 
 ## Version 0.7.9
 ### Fixes

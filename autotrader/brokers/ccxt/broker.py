@@ -92,23 +92,38 @@ class Broker:
         self, instrument: str = None, order_status: str = "open", **kwargs
     ) -> dict:
         """Returns orders associated with the account."""
-        # TODO - add exception handling
-        if order_status == "open":
-            # Fetch open orders (waiting to be filled)
-            orders = self.api.fetchOpenOrders(instrument, **kwargs)
 
-        elif order_status == "cancelled":
-            # Fetch cancelled orders
-            orders = self.api.fetchCanceledOrders(instrument, **kwargs)
+        # Check for order id
+        if "order_id" in kwargs:
+            # Fetch order by ID
+            if self.api.has["fetchOrder"]:
+                orders = [
+                    self.api.fetch_order(id=kwargs["order_id"], symbol=instrument)
+                ]
 
-        elif order_status == "closed":
-            # Fetch closed orders
-            orders = self.api.fetchClosedOrders(instrument, **kwargs)
+        else:
+            # TODO - add exception handling
+            if order_status == "open":
+                # Fetch open orders (waiting to be filled)
+                orders = self.api.fetchOpenOrders(instrument, **kwargs)
 
-        elif order_status == "conditional":
-            orders = self.api.fetchOpenOrders(
-                instrument, params={"orderType": "conditional"}
-            )
+            elif order_status == "cancelled":
+                # Fetch cancelled orders
+                orders = self.api.fetchCanceledOrders(instrument, **kwargs)
+
+            elif order_status == "closed":
+                # Fetch closed orders
+                orders = self.api.fetchClosedOrders(instrument, **kwargs)
+
+            elif order_status == "conditional":
+                # Fetch conditional orders
+                orders = self.api.fetchOpenOrders(
+                    instrument, params={"orderType": "conditional"}
+                )
+
+            else:
+                # Unrecognised order status
+                raise Exception(f"Unrecognised order status '{order_status}'.")
 
         # Convert
         orders = self._convert_list(orders, item_type="order")
@@ -196,7 +211,7 @@ class Broker:
         orderbook = self.autodata.L2(instrument=instrument)
         return orderbook
 
-    def _native_order(self, order):
+    def _native_order(self, order: dict):
         """Returns a CCXT order as a native AutoTrader Order."""
         direction = 1 if order["side"] == "buy" else -1
         order_type = order["type"].lower()
@@ -220,6 +235,7 @@ class Broker:
             order_limit_price=limit_price,
             order_stop_price=stop_price,
             order_time=datetime.fromtimestamp(order["timestamp"] / 1000),
+            ccxt_order=order,
         )
         return native_order
 
