@@ -1,12 +1,16 @@
 # AutoTrader Changelog
 
-## Version 0.7.10 (Unreleased)
+## Version 0.7.10
 ### Changes
 - Improved verbosity for exception handling.
 - Improved verbosity in `autotrader.py` for bot updates.
 - Added utility to CCXT interface (`get_min_notional` and 
   `get_ticksize` methods).
 - Improved CCXT `get_orders` capability.
+
+### Fixes
+- CCXT interface `get_trades` method updated for `Trade` object 
+  arguments.
 
 ## Version 0.7.9
 ### Fixes
