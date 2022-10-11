@@ -260,6 +260,7 @@ class Broker:
             order_time=None,
             order_type=None,
             size=abs(trade["amount"]),
+            last_price=None,
             fill_time=datetime.fromtimestamp(trade["timestamp"] / 1000),
             fill_price=float(trade["price"]),
             fill_direction=direction,
