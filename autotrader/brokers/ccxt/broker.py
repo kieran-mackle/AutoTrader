@@ -140,7 +140,7 @@ class Broker:
 
     def get_trades(self, instrument: str = None, **kwargs) -> dict:
         """Returns the open trades held by the account."""
-        trades_list = self.api.fetchMyTrades(instrument)
+        trades_list = self.api.fetchMyTrades(instrument, **kwargs)
         trades = self._convert_list(trades_list, item_type="trade")
         return trades
 
@@ -242,7 +242,6 @@ class Broker:
     def _native_trade(self, trade):
         """Returns a CCXT trade as a native AutoTrader Trade."""
         direction = 1 if trade["side"] == "buy" else -1
-
         order_id_keys = ["orderID", "orderId2"]
         oid_assigned = False
         for key in order_id_keys:
@@ -261,7 +260,9 @@ class Broker:
             order_type=None,
             size=abs(trade["amount"]),
             last_price=None,
-            fill_time=datetime.fromtimestamp(trade["timestamp"] / 1000),
+            fill_time=datetime.fromtimestamp(trade["timestamp"] / 1000).astimezone(
+                timezone.utc
+            ),
             fill_price=float(trade["price"]),
             fill_direction=direction,
             fee=trade["fee"]["cost"],
