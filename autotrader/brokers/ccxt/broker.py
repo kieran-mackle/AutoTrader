@@ -1,6 +1,6 @@
 import ccxt
-from datetime import datetime
 from autotrader import AutoData
+from datetime import datetime, timezone
 from autotrader.brokers.broker_utils import OrderBook
 from autotrader.brokers.ccxt.utils import Utils, BrokerUtils
 from autotrader.brokers.trading import Order, Trade, Position
