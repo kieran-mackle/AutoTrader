@@ -1,5 +1,13 @@
 # AutoTrader Changelog
 
+## v0.7.11 (2022-10-17)
+
+### Fix
+
+- email_manager import (#46)
+- datetime.timezone import
+- CCXT get_trades uses kwargs in fetchMyTrades call
+
 ## Version 0.7.10
 ### Changes
 - Improved verbosity for exception handling.
