@@ -4,3 +4,13 @@ requires = [
     "wheel"
 ]
 build-backend = "setuptools.build_meta"
+
+[tool]
+[tool.commitizen]
+name = "cz_conventional_commits"
+version = "0.7.10"
+tag_format = "v$version"
+version_files = [
+    "autotrader/__init__.py:__version__",
+]
+update_changelog_on_bump = true
