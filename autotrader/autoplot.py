@@ -609,6 +609,22 @@ class AutoPlot:
             fill_alpha=fill_alpha,
         )
 
+        # Add hover tool
+        navfig_hovertool = HoverTool(
+            tooltips=[
+                ("Date", "@date{%b %d %H:%M}"),
+                ("Equity", "$@{equity}{%0.2f}"),
+                ("NAV", "$@{NAV}{%0.2f}"),
+            ],
+            formatters={
+                "@{equity}": "printf",
+                "@{NAV}": "printf",
+                "@date": "datetime",
+            },
+            mode="mouse",
+        )
+        navfig.add_tools(navfig_hovertool)
+
         # Add to autoscale args
         self.autoscale_args = {"y_range": navfig.y_range, "source": topsource}
 
