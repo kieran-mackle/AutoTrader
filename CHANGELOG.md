@@ -1,5 +1,11 @@
 # AutoTrader Changelog
 
+## v0.8.0 (2022-10-17)
+
+### Feat
+
+- **autoplot.py**: portfolio plot includes equity and nav hovertool
+
 ## v0.7.11 (2022-10-17)
 
 ### Fix
