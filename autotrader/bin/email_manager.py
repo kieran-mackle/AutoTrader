@@ -2,7 +2,7 @@ import os
 import sys
 from getopt import getopt
 from autotrader.utilities import read_yaml
-from autotrader.emailing import send_order_summary
+from autotrader.comms.emailing import send_order_summary
 
 
 def main(uo_dict: dict) -> None:
