@@ -9,11 +9,12 @@ import traceback
 import numpy as np
 import pandas as pd
 from autotrader import utilities, AutoData
+from autotrader.brokers.broker import AbstractBroker
 from autotrader.brokers.broker_utils import BrokerUtils
 from autotrader.brokers.trading import Order, IsolatedPosition, Position, Trade
 
 
-class Broker:
+class Broker(AbstractBroker):
     def __init__(self, oanda_config: dict, utils: BrokerUtils = None):
         """Create v20 context."""
         self.API = oanda_config["API"]

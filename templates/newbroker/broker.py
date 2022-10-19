@@ -1,4 +1,5 @@
 from autotrader.brokers.trading import Order
+from autotrader.brokers.broker import AbstractBroker
 from autotrader.brokers.broker_utils import BrokerUtils
 
 """
@@ -10,7 +11,7 @@ Notes:
 """
 
 
-class Broker:
+class Broker(AbstractBroker):
     def __init__(self, config: dict, utils: BrokerUtils = None) -> None:
         """AutoTrader Broker Class constructor."""
 

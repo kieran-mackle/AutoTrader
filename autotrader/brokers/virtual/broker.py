@@ -5,14 +5,15 @@ import numpy as np
 import pandas as pd
 from decimal import Decimal
 from typing import Callable
-from datetime import date, datetime, timezone
 from autotrader.autodata import AutoData
+from datetime import date, datetime, timezone
 from autotrader.utilities import get_data_config
+from autotrader.brokers.broker import AbstractBroker
 from autotrader.brokers.broker_utils import OrderBook, BrokerUtils
 from autotrader.brokers.trading import Order, IsolatedPosition, Position, Trade
 
 
-class Broker:
+class Broker(AbstractBroker):
     """Autotrader Virtual Broker for simulated trading.
 
     Attributes
