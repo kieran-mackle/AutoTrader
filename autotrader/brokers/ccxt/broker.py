@@ -1,4 +1,5 @@
 import ccxt
+import time
 from autotrader import AutoData
 from datetime import datetime, timezone
 from autotrader.brokers.broker_utils import OrderBook
@@ -93,37 +94,48 @@ class Broker:
     ) -> dict:
         """Returns orders associated with the account."""
 
-        # Check for order id
-        if "order_id" in kwargs:
-            # Fetch order by ID
-            if self.api.has["fetchOrder"]:
-                orders = [
-                    self.api.fetch_order(id=kwargs["order_id"], symbol=instrument)
-                ]
+        for attempt in range(2):
+            try:
+                # Check for order id
+                if "order_id" in kwargs:
+                    # Fetch order by ID
+                    if self.api.has["fetchOrder"]:
+                        orders = [
+                            self.api.fetch_order(
+                                id=kwargs["order_id"], symbol=instrument
+                            )
+                        ]
 
-        else:
-            # TODO - add exception handling
-            if order_status == "open":
-                # Fetch open orders (waiting to be filled)
-                orders = self.api.fetchOpenOrders(instrument, **kwargs)
+                else:
+                    # TODO - add exception handling
+                    if order_status == "open":
+                        # Fetch open orders (waiting to be filled)
+                        orders = self.api.fetchOpenOrders(instrument, **kwargs)
 
-            elif order_status == "cancelled":
-                # Fetch cancelled orders
-                orders = self.api.fetchCanceledOrders(instrument, **kwargs)
+                    elif order_status == "cancelled":
+                        # Fetch cancelled orders
+                        orders = self.api.fetchCanceledOrders(instrument, **kwargs)
 
-            elif order_status == "closed":
-                # Fetch closed orders
-                orders = self.api.fetchClosedOrders(instrument, **kwargs)
+                    elif order_status == "closed":
+                        # Fetch closed orders
+                        orders = self.api.fetchClosedOrders(instrument, **kwargs)
 
-            elif order_status == "conditional":
-                # Fetch conditional orders
-                orders = self.api.fetchOpenOrders(
-                    instrument, params={"orderType": "conditional"}
-                )
+                    elif order_status == "conditional":
+                        # Fetch conditional orders
+                        orders = self.api.fetchOpenOrders(
+                            instrument, params={"orderType": "conditional"}
+                        )
 
-            else:
-                # Unrecognised order status
-                raise Exception(f"Unrecognised order status '{order_status}'.")
+                    else:
+                        # Unrecognised order status
+                        raise Exception(f"Unrecognised order status '{order_status}'.")
+
+                # Completed without exception, break loop
+                break
+
+            except ccxt.errors.NetworkError:
+                # Throttle then try again
+                time.sleep(1)
 
         # Convert
         orders = self._convert_list(orders, item_type="order")
@@ -134,13 +146,27 @@ class Broker:
         """Cancels order by order ID."""
         try:
             cancelled_order = self.api.cancelOrder(id=order_id, **kwargs)
+
+        except ccxt.errors.NetworkError:
+            # Throttle then try again
+            time.sleep(1)
+            cancelled_order = self.api.cancelOrder(id=order_id, **kwargs)
+
         except Exception as e:
             cancelled_order = e
+
         return cancelled_order
 
     def get_trades(self, instrument: str = None, **kwargs) -> dict:
         """Returns the open trades held by the account."""
-        trades_list = self.api.fetchMyTrades(instrument, **kwargs)
+        try:
+            trades_list = self.api.fetchMyTrades(instrument, **kwargs)
+        except ccxt.errors.NetworkError:
+            # Throttle then try again
+            time.sleep(1)
+            trades_list = self.api.fetchMyTrades(instrument, **kwargs)
+
+        # Convert to native Trades
         trades = self._convert_list(trades_list, item_type="trade")
         return trades
 
@@ -171,32 +197,45 @@ class Broker:
             A dictionary containing details of the open positions.
 
         """
-        if instrument is None:
-            # Get all positions
-            if self.api.has["fetchPositions"]:
-                positions = self.api.fetchPositions(symbols=None, params=kwargs)
-                positions = self._convert_list(positions, item_type="position")
-            else:
-                raise Exception(
-                    f"Exchange {self.exchange} does not have "
-                    + "fetchPositions method."
-                )
-        else:
-            # Get position in instrument provided
-            if self.api.has["fetchPosition"]:
-                position = self.api.fetchPosition(instrument, params=kwargs)
-                if position is not None:
-                    positions = {instrument: self._native_position(position)}
-                else:
-                    positions = {}
+        for attempt in range(2):
+            try:
+                if instrument is None:
+                    # Get all positions
+                    if self.api.has["fetchPositions"]:
+                        positions = self.api.fetchPositions(symbols=None, params=kwargs)
+                        positions = self._convert_list(positions, item_type="position")
 
-            elif self.api.has["fetchPositions"]:
-                positions = self.api.fetchPositions(symbols=[instrument], params=kwargs)
-                positions = self._convert_list(positions, item_type="position")
-            else:
-                raise Exception(
-                    f"Exchange {self.exchange} does not have " + "fetchPosition method."
-                )
+                    else:
+                        raise Exception(
+                            f"Exchange {self.exchange} does not have "
+                            + "fetchPositions method."
+                        )
+                else:
+                    # Get position in instrument provided
+                    if self.api.has["fetchPosition"]:
+                        position = self.api.fetchPosition(instrument, params=kwargs)
+                        if position is not None:
+                            positions = {instrument: self._native_position(position)}
+                        else:
+                            positions = {}
+
+                    elif self.api.has["fetchPositions"]:
+                        positions = self.api.fetchPositions(
+                            symbols=[instrument], params=kwargs
+                        )
+                        positions = self._convert_list(positions, item_type="position")
+                    else:
+                        raise Exception(
+                            f"Exchange {self.exchange} does not have "
+                            + "fetchPosition method."
+                        )
+
+                # Completed without exception, break loop
+                break
+
+            except ccxt.errors.NetworkError:
+                # Throttle then try again
+                time.sleep(1)
 
         # Check for zero-positions
         positions_dict = {}
@@ -208,7 +247,12 @@ class Broker:
 
     def get_orderbook(self, instrument: str) -> OrderBook:
         """Returns the orderbook"""
-        orderbook = self.autodata.L2(instrument=instrument)
+        try:
+            orderbook = self.autodata.L2(instrument=instrument)
+        except ccxt.errors.NetworkError:
+            # Throttle then try again
+            time.sleep(1)
+            orderbook = self.autodata.L2(instrument=instrument)
         return orderbook
 
     def _native_order(self, order: dict):
