@@ -1,5 +1,13 @@
 # AutoTrader Changelog
 
+## v0.8.2 (2022-10-19)
+
+### Refactor
+
+- **Broker**: all broker class inherit from AbstractBroker
+- **brokers.broker.py**: renamed Broker to AbstractBroker
+- **broker.py**: implemented initial broker abstraction
+
 ## v0.8.1 (2022-10-19)
 
 ### Refactor
