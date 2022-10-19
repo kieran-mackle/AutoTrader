@@ -13,9 +13,10 @@ from typing import Callable
 from threading import Thread
 from ast import literal_eval
 from scipy.optimize import brute
-from datetime import datetime, timedelta, timezone
 from autotrader.autoplot import AutoPlot
 from autotrader.autobot import AutoTraderBot
+from datetime import datetime, timedelta, timezone
+from autotrader.brokers.broker import AbstractBroker
 from autotrader.utilities import (
     read_yaml,
     get_broker_config,
@@ -903,7 +904,7 @@ class AutoTrader:
         self._scan_index = scan_index
         self._check_data_alignment = False
 
-    def run(self) -> None:
+    def run(self) -> AbstractBroker:
         """Performs essential checks and runs AutoTrader."""
         # Print Banner
         if int(self._verbosity) > 0:

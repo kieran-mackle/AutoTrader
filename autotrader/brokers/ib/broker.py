@@ -1,11 +1,12 @@
 import random
 import ib_insync
 import numpy as np
-from autotrader.brokers.trading import Order, IsolatedPosition, Position
 from autotrader.brokers.ib.utils import Utils
+from autotrader.brokers.broker import AbstractBroker
+from autotrader.brokers.trading import Order, IsolatedPosition, Position
 
 
-class Broker:
+class Broker(AbstractBroker):
     """AutoTrader-InteractiveBrokers API interface.
 
     Attributes

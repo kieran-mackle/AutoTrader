@@ -3,12 +3,13 @@ from decimal import Decimal
 from datetime import datetime
 from autotrader import AutoData
 from dydx3 import Client, constants
+from autotrader.brokers.broker import AbstractBroker
 from autotrader.brokers.broker_utils import OrderBook
 from autotrader.brokers.dydx.utils import Utils, BrokerUtils
 from autotrader.brokers.trading import Order, Position, Trade
 
 
-class Broker:
+class Broker(AbstractBroker):
     def __init__(self, config: dict, utils: BrokerUtils = None) -> None:
         """AutoTrader Broker Class constructor."""
         self._utils = utils if utils is not None else Utils()

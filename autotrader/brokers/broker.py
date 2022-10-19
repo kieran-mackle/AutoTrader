@@ -1,58 +1,54 @@
+from abc import ABC, abstractmethod
 from autotrader.brokers.trading import Order
-from autotrader.brokers.broker import AbstractBroker
 from autotrader.brokers.broker_utils import BrokerUtils
 
-"""
-Notes:
-    - Public methods are called from outside the broker module, and so must
-      retain functionality of input arguments. If necessary, they can simply
-      be wrapper methods.
-    - Private methods are broker-specific.
-"""
 
-
-class Broker(AbstractBroker):
+class AbstractBroker(ABC):
+    @abstractmethod
     def __init__(self, config: dict, utils: BrokerUtils = None) -> None:
         """AutoTrader Broker Class constructor."""
+        pass
 
-        self._utils = utils if utils is not None else BrokerUtils()
-
-        # Unpack config and connect to broker-side API
-
+    @abstractmethod
     def __repr__(self):
         return "AutoTrader Broker interface"
 
+    @abstractmethod
     def __str__(self):
         return "AutoTrader Broker interface"
 
-    def get_NAV(self) -> float:
+    @abstractmethod
+    def get_NAV(self, *args, **kwargs) -> float:
         """Returns the net asset/liquidation value of the account."""
         pass
 
-    def get_balance(self) -> float:
+    @abstractmethod
+    def get_balance(self, *args, **kwargs) -> float:
         """Returns account balance."""
         pass
 
-    def place_order(self, order: Order, **kwargs) -> None:
-        """Disassemble order_details dictionary to place order."""
-        # Call order to set order time
-        order()
+    @abstractmethod
+    def place_order(self, order: Order, *args, **kwargs) -> None:
+        """Translate order and place via exchange API."""
+        pass
 
-        # Submit order to broker
-
-    def get_orders(self, instrument: str = None, **kwargs) -> dict:
+    @abstractmethod
+    def get_orders(self, instrument: str = None, *args, **kwargs) -> dict:
         """Returns all pending orders (have not been filled) in the account."""
         pass
 
-    def cancel_order(self, order_id: int, **kwargs) -> None:
+    @abstractmethod
+    def cancel_order(self, order_id: int, *args, **kwargs) -> None:
         """Cancels order by order ID."""
         pass
 
-    def get_trades(self, instrument: str = None, **kwargs) -> dict:
+    @abstractmethod
+    def get_trades(self, instrument: str = None, *args, **kwargs) -> dict:
         """Returns the trades (fills) made by the account."""
         pass
 
-    def get_positions(self, instrument: str = None, **kwargs) -> dict:
+    @abstractmethod
+    def get_positions(self, instrument: str = None, *args, **kwargs) -> dict:
         """Gets the current positions open on the account.
 
         Parameters
@@ -66,5 +62,3 @@ class Broker(AbstractBroker):
             A dictionary containing details of the open positions.
         """
         pass
-
-    # Define here any private methods to support the public methods above

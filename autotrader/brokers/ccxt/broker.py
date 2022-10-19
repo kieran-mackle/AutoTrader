@@ -2,12 +2,13 @@ import ccxt
 import time
 from autotrader import AutoData
 from datetime import datetime, timezone
+from autotrader.brokers.broker import AbstractBroker
 from autotrader.brokers.broker_utils import OrderBook
 from autotrader.brokers.ccxt.utils import Utils, BrokerUtils
 from autotrader.brokers.trading import Order, Trade, Position
 
 
-class Broker:
+class Broker(AbstractBroker):
     def __init__(self, config: dict, utils: BrokerUtils = None) -> None:
         """AutoTrader Broker Class constructor."""
         # Unpack config and connect to broker-side API
