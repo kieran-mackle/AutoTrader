@@ -3,7 +3,7 @@ from autotrader.brokers.trading import Order
 from autotrader.brokers.broker_utils import BrokerUtils
 
 
-class Broker(ABC):
+class AbstractBroker(ABC):
     @abstractmethod
     def __init__(self, config: dict, utils: BrokerUtils = None) -> None:
         """AutoTrader Broker Class constructor."""
