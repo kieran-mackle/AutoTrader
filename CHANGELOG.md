@@ -1,5 +1,11 @@
 # AutoTrader Changelog
 
+## v0.8.1 (2022-10-19)
+
+### Refactor
+
+- **ccxt.broker.py**: added network exception handling with single retries
+
 ## v0.8.0 (2022-10-17)
 
 ### Feat
