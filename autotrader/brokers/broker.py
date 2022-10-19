@@ -30,7 +30,7 @@ class AbstractBroker(ABC):
     @abstractmethod
     def place_order(self, order: Order, *args, **kwargs) -> None:
         """Translate order and place via exchange API."""
-        pass 
+        pass
 
     @abstractmethod
     def get_orders(self, instrument: str = None, *args, **kwargs) -> dict:
