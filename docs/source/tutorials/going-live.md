@@ -1,63 +1,117 @@
-# Going Live with AutoTrader
+# Live Trading with AutoTrader
+If you have a strategy and have been able to run a backtest on it,
+you are able to take it live with no extra effort. Live trading is
+also known as 'forward testing', since you are running the strategy
+in real-time. You can do this in two different environments:
 
-Live trading is the [default trading medium](autotrader-mediums) of AutoTrader. As such, you are only 
-required to specify the strategy configuration file along with any run 
-[configuration](autotrader-config-methods) parameters to take a strategy live. 
+1. A simulated environment, where trades are simulated in real-time 
+("paper trading")
+2. The live environment, where trades are submitted to real brokers
+and exchanges for execution with real money.
+
+If you want to do the latter, you will need to make sure you have your
+API keys defined in your [`keys.yaml` file](global-config). This isn't 
+necessary for paper trading, since the environment is completely 
+simulated.
 
 
 ## Live Runfile
-To take our MACD strategy live, we would simply modify our run file by removing the `backtest` and
-`optimise` calls, as shown below. 
+To take our MACD strategy live, we can modify the run file to that 
+shown below. 
+
+### Paper Trade with Virtual Broker
 
 ```python
 from autotrader import AutoTrader
 
 at = AutoTrader()
-at.configure(broker='oanda', feed='oanda')
+at.configure(verbosity=1, feed='yahoo',
+             mode='continuous', update_interval='1h') 
+at.add_strategy('macd') 
+at.virtual_account_config(leverage=30)
+at.run()
+```
+
+This will launch AutoTrader into live papertrade mode. Every 1 hour,
+AutoTrader will refresh your strategy to get the latest signals. If
+an order is recieved, it will be executed in the virtual broker. 
+
+When you run AutoTrader in livetrade mode, it will create a new directory
+named `active_bots`, and store a text file for each actively running 
+AutoTrader instance. To kill an instance, simply delete the instance
+file, or do a keyboard interrupt. You can open these files to remind 
+yourself which strategy they are running. In the example above, a file 
+named something like "autotrader_instance_1" will be created, and contain 
+the following text.
+
+```
+This instance of AutoTrader contains the following bots:
+Simple Macd Strategy (EURUSD=X)
+```
+
+What if you want to get a bit more accurate with your paper trading? 
+
+
+### Paper Trade with Real Broker
+Sometime brokers/exchanges offer a paper trading API endpoint, such as
+Oanda. In this case, you can use their papertrading API to test your 
+strategies in livetrade mode. What if the broker doesn't offer this?
+In this case, AutoTrader can mirror the real-time orderbook of the 
+exchange you would like to simulate, executing trades in an instance
+of AutoTrader's virtual broker.
+
+The runfile below is an example of papertrading on the crypto exchange
+[dYdX](https://dydx.exchange/). The first difference is that we specify
+the broker/exchange to trade on in the `configure` method using the 
+`broker` argument. Since we would like to papertrade, we need to configure
+the virtual account as before. Now, however, you should specify that the 
+account you are configuring is for the 'dydx' exchange, as specified in 
+the `configure` method. This is especially important when trading with 
+multiple brokers at once. When setting up AutoTrader like this, the 
+virtual broker will retrieve the real-time orderbook from 'dydx' 
+in order to simulate trade execution.
+
+```python
+from autotrader import AutoTrader
+
+at = AutoTrader()
+at.configure(verbosity=1, broker='dydx',
+             mode='continuous', update_interval='1h') 
+at.add_strategy('macd') 
+at.virtual_account_config(leverage=30, exchange='dydx')
+at.run()
+```
+
+
+
+### Live Trade with Real Broker
+
+If you are ready to trade directly on a real exchange, make sure you
+have defined your API keys in the `keys.yaml` file. Then, set up your
+run file like the one shown below. It is that easy.
+
+```python
+from autotrader import AutoTrader
+
+at = AutoTrader()
+at.configure(verbosity=1, broker='dydx',
+             mode='continuous', update_interval='1h') 
 at.add_strategy('macd')
 at.run()
 ```
 
-Using the [`configure`](autotrader-configure) method, we specify the broker and feed as `oanda`, indicating we will 
-be trading with the Oanda API. This will automatically assign the Oanda API module as the broker, and use Oanda to 
-retrieve price data. This is a very minimal run file, however there are more options available in the `configure` 
-method. For example, we can specify the level of email verbosity via the `notify` input, so that you get an email 
-for specific trading activity. Read more about the configuration method [here](autotrader-configure). 
+```{note}
+If the broker you are trading on supports native paper trading (such as 
+Oanda), you can use the same runfile shown above, but pass in 'paper'
+as the `environment` argument to the `configure` method.
+```
 
-If you have developed and backtested your strategy with AutoTrader, then it is likely that everything is set 
-up already, and all you need to do differently to take your strategy live is modify the runfile as shown above.
-Before doing this, double check the following requirements are met in each configuration file.
-- Global Configuration: Specify all required account information in the 
-[global configuration](global-config) corresponding to your 
-brokerage account.
-- Strategy Configuration: Ensure that the correct data period, data interval and trading instruments are
-specified in your [strategy configuration](strategy-config). 
+
 
 
 ## Automated Running
-Putting a strategy live will vary depending on if you are running AutoTrader in periodic or continuous mode.
-In this tutorial, we developed the strategy to run in periodic mode, which was the original mode of AutoTrader.
-Read about these modes [here](autotrader-run-modes).
 
-### Periodic Mode
-When running in periodic mode, you need a way to automatically run AutoTrader at whatever interval your strategy 
-demands (as per the `INTERVAL` key of your strategy configuration). In theory, if you are running a strategy 
-on the daily timeframe, you could manually run AutoTrader at a certain time each day, such as when the daily 
-candle closes. To automate this, you will need some sort of job scheduler or automated run file.
-
-If you are running on Linux, [cron](https://en.wikipedia.org/wiki/Cron) is a suitable option. Simply schedule 
-the running of your run file at an appropriate interval, as dictated by your strategy. Alternatively, you could 
-write the runfile above into a `while True:` loop to periodically run your strategy, using `time.sleep()` to 
-pause between the periodic updates.
-
-
-### Continuous Mode
-Going live in continous mode is tremendously effortless. Specify how frequently you would like AutoTrader to 
-refresh the data feed using the `update_interval` in the [`configure`](autotrader-configure) method, and 
-run the file. Thats it! When you do this, you'll notice that AutoTrader will create an `active_bots/` directory,
-and create an empty file each time you run an instance of AutoTrader live in continuous. To kill the trading 
-bots associated with that instance, simply delete this file, and AutoTrader will stop running.
-
-If you are running on a server, you might want to use [`nohup`](https://www.maketecheasier.com/nohup-and-uses/)
-(short for 'no hangup') to prevent your system from stopping Python when you log out.
+If you are running on a server, you might want to use 
+[`nohup`](https://www.maketecheasier.com/nohup-and-uses/) (short for 'no 
+hangup') to prevent your system from stopping Python when you log out.
 

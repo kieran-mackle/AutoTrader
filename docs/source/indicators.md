@@ -419,9 +419,3 @@ Performs the reverse function of [`rolling`](rolling-signal).
 ```{eval-rst}
 .. autofunction:: autotrader.indicators.unroll_signal_list
 ```
-
-
-
-## Requesting an Indicator
-If you would like to see your own indicator implemented, or would like one from TradingView to be translated into Python,
-please raise a feature request [here](https://github.com/kieran-mackle/AutoTrader/issues/new/choose). 

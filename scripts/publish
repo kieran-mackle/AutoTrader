@@ -1,0 +1,3 @@
+# Publish AutoTrader to PyPi
+python -m build
+python -m twine upload dist/* -u $PYPI_USERNAME -p $PYPI_PASSWORD

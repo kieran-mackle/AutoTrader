@@ -12,11 +12,7 @@
   </a>
   
   <a href="https://pepy.tech/project/autotrader">
-    <img src="https://pepy.tech/badge/autotrader" alt="Total downloads" >
-  </a>
-  
-  <a href="https://pepy.tech/project/autotrader">
-    <img src="https://pepy.tech/badge/autotrader/week" alt="Monthly downloads" >
+    <img src="https://pepy.tech/badge/autotrader/month" alt="Monthly downloads" >
   </a>
   
   <a>
@@ -27,26 +23,43 @@
     <img src='https://readthedocs.org/projects/autotrader/badge/?version=latest' alt='Documentation Status' />
   </a>
   
+  <a href="https://github.com/psf/black">
+    <img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg">
+  </a>
+  
 </p>
 
 
 
 AutoTrader is Python-based platform intended to help in the development, optimisation and deployment of automated trading systems. 
-From simple indicator-based strategies, to complex non-directional hedging strategies, AutoTrader can do it all. If you prefer a more hands-on 
-approach to trading, AutoTrader can also assist you by notifying you of price behaviour, ensuring you never miss a signal again.
 A basic level of experience with Python is recommended for using AutoTrader, but the [docs](https://autotrader.readthedocs.io/en/latest/) 
 aim to make using it as easy as possible with detailed tutorials and documentation.
 
+## Latest News
+- Version 0.7 has been released, adding integrations with [CCXT](https://github.com/ccxt/ccxt) and [dYdX](https://dydx.exchange/) crypto exchanges. Many more powerful upgrades too.
+- AutoTrader has been featured in GitClone's recent article, [*Top Crypto Trader Open-Source Projects on Github*](https://gitclone.dev/top-crypto-trader-open-source-projects-on-github/).
+
 ## Features
-- [Backtesting](https://autotrader.readthedocs.io/en/latest/features/backtesting.html), featuring multiple 
-[order types](https://autotrader.readthedocs.io/en/latest/broker/trading.html)
-(market, limit, stop-limit, trailing stops, etc.) and the ability to **trade multiple instruments, multiple timeframes, and multiple strategies in the same backtest, against the same broker**
-- [Integrated data feeds](https://kieran-mackle.github.io/AutoTrader/tutorials/price-data), such as Yahoo Finance (via [yfinance](https://pypi.org/project/yfinance/)) and Oanda v20 REST API
+- A feature-rich trading simulator, supporting [backtesting](https://autotrader.readthedocs.io/en/latest/features/backtesting.html) and 
+papertrading. The 'virtual broker' allows you to test your strategies in a risk-free, simulated environment before going live. Capable 
+of simulating multiple order types, stop-losses and take-profits, cross-exchange arbitrage and portfolio strategies, AutoTrader has 
+more than enough to build a profitable trading system.
+- [Integrated data feeds](https://kieran-mackle.github.io/AutoTrader/tutorials/price-data), making OHLC data retrieval as easy as possible.
 - [Automated interactive visualisation](https://autotrader.readthedocs.io/en/latest/features/visualisation.html) using [Bokeh](https://bokeh.org/)
-- [Library of custom indicators](https://autotrader.readthedocs.io/en/latest/indicators.html)
-- [Live trading](https://autotrader.readthedocs.io/en/latest/features/live-trading.html) supported for [Oanda](https://www.oanda.com/) and [Interactive Brokers](https://www.interactivebrokers.com)
+- [Library of custom indicators](https://autotrader.readthedocs.io/en/latest/indicators.html).
+- [Live trading](https://autotrader.readthedocs.io/en/latest/features/live-trading.html) supported for multiple venues.
 - [Detailed documenation and tutorials](https://autotrader.readthedocs.io/en/latest/index.html)
 - [Repository](https://github.com/kieran-mackle/autotrader-demo) of example strategies
+
+## Supported Brokers and Exchanges
+
+| Broker | Asset classes | Integration status |
+| -------- | ------------- | ------------------ |
+| [Oanda](https://www.oanda.com/)    | Forex CFDs    | Complete |
+| [Interactive Brokers](https://www.interactivebrokers.com/en/home.php) | Many | In progress |
+| [dYdX](https://dydx.exchange/) | Cryptocurrencies | Complete |
+| [CCXT](https://github.com/ccxt/ccxt) | Cryptocurrencies | In progress |
+
 
 ## Installation
 AutoTrader can be installed using pip:

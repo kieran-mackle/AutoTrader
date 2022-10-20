@@ -1,9 +1,206 @@
 # AutoTrader Changelog
 
-## Version 0.6.7 (Unreleased)
+## v0.8.2 (2022-10-19)
+
+### Refactor
+
+- **Broker**: all broker class inherit from AbstractBroker
+- **brokers.broker.py**: renamed Broker to AbstractBroker
+- **broker.py**: implemented initial broker abstraction
+
+## v0.8.1 (2022-10-19)
+
+### Refactor
+
+- **ccxt.broker.py**: added network exception handling with single retries
+
+## v0.8.0 (2022-10-17)
+
+### Feat
+
+- **autoplot.py**: portfolio plot includes equity and nav hovertool
+
+## v0.7.11 (2022-10-17)
+
+### Fix
+
+- email_manager import (#46)
+- datetime.timezone import
+- CCXT get_trades uses kwargs in fetchMyTrades call
+
+## Version 0.7.10
+### Changes
+- Improved verbosity for exception handling.
+- Improved verbosity in `autotrader.py` for bot updates.
+- Added utility to CCXT interface (`get_min_notional` and 
+  `get_ticksize` methods).
+- Improved CCXT `get_orders` capability.
+
+### Fixes
+- CCXT interface `get_trades` method updated for `Trade` object 
+  arguments.
+
+## Version 0.7.9
+### Fixes
+- Plotting bug when option to show cancelled orders is True.
+
+## Version 0.7.8
+### Features
+- Upgraded virtual broker: backtest speedup for large portfolio's 
+- Ability to specify `deploy_time` in `AutoTrader.configure()`, a datetime 
+  object for when to release trading bots.
+- Improved verbosity from main module when running.
+
+## Version 0.7.7
+### Fixes
+- Decimal error when placing market orders with `dydx` module.
+
+## Version 0.7.6
+### Fixes
+- Import error of `AutoData` in `dydx` module.
+
+## Version 0.7.5
+### Features
+- AutoBot submits orders using `ThreadPoolExecutor` to speedup
+  submission of multiple orders.
+- Ability to provide custom execution methods via 
+  `AutoTrader.configure(execution_method=)`. 
+- Improved verbosity from `autobot`s.
+
+### Fixes
+- Handling of testnet/mainnet keys when paper/virtual/live trading.
+- Inclusion of `__init__.py` file in `autotrader/brokers/ccxt/`.
+- Timezone handling.
+- Virtual broker does not use lambda functions to allow pickling.
+- Unified `broker._utils` attribute naming.
+
+
+## Version 0.7.4
+### Features
+- Better exception handling in CCXT broker interface.
+- Ability to specify `mainnet` and `testnet` API keys in your
+  `keys.yaml` file.
+- Ability to provide slippage models for backtests (via 
+  `at.configure()`).
+
+### Fixes
+- Inifite `while` loop bug in virtual broker `_reduce_position`
+  method due to machine precision.
+- Backtest portfolio plotting of more than 18 instruments is 
+  possible now due to an increased color pallete.
+
+## Version 0.7.3
+### Fixes
+- Unification of `get_orderbook` in supporting `broker` modules.
+- Expected behaviour of `get_positions` method in CCXT broker module.
+
+### Features
+- Trading object `Position` includes attribute `ccxt` to include the 
+  output from `CCXT` methods.
+- Improved configuration options for CCXT exchanges in `keys.yaml` file.
+
+## Version 0.7.2
+### Fixes
+- Oanda live trade functionality restored (after `keys.yaml` rename).
+
+### Features
+- `AutoData` is more intelligent when creating a new instance; `kwargs` can
+  be used in place of `data_config` dictionary, simplifying instantiation.
+- Utility methods `get_broker_config` and `get_data_config` have been 
+  simplified, allowing calling without `global_config` argument (`keys.yaml`
+  will be read in from `config/` directory).
+
+## Version 0.7.1
+### Changes
+- Oanda configuration keys in `keys.yaml` have changed for clarification
+
+### Fixes
+- Oanda `data_config` includes account id, restoring automated data retrieval
+
+### Features 
+- Improved portfolio plot type
+- Improved printouts
+
+
+## Version 0.7.0
+AUGUST 2022
+
+### Breaking Changes
+- Backtest `spread` is now specified in absolute price units (rather than 
+  pips as previously)
+- Environment specification: paper trading can be activated by setting 
+  `environment` to `paper` (default) and live trading can be activated
+  by setting `environment` to `live`
+- To further remove the distinction between backtesting and livetrading,
+  various methods and attributes have been renamed to reflect their 
+  generality and indifference to mode of trading. Important changes include
+  `AutoTrader.backtest_results` to `AutoTrader.trade_results` (and similar for 
+  `AutoBot`), `AutoTrader.print_backtest_results` to `AutoTrader.print_trade_results` 
+  and `BacktestResults` class to `TradeAnalysis`.
+  Renaming generally followed the pattern of renaming `*backtest*` to 
+  `*trade*`.
+- For consistency in naming conventions, `GetData` class of `autodata.py` has 
+  been renamed to `AutoData`.
+- Broker interface method `get_positions` will directly 
+- Rename `virtual_livetrade_config` to `virtual_account_config`.
+- Strategy configuration key `INCLUDE_POSITIONS` has been deprecated in favour
+  of using `INCLUDE_BROKER`, then directly fetching positions from broker using
+  `get_positions` method.
+- Renamed `GLOBAL.yaml` to `keys.yaml` for clarification.
+- Run mode 'continuous' has become the default run mode. To continue running strategies
+in periodic update mode, you will now need to specify `mode='periodic'` in `configure`.
+- The behaviour of broker method `get_trades` has changed: now returns a list of fills 
+(executed trades based on the `Trade` object), rather than a dictionary of 
+`IsolatedPositions` objects as before. This falls in line with the more common 
+definition of a trade, but diverges from Oanda. As such, a new method 
+`get_isolated_positions` has been added to the virtual broker and Oanda API interface
+to maintain the previous functionality of `get_trades`.
+
+
 ### Features
 - Major backtest speed improvements: over 50% reduction in backtest time for 
   large, multi-asset backtests
+- Live paper-trading via the virtual broker: use `AutoTrader.virtual_livetrade_config`
+  to configure virtual broker.
+- To check-in on paper trading status, there is a new convenience method 
+  `papertrade_snapshot`, which will print up-to-date trade results from 
+  the virtual broker pickled instance.
+- Support for decentralised crypto exchange dYdX
+- Support for many more crypto exchanges via CCXT
+- Introduction of 'portfolio' strategies: passing data of multiple assets to 
+  a single strategy. Simply include `PORTFOLIO: True` in your strategy 
+  configuration.
+- Data feeds have been unified to make data retrieval simpler than ever. Now there
+  are methods `fetch` and `quote`, which can be used to fetch OHLC price data 
+  from various feeds, depending on the `data_source` specified in the 
+  data configuration dictionary. Retrieval of level 1 and level 2 data is also
+  available (where possible), accessible via the `L1` and `L2` methods.
+- Improved backtest accuracy, with orderbook simulation and order type dependent
+  commissions.
+- Additional commission schemes for backtesting.
+- Option to specify bid/ask spread as a percentage value.
+- Manual trading (paper and live) via command line. Simply configure an instance 
+  of AutoTrader without adding a strategy, and the broker specified will be 
+  instantiated ready for trading. Papertrading via the virtual broker supported.
+- Ability to trade across multiple venues from a single strategy. Simply
+  provide the broker names with comma separation via the `configure` method,
+- Exchange-specific precision checking for Orders. Even in backtest mode, AutoTrader
+  will communicate with your chosen exchange to precision-check your orders.
+- Code is now formatted using [Black](https://github.com/psf/black).
+- Ability to specify a time range for `PERIOD` in strategy configuration. This value
+will be converted to an integer using the `INTERVAL` key.
+
+
+### Deprecation Notices
+- Broker method `get_trade_details` has been deprecated in favour of `get_trades`
+  method.
+- Strategy configuration key `INCLUDE_POSITIONS` has been deprecated in favour
+  of using `INCLUDE_BROKER`, then directly fetching positions from broker using
+  `get_positions` method.
+
+### Fixes
+- Minor improvements to margin requirement calculations in backtest
+
 
 
 ## Version 0.6.6
@@ -137,241 +334,6 @@
 - Ability to use virtual broker in livetrade mode
 
 
-## Version 0.5.0
-Breaking change:
-- virtual broker method 'get_open_positions' will now behave more as expected,
-  returning the culmination of open trades for the specified instrument(s).
-  Instead of returning a dictionary of open trades, a nested dictionary will
-  be returned, containing the total position size held (long and short units),
-  associated trade ID's and other information. 
-
-Fixes:
-- margin calculations for multi-instrument backtests
-- fix: MTF None type handling when optimising
-- fix: MTF assignment error when providing custom data file
-- fix: Heikin Ashi overwriting inputted price data
-- fix: trailing stop behaviour in virtual broker, when specifying stop loss as
-  a price.
-- fix: added v20 dependency
-- fix: stop loss filter will only be applied when there is a stop loss
-- fix: overwrite of keys in strategy parameters
-
-Features:
-- Multi-instrument backtest data checking: datasets with mis-matched lengths
-  are automatically corrected to improve backtest reliability.
-- improved docstrings
-- feat: added pivot point plot method to AutoPlot
-- feat: added resampling method to AutoPlot to allow for MTF plotting
-- feat: MTF support for local files
-- feat: new indicators: divergence detection
-- feat: improved divergence indicators
-- feat: new indicator: halftrend
-- feat: improved robustness of generic indicator line plotting
-- feat: added capability to plot multiple indicator lines on same figure
-  
-
-### 0.5.32
-- fix: trailing stops bug in virtual broker
-- fix: pending order method in Oanda module
-
-### 0.5.31
-- fix: virtual broker is now more robust to bad data
-- docs: added commission method to virtual broker, eventually to allow more
-      complex commission schemes
-- fix: autodetect_divergence now accepts `tolerance` argument
-
-### 0.5.30
-- docs: virtual broker `cancel_pending_order` method closer reflects Oanda 
-      method equivalent method
-- feat: `add_data` allows specifying local `quote_data` for home conversion
-      factor.
-
-### 0.5.29
-- feat: added trading session plot type, to show times of trading sessions
-      in AutoPlot (indicator type `trading-session`)
-- feat: added get_trade_details method to oanda module to match virtual broker
-
-### 0.5.28
-- feat: `instrument` key added to `signal_dict` to allow optionally trading 
-    other products from a strategy.
-
-### 0.5.27
-- fix: backtest dates will be adhered to (as close as possible) when providing
-    local data
-- feat: generalised `plot_backtest` method
-- feat: (beta) ability to specify chart candle timeframe via `plot_settings`
-     to plot MTF strategies on timeframes other than the base timeframe. This
-     feature is useful to reduce the chart filesize by plotting on higher
-     timeframe candles.
-
-### 0.5.26
-- feat: AutoTrader analyse backtest methods are now simpler to use, requiring
-      only the bot as an input. 
-- feat: `bot.backtest_summary` now includes an `account_history` key, containing
-    a DataFrame with the time-history of the trading account balance, NAV, 
-    margin available and drawdown.
-
-### 0.5.25
-- fix: order submission time error when backtesting with verbosity
-- feat: empty signal dicts are now accepted when no order is to be submitted
-
-### 0.5.24
-- fix: order SL and TP filter for limit and stop-limit order types
-- feat: added option to show/hide cancelled orders in AutoPlot
-
-### 0.5.23
-- feat: added shaded bands plotting to AutoPlot
-
-### 0.5.22
-- feat: added total trading fees to trade summary
-
-### 0.5.21
-- feat: added `add_data` method to conveniently provide local price data files.
-
-### 0.5.20
-- feat: added `order_type: modify` to virtual broker, to allow dynamically 
-     updating stop losses and take profits 
-     ([Issue 11](https://github.com/kieran-mackle/AutoTrader/issues/11)). 
-     **This order type is not yet supported in the Oanda module.**
-
-### 0.5.19
-- fix: AutoPlot attribute error
-
-### 0.5.18
-- feat: added Jupyter notebook config option to AutoTrader
-
-### 0.5.17
-- feat: added Jupyter notebook flag to AutoPlot to allow inline plotting
-- fix: duplicate data will be deleted when downloading
-
-### 0.5.16
-- fix: Oanda `get_open_positions()` more reflective of virtual broker, added 
-    (incomplete) method for `get_open_trades()`
-
-### 0.5.15
-- fix: default setting of limit stop loss type
-
-### 0.5.14
-- fix: overwrite of keys in strategy parameters: risk_pc, granularity, sizing  
-    and period. If these keys exist already, they will no longer be overwritten
-
-### 0.5.13
-- fix: data alignment verification method when using MTF data
-
-### 0.5.12
-- feat: added signal plotting method to IndiView ('type': 'signals')
-- feat: improved multibot backtest axis labelling
-- docs: changed virtual broker update order in backtest to improve order 
-      executions
-
-### 0.5.11
-- fix: stop loss filter will only be applied when there is a stop loss
-
-### 0.5.10
-- feat: improved robustness of generic indicator line plotting
-- feat: added capability to plot multiple indicator lines on same figure
-
-### 0.5.9
-- fix: added v20 dependency
-
-### 0.5.8
-- fix: trailing stop behaviour in virtual broker, when specifying stop loss as
-  a price.
-- feat: new indicator: halftrend
-
-### 0.5.7
-- fix: Heikin Ashi overwriting inputted price data
-
-### 0.5.6
-- feat: improved divergence indicators
-
-### 0.5.5
-- feat: new indicators: divergence detection
-
-### 0.5.4
-- feat: MTF support for local files
-
-### 0.5.3
-- fix: MTF assignment error when providing custom data file
-- feat: added pivot point plot method to AutoPlot
-- feat: added resampling method to AutoPlot to allow for MTF plotting
-
-### 0.5.2
-- fix: MTF None type handling when optimising
-
-### 0.5.1
-- fix: margin available will update upon initial deposit
-- improved docstrings
-
-
-## Version 0.4.0
-- Livetrade mode now supports bot detachment, so that bots will trade until
-  a termination signal is received. This is achieved through the bot manager.
-- Data time alginment can optionally be disabled
-- Various plotting improvements
-
-
-### 0.4.27
-- Feature: added trade unit precision method to oanda
-
-### 0.4.26
-- Changed links on pypi
-
-### 0.4.25
-- Added website/github link on pypi
-
-### 0.4.24
-- Added pip location method to Oanda API module
-
-### 0.4.23
-- Fix: rounding of position sizing in broker utils
-
-### 0.4.22
-- Fix: added small pause between opening new plot from scan results to 
-
-### 0.4.21
-- Added generic emailing method 'send_message' to easily send custom emails
-
-### 0.4.20
-- Added position retrieval from Oanda
-
-### 0.4.19
-- Plotting enhancements
-- Improvements to scan mode
-
-### 0.4.18
-- various stream fixes
-
-### 0.4.17
-- Stream will check instrument of tick data to attempt to fix price bug
-
-### 0.4.16
-- Stream will run indefinitely until manually stopped, to ensure bots using 
-stream will not be prematurely terminated
-
-### 0.4.15
-- Improved exception handling
-
-### 0.4.14
-- Ability to suspend bots and stream when livetrading. This is useful for 
-  weekends / closed trading period, where trading is not possible, but you
-  do not wish to kill an active bot.
-- Various stream connection improvements
-- Docstring improvements
-
-### 0.4.13
-- Added 3 second sleep when reconnecting to Oanda API
-
-### 0.4.12
-- fix typo in connection check
-
-### 0.4.11
-- Added connection check to Oanda module
-
-### 0.4.10
-- Major improvements to AutoStream
-- Livetrade with data updates directly from stream
-- If running in detached bot mode, must include initialise_strategy(data)
-method in strategy module so that it can recieve data updates from the bot
-- Must also have exit_strategy(i) method in strategy module, to allow safe
-strategy termination from bot manager
+## Older Versions
+For a changelog of versions prior to `v0.6.0`, please refer to the 
+[older versions](old-changelog) changelog.
