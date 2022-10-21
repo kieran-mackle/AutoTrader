@@ -394,7 +394,7 @@ class AutoTrader:
                 sys.exit()
 
             # Check for other required keys
-            # TODO - review required keys (WATCHLIST? INTERVAL and 
+            # TODO - review required keys (WATCHLIST? INTERVAL and
             # PERIOD only when feed not none)
             required_keys = ["CLASS", "INTERVAL", "PERIOD"]
             for key in required_keys:
@@ -1010,14 +1010,14 @@ class AutoTrader:
                         + f" Number of brokers specifed: {self._no_brokers}\n"
                         + f" Number of virtual accounts configured: {len(self._virtual_broker_config)}"
                     )
-        
+
         # Check notification settings
         if self._notify > 0 and self._notification_provider is None:
-            print("Please specify a notification provided via the "+\
-                "configure method."
+            print(
+                "Please specify a notification provided via the " + "configure method."
             )
             sys.exit()
-        
+
         # Preliminary checks complete, continue initialisation
         if self._optimise_mode:
             # Run optimisation
@@ -1056,7 +1056,7 @@ class AutoTrader:
 
                 # Assign
                 self._global_config_dict = global_config
-            
+
             # Create notifier instance
             if "telegram" in self._notification_provider.lower():
                 # Use telegram
@@ -1071,13 +1071,11 @@ class AutoTrader:
                         if key not in self._global_config_dict["TELEGRAM"]:
                             print(f"Please provide {key} under TELEGRAM in keys.yaml.")
                             sys.exit()
-                    
-                tg_module = importlib.import_module(
-                    f"autotrader.comms.tg"
-                )
+
+                tg_module = importlib.import_module(f"autotrader.comms.tg")
                 self._notifier = tg_module.Telegram(
                     api_token=self._global_config_dict["TELEGRAM"]["api_key"],
-                    chat_id=self._global_config_dict["TELEGRAM"]["chat_id"]
+                    chat_id=self._global_config_dict["TELEGRAM"]["chat_id"],
                 )
 
             # Check data feed requirements

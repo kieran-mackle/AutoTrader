@@ -346,7 +346,9 @@ class AutoTraderBot:
                         f.result()
                     except Exception as e:
                         traceback_str = "".join(traceback.format_tb(e.__traceback__))
-                        exception_str = f"AutoTrader exception when submitting order: {e}"
+                        exception_str = (
+                            f"AutoTrader exception when submitting order: {e}"
+                        )
                         print_str = exception_str + "\nTraceback:\n" + traceback_str
                         print(print_str)
 
