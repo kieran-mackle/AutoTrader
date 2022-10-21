@@ -69,6 +69,7 @@ Miscellaneous <tutorials/misc/misc-tuts>
 User Inputs <userfiles/userfiles>
 AutoTrader API <core/core-modules>
 Broker Interface <broker/broker-interface>
+Communications Module <core/communications>
 Indicator Library <indicators>
 Command Line Interface <core/cli>
 ```
