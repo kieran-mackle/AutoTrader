@@ -18,7 +18,7 @@ class Telegram(Notifier):
         return "AutoTrader-Telegram communication module"
 
     def send_order(self, order: Order, *args, **kwargs) -> None:
-        side = 'long' if order.direction > 1 else 'short'
+        side = 'long' if order.direction > 0 else 'short'
         message = f'New {order.instrument} {order.order_type} order created: '+\
             f'{order.size} units {side}'
         
