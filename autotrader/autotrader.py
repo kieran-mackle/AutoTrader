@@ -92,7 +92,7 @@ class AutoTrader:
 
         # Communications
         self._notify = 0
-        self._notification_provider = None
+        self._notification_provider = ""
         self._notifier = None
         self._email_params = None
         self._order_summary_fp = None
@@ -301,7 +301,11 @@ class AutoTrader:
         self._broker_name = broker if broker is not None else self._broker_name
         self._execution_method = execution_method
         self._notify = notify
-        self._notification_provider = notification_provider
+        self._notification_provider = (
+            notification_provider
+            if notification_provider is not None
+            else self._notification_provider
+        )
         self._home_dir = home_dir if home_dir is not None else os.getcwd()
         self._allow_dancing_bears = allow_dancing_bears
         self._allow_duplicate_bars = allow_duplicate_bars

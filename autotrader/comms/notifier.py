@@ -1,5 +1,5 @@
-from autotrader import Order
 from abc import ABC, abstractmethod
+from autotrader.brokers.trading import Order
 
 
 class Notifier(ABC):

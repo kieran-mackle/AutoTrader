@@ -30,6 +30,7 @@ yfinance_dep = [
     "yfinance >= 0.1.67",
 ]
 dev_dep = [
+    "pytest >= 7.1.1",
     "black >= 22.10.0",
     "sphinx-copybutton >= 0.5.0",
     "sphinx-inline-tabs >= 2022.1.2b11",

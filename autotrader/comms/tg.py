@@ -1,6 +1,6 @@
 import os
 import telegram
-from autotrader import Order
+from autotrader.brokers.trading import Order
 from autotrader.comms.notifier import Notifier
 from autotrader.utilities import read_yaml, write_yaml
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
