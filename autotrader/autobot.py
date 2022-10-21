@@ -394,27 +394,7 @@ class AutoTraderBot:
             # Check for orders placed and/or scan hits
             if int(self._notify) > 0 and not self._backtest_mode:
                 for order in orders:
-                    self._broker_utils[order.exchange].write_to_order_summary(
-                        order, self._order_summary_fp
-                    )
-
-                if (
-                    int(self._notify) > 1
-                    and self._email_params["mailing_list"] is not None
-                    and self._email_params["host_email"] is not None
-                ):
-                    if int(self._verbosity) > 0 and len(self._latest_orders) > 0:
-                        print("Sending emails ...")
-
-                    for order in orders:
-                        emailing.send_order(
-                            order,
-                            self._email_params["mailing_list"],
-                            self._email_params["host_email"],
-                        )
-
-                    if int(self._verbosity) > 0 and len(orders) > 0:
-                        print("  Done.\n")
+                    self._notifier.send_order(order)
 
             # Check scan results
             if self._scan_mode:

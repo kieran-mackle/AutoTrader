@@ -92,6 +92,8 @@ class AutoTrader:
 
         # Communications
         self._notify = 0
+        self._notification_provider = None
+        self._notifier = None
         self._email_params = None
         self._order_summary_fp = None
 
@@ -187,6 +189,7 @@ class AutoTrader:
         feed: str = None,
         req_liveprice: bool = False,
         notify: int = 0,
+        notification_provider: str = None,
         home_dir: str = None,
         allow_dancing_bears: bool = False,
         account_id: str = None,
@@ -228,6 +231,9 @@ class AutoTrader:
             than using the data already provided. The default is False.
         notify : int, optional
             The level of email notifications (0, 1, 2). The default is 0.
+        notification_provider : str, optional
+            The notifications provider to use (currently only Telegram supported).
+            The default is None.
         home_dir : str, optional
             The project home directory. The default is the current working directory.
         allow_dancing_bears : bool, optional
@@ -295,6 +301,7 @@ class AutoTrader:
         self._broker_name = broker if broker is not None else self._broker_name
         self._execution_method = execution_method
         self._notify = notify
+        self._notification_provider = notification_provider
         self._home_dir = home_dir if home_dir is not None else os.getcwd()
         self._allow_dancing_bears = allow_dancing_bears
         self._allow_duplicate_bars = allow_duplicate_bars
@@ -379,15 +386,16 @@ class AutoTrader:
             # Construct strategy name
             try:
                 name = new_strategy["NAME"]
-            except KeyError:
-                raise Exception(
+            except (TypeError, KeyError):
+                print(
                     "Please specify the name of your strategy via the "
-                    + "'NAME' key of the strategy configuration. This name should "
-                    + "match the class name of your strategy."
+                    + "'NAME' key of the strategy configuration."
                 )
+                sys.exit()
 
             # Check for other required keys
-            # TODO - review required keys
+            # TODO - review required keys (WATCHLIST? INTERVAL and 
+            # PERIOD only when feed not none)
             required_keys = ["CLASS", "INTERVAL", "PERIOD"]
             for key in required_keys:
                 if key not in new_strategy:
@@ -1002,7 +1010,14 @@ class AutoTrader:
                         + f" Number of brokers specifed: {self._no_brokers}\n"
                         + f" Number of virtual accounts configured: {len(self._virtual_broker_config)}"
                     )
-
+        
+        # Check notification settings
+        if self._notify > 0 and self._notification_provider is None:
+            print("Please specify a notification provided via the "+\
+                "configure method."
+            )
+            sys.exit()
+        
         # Preliminary checks complete, continue initialisation
         if self._optimise_mode:
             # Run optimisation
@@ -1041,6 +1056,29 @@ class AutoTrader:
 
                 # Assign
                 self._global_config_dict = global_config
+            
+            # Create notifier instance
+            if "telegram" in self._notification_provider.lower():
+                # Use telegram
+                if "TELEGRAM" not in self._global_config_dict:
+                    print("Please configure your telegram bot in keys.yaml.")
+                    sys.exit()
+
+                else:
+                    # Check keys provided
+                    required_keys = ["api_key", "chat_id"]
+                    for key in required_keys:
+                        if key not in self._global_config_dict["TELEGRAM"]:
+                            print(f"Please provide {key} under TELEGRAM in keys.yaml.")
+                            sys.exit()
+                    
+                tg_module = importlib.import_module(
+                    f"autotrader.comms.tg"
+                )
+                self._notifier = tg_module.Telegram(
+                    api_token=self._global_config_dict["TELEGRAM"]["api_key"],
+                    chat_id=self._global_config_dict["TELEGRAM"]["chat_id"]
+                )
 
             # Check data feed requirements
             if self._feed is None:
@@ -1510,8 +1548,8 @@ class AutoTrader:
         if self._verbosity > 1:
             print("  Done.")
 
-        # Configure emailing
-        self._configure_emailing(self._global_config_dict)
+        # # Configure emailing
+        # self._configure_emailing(self._global_config_dict)
 
         # Initialise broker histories
         self._broker_histories = {
