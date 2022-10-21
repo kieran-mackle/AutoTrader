@@ -17,6 +17,7 @@ def get_version(rel_path):
     else:
         raise RuntimeError("Unable to find version string.")
 
+
 # Define extra dependencies
 dydx_dep = ["dydx-v3-python >= 1.9.0"]
 ccxt_dep = ["ccxt >= 2.0.53"]
