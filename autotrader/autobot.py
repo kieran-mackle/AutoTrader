@@ -75,7 +75,6 @@ class AutoTraderBot:
         # Inherit user options from autotrader
         for attribute, value in autotrader_instance.__dict__.items():
             setattr(self, attribute, value)
-        self._scan_results = {}
 
         # Assign local attributes
         self.instrument = instrument
@@ -84,8 +83,6 @@ class AutoTraderBot:
         # # Define execution framework
         if self._execution_method is None:
             self._execution_method = self._submit_order
-        # # TODO - allow custom spec
-        # self._execution_method = self._submit_order
 
         # Check for muliple brokers and construct mapper
         if self._multiple_brokers:
@@ -316,27 +313,15 @@ class AutoTraderBot:
             orders = self._check_orders(strategy_orders)
             self._qualify_orders(orders, current_bars, quote_bars)
 
-            # Submit orders
-            if self._max_workers is not None:
-                workers = min(self._max_workers, len(orders))
-            else:
-                workers = None
-            with ThreadPoolExecutor(max_workers=workers) as executor:
-                futures = []
-                for order in orders:
-                    if self._scan_mode:
-                        # Bot is scanning
-                        scan_hit = {
-                            "size": order.size,
-                            "entry": current_bars[order.instrument].Close,
-                            "stop": order.stop_loss,
-                            "take": order.take_profit,
-                            "signal": order.direction,
-                        }
-                        self._scan_results[self.instrument] = scan_hit
-
-                    else:
-                        # Bot is trading
+            if not self._scan_mode:
+                # Submit orders
+                if self._max_workers is not None:
+                    workers = min(self._max_workers, len(orders))
+                else:
+                    workers = None
+                with ThreadPoolExecutor(max_workers=workers) as executor:
+                    futures = []
+                    for order in orders:
                         try:
                             order_time = current_bars[order.instrument].name
                         except:
@@ -355,15 +340,15 @@ class AutoTraderBot:
                             )
                         )
 
-            # Check for exceptions
-            for f in futures:
-                try:
-                    f.result()
-                except Exception as e:
-                    traceback_str = "".join(traceback.format_tb(e.__traceback__))
-                    exception_str = f"AutoTrader exception when submitting order: {e}"
-                    print_str = exception_str + "\nTraceback:\n" + traceback_str
-                    print(print_str)
+                # Check for exceptions
+                for f in futures:
+                    try:
+                        f.result()
+                    except Exception as e:
+                        traceback_str = "".join(traceback.format_tb(e.__traceback__))
+                        exception_str = f"AutoTrader exception when submitting order: {e}"
+                        print_str = exception_str + "\nTraceback:\n" + traceback_str
+                        print(print_str)
 
             if self._papertrading:
                 # Update virtual broker again to trigger any orders
@@ -392,58 +377,28 @@ class AutoTraderBot:
                         )
 
             # Check for orders placed and/or scan hits
-            if int(self._notify) > 0 and not self._backtest_mode:
+            if int(self._notify) > 0 and not (self._backtest_mode or self._scan_mode):
                 for order in orders:
                     self._notifier.send_order(order)
 
             # Check scan results
             if self._scan_mode:
-                # Construct scan details dict
-                scan_details = {
-                    "index": self._scan_index,
-                    "strategy": self._strategy.name,
-                    "timeframe": self._strategy_params["granularity"],
-                }
-
                 # Report AutoScan results
-                # Scan reporting with no emailing requested.
                 if int(self._verbosity) > 0 or int(self._notify) == 0:
-                    if len(self._scan_results) == 0:
+                    # Scan reporting with no notifications requested
+                    if len(orders) == 0:
                         print("{}: No signal detected.".format(self.instrument))
+
                     else:
                         # Scan detected hits
-                        for instrument in self._scan_results:
-                            signal = self._scan_results[instrument]["signal"]
-                            signal_type = "Long" if signal == 1 else "Short"
-                            print(f"{instrument}: {signal_type} signal detected.")
+                        print("Scan hits:")
+                        for order in orders:
+                            print(order)
 
                 if int(self._notify) > 0:
-                    # Emailing requested
-                    if (
-                        len(self._scan_results) > 0
-                        and self._email_params["mailing_list"] is not None
-                        and self._email_params["host_email"] is not None
-                    ):
-                        # There was a scanner hit and email information is provided
-                        emailing.send_scan_results(
-                            self._scan_results,
-                            scan_details,
-                            self._email_params["mailing_list"],
-                            self._email_params["host_email"],
-                        )
-                    elif (
-                        int(self._notify) > 1
-                        and self._email_params["mailing_list"] is not None
-                        and self._email_params["host_email"] is not None
-                    ):
-                        # There was no scan hit, but notify set > 1, so send email
-                        # regardless.
-                        emailing.send_scan_results(
-                            self._scan_results,
-                            scan_details,
-                            self._email_params["mailing_list"],
-                            self._email_params["host_email"],
-                        )
+                    # Notifications requested
+                    for order in orders:
+                        self._notifier.send_message(f"Scan hit: {order}")
 
         else:
             if int(self._verbosity) > 1:
