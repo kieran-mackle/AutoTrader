@@ -56,8 +56,16 @@ To install AutoTrader with any of these extra dependencies, include them in the 
 example:
 
 ```
-pip install autotrader[dydx,yfinance]
+pip install autotrader[ccxt,yfinance]
 ```
+
+### A note on dYdX Dependency
+The package dependencies of the 
+[dYdX V3 Python interface](https://pypi.org/project/dydx-v3-python/) are 
+very tightly defined. For example, if you try to install AutoTrader with 
+both the `ccxt` and `dydx` dependencies, pip will not be able to resolve
+the conflicts. As such, it is recommended that you maintain separate 
+environments for your trading.
 
 
 ## Demo Repository
