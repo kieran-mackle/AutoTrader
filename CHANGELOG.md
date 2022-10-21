@@ -1,5 +1,25 @@
 # AutoTrader Changelog
 
+## v0.9.0 (2022-10-21)
+
+### Feat
+
+- reimplemented scan mode
+- integrated Telegram for trade notifications (#12)
+- **tg.py**: telegram bot can write chat id to keys.yaml
+- **telegram.py**: telegram bot returns chat id for initialisation
+- added initialisation method
+
+### Fix
+
+- fixed circular import errors
+- **tg.py**: order side determination logic
+
+### Refactor
+
+- **tg.py**: renamed telegram.py to tg.py to avoid name conflict
+- **notifier.py**: added abstract communications class Notifier
+
 ## v0.8.2 (2022-10-19)
 
 ### Refactor
