@@ -1,14 +1,18 @@
+import os
 import telegram
 from autotrader import Order
 from autotrader.comms.notifier import Notifier
+from autotrader.utilities import read_yaml, write_yaml
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 
 
 class Telegram(Notifier):
-    def __init__(self, api_token: str, chat_id: str = None) -> None:
+    def __init__(self, api_token: str = None, chat_id: str = None) -> None:
         self.api_token = api_token
         self.chat_id = chat_id
-        self.bot = telegram.Bot(self.api_token)
+
+        if api_token is not None:
+            self.bot = telegram.Bot(api_token)
     
     def __repr__(self) -> str:
         return "AutoTrader-Telegram communication module"
@@ -49,6 +53,27 @@ class Telegram(Notifier):
         None.
 
         """
+        # Check for api token
+        if self.api_token is None:
+            path = "config/keys.yaml"
+            if os.path.exists(path):
+                # Look to fetch api token from config file
+                config = read_yaml(path)
+                if "TELEGRAM" in config:
+                    if config["TELEGRAM"] is not None and "api_key" in config["TELEGRAM"]:
+                        self.api_token = config["TELEGRAM"]["api_key"]
+
+                    else:
+                        print("Please add your Telegram API key to the "+\
+                            "keys.yaml file."
+                        )
+                        return
+                else:
+                    print("Please add a 'TELEGRAM' key to the keys.yaml "+\
+                        "file, with a sub-key for the 'api_key'."
+                    )
+                    return
+
         updater = Updater(self.api_token, use_context=True)
         dp = updater.dispatcher
         
@@ -60,9 +85,6 @@ class Telegram(Notifier):
         updater.start_polling()
         updater.idle()
 
-        # TODO - add feature to write the chat ID to the keys.yaml 
-        # config file
-    
     @staticmethod
     def _start_command(update, context,):
         # Extract user name and chat ID
@@ -83,18 +105,48 @@ class Telegram(Notifier):
     def _help_command(update, context,):
         update.message.reply_text("Help is on the way!")
 
-    @staticmethod
-    def _handle_message(update, context):
+    # @staticmethod
+    def _handle_message(self, update, context):
         text = str(update.message.text).lower()
 
         if "id" in text:
-            # Return chat ID
             chat_id = str(update.message.chat_id)
-            response = f"Your chat ID is {chat_id}."
 
-            if "print" in text or "show" in text:
-                print(f"Chat ID: {chat_id}")
-                response += " This has also been printed to your computer."
+            if "write" in text:
+                # Write chat ID to keys.yaml file
+                path = "config/keys.yaml"
+                if os.path.exists(path):
+                    # Config file exists, proceed
+                    config = read_yaml(path)
+
+                    if "TELEGRAM" in config:
+                        config["TELEGRAM"]["chat_id"] = chat_id
+                    else:
+                        config["TELEGRAM"] = {
+                            "api_key": self.api_token, 
+                            "chat_id": chat_id
+                        }
+                    
+                    # Write to file
+                    write_yaml(config, path)
+                    
+                    response = "All done."
+
+                else:
+                    response = "I couldn't find your keys.yaml directory. "+\
+                        "Make sure you are running the bot from your project "+\
+                        "home directory, with config/keys.yaml within it."
+
+            else:
+                # Return chat ID
+                response = f"Your chat ID is {chat_id}."
+
+                if "print" in text or "show" in text:
+                    print(f"Chat ID: {chat_id}")
+                    response += " This has also been printed to your computer."
+
+        elif "thank" in text or "ty" in text:
+            response = "You're welcome."
 
         else:
             response = "I'm not quite ready to respond to that..."
