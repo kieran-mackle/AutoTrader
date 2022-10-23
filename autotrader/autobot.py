@@ -2,7 +2,6 @@ import os
 import importlib
 import traceback
 import pandas as pd
-from autotrader.comms import emailing
 from datetime import datetime, timezone
 from autotrader.autodata import AutoData
 from autotrader.brokers.trading import Order
