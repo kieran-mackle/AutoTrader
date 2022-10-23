@@ -76,7 +76,7 @@ pip install autotrader --upgrade
 AutoTrader is very well documented in-code and on [Read the Docs](https://autotrader.readthedocs.io/en/latest/). There is also a [detailed walthrough](https://autotrader.readthedocs.io/en/latest/tutorials/walkthrough.html), covering everything from strategy concept to livetrading.
 
 ### Example Strategies
-Example strategies can be found in the [demo repository](https://github.com/kieran-mackle/autotrader-demo). You can also request your own strategy to be built [here](https://github.com/kieran-mackle/autotrader-demo/issues/new?assignees=&labels=&template=strategy-request.md&title=%5BSTRATEGY+REQUEST%5D).
+Example strategies can be found in the [demo repository](https://github.com/kieran-mackle/autotrader-demo).
 
 
 ## Backtest Demo
