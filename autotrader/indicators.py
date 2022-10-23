@@ -397,19 +397,15 @@ def bearish_engulfing(data: pd.DataFrame, detection: str = None):
     return engulfing_bearish
 
 
-def find_swings(
-    data: pd.DataFrame, data_type: str = "ohlc", n: int = 2
-) -> pd.DataFrame:
+def find_swings(data: pd.DataFrame, n: int = 2) -> pd.DataFrame:
     """Locates swings in the inputted data using a moving average gradient
     method.
 
     Parameters
     ----------
-    data : pd.DataFrame
+    data : pd.DataFrame | pd.Series | list | np.array
         An OHLC dataframe of price, or an array/list/Series of data from an
         indicator (eg. RSI).
-    data_type : str, optional
-        The nature of the data ('ohlc' or 'other'). The default is 'ohlc'.
     n : int, optional
         The moving average period. The default is 2.
 
@@ -419,58 +415,60 @@ def find_swings(
         A dataframe containing the swing levels detected.
     """
     # Prepare data
-    if data_type == "ohlc":
-        # Find swings in OHLC price data
-        # hl2     = (data.Open.values + data.Close.values)/2
+    if isinstance(data, pd.DataFrame):
+        # OHLC data
         hl2 = (data.High.values + data.Low.values) / 2
-        swing_data = ema(hl2, n)
-
+        swing_data = pd.Series(ema(hl2, n), index=data.index)
         low_data = data.Low.values
         high_data = data.High.values
 
-    else:
-        # Find swings in alternative data source
-        swing_data = data
+    elif isinstance(data, pd.Series):
+        # Pandas series data
+        swing_data = pd.Series(ema(data, n), index=data.index)
         low_data = data
         high_data = data
 
-    # Calculate slope of data and points where slope changes
-    grad = [swing_data[i] - swing_data[i - 1] for i in range(len(swing_data))]
-    swings = np.where(np.sign(grad) != np.sign(np.roll(grad, 1)), -np.sign(grad), 0)
+    else:
+        # Find swings in alternative data source
+        data = pd.Series(data)
 
-    # Construct columns
-    low_list = [0, 0]
-    high_list = [0, 0]
-    for i in range(2, len(data)):
-        if swings[i] == -1:
-            # Down swing - find min price in the vicinity
-            high_list.append(0)
-            low_list.append(min(low_data[i - n : i]))
+        # Define swing data
+        swing_data = pd.Series(ema(data, n), index=data.index)
+        low_data = data
+        high_data = data
 
-        elif swings[i] == 1:
-            # Up swing - find max price in the vicinity
-            high_list.append(max(high_data[i - n : i]))
-            low_list.append(0)
+    signed_grad = np.sign((swing_data - swing_data.shift(1)).fillna(method="bfill"))
+    swings = (signed_grad != signed_grad.shift(1).fillna(method="bfill")) * -signed_grad
 
+    # Calculate swing extrema
+    lows = []
+    highs = []
+    for i, swing in enumerate(swings):
+        if swing < 0:
+            # Down swing, find low price
+            highs.append(0)
+            lows.append(min(low_data[i - n : i]))
+        elif swing > 0:
+            # Up swing, find high price
+            highs.append(max(high_data[i - n : i]))
+            lows.append(0)
         else:
             # Price movement
-            low_list.append(0)
-            high_list.append(0)
+            highs.append(0)
+            lows.append(0)
 
+    # Determine last swing
     trend = rolling_signal_list(-swings)
-    swings_list = merge_signals(low_list, high_list)
+    swings_list = merge_signals(lows, highs)
     last_swing = rolling_signal_list(swings_list)
-    last_swing[0:n] = list(high_data[0:n])
 
     # Need to return both a last swing low and last swing high list
-    last_low = rolling_signal_list(low_list)
-    last_low[0:n] = list(low_data[0:n])  # Fill start of data
-    last_high = rolling_signal_list(high_list)
-    last_high[0:n] = list(high_data[0:n])  # Fill start of data
+    last_low = rolling_signal_list(lows)
+    last_high = rolling_signal_list(highs)
 
     swing_df = pd.DataFrame(
         data={"Highs": last_high, "Lows": last_low, "Last": last_swing, "Trend": trend},
-        index=data.index,
+        index=swing_data.index,
     )
 
     return swing_df
