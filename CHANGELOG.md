@@ -1,5 +1,11 @@
 # AutoTrader Changelog
 
+## v0.9.1 (2022-10-23)
+
+### Fix
+
+- **indicators.py**: fixed handling of different data types in find_swings indicator
+
 ## v0.9.0 (2022-10-21)
 
 ### Feat
