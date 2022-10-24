@@ -8,7 +8,6 @@ import traceback
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
-from art import tprint
 from typing import Callable
 from threading import Thread
 from ast import literal_eval
@@ -23,6 +22,7 @@ from autotrader.utilities import (
     DataStream,
     TradeAnalysis,
     unpickle_broker,
+    print_banner,
 )
 
 
@@ -919,7 +919,7 @@ class AutoTrader:
         """Performs essential checks and runs AutoTrader."""
         # Print Banner
         if int(self._verbosity) > 0:
-            tprint("AutoTrader", font="tarty1")
+            print_banner()
 
         # Define home_dir if undefined
         if self._home_dir is None:

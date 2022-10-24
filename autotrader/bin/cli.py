@@ -4,11 +4,6 @@ import click
 import shutil
 import requests
 import autotrader
-from art import tprint
-
-
-def print_banner():
-    tprint("AutoTrader", font="tarty1")
 
 
 def download_file(url):
@@ -56,7 +51,7 @@ def init(strategies, name):
     Strategies are loaded from the AutoTrader demo repository here:
     https://github.com/kieran-mackle/autotrader-demo
     """
-    print_banner()
+    autotrader.utilities.print_banner()
 
     # Construct filepaths
     file_dir = os.path.dirname(os.path.abspath(__file__))
@@ -206,7 +201,7 @@ def monitor(port, nav, file, broker, environment):
     from autotrader.utilities import unpickle_broker
     from prometheus_client import start_http_server, Gauge
 
-    print_banner()
+    autotrader.utilities.print_banner()
 
     # Unpack inputs
     ref_nav = nav
@@ -296,7 +291,7 @@ def monitor(port, nav, file, broker, environment):
 def snapshot(pickle):
     """Prints a snapshot of the trading account of a broker PICKLE instance
     file."""
-    print_banner()
+    autotrader.utilities.print_banner()
     autotrader.AutoTrader.papertrade_snapshot(pickle)
     print("")
 
