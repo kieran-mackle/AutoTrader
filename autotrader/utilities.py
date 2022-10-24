@@ -42,8 +42,10 @@ def write_yaml(data: dict, filepath: str) -> None:
     with open(filepath, "w") as outfile:
         yaml.dump(data, outfile, default_flow_style=False)
 
+
 def print_banner():
     tprint("AutoTrader", font="tarty1")
+
 
 def get_broker_config(
     broker: str, global_config: dict = None, environment: str = "paper"
