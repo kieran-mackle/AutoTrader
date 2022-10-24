@@ -86,6 +86,7 @@ setuptools.setup(
         "click >= 8.1.3",
         "requests >= 2.28.1",
         "python-telegram-bot >= 13.14",
+        "psutil >= 5.9.2",
     ],
     extras_require={
         "dydx": dydx_dep,
