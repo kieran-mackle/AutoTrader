@@ -35,21 +35,26 @@ def version():
 
 @click.command()
 @click.option(
-    "-m",
-    "--minimal",
-    is_flag=True,
-    default=False,
-    help="Minimal directory initialisation.",
-)
-@click.option(
     "-s",
     "--strategies",
     help="The name of strategies to include in the initialised directory.",
 )
 @click.argument("name", default=".")
-def init(minimal, strategies, name):
+def init(strategies, name):
     """Initialises the directory NAME for trading with AutoTrader. If no
     directory NAME is provided, the current directory will be initialised.
+
+    To include ready-to-go strategies in the initialised directory, 
+    specify them using the strategies option. You can provide the following
+    arguments:
+
+    \b
+    - template: a strategy template module
+    - config: a strategy configuration template
+    - strategy_name: the name of a strategy to load
+
+    Strategies are loaded from the AutoTrader demo repository here:
+    https://github.com/kieran-mackle/autotrader-demo
     """
     print_banner()
 
@@ -66,30 +71,31 @@ def init(minimal, strategies, name):
         # Initialise current directory
         dir_name = os.path.abspath(os.getcwd())
 
-    if minimal:
-        # Run minimial directory initialisation
-        pass
+    # Check if config directory exists
+    config_dir = os.path.join(dir_name, "config")
+    if not os.path.isdir(config_dir):
+        os.mkdir(config_dir)
 
-    else:
-        # Run full directory initialisation
-        # Check if config directory exists
-        config_dir = os.path.join(dir_name, "config")
-        if not os.path.isdir(config_dir):
-            os.mkdir(config_dir)
+    # Copy keys config
+    keys_config_fp = os.path.join(data_dir, "keys.yaml")
+    shutil.copyfile(keys_config_fp, os.path.join(config_dir, "keys.yaml"))
 
-        # Copy keys config
-        keys_config_fp = os.path.join(data_dir, "keys.yaml")
-        shutil.copyfile(keys_config_fp, os.path.join(config_dir, "keys.yaml"))
-
-        # Check if strategy directory exists
-        strategy_dir = os.path.join(dir_name, "strategies")
-        if not os.path.isdir(strategy_dir):
-            # Strategy directory doesn't exist - create it
-            os.mkdir(strategy_dir)
+    # Check if strategy directory exists
+    strategy_dir = os.path.join(dir_name, "strategies")
+    if not os.path.isdir(strategy_dir):
+        # Strategy directory doesn't exist - create it
+        os.mkdir(strategy_dir)
 
     # Add strategies
+    valid_args = ["config", "template", "macd", "ema_crossover", "long_ema_crossover", "supertrend", "rebalance"]
     if strategies is not None:
-        for strategy in strategies.split(","):
+        for strategy in strategies.replace(" ", "").split(","):
+            strategy = strategy.lower()
+
+            # Check
+            if strategy not in valid_args:
+                raise Exception(f"{strategy} is not a valid argument.")
+
             # Construct urls
             if strategy == "template":
                 # Get strategy template from main repo
@@ -122,10 +128,7 @@ def init(minimal, strategies, name):
                     filename = download_file(urls[dir])
 
                     # Move to appropriate directory
-                    if minimal:
-                        move_to = os.path.join(dir_name, filename)
-                    else:
-                        move_to = os.path.join(dir_name, dir, filename)
+                    move_to = os.path.join(dir_name, dir, filename)
                     os.rename(filename, move_to)
 
                 except:
@@ -140,7 +143,7 @@ def demo():
     """Runs a demo backtest in AutoTrader."""
     # Download the strategy file and data
     print("Loading demo files...")
-    branch = "cli"
+    branch = "main"
     strat_filename = download_file(
         "https://raw.githubusercontent.com/kieran-mackle/"
         + f"AutoTrader/{branch}/tests/macd_strategy.py"
