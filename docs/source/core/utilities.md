@@ -4,10 +4,18 @@
 
 (utils-get-config)=
 ## Configuration Utilities
+
+(utils-get-broker-config)=
+### Get Broker Configuration 
+```{eval-rst}
+.. autofunction:: autotrader.utilities.get_broker_config
+```
+
+(utils-get-data-config)=
+### Get Data Configuration 
 ```{eval-rst}
 .. autofunction:: autotrader.utilities.get_data_config
 ```
-
 
 
 
@@ -25,16 +33,6 @@
 ```
 
 
-### Get Broker Configuration 
-```{eval-rst}
-.. autofunction:: autotrader.utilities.get_broker_config
-```
-
-(utils-get-data-config)=
-### Get Data Configuration 
-```{eval-rst}
-.. autofunction:: autotrader.utilities.get_data_config
-```
 
 ### Unpickle Broker Instance 
 ```{eval-rst}

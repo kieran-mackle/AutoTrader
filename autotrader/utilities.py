@@ -220,13 +220,13 @@ def get_broker_config(
 
 
 def get_data_config(feed: str, global_config: dict = None, **kwargs) -> dict:
-    """Returns a configuration dictionary for AutoData.
+    """Returns a data configuration dictionary for AutoData.
     Parameters
     ----------
-    global_config : dict
-        The global configuration dictionary.
     feed : str
         The name of the data feed.
+    global_config : dict
+        The global configuration dictionary.
     """
     if feed is None:
         print("Please specify a data feed.")
@@ -997,14 +997,6 @@ class DataStream:
     """Data stream class.
 
     This class is intended to provide a means of custom data pipelines.
-
-    Methods
-    -------
-    refresh
-        Returns up-to-date data, multi_data, quote_data and auxdata.
-    get_trading_bars
-        Returns a dictionary of the current bars for the products being
-        traded, used to act on trading signals.
 
     Attributes
     ----------
