@@ -140,17 +140,18 @@ def demo():
     """Runs a demo backtest in AutoTrader."""
     # Download the strategy file and data
     print("Loading demo files...")
+    branch = "cli"
     strat_filename = download_file(
         "https://raw.githubusercontent.com/kieran-mackle/"
-        + "AutoTrader/main/tests/macd_strategy.py"
-    )
-    data_filename = download_file(
-        "https://raw.githubusercontent.com/kieran-mackle/"
-        + "AutoTrader/main/tests/data/EUR_USD_H4.csv"
+        + f"AutoTrader/{branch}/tests/macd_strategy.py"
     )
     print("  Done.")
 
     # Run backtest
+    os.system("python3 macd_strategy.py")
+
+    # Clean up files
+    os.remove(strat_filename)
 
 
 @click.command()
@@ -294,4 +295,4 @@ cli.add_command(version)
 cli.add_command(init)
 cli.add_command(monitor)
 cli.add_command(snapshot)
-# cli.add_command(demo)
+cli.add_command(demo)
