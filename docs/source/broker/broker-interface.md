@@ -130,7 +130,14 @@ cryptocurrency exchange markets and trading APIs.
 
 ## See Also
 
-Click trading
+- [Click trading](click-trading)
+- [Using multiple brokers](multiple-exchanges)
 
-Using multiple brokers
 
+## API Reference
+
+```{eval-rst}
+.. autoclass:: autotrader.brokers.broker.AbstractBroker
+   :members:
+   :private-members:
+```

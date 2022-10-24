@@ -42,12 +42,6 @@
 ```
 
 
-
-## Watchlist Utilities
-```{eval-rst}
-.. autofunction:: autotrader.utilities.get_watchlist
-```
-
 (utils-trade-results)=
 ## TradeAnalysis Class
 ```{eval-rst}

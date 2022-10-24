@@ -1,3 +1,4 @@
+(click-trading)=
 # Click Trading with AutoTrader
 
 Although AutoTrader is a platform for automated trading systems, it can
