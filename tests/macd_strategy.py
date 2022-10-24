@@ -130,7 +130,7 @@ if __name__ == "__main__":
     at.configure(verbosity=1, show_plot=True, mode="periodic", feed="yahoo")
     at.add_strategy(config_dict=config, strategy=SimpleMACD)
     at.plot_settings(show_cancelled=False)
-    at.backtest(start_dt=datetime.now()-timedelta(days=30), end_dt=datetime.now())
+    at.backtest(start_dt=datetime.now() - timedelta(days=30), end_dt=datetime.now())
     at.virtual_account_config(
         initial_balance=1000,
         leverage=30,
