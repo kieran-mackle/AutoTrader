@@ -44,7 +44,7 @@ def init(strategies, name):
     """Initialises the directory NAME for trading with AutoTrader. If no
     directory NAME is provided, the current directory will be initialised.
 
-    To include ready-to-go strategies in the initialised directory, 
+    To include ready-to-go strategies in the initialised directory,
     specify them using the strategies option. You can provide the following
     arguments:
 
@@ -87,7 +87,15 @@ def init(strategies, name):
         os.mkdir(strategy_dir)
 
     # Add strategies
-    valid_args = ["config", "template", "macd", "ema_crossover", "long_ema_crossover", "supertrend", "rebalance"]
+    valid_args = [
+        "config",
+        "template",
+        "macd",
+        "ema_crossover",
+        "long_ema_crossover",
+        "supertrend",
+        "rebalance",
+    ]
     if strategies is not None:
         for strategy in strategies.replace(" ", "").split(","):
             strategy = strategy.lower()
