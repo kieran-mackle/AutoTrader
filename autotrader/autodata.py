@@ -708,7 +708,11 @@ class AutoData:
             2419200: "1mo",
             7257600: "3mo",
         }
-        granularity = gran_map[pd.Timedelta(granularity).total_seconds()]
+        try:
+            granularity = gran_map[pd.Timedelta(granularity).total_seconds()]
+        except KeyError:
+            raise Exception(f"The specified granularity of '{granularity}' is not "+\
+                "valid for Yahoo Finance.")
 
         if count is not None and start_time is None and end_time is None:
             # Convert count to start and end dates (assumes end=now)
