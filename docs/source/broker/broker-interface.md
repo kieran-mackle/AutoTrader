@@ -25,6 +25,12 @@ same way, accepting the same input arguments and outputting the
 same objects.
 
 
+```{seealso}
+A great way to learn the broker interface is to do some 
+[click trading](click-trading).
+```
+
+
 (broker-methods)=
 ## Methods
 The shared methods of the broker interfaces are described below.
@@ -127,12 +133,6 @@ The CryptoCurrency eXchange Trading (CCXT) library is an open-source
 [Python library](https://github.com/ccxt/ccxt) supporting over 100 
 cryptocurrency exchange markets and trading APIs.
 
-
-
-## See Also
-
-- [Click trading](click-trading)
-- [Using multiple brokers](multiple-exchanges)
 
 
 ## API Reference
