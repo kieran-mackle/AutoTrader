@@ -1,4 +1,3 @@
-from distutils.command.config import config
 import os
 import time
 import pandas as pd
@@ -7,7 +6,11 @@ from decimal import Decimal
 from autotrader.brokers.trading import Order
 from datetime import datetime, timedelta, timezone
 from autotrader.brokers.broker_utils import OrderBook
-import sys
+
+try:
+    import ccxt
+except ImportError:
+    pass
 
 
 class AutoData:
@@ -1165,7 +1168,10 @@ class AutoData:
 
     def _ccxt_orderbook(self, instrument, limit=None, *args, **kwargs):
         """Returns the orderbook from a CCXT supported exchange."""
-        response = self.api.fetchOrderBook(symbol=instrument)
+        try:
+            response = self.api.fetchOrderBook(symbol=instrument)
+        except ccxt.errors.ExchangeError as e:
+            raise Exception(e)
 
         # Unify format
         orderbook = {}
