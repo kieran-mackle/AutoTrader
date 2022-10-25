@@ -1994,27 +1994,17 @@ class AutoTrader:
                         hist_dict["NAV"].append(broker._NAV)
                         hist_dict["equity"].append(broker._equity)
                         hist_dict["margin"].append(broker._margin_available)
-                        hist_dict["long_exposure"].append(
-                            broker._long_exposure
-                        )
-                        hist_dict["short_exposure"].append(
-                            broker._short_exposure
-                        )
+                        hist_dict["long_exposure"].append(broker._long_exposure)
+                        hist_dict["short_exposure"].append(broker._short_exposure)
                         hist_dict["long_unrealised_pnl"].append(
                             broker._long_unrealised_pnl
                         )
                         hist_dict["short_unrealised_pnl"].append(
                             broker._short_unrealised_pnl
                         )
-                        hist_dict["long_pnl"].append(
-                            broker._long_realised_pnl
-                        )
-                        hist_dict["short_pnl"].append(
-                            broker._short_realised_pnl
-                        )
-                        hist_dict["open_interest"].append(
-                            broker._open_interest
-                        )
+                        hist_dict["long_pnl"].append(broker._long_realised_pnl)
+                        hist_dict["short_pnl"].append(broker._short_realised_pnl)
+                        hist_dict["open_interest"].append(broker._open_interest)
                         # TODO - check timezone below
                         hist_dict["time"].append(datetime.now(timezone.utc))
 

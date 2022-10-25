@@ -832,11 +832,13 @@ class Broker(AbstractBroker):
                 # Cancel orders for this instrument
                 orders = self.get_orders(instrument=instrument)
                 for order_id in orders:
-                    self.cancel_order(order_id=order_id, reason="exception cancellation")
-                
+                    self.cancel_order(
+                        order_id=order_id, reason="exception cancellation"
+                    )
+
                 # Also pop this instrument from open orders dict
                 to_pop.append(instrument)
-        
+
         # Pop bad instruments
         for instrument in to_pop:
             self._open_orders.pop(instrument)

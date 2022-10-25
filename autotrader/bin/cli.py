@@ -163,17 +163,21 @@ def demo():
 @click.command()
 @click.option("-p", "--port", default=8009, help="The port to serve data to.")
 @click.option(
-    "-i", "--initial-nav", default=None, help="The initial NAV to use for relative PnL calculations."
+    "-i",
+    "--initial-nav",
+    default=None,
+    help="The initial NAV to use for relative PnL calculations.",
 )
 @click.option(
-    "-m", "--max-nav", default=None, help="The maximum NAV to use for drawdown calculations."
+    "-m",
+    "--max-nav",
+    default=None,
+    help="The maximum NAV to use for drawdown calculations.",
 )
 @click.option(
     "-f", "--picklefile", help="The pickle file containing a virtual broker instance."
 )
-@click.option(
-    "-c", "--config", help="The monitor yaml configuration filepath."
-)
+@click.option("-c", "--config", help="The monitor yaml configuration filepath.")
 @click.option("-b", "--broker", help="The name of the broker to connect to.")
 @click.option("-e", "--environment", default="paper", help="The trading environment.")
 def monitor(port, initial_nav, max_nav, picklefile, config, broker, environment):
@@ -204,7 +208,7 @@ def monitor(port, initial_nav, max_nav, picklefile, config, broker, environment)
 
     # Run
     monitor.run()
-    
+
 
 @click.command()
 @click.argument("pickle")

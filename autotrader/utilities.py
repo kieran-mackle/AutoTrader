@@ -1402,7 +1402,7 @@ class Monitor:
         elif config is None and config_filepath is None:
             # Use kwargs as config
             config = kwargs
-        
+
         # Overwrite config with kwargs
         for key, val in kwargs.items():
             if val is not None:
@@ -1420,7 +1420,7 @@ class Monitor:
             if key not in config.keys():
                 print(f"Error: missing configuration key: '{key}'")
                 sys.exit()
-        
+
         # Check for broker key
         if "picklefile" in config and config["picklefile"] is not None:
             self.picklefile = config["picklefile"]
@@ -1434,7 +1434,6 @@ class Monitor:
         # Unpack config and assign attributes
         for key, val in config.items():
             setattr(self, key, val)
-
 
     def _initialise(self) -> None:
         """Initialise the monitor."""
@@ -1492,8 +1491,10 @@ class Monitor:
 
                 # Query broker
                 nav = broker.get_NAV()
-                if self.initial_nav is None: self.initial_nav = nav
-                if self.max_nav is None: self.max_nav = nav
+                if self.initial_nav is None:
+                    self.initial_nav = nav
+                if self.max_nav is None:
+                    self.max_nav = nav
 
                 positions = broker.get_positions()
                 pnl = nav - self.initial_nav
