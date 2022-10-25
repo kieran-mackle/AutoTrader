@@ -819,12 +819,30 @@ class Broker(AbstractBroker):
     def _update_all(self):
         """Convenience method to update all open positions when paper trading."""
         # Update orders
+        to_pop = []
         for instrument in self._open_orders:
-            l1 = self.autodata.L1(instrument=instrument)
-            self._update_positions(instrument=instrument, L1=l1)
+            try:
+                # Get price data
+                l1 = self.autodata.L1(instrument=instrument)
+                self._update_positions(instrument=instrument, L1=l1)
+            except Exception as e:
+                # Something went wrong
+                print(f"Exception when updating orders: {e}\n")
+
+                # Cancel orders for this instrument
+                orders = self.get_orders(instrument=instrument)
+                for order_id in orders:
+                    self.cancel_order(order_id=order_id, reason="exception cancellation")
+                
+                # Also pop this instrument from open orders dict
+                to_pop.append(instrument)
+        
+        # Pop bad instruments
+        for instrument in to_pop:
+            self._open_orders.pop(instrument)
 
         # Update positions
-        for instrument in self._positions.keys():
+        for instrument in self._positions:
             l1 = self.autodata.L1(instrument=instrument)
             self._update_positions(instrument=instrument, L1=l1)
 
