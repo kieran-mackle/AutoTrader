@@ -4,6 +4,15 @@ hide-toc: true
 
 # AutoTrader Documentation
 
+```{image} assets/images/logo1.svg
+:align: center
+:class: only-light
+```
+```{image} assets/images/logo2.svg
+:align: center
+:class: only-dark
+```
+
 AutoTrader is a Python-based trading framework for the development, 
 optimisation and deployment of automated trading systems. Here you 
 will find everything you need to start algotrading with AutoTrader.
@@ -21,7 +30,7 @@ to offer. Otherwise, head on over to the
 [Getting Started](getting-started) guide.
 
 
-## Supported Brokers
+## Supported Brokers and Exchanges
 With AutoTrader `v0.7.0`, you can access over 100 cryptocurrency exchanges thanks to the integration
 of [CCXT](https://github.com/ccxt/ccxt). The table below summarises the connection to supported brokers.
 

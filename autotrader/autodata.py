@@ -1,4 +1,3 @@
-from distutils.command.config import config
 import os
 import time
 import pandas as pd
@@ -7,7 +6,11 @@ from decimal import Decimal
 from autotrader.brokers.trading import Order
 from datetime import datetime, timedelta, timezone
 from autotrader.brokers.broker_utils import OrderBook
-import sys
+
+try:
+    import ccxt
+except ImportError:
+    pass
 
 
 class AutoData:
@@ -708,7 +711,13 @@ class AutoData:
             2419200: "1mo",
             7257600: "3mo",
         }
-        granularity = gran_map[pd.Timedelta(granularity).total_seconds()]
+        try:
+            granularity = gran_map[pd.Timedelta(granularity).total_seconds()]
+        except KeyError:
+            raise Exception(
+                f"The specified granularity of '{granularity}' is not "
+                + "valid for Yahoo Finance."
+            )
 
         if count is not None and start_time is None and end_time is None:
             # Convert count to start and end dates (assumes end=now)
@@ -1159,7 +1168,10 @@ class AutoData:
 
     def _ccxt_orderbook(self, instrument, limit=None, *args, **kwargs):
         """Returns the orderbook from a CCXT supported exchange."""
-        response = self.api.fetchOrderBook(symbol=instrument)
+        try:
+            response = self.api.fetchOrderBook(symbol=instrument)
+        except ccxt.errors.ExchangeError as e:
+            raise Exception(e)
 
         # Unify format
         orderbook = {}

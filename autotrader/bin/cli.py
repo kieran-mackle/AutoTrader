@@ -4,11 +4,6 @@ import click
 import shutil
 import requests
 import autotrader
-from art import tprint
-
-
-def print_banner():
-    tprint("AutoTrader", font="tarty1")
 
 
 def download_file(url):
@@ -35,23 +30,28 @@ def version():
 
 @click.command()
 @click.option(
-    "-m",
-    "--minimal",
-    is_flag=True,
-    default=False,
-    help="Minimal directory initialisation.",
-)
-@click.option(
     "-s",
     "--strategies",
     help="The name of strategies to include in the initialised directory.",
 )
 @click.argument("name", default=".")
-def init(minimal, strategies, name):
+def init(strategies, name):
     """Initialises the directory NAME for trading with AutoTrader. If no
     directory NAME is provided, the current directory will be initialised.
+
+    To include ready-to-go strategies in the initialised directory,
+    specify them using the strategies option. You can provide the following
+    arguments:
+
+    \b
+    - template: a strategy template module
+    - config: a strategy configuration template
+    - strategy_name: the name of a strategy to load
+
+    Strategies are loaded from the AutoTrader demo repository here:
+    https://github.com/kieran-mackle/autotrader-demo
     """
-    print_banner()
+    autotrader.utilities.print_banner()
 
     # Construct filepaths
     file_dir = os.path.dirname(os.path.abspath(__file__))
@@ -66,30 +66,39 @@ def init(minimal, strategies, name):
         # Initialise current directory
         dir_name = os.path.abspath(os.getcwd())
 
-    if minimal:
-        # Run minimial directory initialisation
-        pass
+    # Check if config directory exists
+    config_dir = os.path.join(dir_name, "config")
+    if not os.path.isdir(config_dir):
+        os.mkdir(config_dir)
 
-    else:
-        # Run full directory initialisation
-        # Check if config directory exists
-        config_dir = os.path.join(dir_name, "config")
-        if not os.path.isdir(config_dir):
-            os.mkdir(config_dir)
+    # Copy keys config
+    keys_config_fp = os.path.join(data_dir, "keys.yaml")
+    shutil.copyfile(keys_config_fp, os.path.join(config_dir, "keys.yaml"))
 
-        # Copy keys config
-        keys_config_fp = os.path.join(data_dir, "keys.yaml")
-        shutil.copyfile(keys_config_fp, os.path.join(config_dir, "keys.yaml"))
-
-        # Check if strategy directory exists
-        strategy_dir = os.path.join(dir_name, "strategies")
-        if not os.path.isdir(strategy_dir):
-            # Strategy directory doesn't exist - create it
-            os.mkdir(strategy_dir)
+    # Check if strategy directory exists
+    strategy_dir = os.path.join(dir_name, "strategies")
+    if not os.path.isdir(strategy_dir):
+        # Strategy directory doesn't exist - create it
+        os.mkdir(strategy_dir)
 
     # Add strategies
+    valid_args = [
+        "config",
+        "template",
+        "macd",
+        "ema_crossover",
+        "long_ema_crossover",
+        "supertrend",
+        "rebalance",
+    ]
     if strategies is not None:
-        for strategy in strategies.split(","):
+        for strategy in strategies.replace(" ", "").split(","):
+            strategy = strategy.lower()
+
+            # Check
+            if strategy not in valid_args:
+                raise Exception(f"{strategy} is not a valid argument.")
+
             # Construct urls
             if strategy == "template":
                 # Get strategy template from main repo
@@ -122,10 +131,7 @@ def init(minimal, strategies, name):
                     filename = download_file(urls[dir])
 
                     # Move to appropriate directory
-                    if minimal:
-                        move_to = os.path.join(dir_name, filename)
-                    else:
-                        move_to = os.path.join(dir_name, dir, filename)
+                    move_to = os.path.join(dir_name, dir, filename)
                     os.rename(filename, move_to)
 
                 except:
@@ -140,143 +146,68 @@ def demo():
     """Runs a demo backtest in AutoTrader."""
     # Download the strategy file and data
     print("Loading demo files...")
+    branch = "main"
     strat_filename = download_file(
         "https://raw.githubusercontent.com/kieran-mackle/"
-        + "AutoTrader/main/tests/macd_strategy.py"
-    )
-    data_filename = download_file(
-        "https://raw.githubusercontent.com/kieran-mackle/"
-        + "AutoTrader/main/tests/data/EUR_USD_H4.csv"
+        + f"AutoTrader/{branch}/tests/macd_strategy.py"
     )
     print("  Done.")
 
     # Run backtest
+    os.system("python3 macd_strategy.py")
+
+    # Clean up files
+    os.remove(strat_filename)
 
 
 @click.command()
 @click.option("-p", "--port", default=8009, help="The port to serve data to.")
 @click.option(
-    "-n", "--nav", default=None, help="The reference NAV to use for relative PnL."
+    "-i",
+    "--initial-nav",
+    default=None,
+    help="The initial NAV to use for relative PnL calculations.",
 )
 @click.option(
-    "-f", "--file", help="The pickle file containing a virtual broker instance."
+    "-m",
+    "--max-nav",
+    default=None,
+    help="The maximum NAV to use for drawdown calculations.",
 )
+@click.option(
+    "-f", "--picklefile", help="The pickle file containing a virtual broker instance."
+)
+@click.option("-c", "--config", help="The monitor yaml configuration filepath.")
 @click.option("-b", "--broker", help="The name of the broker to connect to.")
 @click.option("-e", "--environment", default="paper", help="The trading environment.")
-def monitor(port, nav, file, broker, environment):
-    """Monitors a broker and serves the information
-    to a prometheus database."""
-    broker_name = broker
+def monitor(port, initial_nav, max_nav, picklefile, config, broker, environment):
+    """Monitors a broker/exchange and serves the information
+    to a prometheus database.
+    """
+    # Print banner
+    autotrader.utilities.print_banner()
 
-    def start_server(port):
-        """Starts the http server for Prometheus."""
-        start_http_server(port)
-        print(f"Server started on port {port}.")
+    # Construct config dictionary
+    if config is not None:
+        # Read from file
+        monitor_config = autotrader.utilities.read_yaml(config)
 
-    def get_broker(broker):
-        """Returns the broker object."""
-        if file is not None:
-            # Unpickle latest broker instance
-            broker = unpickle_broker(picklefile=picklepath)
-        elif broker is not None:
-            # Use existing broker instance
-            pass
-        elif broker_name is not None:
-            # Create broker instance
-            print(f"Connecting to {broker_name}...")
-            at = autotrader.AutoTrader()
-            at.configure(broker=broker_name, environment=environment, verbosity=0)
-            broker = at.run()
-            print("  Done.")
-        return broker
+    else:
+        monitor_config = {
+            "port": port,
+            "broker": broker,
+            "picklefile": picklefile,
+            "initial_nav": initial_nav,
+            "max_nav": max_nav,
+            "environment": environment,
+            "sleep_time": 30,
+        }
 
-    # Import packages
-    from autotrader.utilities import unpickle_broker
-    from prometheus_client import start_http_server, Gauge
+    # Create Monitor instance
+    monitor = autotrader.utilities.Monitor(**monitor_config)
 
-    print_banner()
-
-    # Unpack inputs
-    ref_nav = nav
-    picklepath = file
-
-    if picklepath is not None:
-        # Check picklefile exists
-        if not os.path.exists(picklepath):
-            raise Exception(f"\nPicklefile '{file}' does not exist!")
-        else:
-            print(f"Monitoring {file}.")
-
-    # Set up instrumentation
-    nav_gauge = Gauge("nav_gauge", "Net Asset Value gauge.")
-    abs_PnL_gauge = Gauge("abs_pnl_gauge", "Absolute ($) PnL gauge.")
-    rel_PnL_gauge = Gauge("rel_pnl_gauge", "Relative (%) PnL gauge.")
-    pos_gauge = Gauge("pos_gauge", "Number of open positions gauge.")
-    total_exposure_gauge = Gauge("total_exposure_gauge", "Total exposure gauge.")
-    net_exposure_gauge = Gauge("net_exposure_gauge", "Total exposure gauge.")
-    leverage_gauge = Gauge("leverage_gauge", "Total leverage gauge.")
-
-    # Start up the server to expose the metrics
-    try:
-        start_server(port)
-    except OSError:
-        # Kill existing server
-        from psutil import process_iter
-        from signal import SIGKILL  # or SIGTERM
-
-        for proc in process_iter():
-            for conns in proc.connections(kind="inet"):
-                if conns.laddr.port == port:
-                    proc.send_signal(SIGKILL)  # or SIGKILL
-
-        # Start server
-        start_server(port)
-
-    # Begin loop
-    broker = None
-    while True:
-        try:
-            # Get broker object
-            broker = get_broker(broker)
-
-            # Query broker
-            nav = broker.get_NAV()
-            if ref_nav is None:
-                ref_nav = nav
-            positions = broker.get_positions()
-            pnl = nav - ref_nav
-            rel_pnl = pnl / ref_nav
-
-            # Calculate total exposure
-            total_exposure = 0
-            net_exposure = 0
-            for instrument, position in positions.items():
-                total_exposure += abs(position.notional)
-                net_exposure += position.direction * position.notional
-
-            # Calculate leverage
-            leverage = total_exposure / nav
-
-            # Update Prometheus server
-            nav_gauge.set(nav)
-            abs_PnL_gauge.set(pnl)
-            rel_PnL_gauge.set(rel_pnl)
-            pos_gauge.set(len(positions))
-            total_exposure_gauge.set(total_exposure)
-            net_exposure_gauge.set(net_exposure)
-            leverage_gauge.set(leverage)
-
-            # Sleep
-            time.sleep(5)
-
-        except KeyboardInterrupt:
-            print("\n\nStopping monitoring.")
-            break
-
-        except Exception as e:
-            # Unexpected exception, sleep briefly
-            print(e)
-            time.sleep(3)
+    # Run
+    monitor.run()
 
 
 @click.command()
@@ -284,7 +215,7 @@ def monitor(port, nav, file, broker, environment):
 def snapshot(pickle):
     """Prints a snapshot of the trading account of a broker PICKLE instance
     file."""
-    print_banner()
+    autotrader.utilities.print_banner()
     autotrader.AutoTrader.papertrade_snapshot(pickle)
     print("")
 
@@ -294,4 +225,4 @@ cli.add_command(version)
 cli.add_command(init)
 cli.add_command(monitor)
 cli.add_command(snapshot)
-# cli.add_command(demo)
+cli.add_command(demo)

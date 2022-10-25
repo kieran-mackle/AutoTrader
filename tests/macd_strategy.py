@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta
 import os
 from finta import TA
 import autotrader.indicators as indicators
@@ -110,40 +111,29 @@ if __name__ == "__main__":
         "NAME": "MACD Strategy",
         "MODULE": "macd_strategy",
         "CLASS": "SimpleMACD",
-        "INTERVAL": "4h",
+        "INTERVAL": "15m",
         "PERIOD": 300,
         "RISK_PC": 1.5,
         "SIZING": "risk",
         "PARAMETERS": {
             "ema_period": 200,
-            "MACD_fast": 5,
-            "MACD_slow": 19,
+            "MACD_fast": 12,
+            "MACD_slow": 21,
             "MACD_smoothing": 9,
             "RR": 0.5,
         },
-        "WATCHLIST": ["EUR_USD"],  # , "EUR_USD2"],
+        "WATCHLIST": ["EURUSD=X"],
     }
     home_dir = os.getcwd()
 
     at = AutoTrader()
-    at.configure(verbosity=1, show_plot=True, mode="periodic")
+    at.configure(verbosity=1, show_plot=True, mode="periodic", feed="yahoo")
     at.add_strategy(config_dict=config, strategy=SimpleMACD)
     at.plot_settings(show_cancelled=False)
-    at.add_data(
-        {"EUR_USD": "EUR_USD_H4.csv"}, data_directory=os.path.join(home_dir, "data")
-    )
-    # at.add_data(
-    #     {"EUR_USD": "EUR_USD_H4.csv", "EUR_USD2": "EUR_USD_H4.csv"},
-    #     data_directory=os.path.join(home_dir, "data"),
-    # )
-    at.backtest(start="1/1/2015", end="1/3/2022")
+    at.backtest(start_dt=datetime.now() - timedelta(days=30), end_dt=datetime.now())
     at.virtual_account_config(
         initial_balance=1000,
         leverage=30,
-        spread=0.05,
-        spread_units="percentage",
-        commission=0.005,
-        # default_slippage_model=lambda x: 0.0000005 * x / 100,
     )
     at.run()
 

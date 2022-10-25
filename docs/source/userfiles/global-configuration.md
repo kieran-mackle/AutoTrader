@@ -1,6 +1,6 @@
 (global-config)=
 # Account Configuration
-`keys.yaml`
+`config/keys.yaml`
 
 
 In order to connect with your broker/exchange of choice, you must provide
@@ -11,7 +11,8 @@ your keys in the `keys.yaml` file, AutoTrader will automatically find them.
 
 
 ## Example
-Example account configuration structures are shown below.
+Example account configuration structures are shown below. For exchange-specific
+configuration keys, refer to the appropriate [docs](broker-interface).
 
 ```{tip}
 A template `keys.yaml` file can be generated using the command
