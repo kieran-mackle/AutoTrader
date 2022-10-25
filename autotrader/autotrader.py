@@ -1976,17 +1976,53 @@ class AutoTrader:
             self._maintain_broker_thread = True
             sleep_time = pd.Timedelta(self._broker_refresh_freq).total_seconds()
 
-            # Check for multiple brokers
-            if not self._multiple_brokers:
-                brokers = {self._broker_name: self._broker}
-            else:
-                brokers = self._broker
+            # # Check for multiple brokers
+            # if not self._multiple_brokers:
+            #     brokers = {self._broker_name: self._broker}
+            # else:
+            #     brokers = self._broker
 
             # Run update loop
             while self._maintain_broker_thread:
                 try:
-                    for broker_name, broker in brokers.items():
+                    for broker_name, broker in self._brokers_dict.items():
+                        # Update orders and positions
                         broker._update_all()
+
+                        # Update broker histories
+                        hist_dict = self._broker_histories[broker_name]
+                        hist_dict["NAV"].append(broker._NAV)
+                        hist_dict["equity"].append(broker._equity)
+                        hist_dict["margin"].append(broker._margin_available)
+                        hist_dict["long_exposure"].append(
+                            broker._long_exposure
+                        )
+                        hist_dict["short_exposure"].append(
+                            broker._short_exposure
+                        )
+                        hist_dict["long_unrealised_pnl"].append(
+                            broker._long_unrealised_pnl
+                        )
+                        hist_dict["short_unrealised_pnl"].append(
+                            broker._short_unrealised_pnl
+                        )
+                        hist_dict["long_pnl"].append(
+                            broker._long_realised_pnl
+                        )
+                        hist_dict["short_pnl"].append(
+                            broker._short_realised_pnl
+                        )
+                        hist_dict["open_interest"].append(
+                            broker._open_interest
+                        )
+                        # TODO - check timezone below
+                        hist_dict["time"].append(datetime.now(timezone.utc))
+
+                        # Dump history file to pickle
+                        # TODO - check pickle bool?
+                        with open(f".paper_broker_hist", "wb") as file:
+                            pickle.dump(self._broker_histories, file)
+
                         time.sleep(sleep_time)
                 except Exception as e:
                     print(e)
@@ -2204,6 +2240,7 @@ class AutoTrader:
                                     hist_dict["time"].append(datetime.now(timezone.utc))
 
                                 # Dump history file to pickle
+                                # TODO - check pickle bool?
                                 with open(f".paper_broker_hist", "wb") as file:
                                     pickle.dump(self._broker_histories, file)
 
