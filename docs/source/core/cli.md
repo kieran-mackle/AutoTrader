@@ -4,7 +4,7 @@
 As of `v0.7.0`, AutoTrader features a Command Line Interface (CLI) for 
 various tasks. 
 
-```plaintext
+```
 Usage: autotrader [OPTIONS] COMMAND [ARGS]...
 
   AutoTrader command line interface.
@@ -24,7 +24,7 @@ Commands:
 To quickly check what version of AutoTrader you have installed, you can
 use:
 
-```plaintext
+```
 autotrader version
 ```
 
@@ -38,7 +38,7 @@ print(autotrader.__version__)
 
 
 ## Demo Backtest
-```plaintext
+```
 Usage: autotrader demo [OPTIONS]
 
   Runs a demo backtest in AutoTrader.
@@ -49,7 +49,7 @@ To quickly initialise your directory to the
 [recommended structure](rec-dir-struc), you can use `autotrader init`.
 
 
-```plaintext
+```
 Usage: autotrader init [OPTIONS] [NAME]
 
   Initialises the directory NAME for trading with AutoTrader. If no directory
@@ -71,10 +71,29 @@ Options:
   --help                 Show this message and exit.
 ```
 
-
+(cli-monitor)=
 ## Trading Monitor
-Docs coming soon!
 
+```{tip}
+See the tutorial on [setting up your own trade dashboard](trade-dashboard) 
+for more information.
+```
 
-## Paper Trading Snapshot
-Docs coming soon!
+```
+Usage: autotrader monitor [OPTIONS]
+
+  Monitors a broker/exchange and serves the information to a prometheus
+  database.
+
+Options:
+  -p, --port INTEGER      The port to serve data to.
+  -i, --initial-nav TEXT  The initial NAV to use for relative PnL
+                          calculations.
+  -m, --max-nav TEXT      The maximum NAV to use for drawdown calculations.
+  -f, --picklefile TEXT   The pickle file containing a virtual broker
+                          instance.
+  -c, --config TEXT       The monitor yaml configuration filepath.
+  -b, --broker TEXT       The name of the broker to connect to.
+  -e, --environment TEXT  The trading environment.
+  --help                  Show this message and exit.
+```

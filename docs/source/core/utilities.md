@@ -54,3 +54,11 @@
 .. autoclass:: autotrader.utilities.DataStream
    :members:
 ```
+
+
+(utils-monitor)=
+## Monitor
+```{eval-rst}
+.. autoclass:: autotrader.utilities.Monitor
+   :members:
+```
