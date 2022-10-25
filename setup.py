@@ -87,6 +87,7 @@ setuptools.setup(
         "requests >= 2.28.1",
         "python-telegram-bot >= 13.14",
         "psutil >= 5.9.2",
+        "prometheus-client >= 0.15.0",
     ],
     extras_require={
         "dydx": dydx_dep,

@@ -163,128 +163,48 @@ def demo():
 @click.command()
 @click.option("-p", "--port", default=8009, help="The port to serve data to.")
 @click.option(
-    "-n", "--nav", default=None, help="The reference NAV to use for relative PnL."
+    "-i", "--initial-nav", default=None, help="The initial NAV to use for relative PnL calculations."
 )
 @click.option(
-    "-f", "--file", help="The pickle file containing a virtual broker instance."
+    "-m", "--max-nav", default=None, help="The maximum NAV to use for drawdown calculations."
+)
+@click.option(
+    "-f", "--picklefile", help="The pickle file containing a virtual broker instance."
+)
+@click.option(
+    "-c", "--config", help="The monitor yaml configuration filepath."
 )
 @click.option("-b", "--broker", help="The name of the broker to connect to.")
 @click.option("-e", "--environment", default="paper", help="The trading environment.")
-def monitor(port, nav, file, broker, environment):
-    """Monitors a broker and serves the information
-    to a prometheus database."""
-    broker_name = broker
-
-    def start_server(port):
-        """Starts the http server for Prometheus."""
-        start_http_server(port)
-        print(f"Server started on port {port}.")
-
-    def get_broker(broker):
-        """Returns the broker object."""
-        if file is not None:
-            # Unpickle latest broker instance
-            broker = unpickle_broker(picklefile=picklepath)
-        elif broker is not None:
-            # Use existing broker instance
-            pass
-        elif broker_name is not None:
-            # Create broker instance
-            print(f"Connecting to {broker_name}...")
-            at = autotrader.AutoTrader()
-            at.configure(broker=broker_name, environment=environment, verbosity=0)
-            broker = at.run()
-            print("  Done.")
-        return broker
-
-    # Import packages
-    from autotrader.utilities import unpickle_broker
-    from prometheus_client import start_http_server, Gauge
-
+def monitor(port, initial_nav, max_nav, picklefile, config, broker, environment):
+    """Monitors a broker/exchange and serves the information
+    to a prometheus database.
+    """
+    # Print banner
     autotrader.utilities.print_banner()
 
-    # Unpack inputs
-    ref_nav = nav
-    picklepath = file
+    # Construct config dictionary
+    if config is not None:
+        # Read from file
+        monitor_config = autotrader.utilities.read_yaml(config)
 
-    if picklepath is not None:
-        # Check picklefile exists
-        if not os.path.exists(picklepath):
-            raise Exception(f"\nPicklefile '{file}' does not exist!")
-        else:
-            print(f"Monitoring {file}.")
+    else:
+        monitor_config = {
+            "port": port,
+            "broker": broker,
+            "picklefile": picklefile,
+            "initial_nav": initial_nav,
+            "max_nav": max_nav,
+            "environment": environment,
+            "sleep_time": 30,
+        }
 
-    # Set up instrumentation
-    nav_gauge = Gauge("nav_gauge", "Net Asset Value gauge.")
-    abs_PnL_gauge = Gauge("abs_pnl_gauge", "Absolute ($) PnL gauge.")
-    rel_PnL_gauge = Gauge("rel_pnl_gauge", "Relative (%) PnL gauge.")
-    pos_gauge = Gauge("pos_gauge", "Number of open positions gauge.")
-    total_exposure_gauge = Gauge("total_exposure_gauge", "Total exposure gauge.")
-    net_exposure_gauge = Gauge("net_exposure_gauge", "Total exposure gauge.")
-    leverage_gauge = Gauge("leverage_gauge", "Total leverage gauge.")
+    # Create Monitor instance
+    monitor = autotrader.utilities.Monitor(**monitor_config)
 
-    # Start up the server to expose the metrics
-    try:
-        start_server(port)
-    except OSError:
-        # Kill existing server
-        from psutil import process_iter
-        from signal import SIGKILL  # or SIGTERM
-
-        for proc in process_iter():
-            for conns in proc.connections(kind="inet"):
-                if conns.laddr.port == port:
-                    proc.send_signal(SIGKILL)  # or SIGKILL
-
-        # Start server
-        start_server(port)
-
-    # Begin loop
-    broker = None
-    while True:
-        try:
-            # Get broker object
-            broker = get_broker(broker)
-
-            # Query broker
-            nav = broker.get_NAV()
-            if ref_nav is None:
-                ref_nav = nav
-            positions = broker.get_positions()
-            pnl = nav - ref_nav
-            rel_pnl = pnl / ref_nav
-
-            # Calculate total exposure
-            total_exposure = 0
-            net_exposure = 0
-            for instrument, position in positions.items():
-                total_exposure += abs(position.notional)
-                net_exposure += position.direction * position.notional
-
-            # Calculate leverage
-            leverage = total_exposure / nav
-
-            # Update Prometheus server
-            nav_gauge.set(nav)
-            abs_PnL_gauge.set(pnl)
-            rel_PnL_gauge.set(rel_pnl)
-            pos_gauge.set(len(positions))
-            total_exposure_gauge.set(total_exposure)
-            net_exposure_gauge.set(net_exposure)
-            leverage_gauge.set(leverage)
-
-            # Sleep
-            time.sleep(5)
-
-        except KeyboardInterrupt:
-            print("\n\nStopping monitoring.")
-            break
-
-        except Exception as e:
-            # Unexpected exception, sleep briefly
-            print(e)
-            time.sleep(3)
-
+    # Run
+    monitor.run()
+    
 
 @click.command()
 @click.argument("pickle")
