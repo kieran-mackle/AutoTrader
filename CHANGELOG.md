@@ -1,5 +1,27 @@
 # AutoTrader Changelog
 
+## v0.10.0 (2022-10-25)
+
+### Feat
+
+- improved monitor and added dashboard template
+- **cli.py**: added backtest demo function to cli
+
+### Fix
+
+- **autotrader.py**: write broker hist when click paper trading
+- **autodata.py**: raise exception when invalid granularity is provided to yahoo finance
+
+### Refactor
+
+- added exception handling for click papertrade
+- **autodata.py**: added exception handling for ccxt orderbook method
+- moved print_banner function to utilities
+- **cli.py**: init method more robust
+- **macd_strategy.py**: load data from yahoo finance
+- **macd_strategy.py**: changed data directory path to cwd
+- deprecated support for email notifications
+
 ## v0.9.1 (2022-10-23)
 
 ### Fix
