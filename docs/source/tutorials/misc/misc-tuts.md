@@ -9,10 +9,9 @@ which are useful to know, but not essential to using AutoTrader.
 
 Run Modes <periodic-v-continuous>
 Single File Strategy <single-file-strat>
-```
-
-
-<!-- Click Trading <click-trading>
+Click Trading <click-trading>
 Broker Pickling <broker-pickles>
 Dashboarding <dashboarding>
-Trading Snapshots <trading-snapshot> -->
+Multiple Exchanges <multiple-exchanges>
+Trading Snapshots <trading-snapshot>
+```

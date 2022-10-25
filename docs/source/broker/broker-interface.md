@@ -25,6 +25,7 @@ same way, accepting the same input arguments and outputting the
 same objects.
 
 
+(broker-methods)=
 ## Methods
 The shared methods of the broker interfaces are described below.
 Note that each broker may have their own additional methods
