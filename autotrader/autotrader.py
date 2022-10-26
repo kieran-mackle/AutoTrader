@@ -905,7 +905,7 @@ class AutoTrader:
 
         # If a strategy is provided here, add it
         if strategy_filename is not None:
-            self.add_strategy(strategy_filename)
+            self.add_strategy(config_filename=strategy_filename)
         elif strategy_dict is not None:
             self.add_strategy(strategy_dict=strategy_dict)
 
