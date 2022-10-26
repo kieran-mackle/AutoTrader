@@ -25,6 +25,13 @@ same way, accepting the same input arguments and outputting the
 same objects.
 
 
+```{seealso}
+A great way to learn the broker interface is to do some 
+[click trading](click-trading).
+```
+
+
+(broker-methods)=
 ## Methods
 The shared methods of the broker interfaces are described below.
 Note that each broker may have their own additional methods
@@ -128,9 +135,10 @@ cryptocurrency exchange markets and trading APIs.
 
 
 
-## See Also
+## API Reference
 
-Click trading
-
-Using multiple brokers
-
+```{eval-rst}
+.. autoclass:: autotrader.brokers.broker.AbstractBroker
+   :members:
+   :private-members:
+```

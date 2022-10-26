@@ -1,6 +1,6 @@
 (trading-strategy)=
 # Trading Strategy
-`*.py`
+`strategies/*.py`
 
 Trading strategies are built as class objects, and must follow a few 
 simple rules to function properly with AutoTrader. At a minimum, a 

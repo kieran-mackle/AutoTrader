@@ -8,7 +8,6 @@ import traceback
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
-from art import tprint
 from typing import Callable
 from threading import Thread
 from ast import literal_eval
@@ -23,6 +22,7 @@ from autotrader.utilities import (
     DataStream,
     TradeAnalysis,
     unpickle_broker,
+    print_banner,
 )
 
 
@@ -94,7 +94,6 @@ class AutoTrader:
         self._notify = 0
         self._notification_provider = ""
         self._notifier = None
-        self._email_params = None
         self._order_summary_fp = None
 
         # Livetrade Parameters
@@ -230,7 +229,7 @@ class AutoTrader:
             Request live market price from broker before placing trade, rather
             than using the data already provided. The default is False.
         notify : int, optional
-            The level of email notifications (0, 1, 2). The default is 0.
+            The level of notifications (0, 1, 2). The default is 0.
         notification_provider : str, optional
             The notifications provider to use (currently only Telegram supported).
             The default is None.
@@ -920,7 +919,7 @@ class AutoTrader:
         """Performs essential checks and runs AutoTrader."""
         # Print Banner
         if int(self._verbosity) > 0:
-            tprint("AutoTrader", font="tarty1")
+            print_banner()
 
         # Define home_dir if undefined
         if self._home_dir is None:
@@ -986,7 +985,7 @@ class AutoTrader:
             if self._notify > 0:
                 print(
                     "Warning: notify set to {} ".format(self._notify)
-                    + "during backtest. Setting to zero to prevent emails."
+                    + "during backtest. Setting to zero to prevent notifications."
                 )
                 self._notify = 0
 
@@ -1550,9 +1549,6 @@ class AutoTrader:
         if self._verbosity > 1:
             print("  Done.")
 
-        # # Configure emailing
-        # self._configure_emailing(self._global_config_dict)
-
         # Initialise broker histories
         self._broker_histories = {
             key: {
@@ -1798,36 +1794,6 @@ class AutoTrader:
         self._broker = brokers
         self._broker_utils = brokers_utils
 
-    def _configure_emailing(self, global_config: dict) -> None:
-        """Configure email settings."""
-        if int(self._notify) > 0:
-            host_email = None
-            mailing_list = None
-
-            if "EMAILING" in global_config:
-                # Look for host email and mailing list in strategy config, if it
-                # was not picked up in strategy config
-                if "MAILING_LIST" in global_config["EMAILING"] and mailing_list is None:
-                    mailing_list = global_config["EMAILING"]["MAILING_LIST"]
-                if "HOST_ACCOUNT" in global_config["EMAILING"] and host_email is None:
-                    host_email = global_config["EMAILING"]["HOST_ACCOUNT"]
-
-            if host_email is None:
-                print("Warning: email host account not provided.")
-            if mailing_list is None:
-                print("Warning: no mailing list provided.")
-
-            email_params = {"mailing_list": mailing_list, "host_email": host_email}
-            self._email_params = email_params
-
-            logfiles_path = os.path.join(self._home_dir, "logfiles")
-            order_summary_fp = os.path.join(logfiles_path, "order_history.txt")
-
-            if not os.path.isdir(logfiles_path):
-                os.mkdir(logfiles_path)
-
-            self._order_summary_fp = order_summary_fp
-
     def _run_optimise(self) -> None:
         """Runs optimisation of strategy parameters."""
 
@@ -2010,17 +1976,43 @@ class AutoTrader:
             self._maintain_broker_thread = True
             sleep_time = pd.Timedelta(self._broker_refresh_freq).total_seconds()
 
-            # Check for multiple brokers
-            if not self._multiple_brokers:
-                brokers = {self._broker_name: self._broker}
-            else:
-                brokers = self._broker
+            # # Check for multiple brokers
+            # if not self._multiple_brokers:
+            #     brokers = {self._broker_name: self._broker}
+            # else:
+            #     brokers = self._broker
 
             # Run update loop
             while self._maintain_broker_thread:
                 try:
-                    for broker_name, broker in brokers.items():
+                    for broker_name, broker in self._brokers_dict.items():
+                        # Update orders and positions
                         broker._update_all()
+
+                        # Update broker histories
+                        hist_dict = self._broker_histories[broker_name]
+                        hist_dict["NAV"].append(broker._NAV)
+                        hist_dict["equity"].append(broker._equity)
+                        hist_dict["margin"].append(broker._margin_available)
+                        hist_dict["long_exposure"].append(broker._long_exposure)
+                        hist_dict["short_exposure"].append(broker._short_exposure)
+                        hist_dict["long_unrealised_pnl"].append(
+                            broker._long_unrealised_pnl
+                        )
+                        hist_dict["short_unrealised_pnl"].append(
+                            broker._short_unrealised_pnl
+                        )
+                        hist_dict["long_pnl"].append(broker._long_realised_pnl)
+                        hist_dict["short_pnl"].append(broker._short_realised_pnl)
+                        hist_dict["open_interest"].append(broker._open_interest)
+                        # TODO - check timezone below
+                        hist_dict["time"].append(datetime.now(timezone.utc))
+
+                        # Dump history file to pickle
+                        # TODO - check pickle bool?
+                        with open(f".paper_broker_hist", "wb") as file:
+                            pickle.dump(self._broker_histories, file)
+
                         time.sleep(sleep_time)
                 except Exception as e:
                     print(e)
@@ -2238,6 +2230,7 @@ class AutoTrader:
                                     hist_dict["time"].append(datetime.now(timezone.utc))
 
                                 # Dump history file to pickle
+                                # TODO - check pickle bool?
                                 with open(f".paper_broker_hist", "wb") as file:
                                     pickle.dump(self._broker_histories, file)
 

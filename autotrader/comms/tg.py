@@ -2,7 +2,7 @@ import os
 import telegram
 from autotrader.brokers.trading import Order
 from autotrader.comms.notifier import Notifier
-from autotrader.utilities import read_yaml, write_yaml
+from autotrader.utilities import read_yaml, write_yaml, print_banner
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 
 
@@ -55,6 +55,10 @@ class Telegram(Notifier):
         None.
 
         """
+        print_banner()
+        print("                              AutoTrader Telegram Bot")
+        print("\n  Listening for messages...")
+
         # Check for api token
         if self.api_token is None:
             path = "config/keys.yaml"
@@ -108,7 +112,8 @@ class Telegram(Notifier):
             + "set-up trading notifications. Note that this ID has also "
             + "been printed to your computer screen for reference."
         )
-        print(f"Chat ID: {chat_id}")
+        print("\n  Start command activated.")
+        print(f"    Chat ID: {chat_id}")
 
         # Send response
         update.message.reply_text(response)
@@ -145,6 +150,8 @@ class Telegram(Notifier):
                     # Write to file
                     write_yaml(config, path)
 
+                    print("\n  Telegram API keys successfully written to file.")
+
                     response = "All done."
 
                 else:
@@ -159,7 +166,7 @@ class Telegram(Notifier):
                 response = f"Your chat ID is {chat_id}."
 
                 if "print" in text or "show" in text:
-                    print(f"Chat ID: {chat_id}")
+                    print(f"\n  Chat ID: {chat_id}")
                     response += " This has also been printed to your computer."
 
         elif "thank" in text or "ty" in text:

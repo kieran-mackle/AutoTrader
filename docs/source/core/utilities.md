@@ -4,10 +4,18 @@
 
 (utils-get-config)=
 ## Configuration Utilities
+
+(utils-get-broker-config)=
+### Get Broker Configuration 
+```{eval-rst}
+.. autofunction:: autotrader.utilities.get_broker_config
+```
+
+(utils-get-data-config)=
+### Get Data Configuration 
 ```{eval-rst}
 .. autofunction:: autotrader.utilities.get_data_config
 ```
-
 
 
 
@@ -25,28 +33,12 @@
 ```
 
 
-### Get Broker Configuration 
-```{eval-rst}
-.. autofunction:: autotrader.utilities.get_broker_config
-```
-
-(utils-get-data-config)=
-### Get Data Configuration 
-```{eval-rst}
-.. autofunction:: autotrader.utilities.get_data_config
-```
 
 ### Unpickle Broker Instance 
 ```{eval-rst}
 .. autofunction:: autotrader.utilities.unpickle_broker
 ```
 
-
-
-## Watchlist Utilities
-```{eval-rst}
-.. autofunction:: autotrader.utilities.get_watchlist
-```
 
 (utils-trade-results)=
 ## TradeAnalysis Class
@@ -60,5 +52,13 @@
 ## DataStream Class
 ```{eval-rst}
 .. autoclass:: autotrader.utilities.DataStream
+   :members:
+```
+
+
+(utils-monitor)=
+## Monitor
+```{eval-rst}
+.. autoclass:: autotrader.utilities.Monitor
    :members:
 ```

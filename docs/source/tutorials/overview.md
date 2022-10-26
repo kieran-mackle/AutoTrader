@@ -96,3 +96,45 @@ your_trading_project/
     ├── strategy1.py                # Strategy 1 module, containing strategy 1 logic
     └── strategy2.py                # Strategy 2 module, containing strategy 2 logic
 ```
+
+
+(trading-environments)=
+# Trading Environments
+There are two trading environments: `paper` and `live`. The environment 
+being used can be specified in the [`configure`](autotrader-configure) 
+method, but it will be overwritten to `paper` any time you call the
+[virtual account configuration](autotrader-virtual-account-config) method.
+
+## Paper Trading
+`environment="paper"`
+
+Paper trading can fall into one of two categories:
+- fully simulated trading via the [virtual broker](virtual-broker-docs), or;
+- demo trading via an exchange/broker's dedicated demo API.
+
+If the exchange you wish to use offers a "demo" trading API (or testnet
+on crypto-specific exchanges), this can be a good way to test that all
+the required functionality of your strategy is supported by the exchange. It
+should always be an intermediate step before deploying your strategy live. 
+Simply make sure that you have provided the appropriate API keys in your
+[account configuration file](global-config).
+
+In some instances, the liquidity available on testnet API's is not reflective
+of that on the live exchange. In this case, you will not get a good indication
+of your strategy's performance. For this purpose, using the capabilities of the
+[virtual broker](virtual-broker-docs) to simulate trading is the way to go. To
+activate this functionality, simply configure a virtual trading account via the
+[virtual account configuration](autotrader-virtual-account-config) method. 
+
+
+## Live Trading
+When you are ready to deploy your strategy with real money, set the `environment`
+argument in the [`configure`](autotrader-configure) method to `live`. This will
+switch all of the API pointers to the live endpoints, and fire your orders to
+the live platforms. When Autotrader is running in livetrade mode, you will
+see this indicated as shown below.
+
+
+```{image} ../assets/images/livetrade-banner.png
+:align: center
+```

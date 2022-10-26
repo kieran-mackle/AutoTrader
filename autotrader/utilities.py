@@ -1,9 +1,14 @@
 import sys
 import yaml
+import time
 import pickle
+import autotrader
 import numpy as np
 import pandas as pd
+from art import tprint
 from datetime import datetime, timedelta
+from autotrader.brokers.broker import AbstractBroker
+from prometheus_client import start_http_server, Gauge
 
 
 def read_yaml(file_path: str) -> dict:
@@ -40,6 +45,10 @@ def write_yaml(data: dict, filepath: str) -> None:
     """
     with open(filepath, "w") as outfile:
         yaml.dump(data, outfile, default_flow_style=False)
+
+
+def print_banner():
+    tprint("AutoTrader", font="tarty1")
 
 
 def get_broker_config(
@@ -215,13 +224,13 @@ def get_broker_config(
 
 
 def get_data_config(feed: str, global_config: dict = None, **kwargs) -> dict:
-    """Returns a configuration dictionary for AutoData.
+    """Returns a data configuration dictionary for AutoData.
     Parameters
     ----------
-    global_config : dict
-        The global configuration dictionary.
     feed : str
         The name of the data feed.
+    global_config : dict
+        The global configuration dictionary.
     """
     if feed is None:
         print("Please specify a data feed.")
@@ -993,14 +1002,6 @@ class DataStream:
 
     This class is intended to provide a means of custom data pipelines.
 
-    Methods
-    -------
-    refresh
-        Returns up-to-date data, multi_data, quote_data and auxdata.
-    get_trading_bars
-        Returns a dictionary of the current bars for the products being
-        traded, used to act on trading signals.
-
     Attributes
     ----------
     instrument : str
@@ -1368,3 +1369,216 @@ class TradeWatcher:
         latest_trades = self.latest_trades
         self.latest_trades = []
         return latest_trades
+
+
+class Monitor:
+    def __init__(
+        self, config_filepath: str = None, config: dict = None, *args, **kwargs
+    ) -> None:
+        """Construct a Monitor instance.
+
+        Parameters
+        ----------
+        config_filepath : str, None
+            The absolute filepath of the monitor yaml configuration file.
+            The default is None.
+        config : dict, optional
+            The monitor configuration dictionary. The default is None.
+        """
+        # Initialise attributes
+        self.port = None
+        self.broker = None
+        self.picklefile = None
+        self.environment = None
+        self.initial_nav = None
+        self.max_nav = None
+        self.sleep_time = None
+
+        if config_filepath is not None:
+            # Read monitor config
+            print("Loading monitor configuration from file.")
+            config = read_yaml(config_filepath)
+
+        elif config is None and config_filepath is None:
+            # Use kwargs as config
+            config = kwargs
+
+        # Overwrite config with kwargs
+        for key, val in kwargs.items():
+            if val is not None:
+                config[key] = val
+
+        # Check config keys
+        required_keys = [
+            "port",
+            "environment",
+            "initial_nav",
+            "max_nav",
+            "sleep_time",
+        ]
+        for key in required_keys:
+            if key not in config.keys():
+                print(f"Error: missing configuration key: '{key}'")
+                sys.exit()
+
+        # Check for broker key
+        if "picklefile" in config and config["picklefile"] is not None:
+            self.picklefile = config["picklefile"]
+        else:
+            try:
+                self.broker = config["broker"]
+            except KeyError:
+                print("Please specify the broker name or pickle file path to monitor.")
+                sys.exit()
+
+        # Unpack config and assign attributes
+        for key, val in config.items():
+            setattr(self, key, val)
+
+    def _initialise(self) -> None:
+        """Initialise the monitor."""
+        # Set up instrumentation
+        self.nav_gauge = Gauge("nav_gauge", "Net Asset Value gauge.")
+        self.drawdown_gauge = Gauge("drawdown_gauge", "Current drawdown gauge.")
+        self.max_pos_gauge = Gauge(
+            "max_position_gauge", "Maximum position notional gauge."
+        )
+        self.max_pos_frac_gauge = Gauge(
+            "max_pos_frac_gauge", "Maximum position NAV fraction gauge."
+        )
+        self.abs_PnL_gauge = Gauge("abs_pnl_gauge", "Absolute ($) PnL gauge.")
+        self.rel_PnL_gauge = Gauge("rel_pnl_gauge", "Relative (%) PnL gauge.")
+        self.pos_gauge = Gauge("pos_gauge", "Number of open positions gauge.")
+        self.total_exposure_gauge = Gauge(
+            "total_exposure_gauge", "Total exposure gauge."
+        )
+        self.net_exposure_gauge = Gauge("net_exposure_gauge", "Total exposure gauge.")
+        self.leverage_gauge = Gauge("leverage_gauge", "Total leverage gauge.")
+
+        # Start up the server to expose the metrics
+        try:
+            Monitor.start_server(self.port)
+        except OSError:
+            print(f"Server on port {self.port} already in use. Terminating to restart.")
+
+            # Kill existing server
+            from psutil import process_iter
+            from signal import SIGKILL  # or SIGTERM
+
+            for proc in process_iter():
+                for conns in proc.connections(kind="inet"):
+                    if conns.laddr.port == self.port:
+                        proc.send_signal(SIGKILL)  # or SIGKILL
+
+            # Start server
+            Monitor.start_server(self.port)
+
+    def run(
+        self,
+    ) -> None:
+        """Runs the monitor indefinitely."""
+        # Initialise
+        self._initialise()
+
+        # Begin monitor loop
+        broker = None
+        print(f"Monitoring with {self.sleep_time} second updates.")
+        deploy_time = datetime.now().timestamp()
+        while True:
+            try:
+                # Get broker object
+                broker = self.get_broker(broker)
+
+                # Query broker
+                nav = broker.get_NAV()
+                if self.initial_nav is None:
+                    self.initial_nav = nav
+                if self.max_nav is None:
+                    self.max_nav = nav
+
+                positions = broker.get_positions()
+                pnl = nav - self.initial_nav
+                rel_pnl = pnl / self.initial_nav
+
+                # Calculate drawdown
+                if nav > self.max_nav:
+                    self.max_nav = nav
+                drawdown = -min(0, -(self.max_nav - nav) / self.max_nav)
+
+                # Calculate total exposure
+                total_exposure = 0
+                net_exposure = 0
+                max_pos_notional = 0
+                pos_pnl = {}
+                for instrument, position in positions.items():
+                    pos_pnl[instrument] = position.pnl
+                    pos_notional = abs(position.notional)
+                    total_exposure += pos_notional
+                    net_exposure += position.direction * position.notional
+
+                    if pos_notional > max_pos_notional:
+                        # Update maximum position notional value
+                        max_pos_notional = pos_notional
+
+                # Calculate max position fraction
+                max_pos_frac = max_pos_notional / nav
+
+                # Calculate leverage
+                leverage = total_exposure / nav
+
+                # Update metrics
+                self.nav_gauge.set(nav)
+                self.abs_PnL_gauge.set(pnl)
+                self.rel_PnL_gauge.set(rel_pnl)
+                self.pos_gauge.set(len(positions))
+                self.total_exposure_gauge.set(total_exposure)
+                self.net_exposure_gauge.set(net_exposure)
+                self.leverage_gauge.set(leverage)
+                self.drawdown_gauge.set(drawdown)
+                self.max_pos_gauge.set(max_pos_notional)
+                self.max_pos_frac_gauge.set(max_pos_frac)
+
+                # Sleep
+                time.sleep(
+                    self.sleep_time - ((time.time() - deploy_time) % self.sleep_time)
+                )
+
+            except KeyboardInterrupt:
+                print("\n\nStopping monitoring.")
+                break
+
+            except Exception as e:
+                # Print exception
+                print(e)
+
+                # Also sleep briefly
+                time.sleep(3)
+
+                # Reconnect to broker
+                broker = self.get_broker(None)
+
+    @staticmethod
+    def start_server(port):
+        """Starts the http server for Prometheus."""
+        start_http_server(port)
+        print(f"Server started on port {port}.")
+
+    def get_broker(self, broker) -> AbstractBroker:
+        """Returns the broker object."""
+        if self.picklefile is not None:
+            # Load broker instance from pickle
+            broker = unpickle_broker(self.picklefile)
+
+        elif broker is not None:
+            # Use existing broker instance
+            pass
+
+        else:
+            # Create broker instance
+            print(f"Connecting to {self.broker} ({self.environment} environment)...")
+            at = autotrader.AutoTrader()
+            at.configure(verbosity=0)
+            at.configure(broker=self.broker, environment=self.environment, verbosity=0)
+            broker = at.run()
+            print("  Done.")
+        return broker
