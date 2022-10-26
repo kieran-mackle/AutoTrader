@@ -1,5 +1,11 @@
 # AutoTrader Changelog
 
+## v0.10.1 (2022-10-26)
+
+### Perf
+
+- data fetch of yahoo finance with count extends range to account for business days
+
 ## v0.10.0 (2022-10-25)
 
 ### Feat
