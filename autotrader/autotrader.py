@@ -929,7 +929,7 @@ class AutoTrader:
         for strat_dict in self._uninitiated_strat_dicts:
             self.add_strategy(strategy_dict=strat_dict)
         for strat_config_file in self._uninitiated_strat_files:
-            self.add_strategy(strategy_filename=strat_config_file)
+            self.add_strategy(config_filename=strat_config_file)
 
         if self._scan_watchlist is not None:
             # Scan watchlist has not overwritten strategy watchlist
@@ -970,16 +970,17 @@ class AutoTrader:
         # Check self._broker_name
         if self._broker_name == "":
             # Broker has not been assigned
-            if self._backtest_mode or self._papertrading:
+            if self._backtest_mode or self._papertrading or self._scan_mode:
                 # Use virtual broker
                 self._broker_name = "virtual"
 
             else:
                 # Livetrading
-                raise Exception(
+                print(
                     "Please specify the name(s) of the broker(s) "
                     + "you wish to trade with."
                 )
+                sys.exit()
 
         if self._backtest_mode:
             if self._notify > 0:
@@ -1033,9 +1034,9 @@ class AutoTrader:
             # Trading
             if not self._backtest_mode and "virtual" in self._broker_name:
                 # Not in backtest mode, yet virtual broker is selected
-                if not self._papertrading:
-                    # Not papertrading either
-                    raise Exception(
+                if not self._papertrading and not self._scan_mode:
+                    # Not papertrading or scanning either
+                    print(
                         "Live-trade mode requires setting the "
                         + "broker. Please do so using the "
                         + "AutoTrader configure method. If you "
@@ -1044,6 +1045,7 @@ class AutoTrader:
                         + "configure the virtual broker account(s) "
                         + "with the virtual_account_config method."
                     )
+                    sys.exit()
 
             # Load global (account) configuration
             if self._global_config_dict is not None:
@@ -1093,42 +1095,46 @@ class AutoTrader:
 
             elif global_config is None and self._feed.lower() in ["oanda", "ib"]:
                 # No global configuration provided, but data feed requires authentication
-                raise Exception(
+                print(
                     f'Data feed "{self._feed}" requires global '
                     + "configuration. If a config file already "
                     + "exists, make sure to specify the home_dir. "
                     + "Alternatively, provide a configuration dictionary "
                     + "directly via AutoTrader.configure()."
                 )
+                sys.exit()
 
             # Check global config requirements
             if sum([self._backtest_mode, self._scan_mode, self._papertrading]) == 0:
                 # Livetrade mode
                 if global_config is None:
                     # No global_config
-                    raise Exception(
+                    print(
                         "No global configuration found (required for "
                         + "livetrading). Either provide a global configuration dictionary "
                         + "via the configure method, or create a keys.yaml file in your "
                         + "config/ directory."
                     )
+                    sys.exit()
 
                 if self._broker_name == "":
-                    raise Exception(
+                    print(
                         "Please specify the brokers you would like to "
                         + "trade with via the configure method."
                     )
+                    sys.exit()
 
                 # Check broker
                 supported_exchanges = ["virtual", "oanda", "ib", "ccxt", "dydx"]
                 inputted_brokers = self._broker_name.lower().replace(" ", "").split(",")
                 for broker in inputted_brokers:
                     if broker.split(":")[0] not in supported_exchanges:
-                        raise Exception(
+                        print(
                             f"Unsupported broker requested: {self._broker_name}\n"
                             + "Please check the broker(s) specified in configure method and "
                             + "virtual_account_config."
                         )
+                        sys.exit()
 
             # All checks passed, proceed to run main
             if self._verbosity > 1:
@@ -1506,10 +1512,11 @@ class AutoTrader:
             and len(self._virtual_tradeable_instruments) != self._no_brokers
             and self._backtest_mode
         ):
-            raise Exception(
+            print(
                 "Please define the tradeable instruments for "
                 + "each virtual account configured."
             )
+            sys.exit()
 
         # Get broker configuration
         if self._backtest_mode or self._papertrading:
@@ -1525,11 +1532,12 @@ class AutoTrader:
 
         if self._account_id is not None:
             if self._multiple_brokers:
-                raise Exception(
+                print(
                     "Cannot use provided account ID when "
                     + "trading across multiple exchanges. Please specify the "
                     + "desired account in the keys config."
                 )
+                sys.exit()
             else:
                 # Overwrite default account in config dicts
                 broker_config["ACCOUNT_ID"] = self._account_id
