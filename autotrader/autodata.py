@@ -723,12 +723,17 @@ class AutoData:
             # Convert count to start and end dates (assumes end=now)
             end_time = datetime.now()
             start_time = end_time - timedelta(
-                seconds=self._granularity_to_seconds(granularity, "yahoo") * count
+                seconds=self._granularity_to_seconds(granularity, "yahoo") * 1.5 * count
             )
 
+        # Fetch data
         data = self.api(
             tickers=instrument, start=start_time, end=end_time, interval=granularity
         )
+
+        # Remove excess data
+        if count is not None:
+            data = data.tail(count)
 
         if data.index.tzinfo is None:
             # Data is naive, add UTC timezone
