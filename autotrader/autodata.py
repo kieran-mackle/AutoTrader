@@ -4,6 +4,7 @@ import pandas as pd
 from typing import Union
 from decimal import Decimal
 from autotrader.brokers.trading import Order
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 from autotrader.brokers.broker_utils import OrderBook
 
@@ -211,17 +212,60 @@ class AutoData:
         *args,
         **kwargs,
     ) -> pd.DataFrame:
-        """Unified data retrieval api."""
+        """Unified OHLC data retrieval api.
+
+        Parameters
+        -----------
+        instrument : str, list
+            The instrument to fetch data for, or a list of instruments.
+        granularity : str
+            The granularity of the data to fetch.
+        count : int, optional
+            The number of OHLC bars to fetch. The default is None.
+        start_time : datetime, optional
+            The start date of the data to fetch. The default is None.
+        end_time : datetime, optional
+            The end date of the data to fetch. The default is None.
+
+        Returns
+        -------
+        data : pd.DataFrame, dict[pd.DataFrame]
+            The OHLC data.
+        """
         func = getattr(self, f"_{self._feed}")
-        data = func(
-            instrument,
-            granularity=granularity,
-            count=count,
-            start_time=start_time,
-            end_time=end_time,
-            *args,
-            **kwargs,
-        )
+        if isinstance(instrument, list):
+            with ThreadPoolExecutor() as executor:
+                futures = {}
+                for i in instrument:
+                    futures[i] = executor.submit(
+                        func,
+                        instrument=i,
+                        granularity=granularity,
+                        count=count,
+                        start_time=start_time,
+                        end_time=end_time,
+                        *args,
+                        **kwargs,
+                    )
+            data = {}
+            for instrument, future in futures.items():
+                try:
+                    data[instrument] = future.result()
+                except Exception as e:
+                    print(f"Could not fetch data for {instrument}: {e}")
+
+        else:
+            # Single instrument
+            data = func(
+                instrument,
+                granularity=granularity,
+                count=count,
+                start_time=start_time,
+                end_time=end_time,
+                *args,
+                **kwargs,
+            )
+
         return data
 
     def _quote(self, *args, **kwargs):
