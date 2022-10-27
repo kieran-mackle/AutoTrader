@@ -777,7 +777,7 @@ class AutoData:
         )
 
         # Remove excess data
-        if count is not None:
+        if count is not None and start_time is None and end_time is None:
             data = data.tail(count)
 
         if data.index.tzinfo is None:
