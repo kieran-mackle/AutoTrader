@@ -1,5 +1,11 @@
 # AutoTrader Changelog
 
+## v0.11.1 (2022-10-27)
+
+### Refactor
+
+- **AutoData**: optionally provide workers as kwarg to fetch
+
 ## v0.11.0 (2022-10-27)
 
 ### Feat
