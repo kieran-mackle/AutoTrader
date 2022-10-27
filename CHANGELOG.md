@@ -1,5 +1,11 @@
 # AutoTrader Changelog
 
+## v0.11.0 (2022-10-27)
+
+### Feat
+
+- **AutoData**: batch fetch instruments
+
 ## v0.10.1 (2022-10-26)
 
 ### Perf
