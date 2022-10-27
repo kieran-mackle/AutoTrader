@@ -1,5 +1,11 @@
 # AutoTrader Changelog
 
+## v0.11.2 (2022-10-27)
+
+### Fix
+
+- **AutoData**: do not truncate yahoo data if start and end arguments are not None
+
 ## v0.11.1 (2022-10-27)
 
 ### Refactor
