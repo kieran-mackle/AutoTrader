@@ -234,7 +234,8 @@ class AutoData:
         """
         func = getattr(self, f"_{self._feed}")
         if isinstance(instrument, list):
-            with ThreadPoolExecutor() as executor:
+            max_workers = kwargs["workers"] if "workers" in kwargs else None
+            with ThreadPoolExecutor(max_workers=max_workers) as executor:
                 futures = {}
                 for i in instrument:
                     futures[i] = executor.submit(
