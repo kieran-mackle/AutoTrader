@@ -1472,3 +1472,31 @@ def _calculate_range_filter(h, l, rng, n, rng_type, smooth, sn, av_rf, av_n):
     rfi["fdir"] = np.sign(rfi.rf - rfi.rf.shift(1)).fillna(0)
 
     return rfi
+
+
+def chandelier_exit(
+    data: pd.DataFrame, length: int = 22, mult: float = 3.0, use_close: bool = True
+):
+    ohlc4 = (data["Open"] + data["High"] + data["Low"] + data["Close"]) / 4
+
+    atr = mult * TA.ATR(data, length)
+
+    if use_close:
+        longstop = data["Close"].rolling(length).max() - atr
+        shortstop = data["Close"].rolling(length).min() + atr
+    else:
+        longstop = data["High"].rolling(length).max() - atr
+        shortstop = data["Low"].rolling(length).min() + atr
+
+    direction = np.where(data["Close"] > shortstop, 1, -1)
+
+    chandelier_df = pd.concat(
+        {
+            "longstop": longstop,
+            "shortstop": shortstop,
+        },
+        axis=1,
+    )
+    chandelier_df["direction"] = direction
+
+    return chandelier_df
