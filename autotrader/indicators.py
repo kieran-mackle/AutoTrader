@@ -1498,5 +1498,10 @@ def chandelier_exit(
         axis=1,
     )
     chandelier_df["direction"] = direction
+    chandelier_df["signal"] = np.where(
+        chandelier["direction"] != chandelier["direction"].shift(),
+        chandelier["direction"],
+        0,
+    )
 
     return chandelier_df
