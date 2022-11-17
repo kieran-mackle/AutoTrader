@@ -1,5 +1,19 @@
 # AutoTrader Changelog
 
+## v0.12.0 (2022-11-17)
+
+### Feat
+
+- **indicators**: added signal column to chandelier indicator
+- **indicators**: added chandelier exit indicator
+- **cli**: added option to initialise directory from demo repository
+
+### Fix
+
+- **indicators.py**: fill na values in indicator data for finding swings
+- **autoplot.py**: skip autoscaling when there is no data variation
+- **indicators.py**: fixed outdated argument for autodecting divergence
+
 ## v0.11.2 (2022-10-27)
 
 ### Fix
