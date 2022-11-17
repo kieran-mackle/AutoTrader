@@ -424,7 +424,7 @@ def find_swings(data: pd.DataFrame, n: int = 2) -> pd.DataFrame:
 
     elif isinstance(data, pd.Series):
         # Pandas series data
-        swing_data = pd.Series(ema(data, n), index=data.index)
+        swing_data = pd.Series(ema(data.fillna(0), n), index=data.index)
         low_data = data
         high_data = data
 
