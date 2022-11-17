@@ -511,9 +511,13 @@ class AutoPlot:
         while not added:
             if range_key not in self.autoscale_args:
                 # Keys can be added
-                self.autoscale_args[range_key] = y_range
-                self.autoscale_args[source_key] = source
-                added = True
+                if source.data["plot_data"].max() == source.data["plot_data"].min():
+                    # Do not need to autoscale this data
+                    added = True
+                else:
+                    self.autoscale_args[range_key] = y_range
+                    self.autoscale_args[source_key] = source
+                    added = True
             else:
                 # Increment key
                 range_key = range_key[:-1] + str(int(range_key[-1]) + 1)
