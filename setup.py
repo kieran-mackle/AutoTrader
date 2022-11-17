@@ -78,7 +78,7 @@ setuptools.setup(
         "pandas >= 1.3.4",
         "art >= 5.7",
         "PyYAML",
-        "bokeh >= 2.3.1",
+        "bokeh == 2.3.2",
         "scipy >= 1.7.1",
         "finta >= 1.3",
         "tqdm>=4.64.0",

@@ -34,8 +34,16 @@ def version():
     "--strategies",
     help="The name of strategies to include in the initialised directory.",
 )
+@click.option(
+    "-d",
+    "--demo",
+    is_flag=True,
+    show_default=True,
+    default=False,
+    help="Initialise the directory with the AutoTrader demo repository.",
+)
 @click.argument("name", default=".")
-def init(strategies, name):
+def init(strategies, demo, name):
     """Initialises the directory NAME for trading with AutoTrader. If no
     directory NAME is provided, the current directory will be initialised.
 
@@ -65,6 +73,15 @@ def init(strategies, name):
     else:
         # Initialise current directory
         dir_name = os.path.abspath(os.getcwd())
+
+    if demo:
+        # Clone demo repository
+        click.echo("Initialising from demo repository.\n")
+
+        demo_url = "https://github.com/kieran-mackle/autotrader-demo"
+        os.system(f"git clone {demo_url} {dir_name}")
+        click.echo("\nAutoTrader initialisation complete.")
+        return
 
     # Check if config directory exists
     config_dir = os.path.join(dir_name, "config")

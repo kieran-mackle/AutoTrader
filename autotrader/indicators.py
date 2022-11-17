@@ -424,7 +424,7 @@ def find_swings(data: pd.DataFrame, n: int = 2) -> pd.DataFrame:
 
     elif isinstance(data, pd.Series):
         # Pandas series data
-        swing_data = pd.Series(ema(data, n), index=data.index)
+        swing_data = pd.Series(ema(data.fillna(0), n), index=data.index)
         low_data = data
         high_data = data
 
@@ -727,7 +727,7 @@ def autodetect_divergence(
     price_swings_classified = classify_swings(price_swings)
 
     # Indicator swings
-    indicator_swings = find_swings(indicator_data, data_type="other")
+    indicator_swings = find_swings(indicator_data)
     indicator_classified = classify_swings(indicator_swings)
 
     # Detect divergence
@@ -1472,3 +1472,36 @@ def _calculate_range_filter(h, l, rng, n, rng_type, smooth, sn, av_rf, av_n):
     rfi["fdir"] = np.sign(rfi.rf - rfi.rf.shift(1)).fillna(0)
 
     return rfi
+
+
+def chandelier_exit(
+    data: pd.DataFrame, length: int = 22, mult: float = 3.0, use_close: bool = True
+):
+    ohlc4 = (data["Open"] + data["High"] + data["Low"] + data["Close"]) / 4
+
+    atr = mult * TA.ATR(data, length)
+
+    if use_close:
+        longstop = data["Close"].rolling(length).max() - atr
+        shortstop = data["Close"].rolling(length).min() + atr
+    else:
+        longstop = data["High"].rolling(length).max() - atr
+        shortstop = data["Low"].rolling(length).min() + atr
+
+    direction = np.where(data["Close"] > shortstop, 1, -1)
+
+    chandelier_df = pd.concat(
+        {
+            "longstop": longstop,
+            "shortstop": shortstop,
+        },
+        axis=1,
+    )
+    chandelier_df["direction"] = direction
+    chandelier_df["signal"] = np.where(
+        chandelier["direction"] != chandelier["direction"].shift(),
+        chandelier["direction"],
+        0,
+    )
+
+    return chandelier_df
