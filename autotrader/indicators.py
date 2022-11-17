@@ -727,7 +727,7 @@ def autodetect_divergence(
     price_swings_classified = classify_swings(price_swings)
 
     # Indicator swings
-    indicator_swings = find_swings(indicator_data, data_type="other")
+    indicator_swings = find_swings(indicator_data)
     indicator_classified = classify_swings(indicator_swings)
 
     # Detect divergence
