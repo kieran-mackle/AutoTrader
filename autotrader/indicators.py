@@ -988,7 +988,7 @@ def unroll_signal_list(signals: Union[list, pd.Series]) -> np.array:
 
     """
     unrolled_signals = np.zeros(len(signals))
-    for i in range(len(signals)):
+    for i in range(1, len(signals)):
         if signals[i] != signals[i - 1]:
             unrolled_signals[i] = signals[i]
 
