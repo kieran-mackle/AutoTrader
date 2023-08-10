@@ -151,6 +151,7 @@ class Broker(AbstractBroker):
                 fill_direction=trade_dict["direction"],
                 fee=trade_dict["fees"],
                 id=trade_dict["id"],
+                payload = trade_dict["payload"],
             )
 
             trades[trade.id] = native_trade
@@ -196,6 +197,7 @@ class Broker(AbstractBroker):
         new_trade["unrealised_PL"] = trade.unrealizedPL
         new_trade["fees"] = trade.financing
         new_trade["status"] = trade.state.lower()
+        new_trade["payload"] = trade.payload
 
         # Check for take profit
         if trade.takeProfitOrder is not None:

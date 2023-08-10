@@ -288,6 +288,7 @@ class Broker(AbstractBroker):
             fee=dydx_fill["fee"],
             id=dydx_fill["id"],
             order_id=dydx_fill["orderId"],
+            payload = dydx_fill["payload"],
         )
 
         return native_trade

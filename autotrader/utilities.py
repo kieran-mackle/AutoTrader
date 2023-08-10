@@ -656,6 +656,7 @@ class TradeAnalysis:
             "instrument": [],
             "id": [],
             "order_id": [],
+            "payload": [],
         }
         for fill in fills:
             fill_dict["order_time"].append(fill.order_time)
@@ -669,6 +670,7 @@ class TradeAnalysis:
             fill_dict["id"].append(fill.id)
             fill_dict["order_id"].append(fill.order_id)
             fill_dict["order_type"].append(fill.order_type)
+            fill_dict["payload"].append(fill.payload)
 
         fill_df = pd.DataFrame(data=fill_dict, index=fill_dict["fill_time"])
         fill_df["broker"] = broker_name
@@ -702,6 +704,7 @@ class TradeAnalysis:
         stop_price = []
         take_price = []
         reason = []
+        payload = []
 
         if trades is not None:
             entry_time = []
@@ -724,6 +727,7 @@ class TradeAnalysis:
             stop_price.append(item.stop_loss)
             take_price.append(item.take_profit)
             reason.append(item.reason)
+            payload.append(item.payload)
 
         if trades is not None:
             for trade_id, trade in iter_dict.items():
@@ -778,6 +782,7 @@ class TradeAnalysis:
                     "exit_price": exit_prices,
                     "trade_duration": trade_duration,
                     "fees": fees,
+                    "payload": payload,
                 },
                 index=pd.to_datetime(entry_time),
             )
@@ -907,6 +912,10 @@ class TradeAnalysis:
 
             # Fees
             total_fees = self.trade_history.fee.sum()
+            
+            # Has changed -> mean R/R
+            self.isolated_position_history = pd.concat([self.isolated_position_history,\
+                self.isolated_position_history['payload'].apply(pd.Series)], axis=1)
 
             # Volume traded
             total_volume = (

@@ -1030,6 +1030,7 @@ class Broker(AbstractBroker):
         fill_time: datetime,
         order: Order = None,
         liquidation_order: bool = False,
+        payload: any = None,
     ) -> None:
         """Marks an order as filled and records the trade as a Fill.
 
@@ -1064,6 +1065,7 @@ class Broker(AbstractBroker):
         order_id = order.id
         HCF = order.HCF
         fill_price = round(fill_price, order.price_precision)
+        payload = order.payload
 
         # Check for SL
         if order.stop_loss is not None:
@@ -1080,6 +1082,7 @@ class Broker(AbstractBroker):
                 status="open",
                 order_time=fill_time,
                 order_price=fill_price,
+                payload=payload,
             )
             # Add to open orders
             try:
@@ -1107,6 +1110,7 @@ class Broker(AbstractBroker):
                 size_precision=order.size_precision,
                 order_time=fill_time,
                 order_price=fill_price,
+                payload=payload,
             )
             # Add to open orders
             try:
@@ -1145,6 +1149,7 @@ class Broker(AbstractBroker):
             order_type=order_type,
             _price_precision=order.price_precision,
             _size_precision=order.size_precision,
+            payload=payload,
         )
         self._fills.append(trade)
 

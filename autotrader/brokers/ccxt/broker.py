@@ -313,6 +313,7 @@ class Broker(AbstractBroker):
             fee=trade["fee"]["cost"],
             id=trade["id"],
             order_id=parent_order_id,
+            payload=trade["payload"],
         )
 
         return native_trade

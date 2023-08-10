@@ -68,6 +68,8 @@ class Order:
     ccxt_params : dict, optional
         The CCXT parameters dictionary to pass when creating an order. The
         default is {}.
+    payload : any, optional
+        The extra parameters of strategy
     """
 
     def __init__(
@@ -81,6 +83,7 @@ class Order:
         stop_loss: float = None,
         stop_type: str = None,
         take_profit: float = None,
+        payload: any = None,
         **kwargs,
     ) -> Order:
 
@@ -99,7 +102,10 @@ class Order:
         self.order_stop_price = order_stop_price
         self.pip_value = None
         self.HCF = 1
-
+        
+        # Payload
+        self.payload = payload
+        
         # Precision
         self.price_precision = 5
         self.size_precision = 5
@@ -666,6 +672,7 @@ class Trade:
         fill_price: float,
         fill_direction: int,
         fee: float,
+        payload: any,
         **kwargs,
     ) -> Trade:
         """Trade constructor."""
@@ -680,6 +687,7 @@ class Trade:
         self.order_type = order_type
         self.size = size
         self.instrument = instrument
+        self.payload = payload
 
         # Precision attributes
         self._price_precision = 5
