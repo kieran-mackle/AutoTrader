@@ -447,10 +447,10 @@ def find_swings(data: pd.DataFrame, n: int = 2) -> pd.DataFrame:
         if swing < 0:
             # Down swing, find low price
             highs.append(0)
-            lows.append(min(low_data[i - n : i]))
+            lows.append(min(low_data[i - n - 1: i + 1]))
         elif swing > 0:
             # Up swing, find high price
-            highs.append(max(high_data[i - n : i]))
+            highs.append(max(high_data[i - n - 1: i + 1]))
             lows.append(0)
         else:
             # Price movement
@@ -988,7 +988,7 @@ def unroll_signal_list(signals: Union[list, pd.Series]) -> np.array:
 
     """
     unrolled_signals = np.zeros(len(signals))
-    for i in range(len(signals)):
+    for i in range(1, len(signals)):
         if signals[i] != signals[i - 1]:
             unrolled_signals[i] = signals[i]
 
