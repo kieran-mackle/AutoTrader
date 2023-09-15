@@ -262,6 +262,9 @@ def range_filter(
     ----------
     https://www.tradingview.com/script/lut7sBgG-Range-Filter-DW/
     """
+    high_val = 0.0
+    low_val = 0.0
+
     # Get high and low values
     if mov_source == "body":
         high_val = data.Close
@@ -413,6 +416,8 @@ def find_swings(data: pd.DataFrame, n: int = 2) -> pd.DataFrame:
     -------
     swing_df : pd.DataFrame
         A dataframe containing the swing levels detected.
+
+    pd.Series(hl2, name="hl2"),
     """
     # Prepare data
     if isinstance(data, pd.DataFrame):
@@ -447,10 +452,10 @@ def find_swings(data: pd.DataFrame, n: int = 2) -> pd.DataFrame:
         if swing < 0:
             # Down swing, find low price
             highs.append(0)
-            lows.append(min(low_data[i - n - 1: i + 1]))
+            lows.append(min(low_data[i - n + 1: i + 1]))
         elif swing > 0:
             # Up swing, find high price
-            highs.append(max(high_data[i - n - 1: i + 1]))
+            highs.append(max(high_data[i - n + 1: i + 1]))
             lows.append(0)
         else:
             # Price movement
@@ -496,7 +501,7 @@ def classify_swings(swing_df: pd.DataFrame, tol: int = 0) -> pd.DataFrame:
 
     new_level = np.where(swing_df.Last != swing_df.Last.shift(), 1, 0)
 
-    candles_since_last = candles_between_crosses(new_level)
+    candles_since_last = candles_between_crosses(new_level, initial_count=1)
 
     # Add column 'candles since last swing' CSLS
     swing_df["CSLS"] = candles_since_last
@@ -531,10 +536,38 @@ def classify_swings(swing_df: pd.DataFrame, tol: int = 0) -> pd.DataFrame:
         - swing_df.Strong_highs.replace(to_replace=0, method="ffill").shift()
     )
 
+    # the first low_change > 0.0 is not a HL
+    r_hl = []
+    first_valid_idx = -1
+    for i in low_change.index:
+        v = low_change[i]
+        if first_valid_idx == -1 and not np.isnan(v) and v != 0.0:
+            first_valid_idx = i
+        if first_valid_idx != -1 and i > first_valid_idx and v > 0.0:
+            hl = True
+        else:
+            hl = False
+        r_hl.append(hl)
+
+    # the first high_change < 0.0 is not a LH
+    r_lh = []
+    first_valid_idx = -1
+    for i in high_change.index:
+        v = high_change[i]
+        if first_valid_idx == -1 and not np.isnan(v) and v != 0.0:
+            first_valid_idx = i
+        if first_valid_idx != -1 and i > first_valid_idx and v < 0.0:
+            lh = True
+        else:
+            lh = False
+        r_lh.append(lh)
+
     swing_df["LL"] = np.where(low_change < 0, True, False)
-    swing_df["HL"] = np.where(low_change > 0, True, False)
+    # swing_df["HL"] = np.where(low_change > 0, True, False)
+    swing_df["HL"] = r_hl
     swing_df["HH"] = np.where(high_change > 0, True, False)
-    swing_df["LH"] = np.where(high_change < 0, True, False)
+    # swing_df["LH"] = np.where(high_change < 0, True, False)
+    swing_df["LH"] = r_lh
 
     return swing_df
 
@@ -576,19 +609,19 @@ def detect_divergence(
 
         1: use only indicator swings to detect divergence (more responsive)
     """
-    if method == 0:
-        regular_bullish = []
-        regular_bearish = []
-        hidden_bullish = []
-        hidden_bearish = []
+    regular_bullish = []
+    regular_bearish = []
+    hidden_bullish = []
+    hidden_bearish = []
 
+    if method == 0:
         for i in range(len(classified_price_swings)):
             # Look backwards in each
 
             # REGULAR BULLISH DIVERGENCE
             if (
-                sum(classified_price_swings["LL"][i - tol : i])
-                + sum(classified_indicator_swings["HL"][i - tol : i])
+                sum(classified_price_swings["LL"][i - tol + 1: i + 1])
+                + sum(classified_indicator_swings["HL"][i - tol + 1: i + 1])
                 > 1
             ):
                 regular_bullish.append(True)
@@ -597,8 +630,8 @@ def detect_divergence(
 
             # REGULAR BEARISH DIVERGENCE
             if (
-                sum(classified_price_swings["HH"][i - tol : i])
-                + sum(classified_indicator_swings["LH"][i - tol : i])
+                sum(classified_price_swings["HH"][i - tol + 1: i + 1])
+                + sum(classified_indicator_swings["LH"][i - tol + 1: i + 1])
                 > 1
             ):
                 regular_bearish.append(True)
@@ -607,8 +640,8 @@ def detect_divergence(
 
             # HIDDEN BULLISH DIVERGENCE
             if (
-                sum(classified_price_swings["HL"][i - tol : i])
-                + sum(classified_indicator_swings["LL"][i - tol : i])
+                sum(classified_price_swings["HL"][i - tol + 1: i + 1])
+                + sum(classified_indicator_swings["LL"][i - tol + 1: i + 1])
                 > 1
             ):
                 hidden_bullish.append(True)
@@ -617,8 +650,8 @@ def detect_divergence(
 
             # HIDDEN BEARISH DIVERGENCE
             if (
-                sum(classified_price_swings["LH"][i - tol : i])
-                + sum(classified_indicator_swings["HH"][i - tol : i])
+                sum(classified_price_swings["LH"][i - tol + 1: i + 1])
+                + sum(classified_indicator_swings["HH"][i - tol + 1: i + 1])
                 > 1
             ):
                 hidden_bearish.append(True)
@@ -636,8 +669,8 @@ def detect_divergence(
         )
     elif method == 1:
         # Use indicator swings only to detect divergence
-        for i in range(len(classified_price_swings)):
-
+        # for i in range(len(classified_price_swings)):
+        if True:
             price_at_indi_lows = (
                 classified_indicator_swings["FSL"] != 0
             ) * classified_price_swings["Lows"]
@@ -892,7 +925,9 @@ def cross_values(
     return cross_points
 
 
-def candles_between_crosses(crosses: Union[list, pd.Series]) -> Union[list, pd.Series]:
+def candles_between_crosses(
+    crosses: Union[list, pd.Series], initial_count: int = 0
+) -> Union[list, pd.Series]:
     """Returns a rolling sum of candles since the last cross/signal occurred.
 
     Parameters
@@ -918,7 +953,7 @@ def candles_between_crosses(crosses: Union[list, pd.Series]) -> Union[list, pd.S
             # Change in signal - reset count
             count += 1
         else:
-            count = 0
+            count = initial_count
 
         counts.append(count)
 
@@ -1404,6 +1439,7 @@ def _stdev(x, n):
 
 def _range_size(x, scale="AverageChange", qty=2.618, n=14):
     "Range size function"
+    rng_size = 0
 
     if scale == "AverageChange":
         AC = _conditional_ema(abs(x - x.shift(1)), 1, n)
@@ -1419,19 +1455,19 @@ def _range_size(x, scale="AverageChange", qty=2.618, n=14):
     return rng_size
 
 
-def _calculate_range_filter(h, l, rng, n, rng_type, smooth, sn, av_rf, av_n):
+def _calculate_range_filter(h, idx, rng, n, rng_type, smooth, sn, av_rf, av_n):
     """Two type range filter function."""
 
     smoothed_range = _conditional_ema(rng, 1, sn)
     r = smoothed_range if smooth else rng
-    r_filt = (h + l) / 2
+    r_filt = (h + idx) / 2
 
     if rng_type == 1:
         for i in range(1, len(h)):
             if h[i] - r[i] > r_filt[i - 1]:
                 r_filt[i] = h[i] - r[i]
-            elif l[i] + r[i] < r_filt[i - 1]:
-                r_filt[i] = l[i] + r[i]
+            elif idx[i] + r[i] < r_filt[i - 1]:
+                r_filt[i] = idx[i] + r[i]
             else:
                 r_filt[i] = r_filt[i - 1]
 
@@ -1441,9 +1477,9 @@ def _calculate_range_filter(h, l, rng, n, rng_type, smooth, sn, av_rf, av_n):
                 r_filt[i] = (
                     r_filt[i - 1] + np.floor(abs(h[i] - r_filt[i - 1]) / r[i]) * r[i]
                 )
-            elif l[i] <= r_filt[i - 1] - r[i]:
+            elif idx[i] <= r_filt[i - 1] - r[i]:
                 r_filt[i] = (
-                    r_filt[i - 1] - np.floor(abs(l[i] - r_filt[i - 1]) / r[i]) * r[i]
+                    r_filt[i - 1] - np.floor(abs(idx[i] - r_filt[i - 1]) / r[i]) * r[i]
                 )
             else:
                 r_filt[i] = r_filt[i - 1]
@@ -1475,18 +1511,17 @@ def _calculate_range_filter(h, l, rng, n, rng_type, smooth, sn, av_rf, av_n):
 
 
 def chandelier_exit(
-    data: pd.DataFrame, length: int = 22, mult: float = 3.0, use_close: bool = True
+    data: pd.DataFrame, length: int = 22, mult: float = 3.0, use_close: bool = False
 ):
-    ohlc4 = (data["Open"] + data["High"] + data["Low"] + data["Close"]) / 4
+    # ohlc4 = (data["Open"] + data["High"] + data["Low"] + data["Close"]) / 4
 
     atr = mult * TA.ATR(data, length)
 
-    if use_close:
-        longstop = data["Close"].rolling(length).max() - atr
-        shortstop = data["Close"].rolling(length).min() + atr
-    else:
-        longstop = data["High"].rolling(length).max() - atr
-        shortstop = data["Low"].rolling(length).min() + atr
+    high_field = "Close" if use_close else "High"
+    low_field = "Close" if use_close else "Low"
+
+    longstop = data[high_field].rolling(length).max() - atr
+    shortstop = data[low_field].rolling(length).min() + atr
 
     direction = np.where(data["Close"] > shortstop, 1, -1)
 
@@ -1499,8 +1534,8 @@ def chandelier_exit(
     )
     chandelier_df["direction"] = direction
     chandelier_df["signal"] = np.where(
-        chandelier["direction"] != chandelier["direction"].shift(),
-        chandelier["direction"],
+        chandelier_df["direction"] != chandelier_df["direction"].shift(),
+        chandelier_df["direction"],
         0,
     )
 
