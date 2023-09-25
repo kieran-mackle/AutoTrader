@@ -452,10 +452,10 @@ def find_swings(data: pd.DataFrame, n: int = 2) -> pd.DataFrame:
         if swing < 0:
             # Down swing, find low price
             highs.append(0)
-            lows.append(min(low_data[i - n + 1: i + 1]))
+            lows.append(min(low_data[i - n + 1 : i + 1]))
         elif swing > 0:
             # Up swing, find high price
-            highs.append(max(high_data[i - n + 1: i + 1]))
+            highs.append(max(high_data[i - n + 1 : i + 1]))
             lows.append(0)
         else:
             # Price movement
@@ -620,8 +620,8 @@ def detect_divergence(
 
             # REGULAR BULLISH DIVERGENCE
             if (
-                sum(classified_price_swings["LL"][i - tol + 1: i + 1])
-                + sum(classified_indicator_swings["HL"][i - tol + 1: i + 1])
+                sum(classified_price_swings["LL"][i - tol + 1 : i + 1])
+                + sum(classified_indicator_swings["HL"][i - tol + 1 : i + 1])
                 > 1
             ):
                 regular_bullish.append(True)
@@ -630,8 +630,8 @@ def detect_divergence(
 
             # REGULAR BEARISH DIVERGENCE
             if (
-                sum(classified_price_swings["HH"][i - tol + 1: i + 1])
-                + sum(classified_indicator_swings["LH"][i - tol + 1: i + 1])
+                sum(classified_price_swings["HH"][i - tol + 1 : i + 1])
+                + sum(classified_indicator_swings["LH"][i - tol + 1 : i + 1])
                 > 1
             ):
                 regular_bearish.append(True)
@@ -640,8 +640,8 @@ def detect_divergence(
 
             # HIDDEN BULLISH DIVERGENCE
             if (
-                sum(classified_price_swings["HL"][i - tol + 1: i + 1])
-                + sum(classified_indicator_swings["LL"][i - tol + 1: i + 1])
+                sum(classified_price_swings["HL"][i - tol + 1 : i + 1])
+                + sum(classified_indicator_swings["LL"][i - tol + 1 : i + 1])
                 > 1
             ):
                 hidden_bullish.append(True)
@@ -650,8 +650,8 @@ def detect_divergence(
 
             # HIDDEN BEARISH DIVERGENCE
             if (
-                sum(classified_price_swings["LH"][i - tol + 1: i + 1])
-                + sum(classified_indicator_swings["HH"][i - tol + 1: i + 1])
+                sum(classified_price_swings["LH"][i - tol + 1 : i + 1])
+                + sum(classified_indicator_swings["HH"][i - tol + 1 : i + 1])
                 > 1
             ):
                 hidden_bearish.append(True)

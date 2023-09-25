@@ -188,7 +188,6 @@ class BrokerUtils:
         new_df = df2
 
         for index in new_indices:
-
             df_row = df1.copy()[df1.index == index]
 
             df_row.Open = None
