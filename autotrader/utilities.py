@@ -822,9 +822,9 @@ class TradeAnalysis:
         # Analyse account history
         if len(self.account_history) > 0:
             # The account was open for some nonzero time period
-            starting_balance = self.account_history.equity[0]
-            ending_balance = self.account_history.equity[-1]
-            ending_NAV = self.account_history.NAV[-1]
+            starting_balance = self.account_history["equity"].iloc[0]
+            ending_balance = self.account_history["equity"].iloc[-1]
+            ending_NAV = self.account_history["NAV"].iloc[-1]
             abs_return = ending_balance - starting_balance
             pc_return = 100 * abs_return / starting_balance
             floating_pnl = ending_NAV - ending_balance

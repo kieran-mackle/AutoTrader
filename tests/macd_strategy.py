@@ -55,9 +55,9 @@ class SimpleMACD:
         """Define strategy to determine entry signals."""
 
         if (
-            self.data.Close.values[i] > self.ema[i]
-            and self.MACD_CO[i] == 1
-            and self.MACD_CO_vals[i] < 0
+            self.data["Close"].values[i] > self.ema.iloc[i]
+            and self.MACD_CO.iloc[i] == 1
+            and self.MACD_CO_vals.iloc[i] < 0
         ):
             exit_dict = self.generate_exit_levels(signal=1, i=i)
             new_order = Order(
@@ -67,9 +67,9 @@ class SimpleMACD:
             )
 
         elif (
-            self.data.Close.values[i] < self.ema[i]
-            and self.MACD_CO[i] == -1
-            and self.MACD_CO_vals[i] > 0
+            self.data["Close"].values[i] < self.ema.iloc[i]
+            and self.MACD_CO.iloc[i] == -1
+            and self.MACD_CO_vals.iloc[i] > 0
         ):
             exit_dict = self.generate_exit_levels(signal=-1, i=i)
             new_order = Order(
@@ -93,11 +93,15 @@ class SimpleMACD:
             take = None
         else:
             if signal == 1:
-                stop = self.swings.Lows[i]
-                take = self.data.Close[i] + RR * (self.data.Close[i] - stop)
+                stop = self.swings["Lows"].iloc[i]
+                take = self.data["Close"].iloc[i] + RR * (
+                    self.data["Close"].iloc[i] - stop
+                )
             else:
-                stop = self.swings.Highs[i]
-                take = self.data.Close[i] - RR * (stop - self.data.Close[i])
+                stop = self.swings["Highs"].iloc[i]
+                take = self.data["Close"].iloc[i] - RR * (
+                    stop - self.data["Close"].iloc[i]
+                )
 
         exit_dict = {"stop_loss": stop, "stop_type": stop_type, "take_profit": take}
 

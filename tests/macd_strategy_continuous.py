@@ -36,7 +36,6 @@ class SimpleMACD:
         }
 
     def calculate_features(self, data):
-
         # Save data for other functions
         self.data = data
 

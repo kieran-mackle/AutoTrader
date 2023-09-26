@@ -954,7 +954,6 @@ class AutoPlot:
                         new_fig.title = indicator
 
                     elif indi_type == "Heikin-Ashi":
-
                         HA_data = self._reindex_data(indicators[indicator]["data"])
                         source = ColumnDataSource(HA_data)
                         source.add(
@@ -1872,7 +1871,6 @@ class AutoPlot:
         return fig
 
     def _plot_pie(self, source, fig_title=None, fig_height=250):
-
         pie = figure(
             title=fig_title,
             toolbar_location=None,

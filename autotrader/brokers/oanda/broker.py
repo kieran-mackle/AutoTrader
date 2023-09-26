@@ -383,7 +383,6 @@ class Broker(AbstractBroker):
         return new_data
 
     def get_historical_data(self, instrument, interval, from_time, to_time):
-
         self._check_connection()
 
         response = self.api.instrument.candles(

@@ -117,7 +117,6 @@ class Utils(BrokerUtils):
         return livetrade_summary
 
     def format_watchlist(self, raw_watchlist):
-
         watchlist = []
         for instrument in raw_watchlist:
             if str(instrument) != "nan":

@@ -83,7 +83,6 @@ class Order:
         take_profit: float = None,
         **kwargs,
     ) -> Order:
-
         # Required attributes
         self.instrument = instrument
         self.direction = direction
@@ -582,7 +581,6 @@ class IsolatedPosition(Order):
     """
 
     def __init__(self, order: Order = None, **kwargs) -> IsolatedPosition:
-
         # Trade data
         self.unrealised_PL = 0
         self.margin_required = 0
