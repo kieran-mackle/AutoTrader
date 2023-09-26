@@ -1,5 +1,11 @@
 # AutoTrader Changelog
 
+## v0.12.1 (2023-09-26)
+
+### Fix
+
+- **autoplot.py**: fix plot_data error for indicator scaling
+
 ## v0.12.0 (2022-11-17)
 
 ### Feat
