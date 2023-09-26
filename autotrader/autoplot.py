@@ -488,9 +488,9 @@ class AutoPlot:
         dt_data = self._data.set_index("date")
         concat_data = pd.concat([dt_data, df]).sort_index()
         concat_data.index = pd.to_datetime(concat_data.index, utc=True)
-        interp_data = concat_data.interpolate(method="nearest").fillna(method="bfill")
+        interp_data = concat_data.interpolate(method="nearest").bfill()
         merged_data = self._merge_data(interp_data).drop_duplicates()
-        merged_data = merged_data.replace("", np.nan).fillna(method="ffill")
+        merged_data = merged_data.replace("", np.nan).ffill()
         merged_data["data_index"] = merged_data.index
         return merged_data[list(df.columns) + ["date", "data_index"]].set_index("date")
 
@@ -511,13 +511,9 @@ class AutoPlot:
         while not added:
             if range_key not in self.autoscale_args:
                 # Keys can be added
-                if source.data["plot_data"].max() == source.data["plot_data"].min():
-                    # Do not need to autoscale this data
-                    added = True
-                else:
-                    self.autoscale_args[range_key] = y_range
-                    self.autoscale_args[source_key] = source
-                    added = True
+                self.autoscale_args[range_key] = y_range
+                self.autoscale_args[source_key] = source
+                added = True
             else:
                 # Increment key
                 range_key = range_key[:-1] + str(int(range_key[-1]) + 1)
@@ -1804,10 +1800,10 @@ class AutoPlot:
         if "histogram" in macd_data:
             histcolour = []
             for i in range(len(macd_data["histogram"])):
-                if np.isnan(macd_data["histogram"][i]):
+                if np.isnan(macd_data["histogram"].iloc[i]):
                     histcolour.append("lightblue")
                 else:
-                    if macd_data["histogram"][i] < 0:
+                    if macd_data["histogram"].iloc[i] < 0:
                         histcolour.append("red")
                     else:
                         histcolour.append("lightblue")
