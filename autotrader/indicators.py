@@ -442,8 +442,8 @@ def find_swings(data: pd.DataFrame, n: int = 2) -> pd.DataFrame:
         low_data = data
         high_data = data
 
-    signed_grad = np.sign((swing_data - swing_data.shift(1)).fillna(method="bfill"))
-    swings = (signed_grad != signed_grad.shift(1).fillna(method="bfill")) * -signed_grad
+    signed_grad = np.sign((swing_data - swing_data.shift(1)).bfill())
+    swings = (signed_grad != signed_grad.shift(1).bfill()) * -signed_grad
 
     # Calculate swing extrema
     lows = []
@@ -897,16 +897,16 @@ def cross_values(
     if ts_crossover is None:
         ts_crossover = crossover(ts1, ts2)
 
-    last_cross_point = ts1[0]
+    last_cross_point = ts1.iloc[0]
     cross_points = [last_cross_point]
     for i in range(1, len(ts_crossover)):
-        if ts_crossover[i] != 0:
+        if ts_crossover.iloc[i] != 0:
             i0 = 0
-            m_a = ts1[i] - ts1[i - 1]
-            m_b = ts2[i] - ts2[i - 1]
-            ix = (ts2[i - 1] - ts1[i - 1]) / (m_a - m_b) + i0
+            m_a = ts1.iloc[i] - ts1.iloc[i - 1]
+            m_b = ts2.iloc[i] - ts2.iloc[i - 1]
+            ix = (ts2.iloc[i - 1] - ts1.iloc[i - 1]) / (m_a - m_b) + i0
 
-            cross_point = m_a * (ix - i0) + ts1[i - 1]
+            cross_point = m_a * (ix - i0) + ts1.iloc[i - 1]
 
             last_cross_point = cross_point
 
@@ -987,11 +987,16 @@ def rolling_signal_list(signals: Union[list, pd.Series]) -> list:
     rolling_signals = [0]
     last_signal = rolling_signals[0]
 
-    for i in range(1, len(signals)):
-        if signals[i] != 0:
-            last_signal = signals[i]
-
-        rolling_signals.append(last_signal)
+    if isinstance(signals, list):
+        for i in range(1, len(signals)):
+            if signals[i] != 0:
+                last_signal = signals[i]
+            rolling_signals.append(last_signal)
+    else:
+        for i in range(1, len(signals)):
+            if signals.iloc[i] != 0:
+                last_signal = signals.iloc[i]
+            rolling_signals.append(last_signal)
 
     if isinstance(signals, pd.Series):
         rolling_signals = pd.Series(data=rolling_signals, index=signals.index)
