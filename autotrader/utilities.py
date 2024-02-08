@@ -518,6 +518,10 @@ class TradeAnalysis:
             # Save result
             position_histories_dict[instrument] = net_position_hist
 
+        # If no trades, create empty dataframe
+        if len(instruments_traded) == 0:
+            position_histories_dict = {"empty": pd.DataFrame(index=account_history.index)}
+
         position_histories = pd.concat(position_histories_dict, axis=1)
         return position_histories
 
