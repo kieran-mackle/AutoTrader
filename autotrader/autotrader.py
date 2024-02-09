@@ -1605,9 +1605,11 @@ class AutoTrader:
                 strategy_class = config["CLASS"]
                 strategy_dict = {
                     "config": config,
-                    "class": self._strategy_classes[strategy_class]
-                    if strategy_class in self._strategy_classes
-                    else None,
+                    "class": (
+                        self._strategy_classes[strategy_class]
+                        if strategy_class in self._strategy_classes
+                        else None
+                    ),
                     "shutdown_method": self._shutdown_methods[strategy],
                 }
                 bot = AutoTraderBot(
