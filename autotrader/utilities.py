@@ -128,19 +128,21 @@ def get_broker_config(
 
         elif broker.lower() == "ib":
             config = {
-                "host": global_config["host"]
-                if "host" in global_config
-                else "127.0.0.1",
+                "host": (
+                    global_config["host"] if "host" in global_config else "127.0.0.1"
+                ),
                 "port": global_config["port"] if "port" in global_config else 7497,
-                "clientID": global_config["clientID"]
-                if "clientID" in global_config
-                else 1,
-                "account": global_config["account"]
-                if "account" in global_config
-                else "",
-                "read_only": global_config["read_only"]
-                if "read_only" in global_config
-                else False,
+                "clientID": (
+                    global_config["clientID"] if "clientID" in global_config else 1
+                ),
+                "account": (
+                    global_config["account"] if "account" in global_config else ""
+                ),
+                "read_only": (
+                    global_config["read_only"]
+                    if "read_only" in global_config
+                    else False
+                ),
             }
 
         elif broker.lower() == "dydx":
@@ -520,7 +522,9 @@ class TradeAnalysis:
 
         # If no trades, create empty dataframe
         if len(instruments_traded) == 0:
-            position_histories_dict = {"empty": pd.DataFrame(index=account_history.index)}
+            position_histories_dict = {
+                "empty": pd.DataFrame(index=account_history.index)
+            }
 
         position_histories = pd.concat(position_histories_dict, axis=1)
         return position_histories
@@ -567,9 +571,9 @@ class TradeAnalysis:
                 else:
                     closed_positions_summary[instrument]["avg_long_duration"] = None
                 if directions.count(-1) > 0:
-                    closed_positions_summary[instrument][
-                        "avg_short_duration"
-                    ] = np.mean(np.array(durations)[np.array(directions) == -1])
+                    closed_positions_summary[instrument]["avg_short_duration"] = (
+                        np.mean(np.array(durations)[np.array(directions) == -1])
+                    )
                 else:
                     closed_positions_summary[instrument]["avg_short_duration"] = None
 
@@ -597,9 +601,11 @@ class TradeAnalysis:
             # Append unique instruments traded
             unique_instruments = orders.instrument.unique()
             [
-                instruments_traded.append(instrument)
-                if instrument not in instruments_traded
-                else None
+                (
+                    instruments_traded.append(instrument)
+                    if instrument not in instruments_traded
+                    else None
+                )
                 for instrument in unique_instruments
             ]
 

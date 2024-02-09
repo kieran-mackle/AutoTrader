@@ -933,9 +933,11 @@ class AutoPlot:
                             y_vals,
                             line_width=1.5,
                             legend_label=indicator,
-                            line_color=indicators[indicator]["color"]
-                            if "color" in indicators[indicator]
-                            else colours[indis_over],
+                            line_color=(
+                                indicators[indicator]["color"]
+                                if "color" in indicators[indicator]
+                                else colours[indis_over]
+                            ),
                         )
                     indis_over += 1
 
@@ -1020,9 +1022,11 @@ class AutoPlot:
                             new_fig.line(
                                 x_vals,
                                 y_vals,
-                                line_color=indicators[indicator][dataset]["color"]
-                                if "color" in indicators[indicator][dataset]
-                                else "black",
+                                line_color=(
+                                    indicators[indicator][dataset]["color"]
+                                    if "color" in indicators[indicator][dataset]
+                                    else "black"
+                                ),
                                 legend_label=dataset,
                             )
 
@@ -1957,9 +1961,9 @@ class AutoPlot:
             upper_band.values,
             fill_alpha=fill_alpha,
             fill_color=fill_color,
-            legend_label=plot_data["band_name"]
-            if "band_name" in plot_data
-            else legend_label,
+            legend_label=(
+                plot_data["band_name"] if "band_name" in plot_data else legend_label
+            ),
         )
 
         if "mid" in plot_data:
@@ -1969,9 +1973,11 @@ class AutoPlot:
                 mid_line.index,
                 mid_line.values,
                 line_color=line_color,
-                legend_label=plot_data["mid_name"]
-                if "mid_name" in plot_data
-                else "Band Mid Line",
+                legend_label=(
+                    plot_data["mid_name"]
+                    if "mid_name" in plot_data
+                    else "Band Mid Line"
+                ),
             )
 
         return fig
