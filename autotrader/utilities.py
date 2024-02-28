@@ -6,7 +6,9 @@ import autotrader
 import numpy as np
 import pandas as pd
 from art import tprint
+from typing import Optional
 from datetime import datetime, timedelta
+from autotrader.autodata import AutoData
 from autotrader.brokers.broker import AbstractBroker
 from prometheus_client import start_http_server, Gauge
 
@@ -35,6 +37,7 @@ def write_yaml(data: dict, filepath: str) -> None:
     ----------
     data : dict
         The dictionary to write to yaml.
+
     filepath : str
         The filepath to save the yaml file.
 
@@ -52,7 +55,9 @@ def print_banner():
 
 
 def get_broker_config(
-    broker: str, global_config: dict = None, environment: str = "paper"
+    broker: str,
+    global_config: Optional[dict] = None,
+    environment: Optional[str] = "paper",
 ) -> dict:
     """Returns a broker configuration dictionary.
 
@@ -61,8 +66,10 @@ def get_broker_config(
     broker : str
         The name(s) of the broker/exchange. Specify multiple exchanges using
         comma separation.
+
     global_config : dict
         The global configuration dictionary.
+
     environment : str, optional
         The trading evironment ('demo' or 'real').
 
@@ -225,12 +232,13 @@ def get_broker_config(
     return all_config
 
 
-def get_data_config(feed: str, global_config: dict = None, **kwargs) -> dict:
+def get_data_config(feed: str, global_config: Optional[dict] = None, **kwargs) -> dict:
     """Returns a data configuration dictionary for AutoData.
     Parameters
     ----------
     feed : str
         The name of the data feed.
+
     global_config : dict
         The global configuration dictionary.
     """
@@ -357,7 +365,7 @@ def get_streaks(trade_summary):
     return longest_winning_streak, longest_losing_streak
 
 
-def unpickle_broker(picklefile: str = ".virtual_broker"):
+def unpickle_broker(picklefile: Optional[str] = ".virtual_broker"):
     """Unpickles a virtual broker instance for post-processing."""
     with open(picklefile, "rb") as file:
         instance = pickle.load(file)
@@ -371,15 +379,20 @@ class TradeAnalysis:
     ----------
     instruments_traded : list
         The instruments traded during the trading period.
+
     account_history : pd.DataFrame
         A timeseries history of the account during the trading period.
+
     holding_history : pd.DataFrame
         A timeseries summary of holdings during the trading period, by portfolio
         allocation fraction.
+
     order_history : pd.DataFrame
         A timeseries history of orders placed during the trading period.
+
     cancelled_orders : pd.DataFrame
         Orders which were cancelled during the trading period.
+
     trade_history : pd.DataFrame
         A history of all trades (fills) made during the trading period.
 
@@ -419,7 +432,7 @@ class TradeAnalysis:
         self,
         broker,
         broker_histories: dict,
-        instrument: str = None,
+        instrument: Optional[str] = None,
     ) -> None:
         """Analyses trade account and creates summary of key details."""
         if not isinstance(broker, dict):
@@ -1016,24 +1029,34 @@ class DataStream:
     ----------
     instrument : str
         The instrument being traded.
+
     feed : str
         The data feed.
+
     data_filepaths : str|dict
         The filepaths to locally stored data.
+
     quote_data_file : str
         The filepaths to locally stored quote data.
+
     auxdata_files : dict
         The auxiliary data files.
+
     strategy_params : dict
         The strategy parameters.
+
     get_data : AutoData
         The AutoData instance.
+
     data_start : datetime
         The backtest start date.
+
     data_end : datetime
         The backtest end date.
+
     portfolio : bool|list
         The instruments being traded in a portfolio, if any.
+
     data_path_mapper : callable
         A callable to map an instrument to an absolute filepath of
         data for that instrument.
@@ -1059,16 +1082,16 @@ class DataStream:
 
     def __init__(self, **kwargs):
         # Attributes
-        self.instrument = None
-        self.feed = None
-        self.data_filepaths = None
-        self.quote_data_file = None
-        self.auxdata_files = None
-        self.strategy_params = None
-        self.get_data = None
-        self.data_start = None
-        self.data_end = None
-        self.portfolio = None
+        self.instrument: str = None
+        self.feed: str = None
+        self.data_filepaths: str = None
+        self.quote_data_file: str = None
+        self.auxdata_files: str = None
+        self.strategy_params: dict[str, any] = None
+        self.get_data: AutoData = None
+        self.data_start: datetime = None
+        self.data_end: datetime = None
+        self.portfolio: bool = None
         self.data_path_mapper = None
 
         # Unpack kwargs
@@ -1092,10 +1115,13 @@ class DataStream:
         -------
         data : pd.DataFrame
             The OHLC price data.
+
         multi_data : dict
             A dictionary of DataFrames.
+
         quote_data : pd.DataFrame
             The quote data.
+
         auxdata : dict
             Strategy auxiliary data.
 
@@ -1154,7 +1180,7 @@ class DataStream:
         else:
             # Download data
             multi_data = {}
-            data_func = getattr(self.get_data, f"_{self.feed.lower()}")
+            data_func = self.get_data.fetch
             if self.portfolio:
                 # Portfolio strategy
                 if len(self.portfolio) > 1:
@@ -1222,7 +1248,7 @@ class DataStream:
 
         else:
             # Download data
-            quote_data_func = getattr(self.get_data, f"_{self.feed.lower()}_quote_data")
+            quote_data_func = self.get_data._quote
             if self.portfolio:
                 # Portfolio strategy - quote data for each instrument
                 granularity = self.strategy_params["granularity"]
@@ -1314,8 +1340,8 @@ class DataStream:
         self,
         data: pd.DataFrame,
         quote_bars: bool,
-        timestamp: datetime = None,
-        processed_strategy_data: dict = None,
+        timestamp: Optional[datetime] = None,
+        processed_strategy_data: Optional[dict] = None,
     ) -> dict:
         """Returns a dictionary of the current bars of the products being
         traded, based on the up-to-date data passed from autobot.
@@ -1324,8 +1350,10 @@ class DataStream:
         ----------
         data : pd.DataFrame
             The strategy base OHLC data.
+
         quote_bars : bool
             Boolean flag to signal that quote data bars are being requested.
+
         processed_strategy_data : dict
             A dictionary containing all of the processed strategy data,
             allowing flexibility in what bars are returned.
@@ -1383,7 +1411,11 @@ class TradeWatcher:
 
 class Monitor:
     def __init__(
-        self, config_filepath: str = None, config: dict = None, *args, **kwargs
+        self,
+        config_filepath: Optional[str] = None,
+        config: Optional[dict] = None,
+        *args,
+        **kwargs,
     ) -> None:
         """Construct a Monitor instance.
 
@@ -1392,6 +1424,7 @@ class Monitor:
         config_filepath : str, None
             The absolute filepath of the monitor yaml configuration file.
             The default is None.
+
         config : dict, optional
             The monitor configuration dictionary. The default is None.
         """
