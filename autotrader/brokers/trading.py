@@ -1,5 +1,6 @@
 from __future__ import annotations
 import numpy as np
+from typing import Literal
 from datetime import datetime
 from autotrader.brokers.broker_utils import BrokerUtils
 
@@ -11,60 +12,85 @@ class Order:
     ----------
     instrument : str
         The trading instrument of the order.
+
     direction : int
         The direction of the order (1 for long, -1 for short).
+
     order_type : str
         The type of order. The default is 'market'.
+
     size : float
         The number of units.
+
     base_size : float
          The number of units, in the base currency (pre-HCF conversion).
+
     target_value : float
         The target value of the resulting trade, specified in the home
         currency of the account.
+
     order_limit_price : float
         The limit price of the order (for 'limit' and 'stop-limit' order
         types).
+
     order_stop_price : float
         The stop price of the order (for 'stop-limit' order types).
+
     order_price : float
         The price of the instrument when the order was placed.
+
     order_time : datetime
         The time at which the order was placed.
+
     stop_loss : float
         The price to set the stop-loss at.
+
     stop_distance : float
         The pip distance between the order price and the stop-loss.
+
     stop_type : str
         The type of stop-loss (limit or trailing). The default is 'limit'.
+
     take_profit : float
         The price to set the take-profit at.
+
     take_distance : float
         The pip distance between the order price and the take-profit.
+
     related_orders : list
         A list of related order/trade ID's.
+
     id : int
         The order ID.
+
     pip_value : float, optional
         The pip value of the product being traded. Specify this for non-FX
         products when using stop_distance/take_distance arguments. The default
         is None.
+
     currency : str
         The base currency of the order (IB only).
+
     secType : str
         The security type (IB only).
+
     contract_month : str
         The contract month string (IB only).
+
     localSymbol : str
         The exchange-specific instrument symbol (IB only).
+
     post_only : bool, optional
         Enforce that the order is placed as a maker order (dYdX only). The
         default is False.
+
     limit_fee : str, optional
         The maximum fee to accept as a percentage (dYdX only). The default
         is '0.015'.
+
     exchange : str
         The exchange to which the order should be submitted.
+
     ccxt_params : dict, optional
         The CCXT parameters dictionary to pass when creating an order. The
         default is {}.
@@ -74,7 +100,7 @@ class Order:
         self,
         instrument: str = None,
         direction: int = None,
-        order_type: str = "market",
+        order_type: Literal["market", "limit"] = "market",
         size: float = None,
         order_limit_price: float = None,
         order_stop_price: float = None,
@@ -221,12 +247,16 @@ class Order:
         ----------
         broker : AutoTrader broker API instance, optional
             The broker-autotrader api instance. The default is None.
+
         order_price : float, optional
             The order price. The default is None.
+
         order_time : datetime, optional
             The time of the order. The default is datetime.now().
+
         HCF : float, optional
             The home conversion factor. The default is 1.
+
         precision : dict, optional
             A dictionary containing the precision for order size and price.
             The default is None.
@@ -286,6 +316,7 @@ class Order:
         ----------
         broker : AutoTrader Broker Interface, optional
             The autotrade-broker instance. The default is None.
+
         working_price : float, optional
             The working price used to calculate amount risked. The default is
             None.
@@ -355,14 +386,19 @@ class Order:
         ----------
         broker : AutoTrader Broker Interface, optional
             The autotrade-broker instance. The default is None.
+
         working_price : float, optional
             The working price used to calculate amount risked. The default is None.
+
         HCF : float, optional
             The home conversion factor. The default is 1.
+
         risk_pc : float, optional
             The percentage of the account NAV to risk on the trade. The default is 0.
+
         sizing : str | float, optional
             The sizing option. The default is 'risk'.
+
         amount_risked : float, optional
             The dollar amount risked on the trade. The default is None.
 
@@ -550,28 +586,40 @@ class IsolatedPosition(Order):
     ----------
     unrealised_PL : float
         The floating PnL of the trade.
+
     margin_required : float
         The margin required to maintain the trade.
+
     time_filled : datetime
         The time at which the trade was filled.
+
     fill_price : float
         The price at which the trade was filled.
+
     last_price : float
         The last price observed for the instrument associated with the trade.
+
     last_time : datetime
         The last time observed for the instrument associated with the trade.
+
     exit_price : float
         The price at which the trade was closed.
+
     exit_time : datetime
         The time at which the trade was closed.
+
     fees : float
         The fees associated with the trade.
+
     parent_id : int
         The ID of the order which spawned the trade.
+
     id : int
         The trade ID.
+
     status : str
         The status of the trade (open or closed).
+
     split : bool
         If the trade has been split.
 
@@ -705,32 +753,46 @@ class Position:
     ----------
     instrument : str
         The trade instrument of the position.
+
     pnl : float
         The pnl of the position.
+
     long_units : float
         The number of long units in the position.
+
     long_PL : float
         The PnL of the long units in the position.
+
     long_margin : float
         The margin required to maintain the long units in the position.
+
     short_units : float
         The number of short units in the position.
+
     short_PL : float
         The PnL of the short units in the position.
+
     short_margin : float
         The margin required to maintain the short units in the position.
+
     total_margin : float
         The total margin required to maintain the position.
+
     trade_IDs : list[int]
         The trade ID's associated with the position.
+
     net_position : float
         The total number of units in the position.
+
     net_exposure : float
         The net exposure (in $ value) of the position.
+
     PL : float
         The floating PnL (IB only).
+
     contracts : list
         The contracts associated with the position (IB only).
+
     portfolio_items : list
         The portfolio items associated with the position (IB only).
     """

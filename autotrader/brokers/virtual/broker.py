@@ -20,46 +20,66 @@ class Broker(AbstractBroker):
     ----------
     verbosity : int
         The verbosity of the broker.
+
     pending_orders : dict
         A dictionary containing pending orders.
+
     open_orders : dict
         A dictionary containing open orders yet to be filled.
+
     filled_orders : dict
         A dictionary containing filled orders.
+
     cancelled_orders : dict
         A dictionary containing cancelled orders.
+
     open_trades : dict
         A dictionary containing currently open trades (fills).
+
     closed_trades : dict
         A dictionary containing closed trades.
+
     base_currency : str
         The base currency of the account. The default is 'AUD'.
+
     NAV : float
         The net asset value of the account.
+
     equity : float
         The account equity balance.
+
     floating_pnl : float
         The floating PnL.
+
     margin_available : float
         The margin available on the account.
+
     leverage : int
         The account leverage.
+
     spread : float
         The average spread to use when opening and closing trades.
+
     spread_units : str
         The units of the spread (eg. 'price' or 'percentage'). The default
         is 'price'.
+
     hedging : bool
         Flag whethere hedging is enabled on the account. The default is False.
+
     margin_closeout : float
         The fraction of margin available at margin call. The default is 0.
+
     commission_scheme : str
         The commission scheme being used ('percentage', 'fixed_per_unit'
         or 'flat'). The default is 'percentage'.
+
     commission : float
         The commission value associated with the commission scheme.
+
     maker_commission : float
         The commission value associated with liquidity making orders.
+
     taker_commission : float
         The commission value associated with liquidity taking orders.
     """
@@ -192,21 +212,27 @@ class Broker(AbstractBroker):
         ----------
         verbosity : int, optional
             The verbosity of the broker. The default is 0.
+
         initial_balance : float, optional
             The initial balance of the account, specified in the
             base currency. The default is 0.
+
         leverage : int, optional
             The leverage available. The default is 1.
+
         spread : float, optional
             The bid/ask spread to use in backtest (specified in units
             defined by the spread_units argument). The default is 0.
+
         spread_units : str, optional
             The unit of the spread specified. Options are 'price', meaning
             that the spread is quoted in price units, or 'percentage',
             meaning that the spread is quoted as a percentage of the
             market price. The default is 'price'.
+
         commission : float, optional
             Trading commission as percentage per trade. The default is 0.
+
         commission_scheme : str, optional
             The method with which to apply commissions to trades made. The
             options are (1) 'percentage', where the percentage specified by
@@ -216,42 +242,54 @@ class Broker(AbstractBroker):
             trade, and (3) 'flat', where a flat monetary value specified by
             the commission argument is charged per trade made, regardless
             of size. The default is 'percentage'.
+
         maker_commission : float, optional
             The commission to charge on liquidity-making orders. The default
             is None, in which case the nominal commission argument will be
             used.
+
         taker_commission: float, optional
             The commission to charge on liquidity-taking orders. The default
             is None, in which case the nominal commission argument will be
             used.
+
         hedging : bool, optional
             Allow hedging in the virtual broker (opening simultaneous
             trades in oposing directions). The default is False.
+
         base_currency : str, optional
             The base currency of the account. The default is AUD.
+
         paper_mode : bool, optional
             A boolean flag to indicate if the broker is in paper trade mode.
             The default is False.
+
         public_trade_access : bool, optional
             A boolean flag to signal if public trades are being used to
             update limit orders. The default is False.
+
         margin_closeout : float, optional
             The fraction of margin usage at which a margin call will occur.
             The default is 0.
+
         default_slippage_model : Callable, optional
             The default model to use when calculating the percentage slippage
             on the fill price, for a given order size. The default functon
             returns zero.
+
         slippage_models : dict, optional
             A dictionary of callable slippage models, keyed by instrument.
+
         charge_funding : bool, optional
             A boolean flag to charge funding rates. The default is False.
+
         funding_history : pd.DataFrame, optional
             A DataFrame of funding rate histories for instruments being traded,
             to backtest trading perpetual futures.
             This is a single frame with as many columns as instruments being
             traded. If an instrument is not present, the funding rate will be
             zero.
+
         picklefile : str, optional
             The filename of the picklefile to load state from. If you do not
             wish to load from state, leave this as None. The default is None.
@@ -627,12 +665,15 @@ class Broker(AbstractBroker):
         ----------
         instrument : str
             The name of the instrument being updated.
+
         candle : pd.Series
             An OHLC candle used to update orders and trades.
+
         L1 : dict, optional
             A dictionary a containing level 1 price snapshot to update
             the positions with. This dictionary must have the keys
             'bid', 'ask', 'bid_size' and 'ask_size'.
+
         trade : dict, optional
             A public trade, used to update virtual limit orders.
         """
@@ -873,10 +914,13 @@ class Broker(AbstractBroker):
         -----------
         order : Order
             The order being processed.
+
         fill_time : datetime, optional
             The time to fill the order.
+
         reference_price : float, optional
             The order reference price (either market price or order limit price).
+
         trade_size : float, optional
             The size of a public trade being used to fill orders (papertrade
             mode). The default is None.
@@ -1037,11 +1081,14 @@ class Broker(AbstractBroker):
         ----------
         fill_price : float
             The fill price.
+
         fill_time : datetime
             The time at which the order is filled.
+
         order : Order, optional
             The order to fill. The default is None, in which case the arguments
             below must be specified.
+
         liquidation_order : bool, optional
             A flag whether this is a liquidation order from the broker.
         """
@@ -1201,14 +1248,18 @@ class Broker(AbstractBroker):
         -----------
         instrument : str
             The instrument to fetch the orderbook for.
+
         direction : int
             The direction of the trade (1 for long, -1 for short). Used
             to specify either bid or ask prices.
+
         size : float
             The size of the trade.
+
         reference_price : float, optional
             The reference price to use if artificially creating an
             orderbook.
+
         precision : dict, optional
             The precision to use for rounding prices. The default
             is None.

@@ -17,10 +17,13 @@ def supertrend(
     ----------
     data : pd.DataFrame
         The OHLC data.
+
     period : int, optional
         The lookback period. The default is 10.
+
     ATR_multiplier : int, optional
         The ATR multiplier. The default is 3.0.
+
     source : pd.Series, optional
         The source series to use in calculations. If None, hl/2 will be
         used. The default is None.
@@ -108,8 +111,10 @@ def halftrend(
     ----------
     data : pd.DataFrame
         OHLC price data.
+
     amplitude : int, optional
         The lookback window. The default is 2.
+
     channel_deviation : float, optional
         The ATR channel deviation factor. The default is 2.
 
@@ -236,20 +241,28 @@ def range_filter(
     ----------
     data : pd.DataFrame
         The OHLC price data.
+
     range_qty : float, optional
         The range size. The default is 2.618.
+
     range_period : int, optional
         The range period. The default is 14.
+
     smooth_range : bool, optional
         Smooth the price range. The default is True.
+
     smooth_period : int, optional
         The smooting period. The default is 27.
+
     av_vals : bool, optional
         Average values. The default is False.
+
     av_samples : int, optional
         The number of average samples to use. The default is 2.
+
     mov_source : str, optional
         The price movement source ('body' or 'wicks'). The default is 'body'.
+
     filter_type : int, optional
         The filter type to use in calculations (1 or 2). The default is 1.
 
@@ -409,6 +422,7 @@ def find_swings(data: pd.DataFrame, n: int = 2) -> pd.DataFrame:
     data : pd.DataFrame | pd.Series | list | np.array
         An OHLC dataframe of price, or an array/list/Series of data from an
         indicator (eg. RSI).
+
     n : int, optional
         The moving average period. The default is 2.
 
@@ -488,6 +502,7 @@ def classify_swings(swing_df: pd.DataFrame, tol: int = 0) -> pd.DataFrame:
     ----------
     swing_df : pd.DataFrame
         The dataframe returned by find_swings.
+
     tol : int, optional
         The classification tolerance. The default is 0.
 
@@ -584,11 +599,14 @@ def detect_divergence(
     ----------
     classified_price_swings : pd.DataFrame
         The output from classify_swings using OHLC data.
+
     classified_indicator_swings : pd.DataFrame
         The output from classify_swings using indicator data.
+
     tol : int, optional
         The number of candles which conditions must be met within. The
         default is 2.
+
     method : int, optional
         The method to use when detecting divergence (0 or 1). The default is 0.
 
@@ -731,11 +749,14 @@ def autodetect_divergence(
     ----------
     ohlc : pd.DataFrame
         A dataframe of OHLC price data.
+
     indicator_data : pd.DataFrame
         dataframe of indicator data.
+
     tolerance : int, optional
         A parameter to control the lookback when detecting divergence.
         The default is 1.
+
     method : int, optional
         The divergence detection method. Set to 0 to use both price and
         indicator swings to detect divergence. Set to 1 to use only indicator
@@ -857,6 +878,7 @@ def crossover(ts1: pd.Series, ts2: pd.Series) -> pd.Series:
     ----------
     ts1 : pd.Series
         The first timeseries.
+
     ts2 : pd.Series
         The second timeseries.
 
@@ -883,8 +905,10 @@ def cross_values(
     ----------
     ts1 : list | pd.Series
         The first timeseries..
+
     ts2 : list | pd.Series
         The second timeseries..
+
     ts_crossover : list | pd.Series, optional
         The crossovers between timeseries 1 and timeseries 2.
 
@@ -1045,6 +1069,7 @@ def merge_signals(signal_1: list, signal_2: list) -> list:
     ----------
     signal_1 : list
         The first signal list.
+
     signal_2 : list
         The second signal list.
 
@@ -1109,23 +1134,32 @@ def build_grid(
     ----------
     grid_origin : float
         The origin of grid, specified as a price.
+
     grid_space : float
         The spacing between grid levels, specified as pip distance.
+
     grid_levels : int
         The number of grid levels either side of origin.
+
     order_direction : int
         The direction of each grid level order (1 for long, -1 for short).
+
     order_type : str, optional
         The order type of each grid level order. The default is 'stop-limit'.
+
     grid_price_space : float, optional
         The spacing between grid levels, specified as price units distance.
         The default is None.
+
     pip_value : float, optional
         The instrument-specific pip value. The default is 0.0001.
+
     take_distance : float, optional
         The distance (in pips) of each order's take profit. The default is None.
+
     stop_distance : float, optional
         The distance (in pips) of each order's stop loss. The default is None.
+
     stop_type : str, optional
         The stop loss type. The default is None.
 
@@ -1374,8 +1408,10 @@ def create_bricks(data: pd.DataFrame, brick_size: float = 0.002, column: str = "
     ----------
     data : pd.DataFrame
         The OHLC price data.
+
     brick_size : float, optional
         The brick size in price units. The default is 0.0020.
+
     column : str, optional
         The column of the OHLC to use. The default is 'Close'.
 

@@ -12,7 +12,7 @@ class Broker(AbstractBroker):
     def __init__(self, config: dict, utils: BrokerUtils = None) -> None:
         """AutoTrader Broker Class constructor."""
         # Unpack config and connect to broker-side API
-        self.exchange = config["exchange"]
+        self.exchange: str = config["exchange"]
         exchange_instance = getattr(ccxt, self.exchange)
         # TODO - allow expanded config here
         ccxt_config = {
@@ -21,7 +21,7 @@ class Broker(AbstractBroker):
             "options": config["options"],
             "password": config["password"],
         }
-        self.api = exchange_instance(ccxt_config)
+        self.api: ccxt.Exchange = exchange_instance(ccxt_config)
         self._utils = utils if utils is not None else Utils()
 
         # Set sandbox mode
@@ -54,12 +54,12 @@ class Broker(AbstractBroker):
 
     def get_NAV(self) -> float:
         """Returns the net asset/liquidation value of the account."""
-        return self.api.fetchBalance()[self.base_currency]["total"]
+        return self.api.fetch_balance()[self.base_currency]["total"]
 
     def get_balance(self, instrument: str = None) -> float:
         """Returns account balance."""
         instrument = self.base_currency if instrument is None else instrument
-        return self.api.fetchBalance()[instrument]["total"]
+        return self.api.fetch_balance()[instrument]["total"]
 
     def place_order(self, order: Order, **kwargs) -> None:
         """Disassemble order_details dictionary to place order."""
@@ -79,7 +79,7 @@ class Broker(AbstractBroker):
             # Regular order
             side = "buy" if order.direction > 0 else "sell"
             # Submit the order
-            placed_order = self.api.createOrder(
+            placed_order = self.api.create_order(
                 symbol=order.instrument,
                 type=order.order_type,
                 side=side,
@@ -88,14 +88,14 @@ class Broker(AbstractBroker):
                 params=order.ccxt_params,
             )
 
+        # TODO - convert to native order to return
         return placed_order
 
     def get_orders(
         self, instrument: str = None, order_status: str = "open", **kwargs
     ) -> dict:
         """Returns orders associated with the account."""
-
-        for attempt in range(2):
+        for _ in range(2):
             try:
                 # Check for order id
                 if "order_id" in kwargs:
@@ -111,19 +111,21 @@ class Broker(AbstractBroker):
                     # TODO - add exception handling
                     if order_status == "open":
                         # Fetch open orders (waiting to be filled)
-                        orders = self.api.fetchOpenOrders(instrument, **kwargs)
+                        orders = self.api.fetch_open_orders(instrument, **kwargs)
 
                     elif order_status == "cancelled":
                         # Fetch cancelled orders
-                        orders = self.api.fetchCanceledOrders(instrument, **kwargs)
+                        orders = self.api.fetch_canceled_and_closed_orders(
+                            instrument, **kwargs
+                        )
 
                     elif order_status == "closed":
                         # Fetch closed orders
-                        orders = self.api.fetchClosedOrders(instrument, **kwargs)
+                        orders = self.api.fetch_closed_orders(instrument, **kwargs)
 
                     elif order_status == "conditional":
                         # Fetch conditional orders
-                        orders = self.api.fetchOpenOrders(
+                        orders = self.api.fetch_open_orders(
                             instrument, params={"orderType": "conditional"}
                         )
 
@@ -146,12 +148,12 @@ class Broker(AbstractBroker):
     def cancel_order(self, order_id: int, **kwargs) -> None:
         """Cancels order by order ID."""
         try:
-            cancelled_order = self.api.cancelOrder(id=order_id, **kwargs)
+            cancelled_order = self.api.cancel_order(id=order_id, **kwargs)
 
         except ccxt.errors.NetworkError:
             # Throttle then try again
             time.sleep(1)
-            cancelled_order = self.api.cancelOrder(id=order_id, **kwargs)
+            cancelled_order = self.api.cancel_order(id=order_id, **kwargs)
 
         except Exception as e:
             cancelled_order = e
@@ -161,11 +163,11 @@ class Broker(AbstractBroker):
     def get_trades(self, instrument: str = None, **kwargs) -> dict:
         """Returns the open trades held by the account."""
         try:
-            trades_list = self.api.fetchMyTrades(instrument, **kwargs)
+            trades_list = self.api.fetch_my_trades(instrument, **kwargs)
         except ccxt.errors.NetworkError:
             # Throttle then try again
             time.sleep(1)
-            trades_list = self.api.fetchMyTrades(instrument, **kwargs)
+            trades_list = self.api.fetch_my_trades(instrument, **kwargs)
 
         # Convert to native Trades
         trades = self._convert_list(trades_list, item_type="trade")
@@ -203,7 +205,9 @@ class Broker(AbstractBroker):
                 if instrument is None:
                     # Get all positions
                     if self.api.has["fetchPositions"]:
-                        positions = self.api.fetchPositions(symbols=None, params=kwargs)
+                        positions = self.api.fetch_positions(
+                            symbols=None, params=kwargs
+                        )
                         positions = self._convert_list(positions, item_type="position")
 
                     else:
@@ -214,14 +218,14 @@ class Broker(AbstractBroker):
                 else:
                     # Get position in instrument provided
                     if self.api.has["fetchPosition"]:
-                        position = self.api.fetchPosition(instrument, params=kwargs)
+                        position = self.api.fetch_position(instrument, params=kwargs)
                         if position is not None:
                             positions = {instrument: self._native_position(position)}
                         else:
                             positions = {}
 
                     elif self.api.has["fetchPositions"]:
-                        positions = self.api.fetchPositions(
+                        positions = self.api.fetch_positions(
                             symbols=[instrument], params=kwargs
                         )
                         positions = self._convert_list(positions, item_type="position")
@@ -361,7 +365,7 @@ class Broker(AbstractBroker):
         # TODO - support changing order_type, not sure how it will be carried
         side = "buy" if order.direction > 0 else "sell"
         try:
-            modified_order = self.api.editOrder(
+            modified_order = self.api.edit_order(
                 id=order.related_orders[0],
                 symbol=order.instrument,
                 side=side,

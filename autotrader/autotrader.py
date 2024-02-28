@@ -1,6 +1,7 @@
 import os
 import sys
 import time
+import pytz
 import pickle
 import timeit
 import importlib
@@ -8,12 +9,12 @@ import traceback
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
-from typing import Callable
 from threading import Thread
 from ast import literal_eval
 from scipy.optimize import brute
 from autotrader.autoplot import AutoPlot
 from autotrader.autobot import AutoTraderBot
+from typing import Callable, Optional, Literal
 from datetime import datetime, timedelta, timezone
 from autotrader.brokers.broker import AbstractBroker
 from autotrader.utilities import (
@@ -33,30 +34,43 @@ class AutoTrader:
     -------
     configure(...)
         Configures run settings for AutoTrader.
+
     add_strategy(...)
         Adds a strategy to the active AutoTrader instance.
+
     backtest(...)
         Configures backtest settings.
+
     optimise(...)
         Configures optimisation settings.
+
     scan(...)
         Configures scan settings.
+
     run()
         Runs AutoTrader with configured settings.
+
     add_data(...)
         Specify local data files to use for backtests.
+
     plot_settings(...)
         Configures the plot settings for AutoPlot.
+
     get_bots_deployed(instrument=None)
         Returns the AutoTrader trading bots deployed in the active instance.
+
     plot_backtest(bot=None)
         Plots backtest results of a trading Bot.
+
     plot_multibot_backtest(trade_results=None)
         Plots backtest results for multiple trading bots.
+
     multibot_backtest_analysis(bots=None)
         Analyses backtest results of multiple trading bots.
+
     print_trade_results(trade_results)
         Prints trade results.
+
     print_multibot_trade_results(trade_results=None)
         Prints a multi-bot backtest results.
 
@@ -182,29 +196,29 @@ class AutoTrader:
 
     def configure(
         self,
-        verbosity: int = 1,
-        broker: str = None,
-        execution_method: Callable = None,
-        feed: str = None,
-        req_liveprice: bool = False,
-        notify: int = 0,
-        notification_provider: str = None,
-        home_dir: str = None,
-        allow_dancing_bears: bool = False,
-        account_id: str = None,
-        environment: str = "paper",
-        show_plot: bool = False,
-        jupyter_notebook: bool = False,
-        mode: str = "continuous",
-        update_interval: str = None,
-        data_index_time: str = "open",
-        global_config: dict = None,
-        instance_str: str = None,
-        broker_verbosity: int = 0,
-        home_currency: str = None,
-        allow_duplicate_bars: bool = False,
-        deploy_time: datetime = None,
-        max_workers: int = None,
+        verbosity: Optional[int] = 1,
+        broker: Optional[str] = None,
+        execution_method: Optional[Callable] = None,
+        feed: Optional[str] = None,
+        req_liveprice: Optional[bool] = False,
+        notify: Optional[int] = 0,
+        notification_provider: Optional[str] = None,
+        home_dir: Optional[str] = None,
+        allow_dancing_bears: Optional[bool] = False,
+        account_id: Optional[str] = None,
+        environment: Optional[Literal["paper", "live"]] = "paper",
+        show_plot: Optional[bool] = False,
+        jupyter_notebook: Optional[bool] = False,
+        mode: Optional[str] = "continuous",
+        update_interval: Optional[str] = None,
+        data_index_time: Optional[str] = "open",
+        global_config: Optional[dict] = None,
+        instance_str: Optional[str] = None,
+        broker_verbosity: Optional[int] = 0,
+        home_currency: Optional[str] = None,
+        allow_duplicate_bars: Optional[bool] = False,
+        deploy_time: Optional[datetime] = None,
+        max_workers: Optional[int] = None,
     ) -> None:
         """Configures run settings for AutoTrader.
 
@@ -212,44 +226,58 @@ class AutoTrader:
         ----------
         verbosity : int, optional
             The verbosity of AutoTrader (0, 1, 2). The default is 1.
+
         broker : str, optional
             The broker(s) to connect to for trade execution. Multiple exchanges
             can be provided using comma separattion. The default is 'virtual'.
+
         execution_method : Callable, optional
             The execution model to call when submitting orders to the broker.
             This method must accept the broker instance, the order object,
             order_time and any *args, **kwargs.
+
         feed : str, optional
             The data feed to be used. This can be the same as the broker
             being used, or another data source. Options include 'yahoo',
             'oanda', 'ib', 'dydx', 'ccxt', 'local' or 'none'. When data is provided
             via the add_data method, the feed is automatically set to 'local'.
             The default is None.
+
         req_liveprice : bool, optional
             Request live market price from broker before placing trade, rather
             than using the data already provided. The default is False.
+
         notify : int, optional
             The level of notifications (0, 1, 2). The default is 0.
+
         notification_provider : str, optional
             The notifications provider to use (currently only Telegram supported).
             The default is None.
+
         home_dir : str, optional
             The project home directory. The default is the current working directory.
+
         allow_dancing_bears : bool, optional
             Allow incomplete candles to be passed to the strategy. The default is False.
+
         account_id : str, optional
             The brokerage account ID to be used. The default is None.
+
         environment : str, optional
             The trading environment of this instance ('paper', 'live'). The
             default is 'paper'.
+
         show_plot : bool, optional
             Automatically generate trade chart. The default is False.
+
         jupyter_notebook : bool, optional
             Set to True when running in Jupyter notebook environment. The
             default is False.
+
         mode : str, optional
             The run mode (either 'periodic' or 'continuous'). The default is
             'periodic'.
+
         update_interval : str, optional
             The update interval to use when running in 'continuous' mode. This
             should align with the highest resolution bar granularity in your
@@ -257,33 +285,41 @@ class AutoTrader:
             converted to a timedelta object. If None is passed, the update
             interval will be inferred from the strategy INTERVAL. The
             default is None.
+
         data_index_time : str, optional
             The time by which the data is indexed. Either 'open', if the data
             is indexed by the bar open time, or 'close', if the data is indexed
             by the bar close time. The default is 'open'.
+
         global_config : dict, optional
             Optionally provide your global configuration directly as a
             dictionary, rather than it being read in from a yaml file. The
             default is None.
+
         instance_str : str, optional
             The name of the active AutoTrader instance, used to control bots
             deployed when livetrading in continuous mode. When not specified,
             the instance string will be of the form 'autotrader_instance_n'.
             The default is None.
+
         broker_verbosity : int, optional
             The verbosity of the broker. The default is 0.
+
         home_currency : str, optional
             The home currency of trading accounts used (intended for FX
             conversions). The default is None.
+
         allow_duplicate_bars : bool, optional
             Allow duplicate bars to be passed on to the strategy. The default
             is False.
+
         deploy_time : datetime, optional
             The time to deploy the bots. If this is a future time, AutoTrader
             will wait until it is reached before deploying. It will also be used
             as an anchor to synchronise future bot updates. If not specified,
             bots will be deployed as soon as possible, with successive updates
             synchronised to the deployment time.
+
         max_workers : int, optional
             The maximum number of workers to use when spawning threads. The
             default is None.
@@ -485,18 +521,23 @@ class AutoTrader:
         ----------
         verbosity : int, optional
             The verbosity of the broker. The default is 0.
+
         initial_balance : float, optional
             The initial balance of the account. The default is 1000.
+
         spread : float, optional
             The bid/ask spread to use in backtest (specified in units defined
             by the spread_units argument). The default is 0.
+
         spread_units : str, optional
             The unit of the spread specified. Options are 'price', meaning that
             the spread is quoted in price units, or 'percentage', meaning that
             the spread is quoted as a percentage of the market price. The default
             is 'price'.
+
         commission : float, optional
             Trading commission as percentage per trade. The default is 0.
+
         commission_scheme : str, optional
             The method with which to apply commissions to trades made. The options
             are (1) 'percentage', where the percentage specified by the commission
@@ -505,44 +546,57 @@ class AutoTrader:
             multiplied by the number of units in the trade, and (3) 'flat', where
             a flat monetary value specified by the commission argument is charged
             per trade made, regardless of size. The default is 'percentage'.
+
         maker_commission : float, optional
             The commission to charge on liquidity-making orders. The default is
             None, in which case the nominal commission argument will be used.
+
         taker_commission: float, optional
             The commission to charge on liquidity-taking orders. The default is
             None, in which case the nominal commission argument will be used.
+
         leverage : int, optional
             Account leverage. The default is 1.
+
         hedging : bool, optional
             Allow hedging in the virtual broker (opening simultaneous
             trades in oposing directions). The default is False.
+
         margin_call_fraction : float, optional
             The fraction of margin usage at which a margin call will occur.
             The default is 0.
+
         default_slippage_model : Callable, optional
             The default model to use when calculating the percentage slippage
             on the fill price, for a given order size. The default functon
             returns zero.
+
         slippage_models : dict, optional
             A dictionary of callable slippage models, keyed by instrument.
+
         picklefile : str, optional
             The filename of the picklefile to load state from. If you do not
             wish to load from state, leave this as None. The default is None.
+
         exchange : str, optional
             The name of the exchange to use for execution. This gets passed to
             an instance of AutoData to update prices and use the realtime
             orderbook for virtual order execution. The default is None.
+
         tradeable_instruments : list, optional
             A list containing strings of the instruments tradeable through the
             exchange specified. This is used to determine which exchange orders
             should be submitted to when trading across multiple exchanges. This
             should account for all instruments provided in the watchlist. The
             default is None.
+
         refresh_freq : str, optional
             The timeperiod to sleep for in between updates of the virtual broker
             data feed when manually papertrading. The default is '1s'.
+
         home_currency : str, optional
             The home currency of the account. The default is None.
+
         papertrade : bool, optional
             A boolean to flag when the account is to be used for papertrading
             (real-time trading on paper). The default is True.
@@ -608,6 +662,7 @@ class AutoTrader:
         start_dt: datetime = None,
         end_dt: datetime = None,
         warmup_period: str = "0s",
+        localize_to_utc: Optional[bool] = False,
     ) -> None:
         """Configures settings for backtesting.
 
@@ -615,16 +670,24 @@ class AutoTrader:
         ----------
         start : str, optional
             Start date for backtesting, in format dd/mm/yyyy. The default is None.
+
         end : str, optional
             End date for backtesting, in format dd/mm/yyyy. The default is None.
+
         start_dt : datetime, optional
             Datetime object corresponding to start time. The default is None.
+
         end_dt : datetime, optional
             Datetime object corresponding to end time. The default is None.
+
         warmup_period : str, optional
             A string describing the warmup period to be used. This is
             equivalent to the minimum period of time required to collect
             sufficient data for the strategy. The default is '0s'.
+
+        localize_to_utc : bool, optional
+            If the start and end have been passed as strings, set this to True to
+            localize them to UTC.
 
         Notes
         ------
@@ -634,8 +697,11 @@ class AutoTrader:
         """
         # Convert start and end strings to datetime objects
         if start_dt is None and end_dt is None:
-            start_dt = datetime.strptime(start + "+0000", "%d/%m/%Y%z")
-            end_dt = datetime.strptime(end + "+0000", "%d/%m/%Y%z")
+            start_dt = datetime.strptime(start, "%d/%m/%Y")
+            end_dt = datetime.strptime(end, "%d/%m/%Y")
+            if localize_to_utc:
+                start_dt = pytz.utc.localize(start_dt)
+                end_dt = pytz.utc.localize(end_dt)
 
         # Assign attributes
         self._backtest_mode = True
@@ -653,14 +719,17 @@ class AutoTrader:
         opt_params : list
             The parameters to be optimised, as they  are named in the
             strategy configuration file.
+
         bounds : list(tuples)
             The bounds on each of the parameters to be optimised, specified
             as a tuple of the form (lower, upper) for each parameter. The
             default is 4.
+
         force_download : bool, optional
             Force AutoTrader to download data each iteration. This is not
             recommended. Instead, you should provide local download to optimise
             on, using the add_data method. The default is False.
+
         Ns : int, optional
             The number of points along each dimension of the optimisation grid.
 
@@ -719,30 +788,37 @@ class AutoTrader:
         data_dict : dict, optional
             A dictionary containing the filenames of the datasets
             to be used. The default is None.
+
         mapper_func : callable, optional
             A callable used to provide the absolute filepath to the data
             given the instrument name (as it appears in the watchlist)
             as an input argument. The default is None.
+
         quote_data : dict, optional
             A dictionary containing the quote data filenames
             of the datasets provided in data_dict. The default is None.
+
         data_directory : str, optional
             The name of the sub-directory containing price
             data files. This directory should be located in the project
             home directory (at.home_dir). The default is 'price_data'.
+
         abs_dir_path : str, optional
             The absolute path to the data_directory. This parameter
             may be used when the datafiles are stored outside of the project
             directory. The default is None.
+
         auxdata : dict, optional
             A dictionary containing the data paths to supplement the
             data passed to the strategy module. For strategies involving
             multiple products, the keys of this dictionary must correspond
             to the products, with the auxdata in nested dictionaries or
             otherwise. The default is None.
+
         stream_object : DataStream, optional
             A custom data stream object, allowing custom data pipelines. The
             default is DataStream (from autotrader.utilities).
+
         dynamic_data : bool, optional
             A boolean flag to signal that the stream object provided should
             be refreshed each timestep of a backtest. This can be useful when
@@ -879,9 +955,9 @@ class AutoTrader:
 
     def scan(
         self,
-        strategy_filename: str = None,
-        strategy_dict: dict = None,
-        scan_index: str = None,
+        strategy_filename: Optional[str] = None,
+        strategy_dict: Optional[dict] = None,
+        scan_index: Optional[str] = None,
     ) -> None:
         """Configure AutoTrader scan settings.
 
@@ -890,8 +966,10 @@ class AutoTrader:
         strategy_filename : str, optional
              The prefix of yaml strategy configuration file, located in
              home_dir/config. The default is None.
+
         strategy_dict : dict, optional
             A strategy configuration dictionary. The default is None.
+
         scan_index : str, optional
             Forex scan index. The default is None.
 
@@ -1148,19 +1226,21 @@ class AutoTrader:
 
     def plot_settings(
         self,
-        max_indis_over: int = 3,
-        max_indis_below: int = 2,
-        fig_tools: str = "pan,wheel_zoom,box_zoom,undo,redo,reset,save,crosshair",
-        ohlc_height: int = 400,
-        ohlc_width: int = 800,
-        top_fig_height: int = 150,
-        bottom_fig_height: int = 150,
-        jupyter_notebook: bool = False,
-        show_cancelled: bool = True,
-        chart_timeframe: str = "default",
-        chart_theme: str = "caliber",
-        use_strat_plot_data: bool = False,
-        portfolio_chart: bool = False,
+        max_indis_over: Optional[int] = 3,
+        max_indis_below: Optional[int] = 2,
+        fig_tools: Optional[
+            str
+        ] = "pan,wheel_zoom,box_zoom,undo,redo,reset,save,crosshair",
+        ohlc_height: Optional[int] = 400,
+        ohlc_width: Optional[int] = 800,
+        top_fig_height: Optional[int] = 150,
+        bottom_fig_height: Optional[int] = 150,
+        jupyter_notebook: Optional[bool] = False,
+        show_cancelled: Optional[bool] = True,
+        chart_timeframe: Optional[str] = "default",
+        chart_theme: Optional[str] = "caliber",
+        use_strat_plot_data: Optional[bool] = False,
+        portfolio_chart: Optional[bool] = False,
     ) -> None:
         """Configure the plot settings.
 
@@ -1169,33 +1249,45 @@ class AutoTrader:
         max_indis_over : int, optional
             Maximum number of indicators overlaid on the main chart. The
             default is 3.
+
         max_indis_below : int, optional
             Maximum number of indicators below the main chart. The default is 2.
+
         fig_tools : str, optional
             The figure tools. The default is "pan,wheel_zoom,box_zoom,undo,
             redo,reset,save,crosshair".
+
         ohlc_height : int, optional
             The height (px) of the main chart. The default is 400.
+
         ohlc_width : int, optional
             The width (px) of the main chart. The default is 800.
+
         top_fig_height : int, optional
             The height (px) of the figure above the main chart. The default is 150.
+
         bottom_fig_height : int, optional
             The height (px) of the figure(s) below the main chart. The default is 150.
+
         jupyter_notebook : bool, optional
             Boolean flag when running in Jupyter Notebooks, to allow inline
             plotting. The default is False.
+
         show_cancelled : bool, optional
             Show/hide cancelled trades. The default is True.
+
         chart_timeframe : str, optional
             The bar timeframe to use when gerating the chart. The timeframe
             provided must be a part of the strategy dataset. The default is 'default'.
+
         chart_theme : bool, optional
             The theme of the Bokeh chart generated. The default is "caliber".
+
         use_strat_plot_data : bool, optional
             Boolean flag to use data from the strategy instead of candlestick
             data for the chart. If True, ensure your strategy has a timeseries
             data attribute named 'plot_data'. The default is False.
+
         portfolio_chart : bool, optional
             Override the default plot settings to plot the portfolio chart
             even when running a single instrument backtest.

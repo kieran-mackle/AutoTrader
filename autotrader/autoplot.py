@@ -35,9 +35,11 @@ class AutoPlot:
     -------
     configure()
         Configure the plot settings.
+
     add_tool(tool_name)
         Add bokeh tool to plot. This adds the tool_name string to the fig_tools
         attribute.
+
     plot()
         Creates a trading chart of OHLC price data and indicators.
 
@@ -127,24 +129,33 @@ class AutoPlot:
         max_indis_over : int, optional
             Maximum number of indicators overlaid on the main chart. The
             default is 3.
+
         max_indis_below : int, optional
             Maximum number of indicators below the main chart. The default is 2.
+
         fig_tools : str, optional
             The figure tools. The default is "pan,wheel_zoom,box_zoom,undo,
             redo,reset,save,crosshair".
+
         ohlc_height : int, optional
             The height (px) of the main chart. The default is 400.
+
         ohlc_width : int, optional
             The width (px) of the main chart. The default is 800.
+
         top_fig_height : int, optional
             The height (px) of the figure above the main chart. The default is 150.
+
         bottom_fig_height : int, optional
             The height (px) of the figure(s) below the main chart. The default is 150.
+
         jupyter_notebook : bool, optional
             Boolean flag when running in Jupyter Notebooks, to allow inline
             plotting. The default is False.
+
         show_cancelled : bool, optional
             Show/hide cancelled trades. The default is True.
+
         chart_theme : bool, optional
             The theme of the Bokeh chart generated. The default is "caliber".
 
@@ -204,40 +215,58 @@ class AutoPlot:
 
         over : over
             Generic line indicator over chart with key: data
+
         below : below
             Generic line indicator below chart with key: data
+
         MACD : below
             MACD indicator with keys: macd, signal, histogram
+
         MA : over
              Moving average overlay indicator with key: data
+
         RSI : below
             RSI indicator with key: data
+
         Heikin-Ashi : below
             Heikin Ashi candlesticks with key: data
+
         Supertrend : over
             Supertrend indicator with key: data
+
         Swings : over
             Swing levels indicator with key: data
+
         Engulfing : below
             Engulfing candlestick pattern with key: data
+
         Crossover : below
             Crossover indicator with key: data
+
         Grid : over
             Grid levels with key: data
+
         Pivot : over
             Pivot points with keys: data
+
         HalfTrend : over
             Halftrend indicator with key: data
+
         multi : below
             Multiple indicator type
+
         signals : over
             Trading signals plot with key: data
+
         bands : over
             Shaded bands indicator type
+
         threshold : below
             Threshold indicator type
+
         trading-session : over
             Highlighted trading session times with key: data
+
         bricks : below
             Price-based bricks with keys: data (DataFrame), timescale (bool)
 
@@ -245,10 +274,13 @@ class AutoPlot:
         ----------
         instrument : str, optional
             The traded instrument name. The default is None.
+
         trade_results : TradeAnalysis, optional
             The TradeAnalysis results object. The default is None.
+
         indicators : dict, optional
             Indicators dictionary. The default is None.
+
         show_fig : bool, optional
             Flag to show the chart. The default is True.
 
@@ -501,6 +533,7 @@ class AutoPlot:
         ----------
         source : ColumnDataSource
             The column data source.
+
         y_range : Bokeh Range
             The y_range attribute of the chart.
 

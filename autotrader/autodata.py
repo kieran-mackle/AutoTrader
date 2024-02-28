@@ -42,12 +42,15 @@ class AutoData:
             The configuration dictionary for the data source to be used. This
             is created automatically in autotrader.utilities.get_data_config.
             The default is None.
+
         allow_dancing_bears : bool, optional
             A flag to allow incomplete bars to be returned in the data. The
             default is False.
+
         home_currency : str, optional
             The home currency to use when fetching quote data. The default
             is None.
+
         kwargs : optional
 
         Returns
@@ -218,12 +221,16 @@ class AutoData:
         -----------
         instrument : str, list
             The instrument to fetch data for, or a list of instruments.
+
         granularity : str
             The granularity of the data to fetch.
+
         count : int, optional
             The number of OHLC bars to fetch. The default is None.
+
         start_time : datetime, optional
             The start date of the data to fetch. The default is None.
+
         end_time : datetime, optional
             The end date of the data to fetch. The default is None.
 
@@ -319,13 +326,17 @@ class AutoData:
         ----------
         instrument : str
             The instrument to fetch data for.
+
         granularity : str
             The candlestick granularity, specified as a TimeDelta string
             (eg. '30s', '5min' or '1d').
+
         count : int, optional
             The number of candles to fetch (maximum 5000). The default is None.
+
         start_time : datetime, optional
             The data start time. The default is None.
+
         end_time : datetime, optional
             The data end time. The default is None.
 
@@ -718,13 +729,17 @@ class AutoData:
         ----------
         instrument : str
             Ticker to dowload data for.
+
         granularity : str, optional
             The candlestick granularity. The default is None.
+
         count : int, optional
             The number of bars to fetch. The default is None.
+
         start_time : str, optional
             The start time as YYYY-MM-DD string or datetime object. The default
             is None.
+
         end_time : str, optional
             The end_time as YYYY-MM-DD string or datetime object. The default
             is None.
@@ -828,14 +843,19 @@ class AutoData:
         ----------
         instrument : str
             The product being traded.
+
         granularity : str
             The granularity of the price bars.
+
         count : int
             The number of bars to fetch.
+
         start_time : datetime, optional
             The data start time. The default is None.
+
         end_time : datetime, optional
             The data end time. The default is None.
+
         order : Order, optional
             The order object. The default is None.
 
@@ -892,6 +912,7 @@ class AutoData:
         ----------
         order: Order
             The AutoTrader Order.
+
         snapshot : bool, optional
             Request a snapshot of the price. The default is False.
 
@@ -924,6 +945,7 @@ class AutoData:
         ----------
         last : float
             The last price of the product being traded.
+
         quote_price : float, optional
             The quote price of the product being traded against the account
             home currency. The default is None.
@@ -977,10 +999,13 @@ class AutoData:
             Either the absolute filepath of the local price data file, or, if
             a data directory was provided in the data_config dictionary, simply
             the name of the data file.
+
         start_time : str | datetime, optional
             The data start date. The default is None.
+
         end_time : str | datetime, optional
             The data end date. The default is None.
+
         utc : bool, optional
             Localise data to UTC. The default is True.
 
@@ -1014,11 +1039,14 @@ class AutoData:
             The filename (absolute, or relative if data_dir was provided with
             data_config dictionary) of the instrument data. Only required if
             'midprice' argument is not provided.
+
         spread : float, optional
             The bid/ask spread value.
+
         spread_units : float, optional
             The units to which the spread refers to. Can be either 'price' or
             'percentage'.
+
         midprice : float, optional
             The midprice to use as a reference price.
         """
@@ -1096,12 +1124,16 @@ class AutoData:
         ----------
         instrument : str
             The instrument to fetch data for.
+
         granularity : str
             The candlestick granularity (eg. "1m", "15m", "1h", "1d").
+
         count : int, optional
             The number of candles to fetch (maximum 5000). The default is None.
+
         start_time : datetime, optional
             The data start time. The default is None.
+
         end_time : datetime, optional
             The data end time. The default is None.
 
@@ -1354,15 +1386,20 @@ class AutoData:
         ----------
         instrument : str
             The instrument/market to fetch data for.
+
         granularity : str
             The candlestick granularity (1DAY, 4HOURS, 1HOUR, 30MINS, 15MINS,
                                          5MINS, or 1MIN).
+
         count : int, optional
             The number of candles to fetch (maximum of 100). The default is None.
+
         start_time : datetime, optional
             The data start time. The default is None.
+
         end_time : datetime, optional
             The data end time. The default is None.
+
         Returns
         -------
         data : DataFrame

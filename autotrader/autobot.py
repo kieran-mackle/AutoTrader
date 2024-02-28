@@ -16,12 +16,16 @@ class AutoTraderBot:
     ----------
     instrument : str
         The trading instrument assigned to the bot.
+
     data : pd.DataFrame
         The OHLC price data used by the bot.
+
     quote_data : pd.DataFrame
         The OHLC quote data used by the bot.
+
     MTF_data : dict
         The multiple timeframe data used by the bot.
+
     backtest_results : TradeAnalysis
         A class containing results from the bot in backtest. This
         is available only after a backtest.
@@ -44,19 +48,26 @@ class AutoTraderBot:
         ----------
         instrument : str
             The trading instrument assigned to the bot instance.
+
         strategy_dict : dict
             The strategy configuration dictionary.
+
         broker : AutoTrader Broker instance
             The AutoTrader Broker module.
+
         deploy_dt : datetime
             The datetime stamp of the bot deployment time.
+
         data_dict : dict
             The strategy data.
+
         quote_data_path : str
             The quote data filepath for the trading instrument
             (for backtesting only).
+
         auxdata : dict
             Auxiliary strategy data.
+
         autotrader_instance : AutoTrader
             The parent AutoTrader instance.
 
@@ -72,6 +83,11 @@ class AutoTraderBot:
 
         """
         # Inherit user options from autotrader
+        # TODO - initialise some of the attributes, eg:
+        # self._multiple_brokers
+        # self._virtual_tradeable_instruments
+        # self._feed
+        # self._broker_name
         for attribute, value in autotrader_instance.__dict__.items():
             setattr(self, attribute, value)
 
@@ -272,6 +288,7 @@ class AutoTraderBot:
         i : int, optional
             The indexing parameter used when running in periodic update mode.
             The default is None.
+
         timestamp : datetime, optional
             The timestamp parameter used when running in continuous update
             mode. The default is None.
@@ -428,6 +445,7 @@ class AutoTraderBot:
         timestamp : datetime, optional
             The current timestamp. If None, datetime.now() will be called.
             The default is None.
+
         **kwargs : dict
             Any other named arguments.
 
@@ -708,14 +726,18 @@ class AutoTraderBot:
         ----------
         ohlc_data : pd.DataFrame
             DESCRIPTION.
+
         timestamp : datetime
             The current timestamp.
+
         indexing : str, optional
             How the OHLC data has been indexed (either by bar 'open' time, or
             bar 'close' time). The default is 'open'.
+
         tail_bars : int, optional
             If provided, the data will be truncated to provide the number
             of bars specified. The default is None.
+
         check_for_future_data : bool, optional
             A flag to check for future entries in the data. The default is True.
 
@@ -759,14 +781,18 @@ class AutoTraderBot:
         ----------
         auxdata : dict
             The strategy's auxiliary data.
+
         timestamp : datetime
             The current timestamp.
+
         indexing : str, optional
             How the OHLC data has been indexed (either by bar 'open' time, or
             bar 'close' time). The default is 'open'.
+
         tail_bars : int, optional
             If provided, the data will be truncated to provide the number
             of bars specified. The default is None.
+
         check_for_future_data : bool, optional
             A flag to check for future entries in the data. The default is True.
 
@@ -796,6 +822,7 @@ class AutoTraderBot:
         ----------
         timestamp : datetime
             DESCRIPTION.
+
         indexing : str, optional
             DESCRIPTION. The default is 'open'.
 
@@ -803,10 +830,13 @@ class AutoTraderBot:
         -------
         strat_data : dict
             The checked strategy data.
+
         current_bars : dict(pd.core.series.Series)
             The current bars for each product.
+
         quote_bars : dict(pd.core.series.Series)
             The current quote data bars for each product.
+
         sufficient_data : bool
             Boolean flag whether sufficient data is available.
 
