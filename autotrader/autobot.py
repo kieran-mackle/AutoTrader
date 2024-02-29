@@ -2,11 +2,16 @@ import os
 import importlib
 import traceback
 import pandas as pd
+from typing import TYPE_CHECKING
 from datetime import datetime, timezone
 from autotrader.autodata import AutoData
+from autotrader.strategy import Strategy
 from autotrader.brokers.trading import Order
 from concurrent.futures import ThreadPoolExecutor
 from autotrader.utilities import get_data_config, TradeAnalysis
+
+if TYPE_CHECKING:
+    from autotrader import AutoTrader
 
 
 class AutoTraderBot:
@@ -40,7 +45,7 @@ class AutoTraderBot:
         data_dict: dict,
         quote_data_path: str,
         auxdata: dict,
-        autotrader_instance,
+        autotrader_instance: "AutoTrader",
     ) -> None:
         """Instantiates an AutoTrader Bot.
 
@@ -238,7 +243,7 @@ class AutoTraderBot:
         # Initial data call
         self._refresh_data(deploy_dt)
 
-        # Instantiate Strategy
+        # Build strategy instantiation arguments
         strategy_inputs = {
             "parameters": params,
             "data": self._strat_data,
@@ -252,7 +257,8 @@ class AutoTraderBot:
         if strategy_config["INCLUDE_STREAM"]:
             strategy_inputs["data_stream"] = self.Stream
 
-        my_strat = strategy(**strategy_inputs)
+        # Instantiate Strategy
+        my_strat: Strategy = strategy(**strategy_inputs)
 
         # Assign strategy to local attributes
         self._last_bars = None
@@ -262,6 +268,9 @@ class AutoTraderBot:
             if "NAME" in strategy_config
             else "(unnamed strategy)"
         )
+
+        # Assign stop trading method to strategy
+        self._strategy.stop_trading = autotrader_instance._remove_instance_file
 
         # Assign strategy attributes for tick-based strategy development
         if self._backtest_mode:
@@ -597,11 +606,14 @@ class AutoTraderBot:
                         order.exchange = self._broker_name
 
         # Perform checks
-        checked_orders = check_type(orders)
-        add_strategy_data(checked_orders)
-        check_order_details(checked_orders)
-
-        return checked_orders
+        if orders is not None:
+            checked_orders = check_type(orders)
+            add_strategy_data(checked_orders)
+            check_order_details(checked_orders)
+            return checked_orders
+        else:
+            # Return empty list
+            return []
 
     def _qualify_orders(
         self, orders: list, current_bars: dict, quote_bars: dict

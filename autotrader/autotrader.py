@@ -376,11 +376,14 @@ class AutoTrader:
         config_filename : str, optional
             The prefix of the yaml strategy configuration file, located in
             home_dir/config. The default is None.
+
         config_dict : dict, optional
             Alternative to config_filename, a strategy configuration
             dictionary can be passed directly. The default is None.
+
         strategy : AutoTrader Strategy, optional
             The strategy class object. The default is None.
+
         shutdown_method : str, optional
             The name of the shutdown method in the strategy (if any). This
             method will be called when AutoTrader is livetrading in continuous
@@ -996,8 +999,8 @@ class AutoTrader:
     def run(self) -> AbstractBroker:
         """Performs essential checks and runs AutoTrader."""
         # Print Banner
-        if int(self._verbosity) > 0:
-            print_banner()
+        # if int(self._verbosity) > 0:
+        #     print_banner()
 
         # Define home_dir if undefined
         if self._home_dir is None:
@@ -1694,6 +1697,7 @@ class AutoTrader:
                         self._auxdata[instrument] if self._auxdata is not None else None
                     )
 
+                # TODO - consider when strategy object is passed, but does not match class key below.
                 strategy_class = config["CLASS"]
                 strategy_dict = {
                     "config": config,
@@ -2122,8 +2126,14 @@ class AutoTrader:
                 if int(self._verbosity) > 0:
                     print("Broker update thread killed.")
 
+    def _remove_instance_file(self):
+        # Remove instance file if it exists still
+        if self._check_instance_file(self._instance_str, live_check=False):
+            os.remove(self._instance_filepath)
+
     def shutdown(self):
         """Shutdown the active AutoTrader instance."""
+        self._remove_instance_file()
 
         if int(self._verbosity) > 0 and self._backtest_mode:
             backtest_end_time = timeit.default_timer()
@@ -2253,13 +2263,20 @@ class AutoTrader:
 
                 else:
                     # Live trading
-                    instance_id = self._get_instance_id()
-                    instance_str = (
-                        f"autotrader_instance_{instance_id}"
-                        if self._instance_str is None
-                        else self._instance_str
+                    if self._instance_str is None:
+                        # Assign now
+                        instance_id = self._get_instance_id()
+                        self._instance_str = f"autotrader_instance_{instance_id}"
+
+                    # Initialise
+                    instance_file_exists = self._check_instance_file(
+                        instance_str=self._instance_str,
+                        initialisation=True,
                     )
-                    instance_file_exists = self._check_instance_file(instance_str, True)
+                    # TODO - general 'active_bots' path
+                    self._instance_filepath = os.path.join(
+                        self._home_dir, "active_bots", self._instance_str
+                    )
 
                     # Get deploy timestamp
                     if self._deploy_time is not None:
@@ -2336,7 +2353,7 @@ class AutoTrader:
                                 with open(f".paper_broker_hist", "wb") as file:
                                     pickle.dump(self._broker_histories, file)
 
-                            # Go to sleep until next update
+                            # Calculate sleep time
                             sleep_time = self._timestep.total_seconds() - (
                                 (time.time() - deploy_time)
                                 % self._timestep.total_seconds()
@@ -2345,22 +2362,24 @@ class AutoTrader:
                                 print(
                                     f"AutoTrader sleeping until next update at {datetime.now()+timedelta(seconds=sleep_time)}."
                                 )
-                            time.sleep(sleep_time)
-
                             # Check if instance file still exists
                             instance_file_exists = self._check_instance_file(
-                                instance_str
+                                instance_str=self._instance_str,
                             )
+                            if not instance_file_exists:
+                                # Exit now
+                                break
+
+                            # Go to sleep until next update
+                            time.sleep(sleep_time)
 
                         except KeyboardInterrupt:
                             print("\nKilling bot(s).")
-                            instance_filepath = os.path.join(
-                                self._home_dir, "active_bots", instance_str
-                            )
                             try:
-                                os.remove(instance_filepath)
+                                os.remove(self._instance_filepath)
                             except FileNotFoundError:
-                                print(f"Intance file '{instance_str}' already deleted.")
+                                # Already deleted
+                                pass
                             break
 
             elif self._run_mode.lower() == "periodic":
@@ -2426,29 +2445,24 @@ class AutoTrader:
 
     def save_state(self):
         """Dumps the current AutoTrader instance to a pickle."""
-        instance_id = self._get_instance_id(dir_name="pickled_instances")
-
-        instance_name = (
-            f"autotrader_instance_{instance_id}"
-            if self._instance_str is None
-            else self._instance_str
-        )
         instance_file_exists = self._check_instance_file(
-            instance_str=instance_name, dir_name="pickled_instances", live_check=False
+            instance_str=self._instance_str,
+            dir_name="pickled_instances",
+            live_check=False,
         )
 
         write = "y"
         if instance_file_exists:
             # The file already exists, check to overwrite
             write = input(
-                f"The instance file '{instance_name}' already "
+                f"The instance file '{self._instance_str}' already "
                 + "exists. Would you like to overwrite it? ([y]/n)  "
             )
 
         if "y" in write.lower():
             # Write to file
             try:
-                filepath = f"pickled_instances/{instance_name}"
+                filepath = f"pickled_instances/{self._instance_str}"
                 with open(filepath, "wb") as file:
                     pickle.dump(self, file)
             except pickle.PicklingError:
