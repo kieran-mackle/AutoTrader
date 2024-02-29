@@ -1,9 +1,7 @@
-# import os
 import numpy as np
 import pandas as pd
 from math import pi
 from typing import Union
-
 from bokeh.models.annotations import Title
 from bokeh.plotting import figure, output_file, show
 from bokeh.io import output_notebook, curdoc
@@ -298,7 +296,7 @@ class AutoPlot:
         if trade_results is None:
             # Using Indiview
             if instrument is not None:
-                title_string = "AutoTrader IndiView - {}".format(instrument)
+                title_string = f"AutoTrader IndiView - {instrument}"
             else:
                 title_string = "AutoTrader IndiView"
             output_file("indiview-chart.html", title=title_string)
@@ -310,8 +308,9 @@ class AutoPlot:
             title_string = (
                 f"Backtest chart for {instrument} ({trade_results.interval} candles)"
             )
+            formatted_instr = instrument.replace("/", "_")
             output_file(
-                f"{instrument}-backtest-chart.html",
+                f"{formatted_instr}-backtest-chart.html",
                 title=f"AutoTrader Backtest Results - {instrument}",
             )
 
@@ -325,7 +324,7 @@ class AutoPlot:
             main_plot = self._create_main_plot(source)
         else:
             source.add(
-                (self._data.Close >= self._data.Open)
+                (self._data["Close"] >= self._data["Open"])
                 .values.astype(np.uint8)
                 .astype(str),
                 "change",
@@ -340,9 +339,16 @@ class AutoPlot:
 
         if trade_results is not None:
             account_hist = trade_results.account_history
-            if len(account_hist) != len(self._data):
-                account_hist = self._interpolate_and_merge(account_hist)
+            account_hist["data_index"] = self._data["data_index"]
+            account_hist = self._interpolate_and_merge(account_hist)
 
+            # if len(account_hist) != len(self._data):
+            #     account_hist = self._interpolate_and_merge(account_hist)
+            # else:
+            #     # Need to add data_index column for plot to render NAV
+            #     account_hist["data_index"] = self._data["data_index"]
+
+            # TODO - debug why this isnt working
             topsource = ColumnDataSource(account_hist)
             topsource.add(account_hist[["NAV", "equity"]].min(1), "Low")
             topsource.add(account_hist[["NAV", "equity"]].max(1), "High")
@@ -360,7 +366,6 @@ class AutoPlot:
                 "NAV",
                 new_fig=True,
                 legend_label="Net Asset Value",
-                hover_name="NAV",
             )
             # Add equity balance
             self._plot_lineV2(
@@ -369,7 +374,6 @@ class AutoPlot:
                 "equity",
                 legend_label="Account Balance",
                 line_colour="blue",
-                hover_name="equity",
             )
 
             # Add hover tool
@@ -519,7 +523,12 @@ class AutoPlot:
     def _interpolate_and_merge(self, df):
         dt_data = self._data.set_index("date")
         concat_data = pd.concat([dt_data, df]).sort_index()
-        concat_data.index = pd.to_datetime(concat_data.index, utc=True)
+
+        # Check for timezone
+        if self._data["date"][0].tz is not None:
+            # TODO - improve how timezones are handled, this is gross
+            concat_data.index = pd.to_datetime(concat_data.index, utc=True)
+
         interp_data = concat_data.interpolate(method="nearest").bfill()
         merged_data = self._merge_data(interp_data).drop_duplicates()
         merged_data = merged_data.replace("", np.nan).ffill()
@@ -1153,7 +1162,10 @@ class AutoPlot:
         return line_source
 
     def _create_main_plot(
-        self, source, line_colour: str = "black", legend_label: str = "Data"
+        self,
+        source: ColumnDataSource,
+        line_colour: str = "black",
+        legend_label: str = "Data",
     ):
         fig = figure(
             plot_width=self._ohlc_width,
@@ -1176,18 +1188,16 @@ class AutoPlot:
 
     def _plot_lineV2(
         self,
-        source,
+        source: ColumnDataSource,
         linked_fig,
-        column,
-        new_fig=False,
-        fig_height=150,
-        fig_title=None,
-        legend_label=None,
-        hover_name=None,
-        line_colour="black",
+        column: str,
+        new_fig: bool = False,
+        fig_height: float = 150,
+        fig_title: str = None,
+        legend_label: str = None,
+        line_colour: str = "black",
     ):
         """Generic method to plot data as a line."""
-
         # Initiate figure
         if new_fig:
             fig = figure(
