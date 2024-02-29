@@ -62,3 +62,7 @@ class AbstractBroker(ABC):
             A dictionary containing details of the open positions.
         """
         pass
+
+
+class Broker(AbstractBroker):
+    pass

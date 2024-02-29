@@ -79,6 +79,7 @@ class Broker(AbstractBroker):
             # Regular order
             side = "buy" if order.direction > 0 else "sell"
             # Submit the order
+            # TODO - handle things like SL/TP natively
             placed_order = self.api.create_order(
                 symbol=order.instrument,
                 type=order.order_type,
@@ -181,7 +182,7 @@ class Broker(AbstractBroker):
             + "get_trades method instead."
         )
 
-    def get_positions(self, instrument: str = None, **kwargs) -> dict:
+    def get_positions(self, instrument: str = None, **kwargs) -> dict[str, Position]:
         """Gets the current positions open on the account.
 
         Note that not all exchanges exhibit the same behaviour, and
