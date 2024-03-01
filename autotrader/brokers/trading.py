@@ -57,7 +57,7 @@ class Order:
     take_distance : float
         The pip distance between the order price and the take-profit.
 
-    related_orders : list
+    related_orders : list[str]
         A list of related order/trade ID's.
 
     id : int
@@ -100,7 +100,7 @@ class Order:
         self,
         instrument: str = None,
         direction: int = None,
-        order_type: Literal["market", "limit"] = "market",
+        order_type: Literal["market", "limit", "stop-limit", "modify"] = "market",
         size: float = None,
         order_limit_price: float = None,
         order_stop_price: float = None,

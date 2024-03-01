@@ -58,12 +58,21 @@ class Broker(AbstractBroker):
 
     def get_balance(self, instrument: str = None) -> float:
         """Returns account balance."""
+        # TODO - check a pair hasnt been requested
         instrument = self.base_currency if instrument is None else instrument
-        return self.api.fetch_balance()[instrument]["total"]
+        balances = self.api.fetch_balance()
+        if instrument in balances:
+            return balances[instrument]["total"]
+        else:
+            return 0
 
     def place_order(self, order: Order, **kwargs) -> None:
         """Disassemble order_details dictionary to place order."""
         order()
+
+        # Add order params
+        self._add_params(order)
+
         # Submit order to broker
         if order.order_type == "modify":
             placed_order = self._modify_order(order)
@@ -79,7 +88,6 @@ class Broker(AbstractBroker):
             # Regular order
             side = "buy" if order.direction > 0 else "sell"
             # Submit the order
-            # TODO - handle things like SL/TP natively
             placed_order = self.api.create_order(
                 symbol=order.instrument,
                 type=order.order_type,
@@ -89,12 +97,20 @@ class Broker(AbstractBroker):
                 params=order.ccxt_params,
             )
 
-        # TODO - convert to native order to return
         return placed_order
+
+    def _add_params(self, order: Order):
+        """Translates an order to add CCXT parameters for the specific exchange."""
+        if self.exchange.lower() == "bybit":
+            if order.take_profit:
+                order.ccxt_params["takeProfit"] = order.take_profit
+            if order.stop_loss:
+                order.ccxt_params["stopLoss"] = order.stop_loss
+        # TODO - support more exchanges
 
     def get_orders(
         self, instrument: str = None, order_status: str = "open", **kwargs
-    ) -> dict:
+    ) -> dict[str, Order]:
         """Returns orders associated with the account."""
         for _ in range(2):
             try:
@@ -361,9 +377,8 @@ class Broker(AbstractBroker):
             converted[getattr(native, id_key)] = native
         return converted
 
-    def _modify_order(self, order):
+    def _modify_order(self, order: Order):
         """Modify the size, type and price of an existing order."""
-        # TODO - support changing order_type, not sure how it will be carried
         side = "buy" if order.direction > 0 else "sell"
         try:
             modified_order = self.api.edit_order(
