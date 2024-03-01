@@ -2,39 +2,23 @@ import os
 import importlib
 import traceback
 import pandas as pd
-from typing import TYPE_CHECKING
 from datetime import datetime, timezone
 from autotrader.autodata import AutoData
 from autotrader.strategy import Strategy
+from typing import TYPE_CHECKING, Literal
+from autotrader.utilities import DataStream
 from autotrader.brokers.trading import Order
 from concurrent.futures import ThreadPoolExecutor
+from autotrader.brokers.broker_utils import BrokerUtils
 from autotrader.utilities import get_data_config, TradeAnalysis
 
 if TYPE_CHECKING:
     from autotrader import AutoTrader
+    from autotrader.comms.notifier import Notifier
 
 
 class AutoTraderBot:
-    """AutoTrader Trading Bot.
-
-    Attributes
-    ----------
-    instrument : str
-        The trading instrument assigned to the bot.
-
-    data : pd.DataFrame
-        The OHLC price data used by the bot.
-
-    quote_data : pd.DataFrame
-        The OHLC quote data used by the bot.
-
-    MTF_data : dict
-        The multiple timeframe data used by the bot.
-
-    backtest_results : TradeAnalysis
-        A class containing results from the bot in backtest. This
-        is available only after a backtest.
-    """
+    """AutoTrader Trading Bot, responsible for a trading strategy."""
 
     def __init__(
         self,
@@ -87,12 +71,29 @@ class AutoTraderBot:
             The trading bot will be instantiated and ready for trading.
 
         """
+        # Type hint inherited attributes
+        self._run_mode: Literal["continuous", "periodic"]
+        self._data_indexing: Literal["open", "close"]
+        self._multiple_brokers: bool
+        self._global_config_dict: dict[str, any]
+        self._environment: Literal["paper", "live"]
+        self._broker_name: str
+        self._feed: str
+        self._allow_dancing_bears: bool
+        self._base_currency: str
+        self._data_path_mapper: dict
+        self._backtest_mode: bool
+        self._data_directory: str
+        self._broker_utils: BrokerUtils
+        self._papertrading: bool
+        self._max_workers: int
+        self._scan_mode: bool
+        self._notify: int
+        self._verbosity: int
+        self._notifier: "Notifier"
+        self._virtual_tradeable_instruments: dict[str, list[str]]
+
         # Inherit user options from autotrader
-        # TODO - initialise some of the attributes, eg:
-        # self._multiple_brokers
-        # self._virtual_tradeable_instruments
-        # self._feed
-        # self._broker_name
         for attribute, value in autotrader_instance.__dict__.items():
             setattr(self, attribute, value)
 
@@ -238,7 +239,7 @@ class AutoTraderBot:
             "data_dir": self._data_directory,
             "backtest_mode": self._backtest_mode,
         }
-        self.Stream = self._data_stream_object(**stream_attributes)
+        self.Stream: DataStream = self._data_stream_object(**stream_attributes)
 
         # Initial data call
         self._refresh_data(deploy_dt)
@@ -429,6 +430,7 @@ class AutoTraderBot:
 
         else:
             if int(self._verbosity) > 1:
+                # TODO - this needs to be more visible
                 print(
                     "\nThe strategy has not been updated as there is either "
                     + "insufficient data, or no new data. If you believe "
@@ -496,7 +498,7 @@ class AutoTraderBot:
         self.auxdata = auxdata
         self.quote_data = quote_data
 
-    def _check_orders(self, orders) -> list:
+    def _check_orders(self, orders) -> list[Order]:
         """Checks that orders returned from strategy are in the correct
         format.
 
@@ -576,7 +578,7 @@ class AutoTraderBot:
                 order._sizing = self._strategy_params["sizing"]
                 order._risk_pc = self._strategy_params["risk_pc"]
 
-        def check_order_details(orders: list) -> None:
+        def check_order_details(orders: list[Order]) -> None:
             # Check details for order type have been provided
             for ix, order in enumerate(orders):
                 order.instrument = (
@@ -616,7 +618,7 @@ class AutoTraderBot:
             return []
 
     def _qualify_orders(
-        self, orders: list, current_bars: dict, quote_bars: dict
+        self, orders: list[Order], current_bars: dict, quote_bars: dict
     ) -> None:
         """Passes price data to order to populate missing fields."""
 
