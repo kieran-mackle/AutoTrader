@@ -123,7 +123,7 @@ class AutoTrader:
         self._broker_name = ""  # Broker name(s)
         self._broker_utils = None  # Broker utilities
         self._broker_verbosity = 0  # Broker verbosity
-        self._environment = "paper"  # Trading environment
+        self._environment: Literal["paper", "live"] = "paper"  # Trading environment
         self._account_id = None  # Trading account
         self._base_currency = None
         self._no_brokers = 0
@@ -211,7 +211,7 @@ class AutoTrader:
         jupyter_notebook: Optional[bool] = False,
         mode: Optional[str] = "continuous",
         update_interval: Optional[str] = None,
-        data_index_time: Optional[str] = "open",
+        data_index_time: Optional[Literal["open", "close"]] = "open",
         global_config: Optional[dict] = None,
         instance_str: Optional[str] = None,
         broker_verbosity: Optional[int] = 0,
@@ -240,8 +240,9 @@ class AutoTrader:
             The data feed to be used. This can be the same as the broker
             being used, or another data source. Options include 'yahoo',
             'oanda', 'ib', 'dydx', 'ccxt', 'local' or 'none'. When data is provided
-            via the add_data method, the feed is automatically set to 'local'.
-            The default is None.
+            via the add_data method, the feed is automatically set to 'local'. If
+            "none" is specified (note: str, not a NoneType object), OHLCV data will
+            not be fetched. The default is None.
 
         req_liveprice : bool, optional
             Request live market price from broker before placing trade, rather
@@ -511,7 +512,7 @@ class AutoTrader:
         slippage_models: dict = None,
         picklefile: str = None,
         exchange: str = None,
-        tradeable_instruments: list = None,
+        tradeable_instruments: list[str] = None,
         refresh_freq: str = "1s",
         home_currency: str = None,
         papertrade: bool = True,
@@ -999,8 +1000,8 @@ class AutoTrader:
     def run(self) -> AbstractBroker:
         """Performs essential checks and runs AutoTrader."""
         # Print Banner
-        # if int(self._verbosity) > 0:
-        #     print_banner()
+        if int(self._verbosity) > 0:
+            print_banner()
 
         # Define home_dir if undefined
         if self._home_dir is None:
@@ -1648,6 +1649,7 @@ class AutoTrader:
         # Connect to exchanges
         if self._verbosity > 1:
             print("Connecting to exchanges...")
+        # TODO - look to speed up below
         self._assign_broker(broker_config)
         if self._verbosity > 1:
             print("  Done.")
@@ -1673,6 +1675,7 @@ class AutoTrader:
         # Assign trading bots to each strategy
         if self._verbosity > 1:
             print("Spawning trading bots...")
+            # TODO - also review below for speedup
         for strategy, config in self._strategy_configs.items():
             # Check for portfolio strategy
             portfolio = config["PORTFOLIO"] if "PORTFOLIO" in config else False
