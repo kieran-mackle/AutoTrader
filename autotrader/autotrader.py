@@ -2284,7 +2284,7 @@ class AutoTrader:
                             time.sleep(sleep_time)
 
                         except KeyboardInterrupt:
-                            self.logger.info("\nKilling bot(s).")
+                            self.logger.info("Killing bot(s).")
                             try:
                                 os.remove(self._instance_filepath)
                             except FileNotFoundError:
