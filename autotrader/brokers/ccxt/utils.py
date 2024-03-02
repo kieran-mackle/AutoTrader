@@ -27,6 +27,9 @@ class Utils(BrokerUtils):
 
     def get_precision(self, instrument, *args, **kwargs):
         """Returns the precision of the instrument."""
+        # TODO - this method has been disabled as it was not properly handling precisions
+        return None
+
         if instrument in self._instrument_precisions:
             # Precision already fetched, use stored value
             unified_response = self._instrument_precisions[instrument]

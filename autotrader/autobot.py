@@ -8,6 +8,7 @@ from autotrader.strategy import Strategy
 from typing import TYPE_CHECKING, Literal
 from autotrader.utilities import DataStream
 from autotrader.brokers.trading import Order
+from autotrader.brokers.broker import Broker
 from concurrent.futures import ThreadPoolExecutor
 from autotrader.brokers.broker_utils import BrokerUtils
 from autotrader.utilities import get_data_config, TradeAnalysis, get_logger
@@ -112,7 +113,7 @@ class AutoTraderBot:
         # Check for muliple brokers and construct mapper
         if self._multiple_brokers:
             # Trading across multiple venues
-            self._brokers = self._broker
+            self._brokers: list[Broker] = self._broker
             self._instrument_to_broker = {}
             for (
                 broker_name,
@@ -624,7 +625,7 @@ class AutoTraderBot:
 
         for order in orders:
             # Get relevant broker
-            broker = self._brokers[order.exchange]
+            broker: Broker = self._brokers[order.exchange]
 
             # Fetch precision for instrument
             try:

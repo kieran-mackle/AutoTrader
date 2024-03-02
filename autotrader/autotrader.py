@@ -1638,16 +1638,16 @@ class AutoTrader:
             print("BACKTEST MODE")
         else:
             if self._scan_mode:
-                print("SCAN MODE")
+                self.logger.info("Deploying in scan mode.")
             elif self._papertrading:
                 trade_mode = "auto" if len(self._bots_deployed) > 0 else "manual"
                 extra_str = f"{trade_mode} trade in {self._environment} environment"
-                print(f"PAPERTRADE MODE ({extra_str})")
+                self.logger.info(f"Deploying in papertrade mode ({extra_str})")
             else:
                 trade_mode = "auto" if len(self._bots_deployed) > 0 else "manual"
                 extra_str = f"{trade_mode} trade in {self._environment} environment"
-                print(f"LIVETRADE MODE ({extra_str})")
-            print(
+                self.logger.info(f"Deploying in livetrade mode ({extra_str})")
+            self.logger.info(
                 "Current time: {}".format(
                     datetime.now().strftime("%A, %B %d %Y, " + "%H:%M:%S")
                 )
@@ -1663,8 +1663,8 @@ class AutoTrader:
                     else f"a portfolio of {len(bot.instrument)} instruments"
                 )
             self.logger.info(
-                f"\nAutoTraderBot assigned to trade {instr_str}",
-                f"with {bot._broker_name} broker using {bot._strategy_name}.",
+                f"AutoTraderBot assigned to trade {instr_str}"
+                + f" with {bot._broker_name} broker using {bot._strategy_name}.",
             )
 
         # Begin trading

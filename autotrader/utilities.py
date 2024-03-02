@@ -8,11 +8,13 @@ import autotrader
 import numpy as np
 import pandas as pd
 from art import tprint
-from typing import Union, Optional
 from datetime import datetime, timedelta
-from autotrader.autodata import AutoData
+from typing import Union, Optional, TYPE_CHECKING
 from autotrader.brokers.broker import AbstractBroker
 from prometheus_client import start_http_server, Gauge
+
+if TYPE_CHECKING:
+    from autotrader.autodata import AutoData
 
 
 def read_yaml(file_path: str) -> dict:

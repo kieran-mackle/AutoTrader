@@ -126,8 +126,9 @@ class Order:
         self.HCF = 1
 
         # Precision
-        self.price_precision = 5
-        self.size_precision = 5
+        # TODO - overhaul with Decimal
+        self.price_precision = 16
+        self.size_precision = 16
 
         # Multi-exchange handling
         self.exchange = None
@@ -272,6 +273,7 @@ class Order:
 
         # Assign precisions
         if precision is not None:
+            # Update
             self.price_precision = precision["price"]
             self.size_precision = precision["size"]
 
