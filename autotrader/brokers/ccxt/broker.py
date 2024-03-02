@@ -102,11 +102,20 @@ class Broker(AbstractBroker):
     def _add_params(self, order: Order):
         """Translates an order to add CCXT parameters for the specific exchange."""
         if self.exchange.lower() == "bybit":
+            # https://bybit-exchange.github.io/docs/v5/order/create-order
             if order.take_profit:
-                order.ccxt_params["takeProfit"] = order.take_profit
+                self._safe_add(order.ccxt_params, "takeProfit", order.take_profit)
+                self._safe_add(order.ccxt_params, "tpslMode", "Partial")
             if order.stop_loss:
-                order.ccxt_params["stopLoss"] = order.stop_loss
+                self._safe_add(order.ccxt_params, "stopLoss", order.stop_loss)
+                self._safe_add(order.ccxt_params, "tpslMode", "Partial")
         # TODO - support more exchanges
+
+    @staticmethod
+    def _safe_add(map: dict, key: str, value: any):
+        """Adds a value to a map only if it is not already in there."""
+        if key not in map:
+            map[key] = value
 
     def get_orders(
         self, instrument: str = None, order_status: str = "open", **kwargs
