@@ -8,7 +8,7 @@ build-backend = "setuptools.build_meta"
 [tool]
 [tool.commitizen]
 name = "cz_conventional_commits"
-version = "0.12.0"
+version = "0.12.1"
 tag_format = "v$version"
 version_files = [
     "autotrader/__init__.py:__version__",
