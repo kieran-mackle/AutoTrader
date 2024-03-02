@@ -383,7 +383,7 @@ class CustomLoggingFormatter(logging.Formatter):
     red = "\x1b[38;5;196m"
     bold_red = "\x1b[31;1m"
     reset = "\x1b[0m"
-    default_fmt = "%(asctime)s.%(msecs)03d | %(levelname)8s | %(name)8s | %(message)s (%(filename)s:%(lineno)d)"
+    default_fmt = "%(asctime)s | %(levelname)8s | %(name)8s | %(message)s (%(filename)s:%(lineno)d)"
 
     def __init__(self, fmt=None):
         super().__init__()

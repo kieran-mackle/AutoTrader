@@ -10,7 +10,7 @@ from autotrader.utilities import DataStream
 from autotrader.brokers.trading import Order
 from concurrent.futures import ThreadPoolExecutor
 from autotrader.brokers.broker_utils import BrokerUtils
-from autotrader.utilities import get_data_config, TradeAnalysis
+from autotrader.utilities import get_data_config, TradeAnalysis, get_logger
 
 if TYPE_CHECKING:
     from autotrader import AutoTrader
@@ -92,10 +92,14 @@ class AutoTraderBot:
         self._verbosity: int
         self._notifier: "Notifier"
         self._virtual_tradeable_instruments: dict[str, list[str]]
+        self._logger_kwargs: dict
 
         # Inherit user options from autotrader
         for attribute, value in autotrader_instance.__dict__.items():
             setattr(self, attribute, value)
+
+        # Create autobot logger
+        self.logger = get_logger(name="autobot", **self._logger_kwargs)
 
         # Assign local attributes
         self.instrument = instrument
@@ -376,33 +380,31 @@ class AutoTraderBot:
                             f"AutoTrader exception when submitting order: {e}"
                         )
                         print_str = exception_str + "\nTraceback:\n" + traceback_str
-                        print(print_str)
+                        self.logger.error(print_str)
 
             if self._papertrading:
                 # Update virtual broker again to trigger any orders
                 self._update_virtual_broker(current_bars)
 
-            if int(self._verbosity) > 1:
-                try:
-                    current_time = current_bars[
-                        list(current_bars.keys())[0]
-                    ].name.strftime("%b %d %Y %H:%M:%S")
-                except:
-                    current_time = datetime.now().strftime("%b %d %Y %H:%M:%S")
-                if len(orders) > 0:
-                    for order in orders:
-                        direction = "long" if order.direction > 0 else "short"
-                        order_string = (
-                            f"{current_time}: {order.instrument} "
-                            + f"{direction} {order.order_type} order of "
-                            + f"{order.size} units placed."
-                        )
-                        print(order_string)
-                else:
-                    if int(self._verbosity) > 2:
-                        print(
-                            f"{current_time}: No signal detected ({self.instrument})."
-                        )
+            try:
+                current_time = current_bars[list(current_bars.keys())[0]].name.strftime(
+                    "%b %d %Y %H:%M:%S"
+                )
+            except:
+                current_time = datetime.now().strftime("%b %d %Y %H:%M:%S")
+            if len(orders) > 0:
+                for order in orders:
+                    direction = "long" if order.direction > 0 else "short"
+                    order_string = (
+                        f"{current_time}: {order.instrument} "
+                        + f"{direction} {order.order_type} order of "
+                        + f"{order.size} units placed."
+                    )
+                    self.logger.info(order_string)
+            else:
+                self.logger.debug(
+                    f"{current_time}: No signal detected ({self.instrument})."
+                )
 
             # Check for orders placed and/or scan hits
             if int(self._notify) > 0 and not (self._backtest_mode or self._scan_mode):
@@ -429,17 +431,15 @@ class AutoTraderBot:
                         self._notifier.send_message(f"Scan hit: {order}")
 
         else:
-            if int(self._verbosity) > 1:
-                # TODO - this needs to be more visible
-                print(
-                    "\nThe strategy has not been updated as there is either "
-                    + "insufficient data, or no new data. If you believe "
-                    + "this is an error, try setting allow_dancing_bears to "
-                    + "True, or set allow_duplicate_bars to True in "
-                    + "AutoTrader.configure().\n"
-                    + f"Sufficient data: {sufficient_data}\n"
-                    + f"New data: {new_data}"
-                )
+            self.logger.error(
+                "\nThe strategy has not been updated as there is either "
+                + "insufficient data, or no new data. If you believe "
+                + "this is an error, try setting allow_dancing_bears to "
+                + "True, or set allow_duplicate_bars to True in "
+                + "AutoTrader.configure().\n"
+                + f"Sufficient data: {sufficient_data}\n"
+                + f"New data: {new_data}"
+            )
 
     def _refresh_data(self, timestamp: datetime = None, **kwargs):
         """Refreshes the active Bot's data attributes for trading.
@@ -631,7 +631,7 @@ class AutoTraderBot:
                 precision = broker._utils.get_precision(order.instrument)
             except Exception as e:
                 # Print exception
-                print("AutoTrader exception when qualifying order:", e)
+                self.logger.error("AutoTrader exception when qualifying order:", e)
 
                 # Skip this order
                 continue
@@ -1026,8 +1026,8 @@ class AutoTraderBot:
         # Reset last bars
         self._last_bars = current_bars
 
-        if int(self._verbosity) > 1 and not new_data:
-            print("Duplicate bar detected. Skipping.")
+        if not new_data:
+            self.logger.warning("Duplicate bar detected. Skipping.")
 
         return new_data
 
@@ -1063,7 +1063,7 @@ class AutoTraderBot:
                 )
                 shutdown_method()
             except AttributeError:
-                print(
+                self.logger.error(
                     f"\nShutdown method '{self._strategy_shutdown_method}' not found!"
                 )
 

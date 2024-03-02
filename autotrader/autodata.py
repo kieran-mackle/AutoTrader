@@ -3,6 +3,7 @@ import time
 import pandas as pd
 from typing import Union
 from decimal import Decimal
+from autotrader.utilities import get_logger
 from autotrader.brokers.trading import Order
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
@@ -15,17 +16,7 @@ except ImportError:
 
 
 class AutoData:
-    """AutoData class to retrieve price data.
-
-    Attributes
-    ----------
-    _home_curreny : str
-        the home currency of the account (used for retrieving quote data)
-
-    _allow_dancing_bears : bool
-        Allow incomplete candlesticks in data retrieval.
-
-    """
+    """AutoData class to retrieve price data."""
 
     def __init__(
         self,
@@ -58,6 +49,9 @@ class AutoData:
         None
             AutoData will be instantiated and ready to fetch price data.
         """
+        # Create logger
+        self.logger = get_logger(name="autodata")
+
         # Merge kwargs and data_config
         if data_config is None and kwargs is not None:
             data_config = {}
@@ -260,7 +254,7 @@ class AutoData:
                 try:
                     data[instrument] = future.result()
                 except Exception as e:
-                    print(f"Could not fetch data for {instrument}: {e}")
+                    self.logger.error(f"Could not fetch data for {instrument}: {e}")
 
         else:
             # Single instrument
@@ -404,9 +398,6 @@ class AutoData:
                 data = self._response_to_df(response)
 
             else:
-                # start_time+end_time+count
-                # print("Warning: ignoring count input since start_time and",
-                #        "end_time times have been specified.")
                 from_time = start_time.timestamp()
                 to_time = end_time.timestamp()
 
@@ -609,7 +600,7 @@ class AutoData:
     def _check_oanda_response(self, response):
         """Placeholder method to check Oanda API response."""
         if response.status != 200:
-            print(response.reason)
+            self.logger.error(response.reason)
 
     def _response_to_df(self, response):
         """Function to convert api response into a pandas dataframe."""
