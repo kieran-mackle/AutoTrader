@@ -1,12 +1,14 @@
+import os
 import sys
 import yaml
 import time
 import pickle
+import logging
 import autotrader
 import numpy as np
 import pandas as pd
 from art import tprint
-from typing import Optional
+from typing import Union, Optional
 from datetime import datetime, timedelta
 from autotrader.autodata import AutoData
 from autotrader.brokers.broker import AbstractBroker
@@ -370,6 +372,81 @@ def unpickle_broker(picklefile: Optional[str] = ".virtual_broker"):
     with open(picklefile, "rb") as file:
         instance = pickle.load(file)
     return instance
+
+
+class CustomLoggingFormatter(logging.Formatter):
+    """Custom logging formatter (for StreamHandlers only)."""
+
+    grey = "\x1b[38;21m"
+    blue = "\x1b[38;5;39m"
+    yellow = "\x1b[38;5;226m"
+    red = "\x1b[38;5;196m"
+    bold_red = "\x1b[31;1m"
+    reset = "\x1b[0m"
+    default_fmt = "%(asctime)s.%(msecs)03d | %(levelname)8s | %(name)8s | %(message)s (%(filename)s:%(lineno)d)"
+
+    def __init__(self, fmt=None):
+        super().__init__()
+
+        self.fmt = fmt if fmt else self.default_fmt
+        self.FORMATS = {
+            logging.DEBUG: self.grey + self.fmt + self.reset,
+            logging.INFO: self.blue + self.fmt + self.reset,
+            logging.WARNING: self.yellow + self.fmt + self.reset,
+            logging.ERROR: self.red + self.fmt + self.reset,
+            logging.CRITICAL: self.bold_red + self.fmt + self.reset,
+        }
+
+    def format(self, record):
+        log_fmt = self.FORMATS.get(record.levelno)
+        formatter = logging.Formatter(log_fmt)
+        return formatter.format(record)
+
+
+def get_logger(
+    name: str,
+    stdout: Optional[bool] = True,
+    stdout_level: Optional[Union[int, str]] = logging.INFO,
+    file: Optional[bool] = False,
+    file_level: Optional[Union[int, str]] = logging.INFO,
+    log_dir: Optional[str] = "autotrader_logs",
+):
+    """Get (or create) a logger."""
+    # Create logger
+    logger = logging.getLogger(name)
+    logger.setLevel(logging.DEBUG)
+
+    # Check for and clear any existing handlers on this logger
+    if logger.hasHandlers():
+        logger.handlers.clear()
+
+    # Create new handlers
+    handlers = []
+
+    # Check for logging to file
+    if file:
+        # Check log directory exists
+        if not os.path.exists(log_dir):
+            os.mkdir(log_dir)
+        logfile_path = os.path.join(log_dir, f"{name}.log")
+        fh = logging.FileHandler(logfile_path, mode="a")
+        fh.setLevel(file_level)
+        fh.setFormatter(logging.Formatter(CustomLoggingFormatter.default_fmt))
+        handlers.append(fh)
+
+    # Check for logging to stdout
+    if stdout:
+        sh = logging.StreamHandler()
+        stdout_level = stdout_level if stdout_level else logging.ERROR
+        sh.setLevel(stdout_level)
+        sh.setFormatter(CustomLoggingFormatter())
+        handlers.append(sh)
+
+    # Add handler to logger
+    for h in handlers:
+        logger.addHandler(h)
+
+    return logger
 
 
 class TradeAnalysis:
