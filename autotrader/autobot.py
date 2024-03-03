@@ -432,15 +432,17 @@ class AutoTraderBot:
                         self._notifier.send_message(f"Scan hit: {order}")
 
         else:
-            self.logger.error(
-                "\nThe strategy has not been updated as there is either "
-                + "insufficient data, or no new data. If you believe "
-                + "this is an error, try setting allow_dancing_bears to "
-                + "True, or set allow_duplicate_bars to True in "
-                + "AutoTrader.configure().\n"
-                + f"Sufficient data: {sufficient_data}\n"
-                + f"New data: {new_data}"
-            )
+            # Suppress error in backtest mode
+            if not self._backtest_mode:
+                self.logger.error(
+                    "\nThe strategy has not been updated as there is either "
+                    + "insufficient data, or no new data. If you believe "
+                    + "this is an error, try setting allow_dancing_bears to "
+                    + "True, or set allow_duplicate_bars to True in "
+                    + "AutoTrader.configure().\n"
+                    + f"Sufficient data: {sufficient_data}\n"
+                    + f"New data: {new_data}"
+                )
 
     def _refresh_data(self, timestamp: datetime = None, **kwargs):
         """Refreshes the active Bot's data attributes for trading.
@@ -1027,7 +1029,7 @@ class AutoTraderBot:
         # Reset last bars
         self._last_bars = current_bars
 
-        if not new_data:
+        if not new_data and not self._backtest_mode:
             self.logger.warning("Duplicate bar detected. Skipping.")
 
         return new_data

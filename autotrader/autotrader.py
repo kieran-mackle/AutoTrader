@@ -375,7 +375,7 @@ class AutoTrader:
         self._deploy_time = deploy_time
         self._max_workers = max_workers
 
-        # Create logger
+        # Create logger kwargs
         logger_kwargs = logger_kwargs if logger_kwargs is not None else {}
         verbosity_map = {
             0: logging.ERROR,
@@ -384,10 +384,6 @@ class AutoTrader:
             3: logging.DEBUG,
         }
         logger_kwargs["stdout_level"] = verbosity_map.get(verbosity, logging.INFO)
-        self.logger = get_logger(
-            name="autotrader",
-            **logger_kwargs,
-        )
 
         # Save logger kwargs for other classes
         self._logger_kwargs = logger_kwargs
@@ -742,6 +738,9 @@ class AutoTrader:
         self._data_end = end_dt
         self._warmup_period = pd.Timedelta(warmup_period).to_pytimedelta()
 
+        # Update logging attributes
+        self._logger_kwargs["stdout"] = False
+
     def optimise(
         self, opt_params: list, bounds: list, Ns: int = 4, force_download: bool = False
     ) -> None:
@@ -1028,8 +1027,16 @@ class AutoTrader:
 
     def run(self) -> AbstractBroker:
         """Performs essential checks and runs AutoTrader."""
+        # Create logger
+        self.logger = get_logger(
+            name="autotrader",
+            **self._logger_kwargs,
+        )
+
         # Print Banner
-        if int(self._verbosity) > 0 and self._logger_kwargs.get("stdout", True):
+        if int(self._verbosity) > 0 and (
+            self._logger_kwargs.get("stdout", True) or self._backtest_mode
+        ):
             print_banner()
 
         # Define home_dir if undefined
@@ -1967,12 +1974,15 @@ class AutoTrader:
 
         else:
             dirpath = os.path.join(self._home_dir, dir_name)
-            instances = [
-                f
-                for f in os.listdir(dirpath)
-                if os.path.isfile(os.path.join(dir_name, f))
-            ]
-            instance_file_exists = instance_str in instances
+            if os.path.exists(dirpath):
+                instances = [
+                    f
+                    for f in os.listdir(dirpath)
+                    if os.path.isfile(os.path.join(dir_name, f))
+                ]
+                instance_file_exists = instance_str in instances
+            else:
+                instance_file_exists = False
 
         if not instance_file_exists and live_check:
             self.logger.info(
