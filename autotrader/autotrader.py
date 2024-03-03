@@ -1029,7 +1029,7 @@ class AutoTrader:
     def run(self) -> AbstractBroker:
         """Performs essential checks and runs AutoTrader."""
         # Print Banner
-        if int(self._verbosity) > 0:
+        if int(self._verbosity) > 0 and self._logger_kwargs.get("stdout", True):
             print_banner()
 
         # Define home_dir if undefined
