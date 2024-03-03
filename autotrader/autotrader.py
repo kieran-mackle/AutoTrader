@@ -1976,8 +1976,8 @@ class AutoTrader:
 
         if not instance_file_exists and live_check:
             self.logger.info(
-                f"Instance file '{instance_str}' deleted. AutoTrader",
-                "will now shut down.",
+                f"Instance file '{instance_str}' deleted. AutoTrader"
+                + "will now shut down.",
             )
 
         return instance_file_exists

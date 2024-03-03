@@ -282,6 +282,7 @@ class Broker(AbstractBroker):
             orderbook = self.autodata.L2(instrument=instrument)
         except ccxt.errors.NetworkError:
             # Throttle then try again
+            # TODO - add control of throttle
             time.sleep(1)
             orderbook = self.autodata.L2(instrument=instrument)
         return orderbook
