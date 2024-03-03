@@ -383,9 +383,9 @@ class AutoTrader:
             2: logging.INFO,
             3: logging.DEBUG,
         }
+        logger_kwargs["stdout_level"] = verbosity_map.get(verbosity, logging.INFO)
         self.logger = get_logger(
             name="autotrader",
-            stdout_level=verbosity_map.get(verbosity, logging.INFO),
             **logger_kwargs,
         )
 
