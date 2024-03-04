@@ -351,12 +351,18 @@ class Broker(AbstractBroker):
             else self._funding_rate_history
         )
 
+        # Instantiate AutoData
+        # TODO - review what is happening here - seems to ignore
+        # local feed setting from autotrader
+        # Check where self.autodata is called.
+        # Want to use datastream if possible
         if autodata_config is not None:
             # Instantiate AutoData from config
+            # TODO - autodata_config unpacking can be done in the function below.
             data_config = get_data_config(
                 **autodata_config,
             )
-            self.autodata = AutoData(data_config, **autodata_config)
+            self.autodata = AutoData(data_config=data_config, **autodata_config)
 
         else:
             # Create local data instance
@@ -630,6 +636,7 @@ class Broker(AbstractBroker):
                 )
             except Exception as e:
                 # Fetching orderbook failed, revert to local orderbook
+                # TODO - replace prints with logging
                 print("Exception:", e)
                 print("  Instrument:", instrument)
                 orderbook = self.autodata._local_orderbook(

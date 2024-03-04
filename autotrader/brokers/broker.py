@@ -63,6 +63,10 @@ class AbstractBroker(ABC):
         """
         pass
 
+    def configure(self, *args, **kwargs):
+        """Generic configure method, placeholder for typehinting. Only required
+        for the virtual broker."""
+
 
 class Broker(AbstractBroker):
     pass

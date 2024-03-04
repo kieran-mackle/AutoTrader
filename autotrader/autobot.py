@@ -5,10 +5,10 @@ import pandas as pd
 from datetime import datetime, timezone
 from autotrader.autodata import AutoData
 from autotrader.strategy import Strategy
-from typing import TYPE_CHECKING, Literal
 from autotrader.utilities import DataStream
 from autotrader.brokers.trading import Order
 from autotrader.brokers.broker import Broker
+from typing import TYPE_CHECKING, Literal, Union
 from concurrent.futures import ThreadPoolExecutor
 from autotrader.brokers.broker_utils import BrokerUtils
 from autotrader.utilities import get_data_config, TradeAnalysis, get_logger
@@ -25,7 +25,7 @@ class AutoTraderBot:
         self,
         instrument: str,
         strategy_dict: dict,
-        broker,
+        broker: Union[dict[str, Broker], Broker],
         deploy_dt: datetime,
         data_dict: dict,
         quote_data_path: str,
@@ -70,7 +70,6 @@ class AutoTraderBot:
         -------
         None
             The trading bot will be instantiated and ready for trading.
-
         """
         # Type hint inherited attributes
         self._run_mode: Literal["continuous", "periodic"]
@@ -94,6 +93,10 @@ class AutoTraderBot:
         self._notifier: "Notifier"
         self._virtual_tradeable_instruments: dict[str, list[str]]
         self._logger_kwargs: dict
+        self._data_stream_object: DataStream
+        self._data_start: datetime
+        self._data_end: datetime
+        self._dynamic_data: bool
 
         # Inherit user options from autotrader
         for attribute, value in autotrader_instance.__dict__.items():
@@ -106,7 +109,7 @@ class AutoTraderBot:
         self.instrument = instrument
         self._broker = broker
 
-        # # Define execution framework
+        # Define execution framework
         if self._execution_method is None:
             self._execution_method = self._submit_order
 
@@ -200,13 +203,6 @@ class AutoTraderBot:
         # Strategy shutdown routine
         self._strategy_shutdown_method = strategy_dict["shutdown_method"]
 
-        # Get data feed configuration
-        data_config = get_data_config(
-            feed=self._feed,
-            global_config=self._global_config_dict,
-            environment=self._environment,
-        )
-
         # Data retrieval
         self._quote_data_file = quote_data_path  # Either str or None
         self._data_filepaths = data_dict  # Either str or dict, or None
@@ -223,13 +219,27 @@ class AutoTraderBot:
 
         portfolio = strategy_config["WATCHLIST"] if trade_portfolio else False
 
-        # Fetch data
+        # Get data feed configuration
+        data_config = get_data_config(
+            feed=self._feed,
+            global_config=self._global_config_dict,
+            environment=self._environment,
+        )
+
+        # Construct AutoData instance
+        # TODO - shouldn't be creating a new instance if brokers already have their own
+        # The broker is the same as a data feed... Consider consolidating autodata into the
+        # brokers.
         self._get_data = AutoData(
-            data_config, self._allow_dancing_bears, self._base_currency
+            data_config=data_config,
+            allow_dancing_bears=self._allow_dancing_bears,
+            home_currency=self._base_currency,
         )
 
         # Create instance of data stream object
         stream_attributes = {
+            "instrument": self.instrument,
+            "feed": self._feed,
             "data_filepaths": self._data_filepaths,
             "quote_data_file": self._quote_data_file,
             "auxdata_files": self._auxdata_files,
@@ -237,14 +247,25 @@ class AutoTraderBot:
             "get_data": self._get_data,
             "data_start": self._data_start,
             "data_end": self._data_end,
-            "instrument": self.instrument,
-            "feed": self._feed,
             "portfolio": portfolio,
             "data_path_mapper": self._data_path_mapper,
             "data_dir": self._data_directory,
             "backtest_mode": self._backtest_mode,
         }
-        self.Stream: DataStream = self._data_stream_object(**stream_attributes)
+        self.datastream: DataStream = self._data_stream_object(**stream_attributes)
+
+        # Add instantiated datastream object to AutoData instance
+        if self._feed == "local":
+            # TODO - tidy this, add `add_datastream` method to AutoData
+            self._get_data._datastream = self.datastream
+
+            # Also add to brokers
+            if isinstance(self._broker, dict):
+                for broker in self._broker.values():
+                    # TODO - verify works with other exchanges, or only virtual
+                    broker.autodata._datastream = self.datastream
+            else:
+                self._broker.autodata._datastream = self.datastream
 
         # Initial data call
         self._refresh_data(deploy_dt)
@@ -261,7 +282,7 @@ class AutoTraderBot:
             strategy_inputs["broker_utils"] = self._broker_utils
 
         if strategy_config["INCLUDE_STREAM"]:
-            strategy_inputs["data_stream"] = self.Stream
+            strategy_inputs["data_stream"] = self.datastream
 
         # Instantiate Strategy
         my_strat: Strategy = strategy(**strategy_inputs)
@@ -433,16 +454,14 @@ class AutoTraderBot:
 
         else:
             # Suppress error in backtest mode
-            if not self._backtest_mode:
-                self.logger.error(
-                    "\nThe strategy has not been updated as there is either "
-                    + "insufficient data, or no new data. If you believe "
-                    + "this is an error, try setting allow_dancing_bears to "
-                    + "True, or set allow_duplicate_bars to True in "
-                    + "AutoTrader.configure().\n"
-                    + f"Sufficient data: {sufficient_data}\n"
-                    + f"New data: {new_data}"
-                )
+            self.logger.error(
+                "\nThe strategy has not been updated as there is either "
+                + "insufficient data, or no new data. If you believe "
+                + "this is an error, try setting allow_dancing_bears to "
+                + "True, or set allow_duplicate_bars to True in "
+                + "AutoTrader.configure().\n"
+                + f"Sufficient data: {sufficient_data}."
+            )
 
     def _refresh_data(self, timestamp: datetime = None, **kwargs):
         """Refreshes the active Bot's data attributes for trading.
@@ -478,7 +497,10 @@ class AutoTraderBot:
         timestamp = datetime.now(timezone.utc) if timestamp is None else timestamp
 
         # Fetch new data
-        data, multi_data, quote_data, auxdata = self.Stream.refresh(timestamp=timestamp)
+        # TODO - rename - timestamp is a datetimte object
+        data, multi_data, quote_data, auxdata = self.datastream.refresh(
+            timestamp=timestamp
+        )
 
         # Check data returned is valid
         if self._feed != "none" and len(data) == 0:
@@ -868,7 +890,7 @@ class AutoTraderBot:
             quote bars, then the quote_data boolean will be True.
             """
             if len(data) > 0:
-                current_bars = self.Stream.get_trading_bars(
+                current_bars = self.datastream.get_trading_bars(
                     data=data,
                     quote_bars=quote_data,
                     timestamp=timestamp,
@@ -1059,6 +1081,7 @@ class AutoTraderBot:
     def _strategy_shutdown(
         self,
     ):
+        """Perform the strategy shutdown routines, if they exist."""
         if self._strategy_shutdown_method is not None:
             try:
                 shutdown_method = getattr(
@@ -1079,6 +1102,6 @@ class AutoTraderBot:
         self._strategy.data = data
 
     @staticmethod
-    def _submit_order(broker, order, *args, **kwargs):
+    def _submit_order(broker: Broker, order: Order, *args, **kwargs):
         "The default order execution method."
         broker.place_order(order, *args, **kwargs)

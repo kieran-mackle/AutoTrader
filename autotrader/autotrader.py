@@ -15,9 +15,11 @@ from threading import Thread
 from scipy.optimize import brute
 from autotrader.autoplot import AutoPlot
 from autotrader.autobot import AutoTraderBot
-from typing import Callable, Optional, Literal
 from datetime import datetime, timedelta, timezone
 from autotrader.brokers.broker import AbstractBroker
+from typing import Callable, Optional, Literal, Union
+from autotrader.brokers.broker_utils import BrokerUtils
+from autotrader.brokers.virtual.broker import Broker as VirtualBroker
 from autotrader.utilities import (
     read_yaml,
     get_broker_config,
@@ -120,7 +122,9 @@ class AutoTrader:
 
         # Broker parameters
         self._execution_method = None  # Execution method
-        self._broker = None  # Broker instance(s)
+        self._broker: Union[dict[str, AbstractBroker], AbstractBroker] = (
+            None  # Broker instance(s)
+        )
         self._brokers_dict = None  # Dictionary of brokers
         self._broker_name = ""  # Broker name(s)
         self._broker_utils = None  # Broker utilities
@@ -648,13 +652,17 @@ class AutoTrader:
                 + "configure method before configuring its virtual account."
             )
             sys.exit(0)
-            # self._broker_name += broker_name + ', '
 
         self._papertrading = False if self._backtest_mode else papertrade
+        # TODO - review refresh freq
         self._broker_refresh_freq = refresh_freq
 
         if tradeable_instruments is not None:
             self._virtual_tradeable_instruments[broker_name] = tradeable_instruments
+
+        # Set execution feed: if backtesting, use global feed, otherwise use the exchange
+        # specified (eg. connect to live exchange feed for papertrading)
+        execution_feed = self._feed if self._backtest_mode else exchange
 
         # Construct configuration dictionary
         config = {
@@ -677,7 +685,7 @@ class AutoTrader:
             "slippage_models": slippage_models,
             "picklefile": picklefile,
             # Extra parameters
-            "execution_feed": exchange,
+            "execution_feed": execution_feed,
         }
 
         # Append
@@ -978,10 +986,11 @@ class AutoTrader:
             self._data_path_mapper = mapper_func
 
         # Assign data stream object
+        # TODO - move this earlier?
         if stream_object is not None:
             self._data_stream_object = stream_object
 
-        # Fix attributes
+        # Override data attributes
         self._feed = "local"
         self._dynamic_data = dynamic_data
 
@@ -1096,6 +1105,7 @@ class AutoTrader:
                 )
                 sys.exit()
 
+        # Check backtesting configuration
         if self._backtest_mode:
             if self._notify > 0:
                 self.logger.warning(
@@ -1113,13 +1123,14 @@ class AutoTrader:
                 )
                 self._data_end = datetime.now(tz=self._data_end.tzinfo)
 
-            # Check if the broker has been configured
+            # Check if the virtual broker has been configured
             if len(self._virtual_broker_config) != self._no_brokers:
                 # Virtual accounts have not been configured for the brokers specified
                 if len(self._virtual_broker_config) == 0:
                     # Use default values for all virtual accounts
                     for exchange in self._broker_name.split(","):
                         self.virtual_account_config(papertrade=False, exchange=exchange)
+
                 else:
                     # Partially configured accounts
                     raise Exception(
@@ -1546,6 +1557,7 @@ class AutoTrader:
             environment=self._environment,
         )
 
+        # Configure account ID's
         if self._account_id is not None:
             if self._multiple_brokers:
                 self.logger.error(
@@ -1570,7 +1582,7 @@ class AutoTrader:
         self.logger.info("Connecting to exchanges...")
         # TODO - look to speed up below
         self._assign_broker(broker_config)
-        self.logger.debug("  Done.")
+        self.logger.debug("Finished connection to exchanges.")
 
         # Initialise broker histories
         self._broker_histories = {
@@ -1617,7 +1629,8 @@ class AutoTrader:
                         self._auxdata[instrument] if self._auxdata is not None else None
                     )
 
-                # TODO - consider when strategy object is passed, but does not match class key below.
+                # TODO - consider when strategy object is passed, but does not match
+                # class key below.
                 strategy_class = config["CLASS"]
                 strategy_dict = {
                     "config": config,
@@ -1629,18 +1642,18 @@ class AutoTrader:
                     "shutdown_method": self._shutdown_methods[strategy],
                 }
                 bot = AutoTraderBot(
-                    instrument,
-                    strategy_dict,
-                    self._broker,
-                    self._data_start,
-                    data_dict,
-                    quote_data_path,
-                    auxdata,
-                    self,
+                    instrument=instrument,
+                    strategy_dict=strategy_dict,
+                    broker=self._broker,
+                    deploy_dt=self._data_start,
+                    data_dict=data_dict,
+                    quote_data_path=quote_data_path,
+                    auxdata=auxdata,
+                    autotrader_instance=self,
                 )
                 self._bots_deployed.append(bot)
 
-        # Printouts
+        # Printouts of trading mode
         if self._backtest_mode:
             print("BACKTEST MODE")
         else:
@@ -1660,6 +1673,7 @@ class AutoTrader:
                 )
             )
 
+        # Print bots deployed
         for bot in self._bots_deployed:
             if isinstance(bot.instrument, str):
                 instr_str = bot.instrument
@@ -1744,8 +1758,12 @@ class AutoTrader:
         for strategy in self._strategy_configs:
             self._strategy_configs[strategy]["WATCHLIST"] = self._scan_watchlist
 
-    def _assign_broker(self, broker_config: dict) -> None:
-        """Configures and assigns appropriate broker(s) for trading."""
+    def _assign_broker(self, broker_config: dict[str, any]) -> None:
+        """Configures and assigns appropriate broker(s) for trading.
+
+        If backtest mode is True, all brokers added will be mocked by
+        an instance of the VirtualBroker.
+        """
         # Check for multiple brokers
         if not self._multiple_brokers:
             # Put broker config in dict to allow single iteration
@@ -1770,6 +1788,7 @@ class AutoTrader:
                 utils_args["exchange"] = broker_key.lower().split(":")[1]
 
             # Import relevant modules
+            # TODO - speedup - the import block below is a major bottleneck - review
             broker_module = importlib.import_module(
                 f"autotrader.brokers.{broker_name}.broker"
             )
@@ -1778,13 +1797,16 @@ class AutoTrader:
             )
 
             # Create broker and utils instances
-            utils = utils_module.Utils(**utils_args)
-            broker = broker_module.Broker(config, utils)
+            utils: BrokerUtils = utils_module.Utils(**utils_args)
+            broker: AbstractBroker = broker_module.Broker(config, utils)
 
-            if self._backtest_mode or self._papertrading:
+            # Configure virtual broker
+            if isinstance(broker, VirtualBroker):
+                # Backtesting or Papertrading
                 # Using virtual broker, configure account
                 try:
                     account_config = self._virtual_broker_config[broker_key]
+
                 except KeyError:
                     # Broker hasn't been configured properly
                     raise Exception(
@@ -1795,6 +1817,7 @@ class AutoTrader:
 
                 execution_feed = account_config["execution_feed"]
                 feed = self._feed if execution_feed is None else execution_feed
+                # TODO - what about datastream object?
                 autodata_config = {
                     "feed": feed,
                     "environment": self._environment,

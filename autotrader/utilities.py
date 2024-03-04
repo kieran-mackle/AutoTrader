@@ -8,10 +8,11 @@ import autotrader
 import numpy as np
 import pandas as pd
 from art import tprint
+from abc import ABC, abstractmethod
 from datetime import datetime, timedelta
-from typing import Union, Optional, TYPE_CHECKING
 from autotrader.brokers.broker import AbstractBroker
 from prometheus_client import start_http_server, Gauge
+from typing import Union, Optional, Tuple, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from autotrader.autodata import AutoData
@@ -1099,10 +1100,147 @@ class TradeAnalysis:
         return trade_results
 
 
-class DataStream:
-    """Data stream class.
+class AbstractDataStream(ABC):
+    """Base DataStream class.
 
     This class is intended to provide a means of custom data pipelines.
+    """
+
+    @abstractmethod
+    def __init__(self, **kwargs) -> None:
+        """Instantiated from AutoBot, with the following keyword arguments.
+
+        instrument : str
+            The instrument being traded.
+
+        feed : str
+            The data feed.
+
+        data_filepaths : str | dict
+            The filepaths to locally stored data.
+
+        quote_data_file : str
+            The filepaths to locally stored quote data.
+
+        auxdata_files : dict
+            The auxiliary data files.
+
+        strategy_params : dict
+            The strategy parameters.
+
+        get_data : AutoData
+            The AutoData instance.
+
+        data_start : datetime
+            The backtest start date.
+
+        data_end : datetime
+            The backtest end date.
+
+        portfolio : bool | list
+            The instruments being traded in a portfolio, if any.
+
+        data_path_mapper : callable
+            A callable to map an instrument to an absolute filepath of
+            data for that instrument.
+
+        data_dir : str
+            The data directory provided during configuration.
+
+        backtest_mode : bool
+            Flag to indicate if this is a backtest.
+        """
+        # Type-hint attributes
+        self.instrument: str = None
+        self.feed: str = None
+        self.data_filepaths: str = None
+        self.quote_data_file: str = None
+        self.auxdata_files: str = None
+        self.strategy_params: dict[str, any] = None
+        self.get_data: AutoData = None
+        self.data_start: datetime = None
+        self.data_end: datetime = None
+        self.portfolio: bool = None
+        self.data_path_mapper = None
+        self.backtest_mode: bool = None
+
+        # Unpack kwargs
+        for item in kwargs:
+            setattr(self, item, kwargs[item])
+
+    @abstractmethod
+    def refresh(
+        self, timestamp: datetime = None
+    ) -> Tuple[pd.DataFrame, dict, pd.DataFrame, dict]:
+        """Returns up-to-date trading data for AutoBot to provide to the
+        strategy.
+
+        Note: if backtesting, and dynamic_data is False, the entire range of
+        data should be returned on the initial call, or else the data will never
+        pass the checks and reach the strategy.
+
+        Parameters
+        ----------
+        timestamp : datetime, optional
+            The current timestamp, which can be used to fetch
+            data if needed. Note that look-ahead is checked for in
+            AutoTrader.autobot, so the data returned from this
+            method can include all available data. The default is
+            None.
+
+        Returns
+        -------
+        data : pd.DataFrame
+            The OHLC price data.
+
+        multi_data : dict
+            A dictionary of DataFrames.
+
+        quote_data : pd.DataFrame
+            The quote data.
+
+        auxdata : dict
+            Strategy auxiliary data.
+        """
+
+    @abstractmethod
+    def get_trading_bars(
+        self,
+        data: pd.DataFrame,
+        quote_bars: bool,
+        timestamp: Optional[datetime] = None,
+        processed_strategy_data: Optional[dict] = None,
+    ) -> dict[str, pd.Series]:
+        """Returns a dictionary of the current bars of the products being
+        traded, based on the up-to-date data passed from autobot.
+
+        Parameters
+        ----------
+        data : pd.DataFrame
+            The strategy base OHLC data.
+
+        quote_bars : bool
+            Boolean flag to signal that quote data bars are being requested.
+
+        processed_strategy_data : dict
+            A dictionary containing all of the processed strategy data,
+            allowing flexibility in what bars are returned.
+
+        Returns
+        -------
+        dict
+            A dictionary of OHLC bars, keyed by the product name.
+
+        Notes
+        -----
+        The quote data bars dictionary must have the exact same keys as the
+        trading bars dictionary. The quote_bars boolean flag is provided in
+        case a distinction must be made when this method is called.
+        """
+
+
+class DataStream(AbstractDataStream):
+    """Default data stream class.
 
     Attributes
     ----------
@@ -1156,55 +1294,12 @@ class DataStream:
     data will not be provided to the strategy; instead, the data returned from
     the datastream will be filtered by each AutoTraderBot before being passed
     to the strategy.
-
     """
 
-    def __init__(self, **kwargs):
-        # Attributes
-        self.instrument: str = None
-        self.feed: str = None
-        self.data_filepaths: str = None
-        self.quote_data_file: str = None
-        self.auxdata_files: str = None
-        self.strategy_params: dict[str, any] = None
-        self.get_data: AutoData = None
-        self.data_start: datetime = None
-        self.data_end: datetime = None
-        self.portfolio: bool = None
-        self.data_path_mapper = None
-
-        # Unpack kwargs
-        for item in kwargs:
-            setattr(self, item, kwargs[item])
+    def __init__(self, **kwargs) -> None:
+        super().__init__(**kwargs)
 
     def refresh(self, timestamp: datetime = None):
-        """Returns up-to-date trading data for AutoBot to provide to the
-        strategy.
-
-        Parameters
-        ----------
-        timestamp : datetime, optional
-            The current timestamp, which can be used to fetch
-            data if need. Note that look-ahead is checked for in
-            AutoTrader.autobot, so the data returned from this
-            method can include all available data. The default is
-            None.
-
-        Returns
-        -------
-        data : pd.DataFrame
-            The OHLC price data.
-
-        multi_data : dict
-            A dictionary of DataFrames.
-
-        quote_data : pd.DataFrame
-            The quote data.
-
-        auxdata : dict
-            Strategy auxiliary data.
-
-        """
         # Retrieve main data
         if self.data_filepaths is not None:
             # Local data filepaths provided
@@ -1458,6 +1553,7 @@ class DataStream:
             for instrument, data in strat_data.items():
                 bars[instrument] = data.iloc[-1]
         else:
+            # Use latest slice of strategy data
             bars[self.instrument] = strat_data.iloc[-1]
 
         return bars

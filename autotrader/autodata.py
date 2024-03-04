@@ -4,15 +4,11 @@ import pandas as pd
 from typing import Union
 from decimal import Decimal
 from autotrader.utilities import get_logger
+from autotrader.utilities import DataStream
 from autotrader.brokers.trading import Order
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 from autotrader.brokers.broker_utils import OrderBook
-
-try:
-    import ccxt
-except ImportError:
-    pass
 
 
 class AutoData:
@@ -49,6 +45,10 @@ class AutoData:
         None
             AutoData will be instantiated and ready to fetch price data.
         """
+        # TODO - clean this class up by splitting into ABC and children
+        # TODO - what about datastream objects? Eg. using local data with data streamer
+        self._datastream: DataStream = None
+
         # Create logger
         self.logger = get_logger(name="autodata")
 
@@ -58,8 +58,16 @@ class AutoData:
         for key, item in kwargs.items():
             data_config.setdefault(key, item)
 
+        # Set attributes
+        self._data_directory = None
+        self._allow_dancing_bears = allow_dancing_bears
+        self._home_currency = home_currency
+        self._spread_units = "percentage"
+        self._spread = 0
+
         def configure_local_feed(data_config):
             """Configures the attributes for a local data feed."""
+            # TODO - review this
             self._feed = "local"
             self.api = None
             self._data_directory = (
@@ -72,12 +80,16 @@ class AutoData:
             )
             self._spread = data_config["spread"] if "spread" in data_config else 0
 
+        # Connect to data sources
         if not data_config:
+            # No data configuration supplied - revert to local feed configuration
             configure_local_feed({})
-        else:
-            self._feed = data_config["data_source"].lower()
 
-            if data_config["data_source"].lower() == "oanda":
+        else:
+            # Use configuration provided
+            self._feed = data_config["data_source"].lower()
+            if self._feed == "oanda":
+                # OANDA
                 API = data_config["API"]
                 ACCESS_TOKEN = data_config["ACCESS_TOKEN"]
                 self.ACCOUNT_ID = data_config["ACCOUNT_ID"]
@@ -90,7 +102,8 @@ class AutoData:
                 except ImportError:
                     raise Exception("Please install v20 to use the Oanda data feed.")
 
-            elif data_config["data_source"].lower() == "ib":
+            elif self._feed == "ib":
+                # Interactive Brokers
                 host = data_config["host"]
                 port = data_config["port"]
                 client_id = data_config["clientID"] + 1
@@ -113,52 +126,57 @@ class AutoData:
                 except ImportError:
                     raise Exception("Please install ib_insync to use the IB data feed.")
 
-            elif data_config["data_source"].lower() == "ccxt":
+            elif self._feed == "ccxt":
+                # CCXT
                 try:
                     import ccxt
-
-                    self._ccxt_exchange = data_config["exchange"]
-
-                    if "api" in kwargs:
-                        # Use API instance provided
-                        self.api = kwargs["api"]
-
-                    else:
-                        # Check if exchange options were provided
-                        if "config" in data_config:
-                            # Use config dictionary provided directly
-                            ccxt_config = data_config["config"]
-                        elif "secret" in data_config and "api_key" in data_config:
-                            # Create config dict with api key and secret
-                            ccxt_config = {
-                                "secret": data_config["secret"],
-                                "apiKey": data_config["api_key"],
-                            }
-                        else:
-                            # Create empty config dict
-                            ccxt_config = {}
-
-                        # Add any other keys to the config
-                        extra_keys = ["options", "password"]
-                        for key in extra_keys:
-                            if key in data_config:
-                                ccxt_config[key] = data_config[key]
-
-                        # Create CCXT instance
-                        exchange_module = getattr(ccxt, data_config["exchange"])
-                        self.api = exchange_module(config=ccxt_config)
-
-                        # Check sandbox mode
-                        if "sandbox_mode" in data_config:
-                            self.api.set_sandbox_mode(data_config["sandbox_mode"])
-
-                        # Load markets
-                        markets = self.api.load_markets()
 
                 except ImportError:
                     raise Exception("Please install ccxt to use the CCXT data feed.")
 
-            elif data_config["data_source"].lower() == "dydx":
+                # Save exchange name
+                self._ccxt_exchange = data_config["exchange"]
+
+                # Instantiate API
+                if "api" in kwargs:
+                    # Use API instance provided
+                    self.api = kwargs["api"]
+
+                else:
+                    # Check if exchange options were provided
+                    # TODO - improve configuration parsing/construction
+                    if "config" in data_config:
+                        # Use config dictionary provided directly
+                        ccxt_config = data_config["config"]
+                    elif "secret" in data_config and "api_key" in data_config:
+                        # Create config dict with api key and secret
+                        ccxt_config = {
+                            "secret": data_config["secret"],
+                            "apiKey": data_config["api_key"],
+                        }
+                    else:
+                        # Create empty config dict
+                        ccxt_config = {}
+
+                    # Add any other keys to the config
+                    extra_keys = ["options", "password"]
+                    for key in extra_keys:
+                        if key in data_config:
+                            ccxt_config[key] = data_config[key]
+
+                    # Create CCXT instance
+                    exchange_module = getattr(ccxt, data_config["exchange"])
+                    self.api: ccxt.Exchange = exchange_module(config=ccxt_config)
+
+                    # Check sandbox mode
+                    if "sandbox_mode" in data_config:
+                        self.api.set_sandbox_mode(data_config["sandbox_mode"])
+
+                    # Load markets
+                    markets = self.api.load_markets()
+
+            elif self._feed == "dydx":
+                # DYDX
                 try:
                     from dydx3 import Client
 
@@ -168,7 +186,8 @@ class AutoData:
                         "Please install dydx-v3-python to use the dydx data feed."
                     )
 
-            elif data_config["data_source"].lower() == "yahoo":
+            elif self._feed == "yahoo":
+                # Data only
                 try:
                     import yfinance as yf
 
@@ -179,18 +198,16 @@ class AutoData:
                         + "the Yahoo Finance data feed."
                     )
 
-            elif data_config["data_source"].lower() == "local":
+            elif self._feed == "local":
+                # Local data source
                 configure_local_feed(data_config)
 
-            elif data_config["data_source"].lower() == "none":
+            elif self._feed == "none":
                 # No data feed required
                 self.api = None
 
             else:
                 raise Exception(f"Unknown data source '{self._feed}'.")
-
-        self._allow_dancing_bears = allow_dancing_bears
-        self._home_currency = home_currency
 
     def __repr__(self):
         return self.__str__()
@@ -1005,22 +1022,29 @@ class AutoData:
         data : pd.DataFrame
             The price data, as an OHLC DataFrame.
         """
-        filepath = (
-            instrument
-            if self._data_directory is None
-            else os.path.join(self._data_directory, instrument)
-        )
+        if self._datastream is not None:
+            # Use datastream object
+            # TODO - below is not generalised!
+            data = self._datastream._cache[instrument]
 
-        data = pd.read_csv(filepath, index_col=0)
-        data.index = pd.to_datetime(data.index, utc=utc)
+        else:
+            # Try load from file
+            filepath = (
+                instrument
+                if self._data_directory is None
+                else os.path.join(self._data_directory, instrument)
+            )
+            data = pd.read_csv(filepath, index_col=0)
+            data.index = pd.to_datetime(data.index, utc=utc)
 
+        # Check data time bounds
         if start_time is not None and end_time is not None:
             # Filter by date range
             data = AutoData._check_data_period(data, start_time, end_time)
 
         return data
 
-    def _local_orderbook(self, instrument=None, *args, **kwargs):
+    def _local_orderbook(self, instrument: str = None, *args, **kwargs):
         """Returns an artificial orderbook based on the last bar of
         local price data.
 
@@ -1047,13 +1071,14 @@ class AutoData:
         spread = kwargs["spread"] if "spread" in kwargs else self._spread
 
         # Get latest price
-        if "midprice" in kwargs:
+        if "midprice" in kwargs and kwargs["midprice"] is not None:
             midprice = kwargs["midprice"]
         else:
             # Load from OHLC data
             data = self._local(instrument)
-            midprice = data.iloc[-1].Close
+            midprice = data.iloc[-1]["Close"]
 
+        # Adjust by bid/ask spread
         if spread_units == "price":
             bid = midprice - 0.5 * spread
             ask = midprice + 0.5 * spread
@@ -1164,7 +1189,7 @@ class AutoData:
                     / pd.Timedelta(granularity).total_seconds()
                     / 1000,
                 )
-                raw_data = self.api.fetchOHLCV(
+                raw_data = self.api.fetch_ohlcv(
                     instrument,
                     timeframe=granularity,
                     since=start_ts,
@@ -1241,13 +1266,11 @@ class AutoData:
 
     def _ccxt_orderbook(self, instrument, limit=None, *args, **kwargs):
         """Returns the orderbook from a CCXT supported exchange."""
-        try:
-            response = self.api.fetchOrderBook(symbol=instrument)
-        except ccxt.errors.ExchangeError as e:
-            raise Exception(e)
+        # TODO - review this method
+        response = self.api.fetch_order_book(symbol=instrument)
 
         # Unify format
-        orderbook = {}
+        orderbook: dict[str, list] = {}
         for side in ["bids", "asks"]:
             orderbook[side] = []
             for level in response[side]:
@@ -1256,7 +1279,7 @@ class AutoData:
 
     def _ccxt_trades(self, instrument):
         """Returns public trades from a CCXT exchange."""
-        ccxt_trades = self.api.fetchTrades(instrument)
+        ccxt_trades = self.api.fetch_trades(instrument)
 
         # Convert to standard form
         trades = []
@@ -1273,7 +1296,7 @@ class AutoData:
 
     def _ccxt_funding_rate(self, instrument: str):
         """Returns the current funding rate."""
-        response = self.api.fetchFundingRate(instrument)
+        response = self.api.fetch_funding_rate(instrument)
 
         fr_dict = {
             "symbol": instrument,
@@ -1309,7 +1332,7 @@ class AutoData:
 
             rate_hist = pd.DataFrame()
             while start_ts <= end_ts:
-                response = self.api.fetchFundingRateHistory(
+                response = self.api.fetch_funding_rate_history(
                     symbol=instrument, since=start_ts, limit=count, params=params
                 )
 
@@ -1328,7 +1351,7 @@ class AutoData:
         if count is not None:
             if start_time is None and end_time is None:
                 # Fetch N most recent candles
-                response = self.api.fetchFundingRateHistory(
+                response = self.api.fetch_funding_rate_history(
                     symbol=instrument, limit=count, params=params
                 )
                 rate_hist = response2df(response)
@@ -1337,7 +1360,7 @@ class AutoData:
                 start_ts = (
                     None if start_time is None else int(start_time.timestamp() * 1000)
                 )
-                response = self.api.fetchFundingRateHistory(
+                response = self.api.fetch_funding_rate_history(
                     symbol=instrument, since=start_ts, limit=count, params=params
                 )
                 rate_hist = response2df(response)
@@ -1353,7 +1376,7 @@ class AutoData:
             if start_time is not None and end_time is not None:
                 rate_hist = fetch_between_dates()
             else:
-                response = self.api.fetchFundingRateHistory(
+                response = self.api.fetch_funding_rate_history(
                     symbol=instrument,
                     params=params,
                 )

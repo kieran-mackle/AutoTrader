@@ -6,95 +6,7 @@ from autotrader.brokers.broker_utils import BrokerUtils
 
 
 class Order:
-    """AutoTrader Order object.
-
-    Attributes
-    ----------
-    instrument : str
-        The trading instrument of the order.
-
-    direction : int
-        The direction of the order (1 for long, -1 for short).
-
-    order_type : str
-        The type of order. The default is 'market'.
-
-    size : float
-        The number of units.
-
-    base_size : float
-         The number of units, in the base currency (pre-HCF conversion).
-
-    target_value : float
-        The target value of the resulting trade, specified in the home
-        currency of the account.
-
-    order_limit_price : float
-        The limit price of the order (for 'limit' and 'stop-limit' order
-        types).
-
-    order_stop_price : float
-        The stop price of the order (for 'stop-limit' order types).
-
-    order_price : float
-        The price of the instrument when the order was placed.
-
-    order_time : datetime
-        The time at which the order was placed.
-
-    stop_loss : float
-        The price to set the stop-loss at.
-
-    stop_distance : float
-        The pip distance between the order price and the stop-loss.
-
-    stop_type : str
-        The type of stop-loss (limit or trailing). The default is 'limit'.
-
-    take_profit : float
-        The price to set the take-profit at.
-
-    take_distance : float
-        The pip distance between the order price and the take-profit.
-
-    related_orders : list[str]
-        A list of related order/trade ID's.
-
-    id : int
-        The order ID.
-
-    pip_value : float, optional
-        The pip value of the product being traded. Specify this for non-FX
-        products when using stop_distance/take_distance arguments. The default
-        is None.
-
-    currency : str
-        The base currency of the order (IB only).
-
-    secType : str
-        The security type (IB only).
-
-    contract_month : str
-        The contract month string (IB only).
-
-    localSymbol : str
-        The exchange-specific instrument symbol (IB only).
-
-    post_only : bool, optional
-        Enforce that the order is placed as a maker order (dYdX only). The
-        default is False.
-
-    limit_fee : str, optional
-        The maximum fee to accept as a percentage (dYdX only). The default
-        is '0.015'.
-
-    exchange : str
-        The exchange to which the order should be submitted.
-
-    ccxt_params : dict, optional
-        The CCXT parameters dictionary to pass when creating an order. The
-        default is {}.
-    """
+    """AutoTrader Order object."""
 
     def __init__(
         self,
@@ -109,19 +21,107 @@ class Order:
         take_profit: float = None,
         **kwargs,
     ) -> Order:
+        """
+        Parameters
+        ----------
+        instrument : str
+            The trading instrument of the order.
+
+        direction : int
+            The direction of the order (1 for long, -1 for short).
+
+        order_type : str
+            The type of order. The default is 'market'.
+
+        size : float
+            The number of units.
+
+        base_size : float
+            The number of units, in the base currency (pre-HCF conversion).
+
+        target_value : float
+            The target value of the resulting trade, specified in the home
+            currency of the account.
+
+        order_limit_price : float
+            The limit price of the order (for 'limit' and 'stop-limit' order
+            types).
+
+        order_stop_price : float
+            The stop price of the order (for 'stop-limit' order types).
+
+        order_price : float
+            The price of the instrument when the order was placed.
+
+        order_time : datetime
+            The time at which the order was placed.
+
+        stop_loss : float
+            The price to set the stop-loss at.
+
+        stop_distance : float
+            The pip distance between the order price and the stop-loss.
+
+        stop_type : str
+            The type of stop-loss (limit or trailing). The default is 'limit'.
+
+        take_profit : float
+            The price to set the take-profit at.
+
+        take_distance : float
+            The pip distance between the order price and the take-profit.
+
+        related_orders : list[str]
+            A list of related order/trade ID's.
+
+        id : int
+            The order ID.
+
+        pip_value : float, optional
+            The pip value of the product being traded. Specify this for non-FX
+            products when using stop_distance/take_distance arguments. The default
+            is None.
+
+        currency : str
+            The base currency of the order (IB only).
+
+        secType : str
+            The security type (IB only).
+
+        contract_month : str
+            The contract month string (IB only).
+
+        localSymbol : str
+            The exchange-specific instrument symbol (IB only).
+
+        post_only : bool, optional
+            Enforce that the order is placed as a maker order (dYdX only). The
+            default is False.
+
+        limit_fee : str, optional
+            The maximum fee to accept as a percentage (dYdX only). The default
+            is '0.015'.
+
+        exchange : str
+            The exchange to which the order should be submitted.
+
+        ccxt_params : dict, optional
+            The CCXT parameters dictionary to pass when creating an order. The
+            default is {}.
+        """
         # Required attributes
         self.instrument = instrument
-        self.direction = direction
+        self.direction = np.sign(direction)
         self.order_type = order_type
 
         # Optional arguments
-        self.size = size
+        self.size = float(size)
         self.base_size = None
         self.target_value = None
         self.order_price = None
         self.order_time = None
-        self.order_limit_price = order_limit_price
-        self.order_stop_price = order_stop_price
+        self.order_limit_price = float(order_limit_price) if order_limit_price else None
+        self.order_stop_price = float(order_stop_price) if order_stop_price else None
         self.pip_value = None
         self.HCF = 1
 
@@ -135,11 +135,11 @@ class Order:
 
         # Stop loss arguments
         self.stop_type = stop_type
-        self.stop_loss = stop_loss
+        self.stop_loss = float(stop_loss) if stop_loss else None
         self.stop_distance = None
 
         # Take profit arguments
-        self.take_profit = take_profit
+        self.take_profit = float(take_profit) if take_profit else None
         self.take_distance = None
 
         self.related_orders = None
