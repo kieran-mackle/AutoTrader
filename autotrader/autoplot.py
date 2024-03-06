@@ -23,7 +23,13 @@ try:
 except ImportError:
     # Try backported to PY<37 `importlib_resources`
     import importlib_resources as pkg_resources
-from . import data as pkgdata
+from . import package_data as pkgdata
+
+
+# Ignore Bokeh warnings
+import warnings
+
+warnings.filterwarnings(action="ignore")
 
 
 class AutoPlot:
@@ -348,7 +354,6 @@ class AutoPlot:
             #     # Need to add data_index column for plot to render NAV
             #     account_hist["data_index"] = self._data["data_index"]
 
-            # TODO - debug why this isnt working
             topsource = ColumnDataSource(account_hist)
             topsource.add(account_hist[["NAV", "equity"]].min(1), "Low")
             topsource.add(account_hist[["NAV", "equity"]].max(1), "High")
@@ -356,7 +361,7 @@ class AutoPlot:
             # Get isolated position summary
             trade_summary = trade_results.trade_history
             order_summary = trade_results.order_history
-            indicators = trade_results.indicators  # TODO - where is this assigned
+            indicators = trade_results.indicators
             # open_trades = trade_results.open_isolated_positions
             cancelled_trades = trade_results.cancelled_orders
 
@@ -1201,8 +1206,8 @@ class AutoPlot:
         # Initiate figure
         if new_fig:
             fig = figure(
-                plot_width=linked_fig.plot_width,
-                plot_height=fig_height,
+                width=linked_fig.width,
+                height=fig_height,
                 title=fig_title,
                 tools=self._fig_tools,
                 active_drag="pan",
@@ -1325,8 +1330,8 @@ class AutoPlot:
         ]
 
         candle_plot = figure(
-            plot_width=self._ohlc_width,
-            plot_height=self._ohlc_height,
+            width=self._ohlc_width,
+            height=self._ohlc_height,
             tools=self._fig_tools,
             active_drag="pan",
             active_scroll="wheel_zoom",
@@ -1784,6 +1789,7 @@ class AutoPlot:
                     size=15,
                     fill_color=fill_color,
                     legend_label=long_legend_label,
+                    visible=False,  # hide by default
                 )
 
             # Partial short trades
@@ -1795,6 +1801,7 @@ class AutoPlot:
                     size=15,
                     fill_color=fill_color,
                     legend_label=short_legend_label,
+                    visible=False,  # hide by default
                 )
 
         # Stop loss levels

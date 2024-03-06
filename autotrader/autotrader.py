@@ -13,12 +13,12 @@ from tqdm import tqdm
 from ast import literal_eval
 from threading import Thread
 from scipy.optimize import brute
+from autotrader.strategy import Strategy
 from autotrader.autoplot import AutoPlot
 from autotrader.autobot import AutoTraderBot
 from datetime import datetime, timedelta, timezone
 from autotrader.brokers.broker import AbstractBroker
 from typing import Callable, Optional, Literal, Union
-from autotrader.brokers.broker_utils import BrokerUtils
 from autotrader.brokers.virtual.broker import Broker as VirtualBroker
 from autotrader.utilities import (
     read_yaml,
@@ -127,7 +127,7 @@ class AutoTrader:
         )
         self._brokers_dict = None  # Dictionary of brokers
         self._broker_name = ""  # Broker name(s)
-        self._broker_utils = None  # Broker utilities
+        # self._broker_utils = None  # Broker utilities
         self._broker_verbosity = 0  # Broker verbosity
         self._environment: Literal["paper", "live"] = "paper"  # Trading environment
         self._account_id = None  # Trading account
@@ -347,6 +347,7 @@ class AutoTrader:
             Calling this method configures the internal settings of
             the active AutoTrader instance.
         """
+        # TODO - tidy up the signature of this method
         self._verbosity = verbosity
         self._feed = feed
         self._req_liveprice = req_liveprice
@@ -396,7 +397,7 @@ class AutoTrader:
         self,
         config_filename: str = None,
         config_dict: dict = None,
-        strategy=None,
+        strategy: Strategy = None,
         shutdown_method: str = None,
     ) -> None:
         """Adds a strategy to AutoTrader.
@@ -447,6 +448,10 @@ class AutoTrader:
             # Home directory has been set, continue
             if config_dict is None:
                 # Config YAML filepath provided
+                if config_filename is None:
+                    raise Exception(
+                        "Must provide strategy configuration either as dictionary of filename."
+                    )
                 config_file_path = os.path.join(
                     self._home_dir, "config", config_filename
                 )
@@ -744,6 +749,7 @@ class AutoTrader:
         self._backtest_mode = True
         self._data_start = start_dt
         self._data_end = end_dt
+        # TODO - infer warmup period from strategy configurations
         self._warmup_period = pd.Timedelta(warmup_period).to_pytimedelta()
 
         # Update logging attributes
@@ -1265,6 +1271,18 @@ class AutoTrader:
                         )
                         sys.exit()
 
+            # Check tradeable instruments
+            if (
+                self._multiple_brokers
+                and len(self._virtual_tradeable_instruments) != self._no_brokers
+                and self._backtest_mode
+            ):
+                self.logger.error(
+                    "Please define the tradeable instruments for "
+                    + "each virtual account configured."
+                )
+                sys.exit()
+
             # All checks passed, proceed to run main
             self.logger.info("All preliminary checks complete, proceeding.")
             self._main()
@@ -1362,7 +1380,9 @@ class AutoTrader:
         self._use_strat_plot_data = use_strat_plot_data
         self._plot_portolio_chart = portfolio_chart
 
-    def get_bots_deployed(self, instrument: str = None) -> dict:
+    def get_bots_deployed(
+        self, instrument: str = None
+    ) -> Union[AutoTraderBot, dict[str, AutoTraderBot]]:
         """Returns a dictionary of AutoTrader trading bots, organised by
         instrument traded.
 
@@ -1509,7 +1529,7 @@ class AutoTrader:
             ap = self._instantiate_autoplot()
             ap._portfolio_plot(self.trade_results)
 
-        def single_instrument_plot(bot):
+        def single_instrument_plot(bot: AutoTraderBot):
             data = bot._check_strategy_for_plot_data(self._use_strat_plot_data)
             ap = self._instantiate_autoplot(data)
             ap.plot(trade_results=bot.trade_results)
@@ -1533,24 +1553,21 @@ class AutoTrader:
 
     def _main(self) -> None:
         """Run AutoTrader with configured settings."""
-        # Check tradeable instruments
-        if (
-            self._multiple_brokers
-            and len(self._virtual_tradeable_instruments) != self._no_brokers
-            and self._backtest_mode
-        ):
-            self.logger.error(
-                "Please define the tradeable instruments for "
-                + "each virtual account configured."
-            )
-            sys.exit()
-
         # Get broker configuration
         if self._backtest_mode or self._papertrading:
+            # Using virtual broker for trade simulation
             names_list = [f"virtual:{i}" for i in self._broker_name.split(",")]
             broker_names = ",".join(names_list)
+
+            # Set start dt
+            # TODO - infer warmup period from strategy configurations
+            self._start_dt = self._data_start + self._warmup_period
+
         else:
+            # Use specified broker name
             broker_names = self._broker_name
+
+        # Create broker configuration
         broker_config = get_broker_config(
             global_config=self._global_config_dict,
             broker=broker_names,
@@ -1572,6 +1589,7 @@ class AutoTrader:
                 self._global_config_dict["custom_account_id"] = self._account_id
 
         # Append broker verbosity to broker_config
+        # TODO - move this into the config construct method get_broker_config
         if self._multiple_brokers:
             for broker, config in broker_config.items():
                 config["verbosity"] = self._broker_verbosity
@@ -1580,8 +1598,7 @@ class AutoTrader:
 
         # Connect to exchanges
         self.logger.info("Connecting to exchanges...")
-        # TODO - look to speed up below
-        self._assign_broker(broker_config)
+        self._instantiate_brokers(broker_config)
         self.logger.debug("Finished connection to exchanges.")
 
         # Initialise broker histories
@@ -1758,8 +1775,8 @@ class AutoTrader:
         for strategy in self._strategy_configs:
             self._strategy_configs[strategy]["WATCHLIST"] = self._scan_watchlist
 
-    def _assign_broker(self, broker_config: dict[str, any]) -> None:
-        """Configures and assigns appropriate broker(s) for trading.
+    def _instantiate_brokers(self, broker_config: dict[str, any]) -> None:
+        """Configures and instantiates the broker(s) for trading.
 
         If backtest mode is True, all brokers added will be mocked by
         an instance of the VirtualBroker.
@@ -1771,7 +1788,7 @@ class AutoTrader:
 
         # Instantiate brokers
         brokers = {}
-        brokers_utils = {}
+        # brokers_utils = {}
         for broker_key, config in broker_config.items():
             # Import relevant broker and utilities modules
             if self._backtest_mode or self._papertrading:
@@ -1782,23 +1799,24 @@ class AutoTrader:
                 broker_name = broker_key.lower().split(":")[0]
 
             # Construct utils args
-            utils_args = {}
-            utils_name = broker_key.lower().split(":")[0]
-            if utils_name == "ccxt":
-                utils_args["exchange"] = broker_key.lower().split(":")[1]
+            # utils_args = {}
+            # utils_name = broker_key.lower().split(":")[0]
+            # if utils_name == "ccxt":
+            #     utils_args["exchange"] = broker_key.lower().split(":")[1]
 
             # Import relevant modules
             # TODO - speedup - the import block below is a major bottleneck - review
+            # TODO - brokers should import the utilities themselves.
             broker_module = importlib.import_module(
                 f"autotrader.brokers.{broker_name}.broker"
             )
-            utils_module = importlib.import_module(
-                f"autotrader.brokers.{utils_name}.utils"
-            )
+            # utils_module = importlib.import_module(
+            #     f"autotrader.brokers.{utils_name}.utils"
+            # )
 
-            # Create broker and utils instances
-            utils: BrokerUtils = utils_module.Utils(**utils_args)
-            broker: AbstractBroker = broker_module.Broker(config, utils)
+            # Create broker
+            # utils: BrokerUtils = utils_module.Utils(**utils_args)
+            broker: AbstractBroker = broker_module.Broker(config)
 
             # Configure virtual broker
             if isinstance(broker, VirtualBroker):
@@ -1815,21 +1833,38 @@ class AutoTrader:
                         + f"method, making sure to specify exchange='{broker_key}'."
                     )
 
+                # Set internal clock
+                broker._latest_time = self._start_dt
+
+                # TODO - clean all this up, review data config inputs
                 execution_feed = account_config["execution_feed"]
                 feed = self._feed if execution_feed is None else execution_feed
-                # TODO - what about datastream object?
-                autodata_config = {
+
+                if "ccxt" in feed:
+                    feed, exchange = feed.split(":")
+                else:
+                    # TODO - review:
+                    exchange = execution_feed
+
+                # TODO - make this a config object
+                data_config = {
                     "feed": feed,
                     "environment": self._environment,
                     "global_config": self._global_config_dict,
                     "allow_dancing_bears": self._allow_dancing_bears,
                     "base_currency": self._base_currency,
+                    "exchange": exchange,
+                    "datastreamer": self._data_stream_object,
+                    "backtest_mode": self._backtest_mode,
+                    "data_start": self._data_start,
+                    "data_end": self._data_end,
                 }
-                broker.configure(**account_config, autodata_config=autodata_config)
+                # TODO - sandbox mode for ccxt handling
+                broker.configure(**account_config, data_config=data_config)
 
             # Append to brokers dict
             brokers[broker_key] = broker
-            brokers_utils[broker_key] = utils
+            # brokers_utils[broker_key] = utils
 
         # Save broker dict
         self._brokers_dict = brokers
@@ -1838,10 +1873,10 @@ class AutoTrader:
         if not self._multiple_brokers:
             # Extract single broker
             brokers = broker
-            brokers_utils = utils
+            # brokers_utils = utils
 
         self._broker = brokers
-        self._broker_utils = brokers_utils
+        # self._broker_utils = brokers_utils
 
     def _run_optimise(self) -> None:
         """Runs optimisation of strategy parameters."""
@@ -2028,18 +2063,14 @@ class AutoTrader:
             self._maintain_broker_thread = True
             sleep_time = pd.Timedelta(self._broker_refresh_freq).total_seconds()
 
-            # # Check for multiple brokers
-            # if not self._multiple_brokers:
-            #     brokers = {self._broker_name: self._broker}
-            # else:
-            #     brokers = self._broker
-
             # Run update loop
             while self._maintain_broker_thread:
                 try:
                     for broker_name, broker in self._brokers_dict.items():
                         # Update orders and positions
-                        broker._update_all()
+                        broker: VirtualBroker
+                        # TODO - need to verify timezone issues wont prevent data reach strategy
+                        broker._update_all(dt=datetime.now())
 
                         # Update broker histories
                         hist_dict = self._broker_histories[broker_name]
@@ -2095,7 +2126,9 @@ class AutoTrader:
         if self._backtest_mode:
             # Create overall backtest results
             if len(self._bots_deployed) == 1:
-                price_history = self._bots_deployed[0].data
+                # TODO - what if portfolio?
+                bot = self._bots_deployed[0]
+                price_history = bot._broker._data_cache[bot.instrument]
             else:
                 price_history = None
             self.trade_results = TradeAnalysis(
@@ -2169,182 +2202,116 @@ class AutoTrader:
             # Automated trading
             if self._run_mode.lower() == "continuous":
                 # Running in continuous update mode
-                if self._backtest_mode:
-                    # Backtesting
-                    end_time = self._data_end  # datetime
-                    timestamp = self._data_start + self._warmup_period  # datetime
-                    pbar = tqdm(
-                        total=int((self._data_end - timestamp).total_seconds()),
-                        position=0,
-                        leave=True,
-                    )
-                    while timestamp <= end_time:
-                        # Update each bot with latest data to generate signal
-                        for bot in self._bots_deployed:
-                            bot._update(timestamp=timestamp)
-
-                        # Update histories
-                        for name, broker in self._brokers_dict.items():
-                            hist_dict = self._broker_histories[name]
-                            hist_dict["NAV"].append(broker._NAV)
-                            hist_dict["equity"].append(broker._equity)
-                            hist_dict["margin"].append(broker._margin_available)
-                            hist_dict["open_interest"].append(broker._open_interest)
-                            hist_dict["long_exposure"].append(broker._long_exposure)
-                            hist_dict["short_exposure"].append(broker._short_exposure)
-                            hist_dict["long_unrealised_pnl"].append(
-                                broker._long_unrealised_pnl
-                            )
-                            hist_dict["short_unrealised_pnl"].append(
-                                broker._short_unrealised_pnl
-                            )
-                            hist_dict["long_pnl"].append(broker._long_realised_pnl)
-                            hist_dict["short_pnl"].append(broker._short_realised_pnl)
-                            hist_dict["time"].append(timestamp)
-
-                        # Iterate through time
-                        timestamp += self._timestep
-                        pbar.update(self._timestep.total_seconds())
-                    pbar.close()
-
-                else:
-                    # Live trading
-                    if self._instance_str is None:
-                        # Assign now
-                        instance_id = self._get_instance_id()
-                        self._instance_str = f"autotrader_instance_{instance_id}"
-
-                    # Initialise
-                    instance_file_exists = self._check_instance_file(
-                        instance_str=self._instance_str,
-                        initialisation=True,
-                    )
-                    # TODO - general 'active_bots' path
-                    self._instance_filepath = os.path.join(
-                        self._home_dir, "active_bots", self._instance_str
-                    )
-
-                    # Get deploy timestamp
-                    if self._deploy_time is not None:
-                        deploy_time = self._deploy_time.timestamp()
-                        if datetime.now() < self._deploy_time:
-                            self.logger.info(
-                                f"\nDeploying bots at {self._deploy_time}."
-                            )
-
-                    else:
-                        deploy_time = time.time()
-
-                    # Wait until deployment time
-                    while datetime.now().timestamp() < deploy_time - 0.5:
-                        time.sleep(0.5)
-
-                    while instance_file_exists:
-                        # Bot instance file exists
-                        self.logger.debug(f"\nUpdating trading bots.")
-
-                        try:
-                            # Update bots
-                            # TODO - threadpool executor
-                            for bot in self._bots_deployed:
-                                try:
-                                    # TODO - why UTC? Allow setting manually
-                                    bot._update(timestamp=datetime.now(timezone.utc))
-                                    self.logger.debug(
-                                        f"\nBot update complete: {bot._strategy_name}"
-                                    )
-
-                                except:
-                                    self.logger.error(
-                                        "Error: failed to update bot running "
-                                        + f"{bot._strategy_name} ({bot.instrument})"
-                                    )
-                                    traceback.print_exc()
-
-                            if self._papertrading:
-                                # Update broker histories
-                                for name, broker in self._brokers_dict.items():
-                                    hist_dict = self._broker_histories[name]
-                                    hist_dict["NAV"].append(broker._NAV)
-                                    hist_dict["equity"].append(broker._equity)
-                                    hist_dict["margin"].append(broker._margin_available)
-                                    hist_dict["long_exposure"].append(
-                                        broker._long_exposure
-                                    )
-                                    hist_dict["short_exposure"].append(
-                                        broker._short_exposure
-                                    )
-                                    hist_dict["long_unrealised_pnl"].append(
-                                        broker._long_unrealised_pnl
-                                    )
-                                    hist_dict["short_unrealised_pnl"].append(
-                                        broker._short_unrealised_pnl
-                                    )
-                                    hist_dict["long_pnl"].append(
-                                        broker._long_realised_pnl
-                                    )
-                                    hist_dict["short_pnl"].append(
-                                        broker._short_realised_pnl
-                                    )
-                                    hist_dict["open_interest"].append(
-                                        broker._open_interest
-                                    )
-                                    # TODO - check timezone below
-                                    hist_dict["time"].append(datetime.now(timezone.utc))
-
-                                # Dump history file to pickle
-                                # TODO - check pickle bool?
-                                with open(f".paper_broker_hist", "wb") as file:
-                                    pickle.dump(self._broker_histories, file)
-
-                            # Calculate sleep time
-                            sleep_time = self._timestep.total_seconds() - (
-                                (time.time() - deploy_time)
-                                % self._timestep.total_seconds()
-                            )
-                            self.logger.debug(
-                                f"AutoTrader sleeping until next update at {datetime.now()+timedelta(seconds=sleep_time)}."
-                            )
-                            # Check if instance file still exists
-                            instance_file_exists = self._check_instance_file(
-                                instance_str=self._instance_str,
-                            )
-                            if not instance_file_exists:
-                                # Exit now
-                                break
-
-                            # Go to sleep until next update
-                            time.sleep(sleep_time)
-
-                        except KeyboardInterrupt:
-                            self.logger.info("Killing bot(s).")
-                            try:
-                                os.remove(self._instance_filepath)
-                            except FileNotFoundError:
-                                # Already deleted
-                                pass
-                            break
+                self._continuous_trade_loop()
 
             elif self._run_mode.lower() == "periodic":
                 # Trading in periodic update mode
-                if self._backtest_mode:
-                    # Backtesting
-                    self._check_bot_data()
-                    start_range, end_range = self._bots_deployed[
-                        0
-                    ]._get_iteration_range()
-                    for i in range(start_range, end_range):
-                        # Update each bot with latest data to generate signal
-                        for bot in self._bots_deployed:
-                            bot._update(i=i)
+                self._periodic_trade_loop()
 
-                        # Update histories
+            # Trade loop complete - run shutdown routines
+            self.shutdown()
+
+    def _continuous_trade_loop(self):
+        if self._backtest_mode:
+            # Backtesting
+            end_dt = self._data_end
+            current_dt = self._start_dt
+            pbar = tqdm(
+                total=int((self._data_end - current_dt).total_seconds()),
+                position=0,
+                leave=True,
+            )
+            while current_dt <= end_dt:
+                # Update virtual broker internal clocks
+                for broker in self._brokers_dict.values():
+                    if isinstance(broker, VirtualBroker):
+                        broker._latest_time = current_dt
+
+                # Update each bot with latest data to generate signal
+                for bot in self._bots_deployed:
+                    bot._update(timestamp=current_dt)
+
+                # Update histories
+                for name, broker in self._brokers_dict.items():
+                    hist_dict = self._broker_histories[name]
+                    hist_dict["NAV"].append(broker._NAV)
+                    hist_dict["equity"].append(broker._equity)
+                    hist_dict["margin"].append(broker._margin_available)
+                    hist_dict["open_interest"].append(broker._open_interest)
+                    hist_dict["long_exposure"].append(broker._long_exposure)
+                    hist_dict["short_exposure"].append(broker._short_exposure)
+                    hist_dict["long_unrealised_pnl"].append(broker._long_unrealised_pnl)
+                    hist_dict["short_unrealised_pnl"].append(
+                        broker._short_unrealised_pnl
+                    )
+                    hist_dict["long_pnl"].append(broker._long_realised_pnl)
+                    hist_dict["short_pnl"].append(broker._short_realised_pnl)
+                    hist_dict["time"].append(current_dt)
+
+                # Iterate through time
+                current_dt += self._timestep
+                pbar.update(self._timestep.total_seconds())
+            pbar.close()
+
+        else:
+            # Live trading
+            if self._instance_str is None:
+                # Assign now
+                instance_id = self._get_instance_id()
+                self._instance_str = f"autotrader_instance_{instance_id}"
+
+            # Initialise
+            instance_file_exists = self._check_instance_file(
+                instance_str=self._instance_str,
+                initialisation=True,
+            )
+            # TODO - general 'active_bots' path
+            self._instance_filepath = os.path.join(
+                self._home_dir, "active_bots", self._instance_str
+            )
+
+            # Get deploy timestamp
+            if self._deploy_time is not None:
+                deploy_time = self._deploy_time.timestamp()
+                if datetime.now() < self._deploy_time:
+                    self.logger.info(f"\nDeploying bots at {self._deploy_time}.")
+
+            else:
+                deploy_time = time.time()
+
+            # Wait until deployment time
+            while datetime.now().timestamp() < deploy_time - 0.5:
+                time.sleep(0.5)
+
+            while instance_file_exists:
+                # Bot instance file exists
+                self.logger.debug(f"\nUpdating trading bots.")
+
+                try:
+                    # Update bots
+                    # TODO - threadpool executor
+                    for bot in self._bots_deployed:
+                        try:
+                            # TODO - why UTC? Allow setting manually
+                            bot._update(timestamp=datetime.now(timezone.utc))
+                            self.logger.debug(
+                                f"\nBot update complete: {bot._strategy_name}"
+                            )
+
+                        except:
+                            self.logger.error(
+                                "Error: failed to update bot running "
+                                + f"{bot._strategy_name} ({bot.instrument})"
+                            )
+                            traceback.print_exc()
+
+                    if self._papertrading:
+                        # Update broker histories
                         for name, broker in self._brokers_dict.items():
                             hist_dict = self._broker_histories[name]
                             hist_dict["NAV"].append(broker._NAV)
                             hist_dict["equity"].append(broker._equity)
                             hist_dict["margin"].append(broker._margin_available)
-                            hist_dict["open_interest"].append(broker._open_interest)
                             hist_dict["long_exposure"].append(broker._long_exposure)
                             hist_dict["short_exposure"].append(broker._short_exposure)
                             hist_dict["long_unrealised_pnl"].append(
@@ -2355,15 +2322,74 @@ class AutoTrader:
                             )
                             hist_dict["long_pnl"].append(broker._long_realised_pnl)
                             hist_dict["short_pnl"].append(broker._short_realised_pnl)
-                            hist_dict["time"].append(broker._latest_time)
+                            hist_dict["open_interest"].append(broker._open_interest)
+                            # TODO - check timezone below
+                            hist_dict["time"].append(datetime.now(timezone.utc))
 
-                else:
-                    # Live trading
-                    for bot in self._bots_deployed:
-                        bot._update(i=-1)  # Process most recent signal
+                        # Dump history file to pickle
+                        # TODO - check pickle bool?
+                        with open(f".paper_broker_hist", "wb") as file:
+                            pickle.dump(self._broker_histories, file)
 
-            # Run shutdown routines
-            self.shutdown()
+                    # Calculate sleep time
+                    sleep_time = self._timestep.total_seconds() - (
+                        (time.time() - deploy_time) % self._timestep.total_seconds()
+                    )
+                    self.logger.debug(
+                        f"AutoTrader sleeping until next update at {datetime.now()+timedelta(seconds=sleep_time)}."
+                    )
+                    # Check if instance file still exists
+                    instance_file_exists = self._check_instance_file(
+                        instance_str=self._instance_str,
+                    )
+                    if not instance_file_exists:
+                        # Exit now
+                        break
+
+                    # Go to sleep until next update
+                    time.sleep(sleep_time)
+
+                except KeyboardInterrupt:
+                    self.logger.info("Killing bot(s).")
+                    try:
+                        os.remove(self._instance_filepath)
+                    except FileNotFoundError:
+                        # Already deleted
+                        pass
+                    break
+
+    def _periodic_trade_loop(self):
+        # TODO - deprecate?
+        if self._backtest_mode:
+            # Backtesting
+            self._check_bot_data()
+            start_range, end_range = self._bots_deployed[0]._get_iteration_range()
+            for i in range(start_range, end_range):
+                # Update each bot with latest data to generate signal
+                for bot in self._bots_deployed:
+                    bot._update(i=i)
+
+                # Update histories
+                for name, broker in self._brokers_dict.items():
+                    hist_dict = self._broker_histories[name]
+                    hist_dict["NAV"].append(broker._NAV)
+                    hist_dict["equity"].append(broker._equity)
+                    hist_dict["margin"].append(broker._margin_available)
+                    hist_dict["open_interest"].append(broker._open_interest)
+                    hist_dict["long_exposure"].append(broker._long_exposure)
+                    hist_dict["short_exposure"].append(broker._short_exposure)
+                    hist_dict["long_unrealised_pnl"].append(broker._long_unrealised_pnl)
+                    hist_dict["short_unrealised_pnl"].append(
+                        broker._short_unrealised_pnl
+                    )
+                    hist_dict["long_pnl"].append(broker._long_realised_pnl)
+                    hist_dict["short_pnl"].append(broker._short_realised_pnl)
+                    hist_dict["time"].append(broker._latest_time)
+
+        else:
+            # Live trading
+            for bot in self._bots_deployed:
+                bot._update(i=-1)  # Process most recent signal
 
     @staticmethod
     def papertrade_snapshot(

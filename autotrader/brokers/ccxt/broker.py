@@ -1,46 +1,51 @@
-import ccxt
 import time
-from autotrader import AutoData
+import ccxt
+import pandas as pd
 from datetime import datetime, timezone
-from autotrader.brokers.broker import AbstractBroker
-from autotrader.brokers.broker_utils import OrderBook
-from autotrader.brokers.ccxt.utils import Utils, BrokerUtils
+from autotrader.brokers.broker import Broker
+from autotrader.brokers.trading import OrderBook
 from autotrader.brokers.trading import Order, Trade, Position
 
 
-class Broker(AbstractBroker):
-    def __init__(self, config: dict, utils: BrokerUtils = None) -> None:
+class Broker(Broker):
+    def __init__(self, config: dict) -> None:
         """AutoTrader Broker Class constructor."""
         # Unpack config and connect to broker-side API
         self.exchange: str = config["exchange"]
         exchange_instance = getattr(ccxt, self.exchange)
-        # TODO - allow expanded config here
-        ccxt_config = {
-            "apiKey": config["api_key"],
-            "secret": config["secret"],
-            "options": config["options"],
-            "password": config["password"],
-        }
+
+        # TODO - improve how this is handled - need to review upstream
+        # but using quick fix for now
+        if "api_key" in config:
+            # TODO - allow expanded config here
+            ccxt_config = {
+                "apiKey": config["api_key"],
+                "secret": config["secret"],
+                "options": config["options"],
+                "password": config["password"],
+            }
+        else:
+            ccxt_config = {}
+
+        # Instantiate exchange connection
         self.api: ccxt.Exchange = exchange_instance(ccxt_config)
-        self._utils = utils if utils is not None else Utils()
 
         # Set sandbox mode
         self._sandbox_str = ""
-        if config["sandbox_mode"]:
+        if config.get("sandbox_mode", False):
             self.api.set_sandbox_mode(True)
             self._sandbox_str = " (sandbox mode)"
 
         # Load markets
+        # TODO - add logging here to indicate markets being loaded.
         markets = self.api.load_markets()
-
         self.base_currency = config["base_currency"]
 
-        # Create AutoData instance
-        self.autodata = AutoData(
-            data_source="ccxt",
-            exchange=self.exchange,
-            api=self.api,
-        )
+        # Assign data broker
+        self._data_broker = self
+
+        # Stored instrument precisions
+        self._instrument_precisions = {}
 
     def __repr__(self):
         return (
@@ -51,6 +56,10 @@ class Broker(AbstractBroker):
 
     def __str__(self):
         return self.__repr__()
+
+    @property
+    def data_broker(self):
+        return self._data_broker
 
     def get_NAV(self) -> float:
         """Returns the net asset/liquidation value of the account."""
@@ -98,24 +107,6 @@ class Broker(AbstractBroker):
             )
 
         return placed_order
-
-    def _add_params(self, order: Order):
-        """Translates an order to add CCXT parameters for the specific exchange."""
-        if self.exchange.lower() == "bybit":
-            # https://bybit-exchange.github.io/docs/v5/order/create-order
-            if order.take_profit:
-                self._safe_add(order.ccxt_params, "takeProfit", order.take_profit)
-                self._safe_add(order.ccxt_params, "tpslMode", "Partial")
-            if order.stop_loss:
-                self._safe_add(order.ccxt_params, "stopLoss", order.stop_loss)
-                self._safe_add(order.ccxt_params, "tpslMode", "Partial")
-        # TODO - support more exchanges
-
-    @staticmethod
-    def _safe_add(map: dict, key: str, value: any):
-        """Adds a value to a map only if it is not already in there."""
-        if key not in map:
-            map[key] = value
 
     def get_orders(
         self, instrument: str = None, order_status: str = "open", **kwargs
@@ -199,14 +190,6 @@ class Broker(AbstractBroker):
         trades = self._convert_list(trades_list, item_type="trade")
         return trades
 
-    def get_trade_details(self, trade_ID: str) -> dict:
-        """Returns the details of the trade specified by trade_ID."""
-        raise NotImplementedError(
-            "This method is not available, and will "
-            + "be deprecated with a future release. Please use the "
-            + "get_trades method instead."
-        )
-
     def get_positions(self, instrument: str = None, **kwargs) -> dict[str, Position]:
         """Gets the current positions open on the account.
 
@@ -276,16 +259,278 @@ class Broker(AbstractBroker):
 
         return positions_dict
 
-    def get_orderbook(self, instrument: str) -> OrderBook:
+    def get_candles(
+        self,
+        instrument: str,
+        granularity: str,
+        count: int = None,
+        start_time: datetime = None,
+        end_time: datetime = None,
+        **kwargs,
+    ) -> pd.DataFrame:
+        """Retrieves historical price data of a instrument from an exchange
+        instance of the CCXT package.
+
+        Parameters
+        ----------
+        instrument : str
+            The instrument to fetch data for.
+
+        granularity : str
+            The candlestick granularity (eg. "1m", "15m", "1h", "1d").
+
+        count : int, optional
+            The number of candles to fetch (maximum 5000). The default is None.
+
+        start_time : datetime, optional
+            The data start time. The default is None.
+
+        end_time : datetime, optional
+            The data end time. The default is None.
+
+        Returns
+        -------
+        data : DataFrame
+            The price data, as an OHLCV DataFrame.
+        """
+        # Check requested start and end times
+        if end_time is not None and end_time > datetime.now(tz=end_time.tzinfo):
+            raise Exception("End time cannot be later than the current time.")
+
+        if start_time is not None and start_time > datetime.now(tz=start_time.tzinfo):
+            raise Exception("Start time cannot be later than the current time.")
+
+        if start_time is not None and end_time is not None and start_time > end_time:
+            raise Exception("Start time cannot be later than the end time.")
+
+        # Check granularity was provided
+        if granularity is None:
+            raise Exception("Please specify candlestick granularity.")
+
+        def fetch_between_dates():
+            # Fetches data between two dates
+            max_count = 1000
+            start_ts = int(start_time.timestamp() * 1000)
+            end_ts = int(end_time.timestamp() * 1000)
+
+            data = []
+            while start_ts < end_ts:
+                count = min(
+                    max_count,
+                    1
+                    + (end_ts - start_ts)
+                    / pd.Timedelta(granularity).total_seconds()
+                    / 1000,
+                )
+                raw_data = self.api.fetch_ohlcv(
+                    instrument,
+                    timeframe=granularity,
+                    since=start_ts,
+                    limit=int(count),
+                    params=kwargs,
+                )
+                # Append data
+                data += raw_data
+
+                # Increment start_ts
+                start_ts = raw_data[-1][0]
+
+                # Sleep to throttle
+                time.sleep(0.5)
+
+            return data
+
+        if count is not None:
+            if start_time is None and end_time is None:
+                # Fetch N most recent candles
+                raw_data = self.api.fetchOHLCV(
+                    instrument, timeframe=granularity, limit=count, params=kwargs
+                )
+            elif start_time is not None and end_time is None:
+                # Fetch N candles since start_time
+                start_ts = (
+                    None if start_time is None else int(start_time.timestamp() * 1000)
+                )
+                raw_data = self.api.fetchOHLCV(
+                    instrument,
+                    timeframe=granularity,
+                    since=start_ts,
+                    limit=count,
+                    params=kwargs,
+                )
+            elif end_time is not None and start_time is None:
+                raise Exception(
+                    "Fetching data from end_time and count is " + "not yet supported."
+                )
+            else:
+                raw_data = fetch_between_dates()
+
+        else:
+            # Count is None
+            try:
+                assert start_time is not None and end_time is not None
+                raw_data = fetch_between_dates()
+
+            except AssertionError:
+                raise Exception(
+                    "When no count is provided, both start_time "
+                    + "and end_time must be provided."
+                )
+
+        # Process data
+        data = pd.DataFrame(
+            raw_data, columns=["time", "Open", "High", "Low", "Close", "Volume"]
+        ).set_index("time")
+        data.index = pd.to_datetime(data.index, unit="ms")
+
+        # TODO - normalise to UTC?
+
+        return data
+
+    def get_orderbook(self, instrument: str, **kwargs) -> OrderBook:
         """Returns the orderbook"""
-        try:
-            orderbook = self.autodata.L2(instrument=instrument)
-        except ccxt.errors.NetworkError:
-            # Throttle then try again
-            # TODO - add control of throttle
-            time.sleep(1)
-            orderbook = self.autodata.L2(instrument=instrument)
-        return orderbook
+        response = self.api.fetch_order_book(symbol=instrument, **kwargs)
+
+        # Unify format
+        orderbook: dict[str, list] = {}
+        for side in ["bids", "asks"]:
+            orderbook[side] = []
+            for level in response[side]:
+                orderbook[side].append({"price": level[0], "size": level[1]})
+
+        return OrderBook(instrument, orderbook)
+
+    def get_public_trades(self, instrument: str, *args, **kwargs):
+        """Get the public trade history for an instrument."""
+        ccxt_trades = self.api.fetch_trades(instrument, **kwargs)
+
+        # Convert to standard form
+        trades = []
+        for trade in ccxt_trades:
+            unified_trade = {
+                "direction": 1 if trade["side"] == "buy" else -1,
+                "price": float(trade["price"]),
+                "size": float(trade["amount"]),
+                "time": datetime.fromtimestamp(trade["timestamp"] / 1000),
+            }
+            trades.append(unified_trade)
+
+        return trades
+
+    def get_funding_rate(self, instrument: str, **kwargs):
+        """Returns the current funding rate."""
+        response = self.api.fetch_funding_rate(instrument, **kwargs)
+        fr_dict = {
+            "symbol": instrument,
+            "rate": response["fundingRate"],
+            "time": response["fundingDatetime"],
+        }
+        return fr_dict
+
+    def _ccxt_funding_history(
+        self,
+        instrument: str,
+        count: int = None,
+        start_time: datetime = None,
+        end_time: datetime = None,
+        params: dict = {},
+    ):
+        """Fetches the funding rate history."""
+
+        def response_to_df(response):
+            """Converts response to DataFrame."""
+            times = []
+            rates = []
+            for chunk in response:
+                times.append(pd.Timestamp(chunk["timestamp"], unit="ms"))
+                rates.append(chunk["fundingRate"])
+            return pd.DataFrame(data={"rate": rates}, index=times)
+
+        def fetch_between_dates():
+            # Fetches data between two dates
+            count = 500
+            start_ts = int(start_time.timestamp() * 1000)
+            end_ts = int(end_time.timestamp() * 1000)
+
+            rate_hist = pd.DataFrame()
+            while start_ts <= end_ts:
+                response = self.api.fetch_funding_rate_history(
+                    symbol=instrument, since=start_ts, limit=count, params=params
+                )
+
+                # Append results
+                df = response_to_df(response)
+                rate_hist = pd.concat([rate_hist, df])
+
+                # Increment start_ts
+                start_ts = int(df.index[-1].timestamp() * 1000)
+
+                # Sleep for API limit
+                time.sleep(1)
+
+            return rate_hist
+
+        if count is not None:
+            if start_time is None and end_time is None:
+                # Fetch N most recent candles
+                response = self.api.fetch_funding_rate_history(
+                    symbol=instrument, limit=count, params=params
+                )
+                rate_hist = response_to_df(response)
+            elif start_time is not None and end_time is None:
+                # Fetch N candles since start_time
+                start_ts = (
+                    None if start_time is None else int(start_time.timestamp() * 1000)
+                )
+                response = self.api.fetch_funding_rate_history(
+                    symbol=instrument, since=start_ts, limit=count, params=params
+                )
+                rate_hist = response_to_df(response)
+            elif end_time is not None and start_time is None:
+                raise Exception(
+                    "Fetching data from end_time and count is " + "not yet supported."
+                )
+            else:
+                rate_hist = fetch_between_dates()
+
+        else:
+            # Count is None
+            if start_time is not None and end_time is not None:
+                rate_hist = fetch_between_dates()
+            else:
+                response = self.api.fetch_funding_rate_history(
+                    symbol=instrument,
+                    params=params,
+                )
+                rate_hist = response_to_df(response)
+
+        return rate_hist
+
+    def get_trade_details(self, trade_ID: str) -> dict:
+        """Returns the details of the trade specified by trade_ID."""
+        raise NotImplementedError(
+            "This method is not available, and will "
+            + "be deprecated with a future release. Please use the "
+            + "get_trades method instead."
+        )
+
+    def _add_params(self, order: Order):
+        """Translates an order to add CCXT parameters for the specific exchange."""
+        if self.exchange.lower() == "bybit":
+            # https://bybit-exchange.github.io/docs/v5/order/create-order
+            if order.take_profit:
+                self._safe_add(order.ccxt_params, "takeProfit", order.take_profit)
+                self._safe_add(order.ccxt_params, "tpslMode", "Partial")
+            if order.stop_loss:
+                self._safe_add(order.ccxt_params, "stopLoss", order.stop_loss)
+                self._safe_add(order.ccxt_params, "tpslMode", "Partial")
+        # TODO - support more exchanges
+
+    @staticmethod
+    def _safe_add(map: dict, key: str, value: any):
+        """Adds a value to a map only if it is not already in there."""
+        if key not in map:
+            map[key] = value
 
     def _native_order(self, order: dict):
         """Returns a CCXT order as a native AutoTrader Order."""
@@ -402,3 +647,71 @@ class Broker(AbstractBroker):
         except Exception as e:
             modified_order = e
         return modified_order
+
+    def get_precision(self, instrument: str, *args, **kwargs):
+        """Returns the precision of the instrument."""
+        # TODO - this method has been disabled as it was not properly handling precisions
+        return None
+
+        if instrument in self._instrument_precisions:
+            # Precision already fetched, use stored value
+            unified_response = self._instrument_precisions[instrument]
+        else:
+            # Fetch precision
+            market = self._get_market(instrument)
+            precision = market["precision"]
+
+            size_precision = precision["amount"]
+            price_precision = precision["price"]
+
+            # Check for any decimals
+            if "." in str(size_precision):
+                size_precision = str(size_precision)[::-1].find(".")
+            if "." in str(price_precision):
+                price_precision = str(price_precision)[::-1].find(".")
+
+            unified_response = {
+                "size": size_precision,
+                "price": price_precision,
+            }
+
+            # Store for later use
+            self._instrument_precisions[instrument] = unified_response
+
+        return unified_response
+
+    def _get_market(self, instrument: str, *args, **kwargs):
+        """Returns the raw get_market response from a CCXT exchange"""
+        if instrument in self.markets:
+            market = self.markets[instrument]
+        elif instrument.split(":")[0] in self.markets:
+            market = self.markets[instrument.split(":")[0]]
+        elif f"{instrument.split('USDT')[0]}/USDT" in self.markets:
+            market = self.markets[f"{instrument.split('USDT')[0]}/USDT"]
+        else:
+            raise Exception(
+                f"{instrument} does not appear to be listed. "
+                + "Please double check the naming."
+            )
+        return market
+
+    def get_stepsize(self, instrument: str, *args, **kwargs):
+        """Returns the stepsize for an instrument."""
+        market = self._get_market(instrument)
+        stepsize = float(market["limits"]["amount"]["min"])
+        return stepsize
+
+    def get_min_notional(self, instrument: str, *args, **kwargs):
+        """Returns the minimum notional value a trade should hold."""
+        market = self._get_market(instrument)
+        min_notional = float(market["limits"]["cost"]["min"])
+        return min_notional
+
+    def get_ticksize(self, instrument: str, *args, **kwargs):
+        """Returns the ticksize for an instrument."""
+        market = self._get_market(instrument)
+        try:
+            ticksize = float(market["info"]["filters"][0]["tickSize"])
+        except:
+            raise Exception("Cannot retrieve ticksize.")
+        return ticksize

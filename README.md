@@ -196,8 +196,6 @@ sphinx-autobuild source/ build/html --open-browser
 AutoTrader is licensed under the [GNU General Public License v3.0](https://www.gnu.org/licenses/gpl-3.0.en.html).
 
 ### Disclaimer
-This platform is currently under heavy development and should not be considered stable for livetrading until version 1.0.0 is released.
-
 Never risk money you cannot afford to lose. Always test your strategies on a paper trading account before taking it live.
 
 <p align="right">[<a href="#readme-top">back to top</a>]</p>

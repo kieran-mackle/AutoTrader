@@ -1,5 +1,4 @@
 from .autoplot import AutoPlot
-from .autodata import AutoData
 from .autotrader import AutoTrader
 from .utilities import TradeAnalysis, DataStream
 from .brokers.trading import (
@@ -16,12 +15,6 @@ from .brokers.trading import (
 # CCXT
 try:
     from .brokers.ccxt.broker import Broker as CCXTBroker
-except:
-    pass
-
-# dYdX
-try:
-    from .brokers.dydx.broker import Broker as dYdXBroker
 except:
     pass
 

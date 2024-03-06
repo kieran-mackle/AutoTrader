@@ -10,7 +10,7 @@ import pandas as pd
 from art import tprint
 from abc import ABC, abstractmethod
 from datetime import datetime, timedelta
-from autotrader.brokers.broker import AbstractBroker
+from autotrader.brokers.broker import AbstractBroker, Broker
 from prometheus_client import start_http_server, Gauge
 from typing import Union, Optional, Tuple, TYPE_CHECKING
 
@@ -560,12 +560,14 @@ class TradeAnalysis:
             # Save results for this broker instance
             broker_results[broker_name] = {
                 "instruments_traded": list(orders.instrument.unique()),
-                "account_history": account_history,
-                "position_history": position_history,
-                "position_summary": position_summary,
-                "order_history": orders,
-                "cancelled_orders": orders[orders.status == "cancelled"],
-                "trade_history": trade_history,
+                "account_history": self._decimal_to_float(account_history),
+                "position_history": self._decimal_to_float(position_history),
+                "position_summary": self._decimal_to_float(position_summary),
+                "order_history": self._decimal_to_float(orders),
+                "cancelled_orders": self._decimal_to_float(
+                    orders[orders.status == "cancelled"]
+                ),
+                "trade_history": self._decimal_to_float(trade_history),
             }
 
         # Save all results
@@ -573,6 +575,16 @@ class TradeAnalysis:
 
         # Aggregate across broker instances
         self._aggregate_across_brokers(broker_results)
+
+    @staticmethod
+    def _decimal_to_float(df: pd.DataFrame):
+        """Cast all numeric types to floats to support plotting."""
+        for col in df:
+            try:
+                df[col] = df[col].astype(float)
+            except:
+                pass
+        return df
 
     @staticmethod
     def create_position_history(
@@ -1098,6 +1110,40 @@ class TradeAnalysis:
         #     trade_results["short_positions"]["short_wr"] = short_wr
 
         return trade_results
+
+
+class NewAbstractDataStream(Broker):
+    """Custom data feed base class. Wrapper around broker object without any
+    private trading methods."""
+
+    @abstractmethod
+    def __init__(self, **kwargs) -> None:
+        pass
+
+
+class NewDataStream(NewAbstractDataStream):
+    """Custom data feed base class. Wrapper around broker object without any
+    private trading methods."""
+
+    def __init__(self, **kwargs) -> None:
+        self._data_broker = self
+
+    @property
+    def data_broker(self):
+        return self._data_broker
+
+    def __repr__(self):
+        return "DataStreamer"
+
+    def __str__(self):
+        return "DataStreamer"
+
+
+class LocalDataStream(NewDataStream):
+    """Local data stream object."""
+
+    # load local data from a data directory, using standard naming conventions
+    # need to consider allowable file name characters, eg. '/' cannot be in
 
 
 class AbstractDataStream(ABC):

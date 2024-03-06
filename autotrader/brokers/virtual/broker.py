@@ -1,16 +1,16 @@
 from __future__ import annotations
 import os
 import pickle
+import importlib
 import numpy as np
 import pandas as pd
 from decimal import Decimal
-from typing import Callable
-from autotrader.autodata import AutoData
-from datetime import date, datetime, timezone
-from autotrader.utilities import get_data_config
+from typing import Callable, Union
+from datetime import datetime, timezone
+from autotrader.utilities import NewDataStream
 from autotrader.brokers.broker import AbstractBroker
-from autotrader.brokers.broker_utils import OrderBook, BrokerUtils
-from autotrader.brokers.trading import Order, IsolatedPosition, Position, Trade
+from autotrader.brokers.trading import Order, Position, Trade
+from autotrader.brokers.trading import OrderBook
 
 
 class Broker(AbstractBroker):
@@ -84,17 +84,22 @@ class Broker(AbstractBroker):
         The commission value associated with liquidity taking orders.
     """
 
-    def __init__(self, broker_config: dict = None, utils: BrokerUtils = None) -> None:
+    def __init__(self, broker_config: dict = None) -> None:
         """Initialise virtual broker."""
         if broker_config is not None:
             self._verbosity = broker_config["verbosity"]
         else:
             self._verbosity = 0
-        self._utils = utils
+        self._data_broker = None
 
         # Orders
-        self._pending_orders = {}  # {instrument: {id: Order}}
-        self._open_orders = {}  # {instrument: {id: Order}}
+        # TODO - pending orders dict is redundant - reveiw to remove usage, go direct to open
+        self._pending_orders: dict[str, dict[Union[str, int], Order]] = (
+            {}
+        )  # {instrument: {id: Order}}
+        self._open_orders: dict[str, dict[Union[str, int], Order]] = (
+            {}
+        )  # {instrument: {id: Order}}
         self._filled_orders = {}
         self._cancelled_orders = {}
         self._order_id_instrument = {}  # mapper from order_id to instrument
@@ -102,11 +107,13 @@ class Broker(AbstractBroker):
         # Isolated positions (formerly "trades")
         # self._open_iso_pos = {}
         # self._closed_iso_pos = {}
-        self._trade_id_instrument = {}  # mapper from trade_id to instrument
+        self._trade_id_instrument: dict[Union[str, int], str] = (
+            {}
+        )  # mapper from trade_id to instrument
 
         # Positions
-        self._positions = {}
-        self._closed_positions = {}
+        self._positions: dict[str, Position] = {}
+        self._closed_positions: dict[str, Position] = {}
 
         # Margin call flag
         self._margin_calling = False
@@ -136,7 +143,7 @@ class Broker(AbstractBroker):
 
         # Margin
         self._leverage = 1  # The account leverage
-        self._spread = 0  # The bid/ask spread
+        self._spread = Decimal("0")  # The bid/ask spread
         self._spread_units = "price"  # The units of the spread
         self._hedging = False  # Allow simultaneous trades on opposing sides
         self._margin_closeout = 0.0  # Fraction at margin call
@@ -151,9 +158,13 @@ class Broker(AbstractBroker):
         self._commission_scheme = (
             "percentage"  # Either percentage, fixed_per_unit or flat
         )
-        self._commission = 0
-        self._maker_commission = 0  # Liquidity 'maker' trade commission
-        self._taker_commission = 0  # Liquidity 'taker' trade commission
+        self._commission = Decimal("0")
+        self._maker_commission: Decimal = Decimal(
+            "0"
+        )  # Liquidity 'maker' trade commission
+        self._taker_commission: Decimal = Decimal(
+            "0"
+        )  # Liquidity 'taker' trade commission
 
         # History
         self._latest_time = None
@@ -166,33 +177,39 @@ class Broker(AbstractBroker):
         # Paper trading mode
         self._paper_trading = False  # Paper trading mode boolean
         self._public_trade_access = False  # Use public trades to update orders
-        self.autodata = None  # AutoData instance
         self._state = None  # Last state snapshot
         self._picklefile = None  # Pickle filename
 
         # CCXT unification
         self.exchange = ""
 
+        # Data cache
+        self._data_cache: dict[str, pd.DataFrame] = {}
+
     def __repr__(self):
-        data_feed = self.autodata._feed
-        if data_feed == "ccxt":
-            data_feed = self.autodata._ccxt_exchange
-        return f"AutoTrader Virtual Broker ({data_feed} data feed)"
+        # TODO - review this works after removing autodata
+        # data_feed = self.autodata._feed
+        # data_feed = self._feed if data_feed != "ccxt" else self._ccxt_exchange
+        return f"AutoTrader Virtual Broker"  # ({data_feed} data feed)"
 
     def __str__(self):
         return self.__repr__()
+
+    @property
+    def data_broker(self):
+        return self._data_broker
 
     def configure(
         self,
         verbosity: int = None,
         initial_balance: float = None,
         leverage: int = None,
-        spread: float = None,
+        spread: Decimal = None,
         spread_units: str = None,
-        commission: float = None,
+        commission: Decimal = None,
         commission_scheme: str = None,
-        maker_commission: float = None,
-        taker_commission: float = None,
+        maker_commission: Decimal = None,
+        taker_commission: Decimal = None,
         hedging: bool = None,
         base_currency: str = None,
         paper_mode: bool = None,
@@ -202,8 +219,8 @@ class Broker(AbstractBroker):
         slippage_models: dict = None,
         charge_funding: bool = None,
         funding_history: pd.DataFrame = None,
-        autodata_config: dict = None,
         picklefile: str = None,
+        data_config: dict[str, any] = None,
         **kwargs,
     ):
         """Configures the broker and account settings.
@@ -220,7 +237,7 @@ class Broker(AbstractBroker):
         leverage : int, optional
             The leverage available. The default is 1.
 
-        spread : float, optional
+        spread : Decimal, optional
             The bid/ask spread to use in backtest (specified in units
             defined by the spread_units argument). The default is 0.
 
@@ -230,7 +247,7 @@ class Broker(AbstractBroker):
             meaning that the spread is quoted as a percentage of the
             market price. The default is 'price'.
 
-        commission : float, optional
+        commission : Decimal, optional
             Trading commission as percentage per trade. The default is 0.
 
         commission_scheme : str, optional
@@ -243,12 +260,12 @@ class Broker(AbstractBroker):
             the commission argument is charged per trade made, regardless
             of size. The default is 'percentage'.
 
-        maker_commission : float, optional
+        maker_commission : Decimal, optional
             The commission to charge on liquidity-making orders. The default
             is None, in which case the nominal commission argument will be
             used.
 
-        taker_commission: float, optional
+        taker_commission: Decimal, optional
             The commission to charge on liquidity-taking orders. The default
             is None, in which case the nominal commission argument will be
             used.
@@ -296,13 +313,15 @@ class Broker(AbstractBroker):
         """
         self._verbosity = verbosity if verbosity is not None else self._verbosity
         self._leverage = leverage if leverage is not None else self._leverage
-        self._commission = commission if commission is not None else self._commission
+        self._commission = (
+            Decimal(str(commission)) if commission is not None else self._commission
+        )
         self._commission_scheme = (
             commission_scheme
             if commission_scheme is not None
             else self._commission_scheme
         )
-        self._spread = spread if spread is not None else self._spread
+        self._spread = Decimal(str(spread)) if spread is not None else self._spread
         self._spread_units = (
             spread_units if spread_units is not None else self._spread_units
         )
@@ -325,10 +344,14 @@ class Broker(AbstractBroker):
 
         # Assign commissions for making and taking liquidity
         self._maker_commission = (
-            maker_commission if maker_commission is not None else self._commission
+            Decimal(str(maker_commission))
+            if maker_commission is not None
+            else self._commission
         )
         self._taker_commission = (
-            taker_commission if taker_commission is not None else self._commission
+            Decimal(str(taker_commission))
+            if taker_commission is not None
+            else self._commission
         )
 
         # Configure slippage models
@@ -351,22 +374,8 @@ class Broker(AbstractBroker):
             else self._funding_rate_history
         )
 
-        # Instantiate AutoData
-        # TODO - review what is happening here - seems to ignore
-        # local feed setting from autotrader
-        # Check where self.autodata is called.
-        # Want to use datastream if possible
-        if autodata_config is not None:
-            # Instantiate AutoData from config
-            # TODO - autodata_config unpacking can be done in the function below.
-            data_config = get_data_config(
-                **autodata_config,
-            )
-            self.autodata = AutoData(data_config=data_config, **autodata_config)
-
-        else:
-            # Create local data instance
-            self.autodata = AutoData()
+        # Connect to the data broker
+        self._data_broker = self._get_data_broker(data_config)
 
         # Initialise balance
         if initial_balance is not None:
@@ -449,25 +458,26 @@ class Broker(AbstractBroker):
         try:
             if order.order_type in ["limit"]:
                 if self._paper_trading:
-                    # Get live midprice
+                    # Get live midprice as reference price
                     orderbook = self.get_orderbook(order.instrument)
-                    ref_price = (
+                    cross_ref_price = (
                         float(orderbook["bids"][0]["price"])
                         + float(orderbook["asks"][0]["price"])
                     ) / 2
+
                 else:
                     # Use order / stop price
-                    ref_price = (
+                    cross_ref_price = (
                         order.order_stop_price
                         if order.order_stop_price is not None
                         else order.order_price
                     )
                 invalid_order = (
-                    order.direction * (ref_price - order.order_limit_price) < 0
+                    order.direction * (cross_ref_price - order.order_limit_price) < 0
                 )
                 reason = (
                     f"Invalid limit price for {order.__repr__()} "
-                    + f"(reference price: {ref_price}, "
+                    + f"(reference price: {cross_ref_price}, "
                     + f"limit price: {order.order_limit_price})"
                 )
         except:
@@ -480,11 +490,9 @@ class Broker(AbstractBroker):
 
         # Add order to pending_orders dict
         order.status = "pending"
-        try:
-            self._pending_orders[order.instrument][order.id] = order
-        except KeyError:
-            # Instrument hasn't been in pending orders yet
-            self._pending_orders[order.instrument] = {order.id: order}
+        self._pending_orders.setdefault(order.instrument, {}).setdefault(
+            order.id, order
+        )
 
         # Submit order
         if invalid_order:
@@ -492,16 +500,13 @@ class Broker(AbstractBroker):
             self.cancel_order(order.id, reason, "_pending_orders", datetime_stamp)
 
         else:
-            # Move order to open_orders or leave in pending
-            immediate_orders = []
-            if order.order_type in immediate_orders or self._paper_trading:
-                # Move to open orders
-                self._move_order(
-                    order,
-                    from_dict="_pending_orders",
-                    to_dict="_open_orders",
-                    new_status="open",
-                )
+            # Open order
+            self._move_order(
+                order,
+                from_dict="_pending_orders",
+                to_dict="_open_orders",
+                new_status="open",
+            )
 
             # Print
             if self._verbosity > 0:
@@ -509,7 +514,9 @@ class Broker(AbstractBroker):
                     f"{datetime_stamp}: Order {order.id} received: {order.__repr__()}"
                 )
 
-    def get_orders(self, instrument: str = None, order_status: str = "open") -> dict:
+    def get_orders(
+        self, instrument: str = None, order_status: str = "open"
+    ) -> dict[str, Order]:
         """Returns orders of status order_status."""
         all_orders = getattr(self, f"_{order_status}_orders")
         if instrument:
@@ -592,7 +599,7 @@ class Broker(AbstractBroker):
         # Return a copy to prevent unintended manipulation
         return trades_dict.copy()
 
-    def get_positions(self, instrument: str = None) -> dict:
+    def get_positions(self, instrument: str = None):
         """Returns the positions held by the account, sorted by
         instrument.
 
@@ -621,49 +628,124 @@ class Broker(AbstractBroker):
         else:
             return self._positions.copy()
 
+    def get_candles(
+        self,
+        instrument: str,
+        granularity: str = None,
+        count: int = None,
+        start_time: datetime = None,
+        end_time: datetime = None,
+        *args,
+        **kwargs,
+    ) -> pd.DataFrame:
+        """Get the historical OHLCV candles for an instrument."""
+        # TODO - there is currently no check that the dates provided above are
+        # included in the data returned. Really should have a get_from_cache method
+        # which checks, and updates the cache where needed to match the request.
+        # Also should limit end_time by local exchange time.
+
+        if instrument in self._data_cache:
+            # Use cached data
+            candles = self._data_cache[instrument]
+
+        else:
+            # Need to fetch data from data broker
+            candles = self.data_broker.get_candles(
+                instrument=instrument,
+                granularity=granularity,
+                count=count,
+                start_time=start_time,
+                end_time=end_time,
+                *args,
+                **kwargs,
+            )
+
+            # Add to cache
+            self._data_cache[instrument] = candles
+
+        # Remove future data
+        # TODO - review future check logic - need to account for candle duration
+        # Candles are indexed by the opening time, so the latest candle opening must
+        # be at least 1 candle's duration worth since the current time.
+        # Currently implicitly assuming latest_time will update by the candle duration.
+        count = count if count is not None else len(candles)
+        candles = candles.loc[candles.index < self._latest_time].tail(count)
+
+        return candles
+
+    def get_orderbook(self, instrument: str) -> OrderBook:
+        """Returns the orderbook."""
+        # Get public orderbook
+        if self._paper_trading:
+            # Papertrading, try get realtime orderbook from exchange connection
+            orderbook = self.data_broker.get_orderbook(
+                instrument=instrument,
+                dt=self._latest_time,
+            )
+
+        else:
+            # Backtesting, use local pseudo-orderbook
+            # TODO - reimplement spread parameters
+            candles = self._data_cache[instrument]
+            timesafe_candle = candles.loc[candles.index <= self._latest_time]
+            latest_bar = timesafe_candle.iloc[-1]
+            midprice = latest_bar["Close"]
+            orderbook = self._emulate_book(instrument, Decimal(str(midprice)))
+
+        return orderbook
+
+    def _emulate_book(self, instrument: str, midprice: Decimal):
+        """Emulate an orderbook based on a specified mid price."""
+        # Adjust by spread to emulate bid and ask prices
+        if self._spread_units == "price":
+            bid = midprice - self._spread / 2
+            ask = midprice + self._spread / 2
+        elif self._spread_units == "percentage":
+            bid = midprice * (1 - self._spread / 100 / 2)
+            ask = midprice * (1 + self._spread / 100 / 2)
+
+        # Construct orderbook - currently infinite depth
+        data = {
+            "bids": [
+                {"price": bid, "size": Decimal("1e100")},
+            ],
+            "asks": [
+                {"price": ask, "size": Decimal("1e100")},
+            ],
+        }
+        orderbook = OrderBook(instrument, data)
+        return orderbook
+
+    def get_public_trades(self, instrument: str, *args, **kwargs):
+        """Get the public trade history for an instrument."""
+        # Public trade mocking not supported yet.
+        return []
+
     def get_margin_available(self) -> float:
         """Returns the margin available on the account."""
         return self._margin_available
 
-    def get_orderbook(self, instrument: str, midprice: float = None) -> OrderBook:
-        """Returns the orderbook."""
-        # Get public orderbook
-        if self._paper_trading:
-            # Papertrading, try get realtime orderbook
-            try:
-                orderbook = self.autodata.L2(
-                    instrument, spread_units=self._spread_units, spread=self._spread
-                )
-            except Exception as e:
-                # Fetching orderbook failed, revert to local orderbook
-                # TODO - replace prints with logging
-                print("Exception:", e)
-                print("  Instrument:", instrument)
-                orderbook = self.autodata._local_orderbook(
-                    instrument=instrument,
-                    spread_units=self._spread_units,
-                    spread=self._spread,
-                    midprice=midprice,
-                )
-
-        else:
-            # Backtesting, use local pseudo-orderbook
-            orderbook = self.autodata._local_orderbook(
+    def _initialise_data(
+        self,
+        instrument: str,
+        data_start: datetime,
+        data_end: datetime,
+        granularity: str,
+    ):
+        """Initialise the broker data and cache the result."""
+        if instrument not in self._data_cache:
+            candles = self.data_broker.get_candles(
                 instrument=instrument,
-                spread_units=self._spread_units,
-                spread=self._spread,
-                midprice=midprice,
+                granularity=granularity,
+                start_time=data_start,
+                end_time=data_end,
             )
-
-        # TODO - Add local orders to the book?
-
-        return orderbook
+            self._data_cache[instrument] = candles
 
     def _update_positions(
         self,
         instrument: str,
-        candle: pd.Series = None,
-        L1: dict = None,
+        dt: datetime,
         trade: dict = None,
     ) -> None:
         """Updates orders and open positions based on the latest data.
@@ -673,63 +755,59 @@ class Broker(AbstractBroker):
         instrument : str
             The name of the instrument being updated.
 
-        candle : pd.Series
-            An OHLC candle used to update orders and trades.
-
-        L1 : dict, optional
-            A dictionary a containing level 1 price snapshot to update
-            the positions with. This dictionary must have the keys
-            'bid', 'ask', 'bid_size' and 'ask_size'.
+        dt : datetime
+            The current update datetime.
 
         trade : dict, optional
             A public trade, used to update virtual limit orders.
         """
+        # Get latest candle
+        candle = self.get_candles(instrument, count=1).iloc[0]
 
-        def stop_trigger_condition(order_stop_price, order_direction):
+        def stop_trigger_condition(order_stop_price, order_direction) -> bool:
             """Returns True if the order stop price has been triggered
             else False."""
-            if L1 is not None:
-                # Use L1 data to trigger
-                reference_price = L1["bid"] if order_direction > 0 else L1["ask"]
-                triggered = order_direction * (reference_price - order_stop_price) > 0
-
-            else:
-                # Use OHLC data to trigger
-                triggered = candle.Low < order_stop_price < candle.High
+            # Check if stop price is within candle extremes
+            triggered = candle["Low"] < order_stop_price < candle["High"]
             return triggered
 
-        def get_last_price(trade_direction):
+        def get_last_price(trade_direction) -> Decimal:
             """Returns the last reference price for a trade. If the
             trade is long, this will refer to the bid price. If short,
             this refers to the ask price."""
-            if L1 is not None:
-                last_price = L1["bid"] if trade_direction > 0 else L1["ask"]
-            else:
-                last_price = candle.Close
-            return last_price
+            # Use orderbook on candle close to get regerence price
+            orderbook = self._emulate_book(
+                instrument=instrument, midprice=Decimal(str(candle["Close"]))
+            )
+            last_price = (
+                orderbook.bids["price"][0]
+                if trade_direction > 0
+                else orderbook.asks["price"][0]
+            )
+            return Decimal(str(last_price))
 
-        def get_market_ref_price(order_direction):
+        def get_market_ref_price(order_direction) -> Decimal:
             """Returns the reference price for a market order."""
-            if L1 is not None:
-                reference_price = L1["bid"] if order_direction > 0 else L1["ask"]
-            else:
-                reference_price = candle.Open
-            return reference_price
+            # Market orders are executed immediately - on the open of the current candle
+            orderbook = self._emulate_book(
+                instrument=instrument, midprice=Decimal(str(candle["Open"]))
+            )
+            reference_price = (
+                orderbook.bids["price"][0]
+                if order_direction > 0
+                else orderbook.asks["price"][0]
+            )
+            return Decimal(str(reference_price))
 
-        def limit_trigger_condition(order_direction, order_limit_price):
+        def limit_trigger_condition(order_direction, order_limit_price) -> bool:
             """Returns True if the order limit price has been triggered
             else False."""
-            if L1 is not None:
-                # Use L1 data to trigger (based on midprice)
-                ref_price = (L1["bid"] + L1["ask"]) / 2
-            else:
-                # Use OHLC data to trigger
-                ref_price = candle.Low if order_direction > 0 else candle.High
+            ref_price = candle["Low"] if order_direction > 0 else candle["High"]
             triggered = order_direction * (ref_price - float(order_limit_price)) <= 0
             return triggered
 
-        def process_orders_in_dict(orders):
-            for order_id, order in orders.items():
+        def process_orders_in_dict(orders: dict[Union[str, int], Order]):
+            for order in orders.values():
                 # Check if order has been cancelled (OCO)
                 if order.id not in self._open_orders[order.instrument]:
                     continue
@@ -742,7 +820,7 @@ class Broker(AbstractBroker):
                         order.order_price = reference_price
                     self._process_order(
                         order=order,
-                        fill_time=latest_time,
+                        fill_time=candle.name,
                         reference_price=reference_price,
                     )
 
@@ -755,12 +833,13 @@ class Broker(AbstractBroker):
                             order.order_type = "limit"
                         else:
                             # Stop order triggered - proceed to market fill
+                            # Fill time is actually within the candle
                             reference_price = order.order_stop_price
                             order.order_price = reference_price
                             order.order_type = "market"
                             self._process_order(
                                 order=order,
-                                fill_time=latest_time,
+                                fill_time=candle.name,
                                 reference_price=reference_price,
                             )
 
@@ -776,7 +855,7 @@ class Broker(AbstractBroker):
                             # Limit price triggered, proceed
                             self._process_order(
                                 order=order,
-                                fill_time=latest_time,
+                                fill_time=candle.name,
                                 reference_price=order.order_limit_price,
                             )
                     else:
@@ -784,29 +863,10 @@ class Broker(AbstractBroker):
                         if trade is not None:
                             self._public_trade(instrument, trade)
 
-        # Check for data availability
-        if L1 is not None:
-            # Using L1 data to update
-            latest_time = datetime.now(timezone.utc)
-
-        elif candle is not None:
-            # Using OHLC data to update
-            latest_time = candle.name
-
-        else:
-            # No new price data
-            if trade is None:
-                # No trade either, exit
-                return
-            else:
-                # Public trade received, only update limit orders
-                self._public_trade(instrument, trade)
-                return
-
         # Open pending orders
         pending_orders = self.get_orders(instrument, "pending")
-        for order_id, order in pending_orders.items():
-            if latest_time > order.order_time:
+        for order in pending_orders.values():
+            if dt > order.order_time:
                 self._move_order(
                     order,
                     from_dict="_pending_orders",
@@ -828,10 +888,10 @@ class Broker(AbstractBroker):
         # Update position
         position = self.get_positions(instrument=instrument)
         if position:
-            position = position[instrument]
             # Position held, update it
+            position = position[instrument]
             position.last_price = get_last_price(np.sign(position.net_position))
-            position.last_time = latest_time
+            position.last_time = dt
             position.notional = position.last_price * abs(position.net_position)
             position.pnl = (
                 position.net_position
@@ -839,40 +899,31 @@ class Broker(AbstractBroker):
                 * position.HCF
             )
 
-            # Charge funding fees
-            # if self._charge_funding:
-            #     # TODO - move to unified backtest/livetrade method
-            #     last_settlement = self._funding_rate_history.index.get_indexer([pd.Timestamp(latest_time).floor(self._update_freq)], method="nearest")[0]
-            #     last_rate = self._funding_rate_history.iloc[last_settlement][instrument]
-
-            #     # Set to zero to prevent re-charging
-            #     self._funding_rate_history.iloc[last_settlement][instrument] = 0
-
         # Update floating pnl and margin available
         self._update_margin(
             instrument=instrument,
-            latest_time=latest_time,
+            latest_time=dt,
         )
 
         # Update open position value
         self._NAV = self._equity + self._floating_pnl
 
-        # Update account history
-        self._latest_time = latest_time
+        # Update internal clock
+        self._latest_time = dt
 
         # Save state
         if self._paper_trading and self._picklefile is not None:
             self._save_state()
 
-    def _update_all(self):
+    def _update_all(self, dt: datetime):
         """Convenience method to update all open positions when paper trading."""
         # Update orders
         to_pop = []
         for instrument in self._open_orders:
             try:
                 # Get price data
-                l1 = self.autodata.L1(instrument=instrument)
-                self._update_positions(instrument=instrument, L1=l1)
+                self._update_positions(instrument=instrument, dt=dt)
+
             except Exception as e:
                 # Something went wrong
                 print(f"Exception when updating orders: {e}\n")
@@ -893,10 +944,9 @@ class Broker(AbstractBroker):
 
         # Update positions
         for instrument in self._positions:
-            l1 = self.autodata.L1(instrument=instrument)
-            self._update_positions(instrument=instrument, L1=l1)
+            self._update_positions(instrument=instrument, dt=dt)
 
-    def _update_instrument(self, instrument):
+    def _update_instrument(self, instrument: str, dt: datetime):
         """Convenience method to update a single instrument when paper
         trading.
         """
@@ -905,8 +955,8 @@ class Broker(AbstractBroker):
         position = self.get_positions(instrument=instrument)
         if len(orders) + len(position) > 0:
             # Order or position exists for this instrument, update it
-            l1 = self.autodata.L1(instrument=instrument)
-            self._update_positions(instrument=instrument, L1=l1)
+            orderbook = self.get_orderbook(instrument=instrument)
+            self._update_positions(instrument=instrument, orderbook=orderbook)
 
     def _process_order(
         self,
@@ -1271,8 +1321,12 @@ class Broker(AbstractBroker):
             The precision to use for rounding prices. The default
             is None.
         """
-        # Get order book
-        book = self.get_orderbook(instrument, reference_price)
+        if reference_price is not None:
+            # Emulate book
+            book = self._emulate_book(instrument=instrument, midprice=reference_price)
+        else:
+            # Get order book
+            book = self.get_orderbook(instrument=instrument)
 
         # Work through the order book
         units_to_fill = size
@@ -1283,8 +1337,8 @@ class Broker(AbstractBroker):
         while units_to_fill > 0:
             # Consume liquidity
             level = getattr(book, side).iloc[level_no]
-            units_consumed = min(units_to_fill, float(level["size"]))
-            fill_prices.append(float(level["price"]))
+            units_consumed = min(units_to_fill, level["size"])
+            fill_prices.append(Decimal(str(level["price"])))
             fill_sizes.append(units_consumed)
 
             # Iterate
@@ -1313,11 +1367,11 @@ class Broker(AbstractBroker):
 
     def _calculate_commissions(
         self,
-        price: float,
-        units: float = None,
-        HCF: float = 1,
+        price: Decimal,
+        units: Decimal = None,
+        HCF: Decimal = 1,
         order_type: str = "market",
-    ) -> float:
+    ) -> Decimal:
         """Calculates trade commissions."""
         # Get appropriate commission value
         commission_val = (
@@ -1326,7 +1380,7 @@ class Broker(AbstractBroker):
 
         if self._commission_scheme == "percentage":
             # Commission charged as percentage of trade value
-            trade_value = abs(units) * float(price) * HCF
+            trade_value = abs(units) * price * HCF
             commission = (commission_val / 100) * trade_value
 
         elif self._commission_scheme == "fixed_per_unit":
@@ -1535,3 +1589,28 @@ class Broker(AbstractBroker):
 
                         # Update trade_units_remaining
                         trade_units_remaining -= trade_units_consumed
+
+    def _get_data_broker(self, data_config: dict) -> AbstractBroker:
+        # The data object then either just calls back to its own exchange, or possibly
+        # calls other methods. The whole point of it is so that we can mock? Hmm
+        # Idea is to allow an excahnge to use a different exchange as its data feed.
+        # Mainly useful for the virtual broker only...
+        if data_config["feed"] == "local":
+            # Use local datastreamer
+            stream_object = data_config["datastreamer"]
+            return stream_object(data_config)
+
+        else:
+            # Import the feed's broker modules
+            # Create broker instance
+            broker_module = importlib.import_module(
+                f"autotrader.brokers.{data_config['feed']}.broker"
+            )
+            broker: AbstractBroker = broker_module.Broker(data_config)
+            return broker.data_broker
+
+    def get_precision(self, instrument: str, *arg, **kwargs):
+        """Returns the precision of the specified instrument."""
+        # TODO - review this - if not configured, do not try round?
+        unified_response = {"size": 2, "price": 5}
+        return unified_response

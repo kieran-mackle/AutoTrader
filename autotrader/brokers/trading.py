@@ -1,8 +1,13 @@
 from __future__ import annotations
 import numpy as np
-from typing import Literal
+import pandas as pd
+from decimal import Decimal
 from datetime import datetime
+from typing import Literal, Union, TYPE_CHECKING
 from autotrader.brokers.broker_utils import BrokerUtils
+
+if TYPE_CHECKING:
+    from autotrader.brokers.broker import Broker
 
 
 class Order:
@@ -10,10 +15,10 @@ class Order:
 
     def __init__(
         self,
-        instrument: str = None,
-        direction: int = None,
+        instrument: str,
+        direction: int,
+        size: float,
         order_type: Literal["market", "limit", "stop-limit", "modify"] = "market",
-        size: float = None,
         order_limit_price: float = None,
         order_stop_price: float = None,
         stop_loss: float = None,
@@ -21,7 +26,8 @@ class Order:
         take_profit: float = None,
         **kwargs,
     ) -> Order:
-        """
+        """Create a new order.
+
         Parameters
         ----------
         instrument : str
@@ -111,17 +117,21 @@ class Order:
         """
         # Required attributes
         self.instrument = instrument
-        self.direction = np.sign(direction)
+        self.direction = np.sign(direction) if direction is not None else None
         self.order_type = order_type
 
         # Optional arguments
-        self.size = float(size)
+        self.size = Decimal(str(size)) if size is not None else None
         self.base_size = None
         self.target_value = None
         self.order_price = None
         self.order_time = None
-        self.order_limit_price = float(order_limit_price) if order_limit_price else None
-        self.order_stop_price = float(order_stop_price) if order_stop_price else None
+        self.order_limit_price = (
+            Decimal(str(order_limit_price)) if order_limit_price else None
+        )
+        self.order_stop_price = (
+            Decimal(str(order_stop_price)) if order_stop_price else None
+        )
         self.pip_value = None
         self.HCF = 1
 
@@ -135,11 +145,12 @@ class Order:
 
         # Stop loss arguments
         self.stop_type = stop_type
-        self.stop_loss = float(stop_loss) if stop_loss else None
+        self.stop_loss = Decimal(str(stop_loss)) if stop_loss else None
+        # TODO - deprecate distance args.
         self.stop_distance = None
 
         # Take profit arguments
-        self.take_profit = float(take_profit) if take_profit else None
+        self.take_profit = Decimal(str(take_profit)) if take_profit else None
         self.take_distance = None
 
         self.related_orders = None
@@ -176,8 +187,10 @@ class Order:
         self._risk_pc = None
 
         # Meta-data
-        self.id = None
-        self.status = None  # options: pending -> open -> cancelled | filled
+        self.id: Union[int, str] = None
+        self.status: Literal["submitted", "pending", "open", "cancelled", "filled"] = (
+            None
+        )
 
         # Unpack kwargs
         for item in kwargs:
@@ -235,10 +248,10 @@ class Order:
 
     def __call__(
         self,
-        broker=None,
-        order_price: float = None,
+        broker: Broker = None,
+        order_price: Decimal = None,
         order_time: datetime = datetime.now(),
-        HCF: float = None,
+        HCF: Decimal = None,
         precision: dict = None,
     ) -> None:
         """Order object, called before submission to broker in
@@ -249,13 +262,13 @@ class Order:
         broker : AutoTrader broker API instance, optional
             The broker-autotrader api instance. The default is None.
 
-        order_price : float, optional
+        order_price : Decimal, optional
             The order price. The default is None.
 
         order_time : datetime, optional
             The time of the order. The default is datetime.now().
 
-        HCF : float, optional
+        HCF : Decimal, optional
             The home conversion factor. The default is 1.
 
         precision : dict, optional
@@ -267,28 +280,31 @@ class Order:
         None
             Calling an Order will ensure all information is present.
         """
-        self.order_price = order_price if order_price else self.order_price
+        self.order_price = (
+            Decimal(str(order_price)) if order_price else self.order_price
+        )
         self.order_time = order_time if order_time else self.order_time
-        self.HCF = HCF if HCF is not None else self.HCF
+        self.HCF = Decimal(str(HCF)) if HCF is not None else self.HCF
 
         # Assign precisions
+        # TODO - review this
         if precision is not None:
             # Update
             self.price_precision = precision["price"]
             self.size_precision = precision["size"]
 
         # Enforce size scalar
-        self.size = abs(self.size) if self.size is not None else self.size
+        self.size = abs(Decimal(str(self.size))) if self.size is not None else self.size
 
-        if self.order_type not in ["close", "modify"]:
-            self._set_working_price()
-            self._calculate_exit_prices(broker)
-            self._calculate_position_size(broker)
+        # if self.order_type not in ["close", "modify"]:
+        #     self._set_working_price()
+        # self._calculate_exit_prices(broker)
+        # self._calculate_position_size(broker)
 
         self.status = "submitted"
         self.submitted = True
 
-    def _set_working_price(self, order_price: float = None) -> None:
+    def _set_working_price(self, order_price: Decimal = None) -> None:
         """Sets the Orders' working price, for calculating exit targets.
 
         Parameters
@@ -301,11 +317,14 @@ class Order:
         None
             The working price will be saved as a class attribute.
         """
-        order_price = order_price if order_price is not None else self.order_price
+        order_price = (
+            Decimal(str(order_price)) if order_price is not None else self.order_price
+        )
         if self.order_type == "limit" or self.order_type == "stop-limit":
             self._working_price = round(self.order_limit_price, self.price_precision)
         else:
             if order_price is not None:
+                # TODO - do not use round.
                 self._working_price = round(order_price, self.price_precision)
             else:
                 self._working_price = None
@@ -328,6 +347,7 @@ class Order:
         None
             The exit prices will be assigned to the order instance.
         """
+        # TODO - review if this method should exist
         working_price = (
             round(working_price, self.price_precision)
             if working_price is not None
@@ -375,12 +395,12 @@ class Order:
 
     def _calculate_position_size(
         self,
-        broker=None,
-        working_price: float = None,
-        HCF: float = 1,
-        risk_pc: float = 0,
-        sizing: str | float = "risk",
-        amount_risked: float = None,
+        broker: Broker = None,
+        working_price: Decimal = None,
+        HCF: Decimal = 1,
+        risk_pc: Decimal = 0,
+        sizing: str | Decimal = "risk",
+        amount_risked: Decimal = None,
     ) -> None:
         """Calculates trade size for order.
 
@@ -409,6 +429,7 @@ class Order:
         None
             The trade size will be assigned to the order instance.
         """
+        # TODO - review this method too. Should be on the user.
         working_price = (
             working_price if working_price is not None else self._working_price
         )
@@ -463,8 +484,11 @@ class Order:
             self.size = round(self.size, self.size_precision)
 
     @classmethod
-    def _partial_fill(cls, order: Order, units_filled: float) -> Order:
+    def _partial_fill(cls, order: Order, units_filled: Decimal) -> Order:
         """Partially fills the order."""
+        # Enforce Decimal type
+        units_filled = Decimal(str(units_filled))
+
         # Instantiate new order
         order_to_be_filled = cls()
 
@@ -675,7 +699,7 @@ class IsolatedPosition(Order):
             setattr(self, attribute, value)
 
     @classmethod
-    def _split(cls, trade: IsolatedPosition, split_units: float) -> IsolatedPosition:
+    def _split(cls, trade: IsolatedPosition, split_units: Decimal) -> IsolatedPosition:
         """Splits parent IsolatedPosition into new object for partial
         closures.
 
@@ -690,8 +714,8 @@ class IsolatedPosition(Order):
         split_trade.order_id = None
 
         # Transfer units
-        split_trade.size = split_units
-        trade.size -= split_units
+        split_trade.size = Decimal(str(split_units))
+        trade.size -= Decimal(str(split_units))
 
         # Mark original trade as split
         trade.split = True
@@ -705,15 +729,15 @@ class Trade:
     def __init__(
         self,
         instrument: str,
-        order_price: float,
+        order_price: Decimal,
         order_time: datetime,
         order_type: str,
-        size: float,
-        last_price: float,
+        size: Decimal,
+        last_price: Decimal,
         fill_time: datetime,
-        fill_price: float,
+        fill_price: Decimal,
         fill_direction: int,
-        fee: float,
+        fee: Decimal,
         **kwargs,
     ) -> Trade:
         """Trade constructor."""
@@ -730,6 +754,7 @@ class Trade:
         self.instrument = instrument
 
         # Precision attributes
+        # TODO - review this!
         self._price_precision = 5
         self._size_precision = 5
 
@@ -813,6 +838,7 @@ class Position:
         self.trade_IDs = None
         self.net_exposure = None
         self.notional = 0
+        # TODO - review this!
         self.price_precision = 5
         self.size_precision = 5
         self.avg_price = None
@@ -920,3 +946,50 @@ class Position:
         objects as a dictionary.
         """
         return self.__dict__
+
+
+class OrderBook:
+    def __init__(self, instrument: str, initial_state: dict):
+        # TODO - review, make all Decimals
+        self.instrument = instrument
+        self.bids = None
+        self.asks = None
+        self._midprice = None
+        self._spread = None
+
+        # Initialise from initial state
+        self.bids = pd.DataFrame(initial_state["bids"]).astype(float)
+        self.asks = pd.DataFrame(initial_state["asks"]).astype(float)
+
+        # Sort quotes
+        self.bids.sort_values(by="price", ascending=False, inplace=True)
+        self.asks.sort_values(by="price", ascending=True, inplace=True)
+
+        # Calculate spread and midprice
+        spread = float(self.asks.price.min()) - float(self.bids.price.max())
+        midprice = (float(self.asks.price.min()) + float(self.bids.price.max())) / 2
+
+        # Quantize
+        # TODO - use ticksize and step size to quantize
+        ref = Decimal(str(self.bids["price"][0]))
+        self.spread = float(Decimal(spread).quantize(ref))
+        self.midprice = float(Decimal(midprice).quantize(ref))
+
+    def __repr__(self):
+        return f"{self.instrument} Order Book snapshot"
+
+    @property
+    def midprice(self):
+        return self._midprice
+
+    @midprice.setter
+    def midprice(self, value):
+        self._midprice = value
+
+    @property
+    def spread(self):
+        return self._spread
+
+    @spread.setter
+    def spread(self, value):
+        self._spread = value
