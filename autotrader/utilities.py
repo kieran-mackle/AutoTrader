@@ -14,6 +14,12 @@ from datetime import datetime, timedelta
 from prometheus_client import start_http_server, Gauge
 from autotrader.brokers.broker import AbstractBroker, Broker
 
+try:
+    from ccxt_download.utilities import load_data
+    from ccxt_download.constants import DEFAULT_DOWNLOAD_DIR, CANDLES
+except:
+    pass
+
 
 def read_yaml(file_path: str) -> dict:
     """Function to read and extract contents from .yaml file.
@@ -1187,6 +1193,54 @@ class LocalDataStream(DataStream):
         raise Exception(
             "Public trade data is not available from the local datastreamer."
         )
+
+
+class CcxtDownloadStreamer(DataStream):
+    """Data Streamer for CCXT Download."""
+
+    def __init__(self, config: dict[str, any]):
+        # Save CCXT-Download attributes
+        self.data_directory = DEFAULT_DOWNLOAD_DIR
+        self._cache_length = 3
+
+        # Initialise cache
+        self._cache: dict[str, pd.DataFrame] = {}
+
+    def get_candles(
+        self,
+        instrument: str,
+        granularity: str = None,
+        start_time: datetime = None,
+        end_time: datetime = None,
+        *args,
+        **kwargs,
+    ) -> pd.DataFrame:
+        # TODO - need to check data ranges, same as in virtual broker?
+        if instrument not in self._cache:
+            # Load from data lake
+            candles = load_data(
+                exchange="bybit",  # TODO - need to get this from somewhere
+                data_type=CANDLES,
+                data_type_id=granularity,
+                symbols=[instrument],
+                start_date=start_time,
+                end_date=end_time,
+            )
+            self._cache[instrument] = candles
+
+        else:
+            candles = self._cache[instrument]
+
+        return candles
+
+    def get_orderbook(self, instrument: str, *args, **kwargs):
+        candles = self._cache[instrument]
+        # Use local orderbook method.
+        return candles
+
+    def get_public_trades(self, instrument: str, *args, **kwargs):
+        # TODO - implement
+        return []
 
 
 class TradeWatcher:

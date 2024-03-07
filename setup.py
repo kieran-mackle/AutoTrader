@@ -20,7 +20,7 @@ def get_version(rel_path):
 
 # Define extra dependencies
 dydx_dep = ["dydx-v3-python >= 1.9.0"]
-ccxt_dep = ["ccxt >= 2.0.53"]
+ccxt_dep = ["ccxt >= 2.0.53", "ccxt-download"]
 oanda_dep = [
     "v20 >= 3.0.25.0",
 ]
