@@ -8,14 +8,11 @@ import autotrader
 import numpy as np
 import pandas as pd
 from art import tprint
-from abc import ABC, abstractmethod
+from abc import abstractmethod
+from typing import Union, Optional
 from datetime import datetime, timedelta
-from autotrader.brokers.broker import AbstractBroker, Broker
 from prometheus_client import start_http_server, Gauge
-from typing import Union, Optional, Tuple, TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from autotrader.autodata import AutoData
+from autotrader.brokers.broker import AbstractBroker, Broker
 
 
 def read_yaml(file_path: str) -> dict:
@@ -605,7 +602,7 @@ class TradeAnalysis:
             directional_trades = (
                 instrument_trade_hist["direction"] * instrument_trade_hist["size"]
             )
-            net_position_hist = round(directional_trades.cumsum(), 8)
+            net_position_hist = directional_trades.cumsum()
 
             # Filter out duplicates
             net_position_hist = net_position_hist[
@@ -798,6 +795,7 @@ class TradeAnalysis:
         broker_name: str = None,
     ) -> pd.DataFrame:
         """Creates a summary dataframe for trades and orders."""
+        # TODO - review this, could likely be cleaner
         instrument = None if isinstance(instrument, list) else instrument
 
         if trades is not None:
@@ -811,6 +809,7 @@ class TradeAnalysis:
         status = []
         ids = []
         times_list = []
+        order_type = []
         order_price = []
         size = []
         direction = []
@@ -835,6 +834,7 @@ class TradeAnalysis:
             size.append(item.size)
             direction.append(item.direction)
             times_list.append(item.order_time)
+            order_type.append(item.order_type)
             order_price.append(item.order_price)
             stop_price.append(item.stop_loss)
             take_price.append(item.take_profit)
@@ -907,6 +907,7 @@ class TradeAnalysis:
                     "instrument": product,
                     "status": status,
                     "order_id": ids,
+                    "order_type": order_type,
                     "order_price": order_price,
                     "order_time": times_list,
                     "size": size,
@@ -1112,20 +1113,20 @@ class TradeAnalysis:
         return trade_results
 
 
-class NewAbstractDataStream(Broker):
+class AbstractDataStream(Broker):
     """Custom data feed base class. Wrapper around broker object without any
     private trading methods."""
 
     @abstractmethod
-    def __init__(self, **kwargs) -> None:
+    def __init__(self, config: dict[str, any]) -> None:
         pass
 
 
-class NewDataStream(NewAbstractDataStream):
+class DataStream(AbstractDataStream):
     """Custom data feed base class. Wrapper around broker object without any
     private trading methods."""
 
-    def __init__(self, **kwargs) -> None:
+    def __init__(self, config: dict[str, any]) -> None:
         self._data_broker = self
 
     @property
@@ -1139,470 +1140,53 @@ class NewDataStream(NewAbstractDataStream):
         return "DataStreamer"
 
 
-class LocalDataStream(NewDataStream):
+class LocalDataStream(DataStream):
     """Local data stream object."""
 
-    # load local data from a data directory, using standard naming conventions
-    # need to consider allowable file name characters, eg. '/' cannot be in
+    def __init__(self, config: dict[str, any]) -> None:
+        # Unpack parameters
+        self._directory = config["directory"]
+        self._data_dict: dict[str, str] = config["data_dict"]
+        self._data_path_mapper = config["data_path_mapper"]
 
-
-class AbstractDataStream(ABC):
-    """Base DataStream class.
-
-    This class is intended to provide a means of custom data pipelines.
-    """
-
-    @abstractmethod
-    def __init__(self, **kwargs) -> None:
-        """Instantiated from AutoBot, with the following keyword arguments.
-
-        instrument : str
-            The instrument being traded.
-
-        feed : str
-            The data feed.
-
-        data_filepaths : str | dict
-            The filepaths to locally stored data.
-
-        quote_data_file : str
-            The filepaths to locally stored quote data.
-
-        auxdata_files : dict
-            The auxiliary data files.
-
-        strategy_params : dict
-            The strategy parameters.
-
-        get_data : AutoData
-            The AutoData instance.
-
-        data_start : datetime
-            The backtest start date.
-
-        data_end : datetime
-            The backtest end date.
-
-        portfolio : bool | list
-            The instruments being traded in a portfolio, if any.
-
-        data_path_mapper : callable
-            A callable to map an instrument to an absolute filepath of
-            data for that instrument.
-
-        data_dir : str
-            The data directory provided during configuration.
-
-        backtest_mode : bool
-            Flag to indicate if this is a backtest.
-        """
-        # Type-hint attributes
-        self.instrument: str = None
-        self.feed: str = None
-        self.data_filepaths: str = None
-        self.quote_data_file: str = None
-        self.auxdata_files: str = None
-        self.strategy_params: dict[str, any] = None
-        self.get_data: AutoData = None
-        self.data_start: datetime = None
-        self.data_end: datetime = None
-        self.portfolio: bool = None
-        self.data_path_mapper = None
-        self.backtest_mode: bool = None
-
-        # Unpack kwargs
-        for item in kwargs:
-            setattr(self, item, kwargs[item])
-
-    @abstractmethod
-    def refresh(
-        self, timestamp: datetime = None
-    ) -> Tuple[pd.DataFrame, dict, pd.DataFrame, dict]:
-        """Returns up-to-date trading data for AutoBot to provide to the
-        strategy.
-
-        Note: if backtesting, and dynamic_data is False, the entire range of
-        data should be returned on the initial call, or else the data will never
-        pass the checks and reach the strategy.
-
-        Parameters
-        ----------
-        timestamp : datetime, optional
-            The current timestamp, which can be used to fetch
-            data if needed. Note that look-ahead is checked for in
-            AutoTrader.autobot, so the data returned from this
-            method can include all available data. The default is
-            None.
-
-        Returns
-        -------
-        data : pd.DataFrame
-            The OHLC price data.
-
-        multi_data : dict
-            A dictionary of DataFrames.
-
-        quote_data : pd.DataFrame
-            The quote data.
-
-        auxdata : dict
-            Strategy auxiliary data.
-        """
-
-    @abstractmethod
-    def get_trading_bars(
+    def get_candles(
         self,
-        data: pd.DataFrame,
-        quote_bars: bool,
-        timestamp: Optional[datetime] = None,
-        processed_strategy_data: Optional[dict] = None,
-    ) -> dict[str, pd.Series]:
-        """Returns a dictionary of the current bars of the products being
-        traded, based on the up-to-date data passed from autobot.
-
-        Parameters
-        ----------
-        data : pd.DataFrame
-            The strategy base OHLC data.
-
-        quote_bars : bool
-            Boolean flag to signal that quote data bars are being requested.
-
-        processed_strategy_data : dict
-            A dictionary containing all of the processed strategy data,
-            allowing flexibility in what bars are returned.
-
-        Returns
-        -------
-        dict
-            A dictionary of OHLC bars, keyed by the product name.
-
-        Notes
-        -----
-        The quote data bars dictionary must have the exact same keys as the
-        trading bars dictionary. The quote_bars boolean flag is provided in
-        case a distinction must be made when this method is called.
-        """
-
-
-class DataStream(AbstractDataStream):
-    """Default data stream class.
-
-    Attributes
-    ----------
-    instrument : str
-        The instrument being traded.
-
-    feed : str
-        The data feed.
-
-    data_filepaths : str|dict
-        The filepaths to locally stored data.
-
-    quote_data_file : str
-        The filepaths to locally stored quote data.
-
-    auxdata_files : dict
-        The auxiliary data files.
-
-    strategy_params : dict
-        The strategy parameters.
-
-    get_data : AutoData
-        The AutoData instance.
-
-    data_start : datetime
-        The backtest start date.
-
-    data_end : datetime
-        The backtest end date.
-
-    portfolio : bool|list
-        The instruments being traded in a portfolio, if any.
-
-    data_path_mapper : callable
-        A callable to map an instrument to an absolute filepath of
-        data for that instrument.
-
-    Notes
-    -----
-    A 'dynamic' dataset is one where the specific products being traded
-    change over time. For example, trading contracts on an underlying product.
-    In this case, dynamic_data should be set to True in AutoTrader.add_data
-    method. When True, the datastream will be refreshed each update interval
-    to ensure that data for the relevant contracts are being provided.
-
-    When the data is 'static', the instrument being traded does not change
-    over time. This is the more common scenario. In this case, the datastream
-    is only refreshed during livetrading, to accomodate for new data coming in.
-    In backtesting however, the entire dataset can be provided after the
-    initial call, as it will not evolve during the backtest. Note that future
-    data will not be provided to the strategy; instead, the data returned from
-    the datastream will be filtered by each AutoTraderBot before being passed
-    to the strategy.
-    """
-
-    def __init__(self, **kwargs) -> None:
-        super().__init__(**kwargs)
-
-    def refresh(self, timestamp: datetime = None):
-        # Retrieve main data
-        if self.data_filepaths is not None:
-            # Local data filepaths provided
-            if isinstance(self.data_filepaths, str):
-                # Single data filepath provided
-                data = self.get_data._local(
-                    self.data_filepaths, self.data_start, self.data_end
-                )
-                multi_data = None
-
-            elif isinstance(self.data_filepaths, dict):
-                # Multiple data filepaths provided
-                multi_data = {}
-                if self.portfolio:
-                    for instrument, filepath in self.data_filepaths.items():
-                        data = self.get_data._local(
-                            filepath, self.data_start, self.data_end
-                        )
-                        multi_data[instrument] = data
-                else:
-                    for granularity, filepath in self.data_filepaths.items():
-                        data = self.get_data._local(
-                            filepath, self.data_start, self.data_end
-                        )
-                        multi_data[granularity] = data
-
-                # Extract first dataset as base data (arbitrary)
-                data = multi_data[list(self.data_filepaths.keys())[0]]
-
-        elif self.data_path_mapper is not None:
-            # Local data paths provided through mapper function
-            multi_data = {}
-            if self.portfolio:
-                # Portfolio strategy
-                for instrument in self.portfolio:
-                    # Construct filepath
-                    filepath = self.data_path_mapper(instrument)
-
-                    # Save to multidata dict
-                    data = self.get_data._local(
-                        filepath, self.data_start, self.data_end
-                    )
-                    multi_data[instrument] = data
-
-            else:
-                # Single instrument strategy
-                filepath = self.data_path_mapper(self.instrument)
-                granularity = self.strategy_params["granularity"]
-                data = self.get_data._local(filepath, self.data_start, self.data_end)
-                multi_data = None
-
-        else:
-            # Download data
-            multi_data = {}
-            data_func = self.get_data.fetch
-            if self.portfolio:
-                # Portfolio strategy
-                if len(self.portfolio) > 1:
-                    granularity = self.strategy_params["granularity"]
-                    data_key = self.portfolio[0]
-                    for instrument in self.portfolio:
-                        data = data_func(
-                            instrument,
-                            granularity=granularity,
-                            count=self.strategy_params["period"],
-                            start_time=self.data_start,
-                            end_time=self.data_end,
-                        )
-                        multi_data[instrument] = data
-                else:
-                    raise Exception(
-                        "Portfolio strategies require more "
-                        + "than a single instrument. Please set "
-                        + "portfolio to False, or specify more "
-                        + "instruments in the watchlist."
-                    )
-            else:
-                # Single instrument strategy
-                granularities = self.strategy_params["granularity"].split(",")
-                data_key = granularities[0]
-                for granularity in granularities:
-                    data = data_func(
-                        self.instrument,
-                        granularity=granularity,
-                        count=self.strategy_params["period"],
-                        start_time=self.data_start,
-                        end_time=self.data_end,
-                    )
-                    multi_data[granularity] = data
-
-            # Take data as first element of multi-data
-            data = multi_data[data_key]
-
-            if len(multi_data) == 1:
-                multi_data = None
-
-        # Retrieve quote data
-        if self.quote_data_file is not None:
-            if isinstance(self.quote_data_file, str):
-                # Single quote datafile
-                quote_data = self.get_data._local(
-                    self.quote_data_file, self.data_start, self.data_end
-                )
-
-            elif isinstance(quote_data, dict) and self.portfolio:
-                # Multiple quote datafiles provided
-                # TODO - support multiple quote data files (portfolio strategies)
-                raise NotImplementedError(
-                    "Locally-provided quote data not " + "implemented for portfolios."
-                )
-                quote_data = {}
-                for instrument, path in quote_data.items():
-                    quote_data[instrument] = self.get_data._local(
-                        self.quote_data_file,  # need to specify
-                        self.data_start,
-                        self.data_end,
-                    )
-            else:
-                raise Exception("Error in quote data file provided.")
-
-        else:
-            # Download data
-            quote_data_func = self.get_data._quote
-            if self.portfolio:
-                # Portfolio strategy - quote data for each instrument
-                granularity = self.strategy_params["granularity"]
-                quote_data = {}
-                for instrument in self.portfolio:
-                    quote_df = quote_data_func(
-                        multi_data[instrument],
-                        instrument,
-                        granularity,
-                        self.data_start,
-                        self.data_end,
-                        count=self.strategy_params["period"],
-                    )
-                    quote_data[instrument] = quote_df
-
-            else:
-                # Single instrument strategy - quote data for base granularity
-                quote_data = quote_data_func(
-                    data,
-                    self.instrument,
-                    self.strategy_params["granularity"].split(",")[0],
-                    self.data_start,
-                    self.data_end,
-                    count=self.strategy_params["period"],
-                )
-
-        # Retrieve auxiliary data
-        if self.auxdata_files is not None:
-            if isinstance(self.auxdata_files, str):
-                # Single data filepath provided
-                auxdata = self.get_data._local(
-                    self.auxdata_files, self.data_start, self.data_end
-                )
-
-            elif isinstance(self.auxdata_files, dict):
-                # Multiple data filepaths provided
-                auxdata = {}
-                for key, filepath in self.auxdata_files.items():
-                    data = self.get_data._local(
-                        filepath, self.data_start, self.data_end
-                    )
-                    auxdata[key] = data
-        else:
-            auxdata = None
-
-        # Correct any data mismatches
-        if self.portfolio:
-            # Portfolio strategy
-            for instrument in multi_data:
-                matched_data, matched_quote_data = self.match_quote_data(
-                    multi_data[instrument], quote_data[instrument]
-                )
-                multi_data[instrument] = matched_data
-                quote_data[instrument] = matched_quote_data
-        else:
-            # Single instrument data strategy
-            if data is not None:
-                # Data is not None (in case of 'none' data feed)
-                data, quote_data = self.match_quote_data(data, quote_data)
-
-        return data, multi_data, quote_data, auxdata
-
-    def match_quote_data(
-        self, data: pd.DataFrame, quote_data: pd.DataFrame
+        instrument: str,
+        granularity: str = None,
+        count: int = None,
+        start_time: datetime = None,
+        end_time: datetime = None,
+        *args,
+        **kwargs,
     ) -> pd.DataFrame:
-        """Function to match index of trading data and quote data."""
-        datasets = [data, quote_data]
-        adjusted_datasets = []
+        # TODO - test with portfolio
 
-        for dataset in datasets:
-            # Initialise common index
-            common_index = dataset.index
+        # Get filepath
+        if self._data_dict:
+            # Local using filenames specified
+            filepath = self._data_dict.get(instrument)
 
-            # Update common index by intersection with other data
-            for other_dataset in datasets:
-                common_index = common_index.intersection(other_dataset.index)
+        elif self._data_path_mapper:
+            # Use mapper function
+            prefix = self._data_path_mapper(instrument)
+            filepath = os.path.join(self._directory, f"{prefix}.csv")
 
-            # Adjust data using common index found
-            adj_data = dataset[dataset.index.isin(common_index)]
-
-            adjusted_datasets.append(adj_data)
-
-        # Unpack adjusted datasets
-        adj_data, adj_quote_data = adjusted_datasets
-
-        return adj_data, adj_quote_data
-
-    def get_trading_bars(
-        self,
-        data: pd.DataFrame,
-        quote_bars: bool,
-        timestamp: Optional[datetime] = None,
-        processed_strategy_data: Optional[dict] = None,
-    ) -> dict:
-        """Returns a dictionary of the current bars of the products being
-        traded, based on the up-to-date data passed from autobot.
-
-        Parameters
-        ----------
-        data : pd.DataFrame
-            The strategy base OHLC data.
-
-        quote_bars : bool
-            Boolean flag to signal that quote data bars are being requested.
-
-        processed_strategy_data : dict
-            A dictionary containing all of the processed strategy data,
-            allowing flexibility in what bars are returned.
-
-        Returns
-        -------
-        dict
-            A dictionary of OHLC bars, keyed by the product name.
-
-        Notes
-        -----
-        The quote data bars dictionary must have the exact same keys as the
-        trading bars dictionary. The quote_bars boolean flag is provided in
-        case a distinction must be made when this method is called.
-        """
-        bars = {}
-        strat_data = (
-            processed_strategy_data["base"]
-            if "base" in processed_strategy_data
-            else processed_strategy_data
-        )
-        if isinstance(strat_data, dict):
-            for instrument, data in strat_data.items():
-                bars[instrument] = data.iloc[-1]
         else:
-            # Use latest slice of strategy data
-            bars[self.instrument] = strat_data.iloc[-1]
+            # Use instrument directory
+            filepath = os.path.join(self._directory, f"{instrument}.csv")
 
-        return bars
+        # Load
+        candles = pd.read_csv(filepath, index_col=0, parse_dates=True)
+
+        return candles
+
+    def get_orderbook(self, instrument: str, *args, **kwargs):
+        raise Exception("Orderbook data is not available from the local datastreamer.")
+
+    def get_public_trades(self, instrument: str, *args, **kwargs):
+        raise Exception(
+            "Public trade data is not available from the local datastreamer."
+        )
 
 
 class TradeWatcher:

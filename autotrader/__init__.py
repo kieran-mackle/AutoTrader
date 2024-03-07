@@ -14,24 +14,24 @@ from .brokers.trading import (
 # Broker imports
 # CCXT
 try:
-    from .brokers.ccxt.broker import Broker as CCXTBroker
+    from .brokers.ccxt import Broker as CCXT
 except:
     pass
 
 # Interactive Brokers
 try:
-    from .brokers.ib.broker import Broker as IBroker
+    from .brokers.ib import Broker as IB
 except:
     pass
 
 # Oanda
 try:
-    from .brokers.oanda.broker import Broker as OandaBroker
+    from .brokers.oanda import Broker as Oanda
 except:
     pass
 
 # Virtual broker
-from .brokers.virtual.broker import Broker as VirtualBroker
+from .brokers.virtual import Broker as VirtualBroker
 
 # Define version number
 __version__ = "0.12.1"

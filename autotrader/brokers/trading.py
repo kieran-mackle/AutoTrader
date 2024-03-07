@@ -1,13 +1,8 @@
-from __future__ import annotations
 import numpy as np
 import pandas as pd
 from decimal import Decimal
 from datetime import datetime
-from typing import Literal, Union, TYPE_CHECKING
-from autotrader.brokers.broker_utils import BrokerUtils
-
-if TYPE_CHECKING:
-    from autotrader.brokers.broker import Broker
+from typing import Literal, Union
 
 
 class Order:
@@ -15,17 +10,18 @@ class Order:
 
     def __init__(
         self,
-        instrument: str,
-        direction: int,
-        size: float,
+        instrument: str = None,
+        direction: int = None,
+        size: float = None,
         order_type: Literal["market", "limit", "stop-limit", "modify"] = "market",
         order_limit_price: float = None,
         order_stop_price: float = None,
         stop_loss: float = None,
-        stop_type: str = None,
+        stop_type: str = "limit",
         take_profit: float = None,
+        related_orders: list[Union[str, int]] = None,
         **kwargs,
-    ) -> Order:
+    ):
         """Create a new order.
 
         Parameters
@@ -42,13 +38,6 @@ class Order:
         size : float
             The number of units.
 
-        base_size : float
-            The number of units, in the base currency (pre-HCF conversion).
-
-        target_value : float
-            The target value of the resulting trade, specified in the home
-            currency of the account.
-
         order_limit_price : float
             The limit price of the order (for 'limit' and 'stop-limit' order
             types).
@@ -56,17 +45,8 @@ class Order:
         order_stop_price : float
             The stop price of the order (for 'stop-limit' order types).
 
-        order_price : float
-            The price of the instrument when the order was placed.
-
-        order_time : datetime
-            The time at which the order was placed.
-
         stop_loss : float
             The price to set the stop-loss at.
-
-        stop_distance : float
-            The pip distance between the order price and the stop-loss.
 
         stop_type : str
             The type of stop-loss (limit or trailing). The default is 'limit'.
@@ -74,22 +54,8 @@ class Order:
         take_profit : float
             The price to set the take-profit at.
 
-        take_distance : float
-            The pip distance between the order price and the take-profit.
-
-        related_orders : list[str]
+        related_orders : list[str | int]
             A list of related order/trade ID's.
-
-        id : int
-            The order ID.
-
-        pip_value : float, optional
-            The pip value of the product being traded. Specify this for non-FX
-            products when using stop_distance/take_distance arguments. The default
-            is None.
-
-        currency : str
-            The base currency of the order (IB only).
 
         secType : str
             The security type (IB only).
@@ -100,30 +66,23 @@ class Order:
         localSymbol : str
             The exchange-specific instrument symbol (IB only).
 
-        post_only : bool, optional
-            Enforce that the order is placed as a maker order (dYdX only). The
-            default is False.
-
         limit_fee : str, optional
             The maximum fee to accept as a percentage (dYdX only). The default
             is '0.015'.
-
-        exchange : str
-            The exchange to which the order should be submitted.
 
         ccxt_params : dict, optional
             The CCXT parameters dictionary to pass when creating an order. The
             default is {}.
         """
+        # TODO - implement post-only
+
         # Required attributes
-        self.instrument = instrument
+        self.instrument = instrument if instrument is not None else None
         self.direction = np.sign(direction) if direction is not None else None
         self.order_type = order_type
 
         # Optional arguments
         self.size = Decimal(str(size)) if size is not None else None
-        self.base_size = None
-        self.target_value = None
         self.order_price = None
         self.order_time = None
         self.order_limit_price = (
@@ -132,35 +91,23 @@ class Order:
         self.order_stop_price = (
             Decimal(str(order_stop_price)) if order_stop_price else None
         )
-        self.pip_value = None
-        self.HCF = 1
-
-        # Precision
-        # TODO - overhaul with Decimal
-        self.price_precision = 16
-        self.size_precision = 16
 
         # Multi-exchange handling
         self.exchange = None
 
         # Stop loss arguments
-        self.stop_type = stop_type
         self.stop_loss = Decimal(str(stop_loss)) if stop_loss else None
-        # TODO - deprecate distance args.
-        self.stop_distance = None
+        self.stop_type = stop_type
 
         # Take profit arguments
         self.take_profit = Decimal(str(take_profit)) if take_profit else None
-        self.take_distance = None
 
-        self.related_orders = None
+        self.related_orders = related_orders
 
         # Reduce only order
         self.parent_order = None  # Parent order ID
         self.reduce_only = False
         self.OCO = []  # One-cancels-other
-
-        self.data_name = None  # When using custom DataStream
 
         # IB attributes
         self.currency = None
@@ -171,22 +118,16 @@ class Order:
         # Oanda attributes
         self.trigger_price = "DEFAULT"
 
-        # dydx attributes
-        self.post_only = False
-        self.limit_fee = "0.015"
-
         # CCXT attributes
         self.ccxt_params = {}  # CCXT order parameters
         self.ccxt_order = {}  # CCXT native order structure
 
+        # Meta
         self.reason = None
-
         self.strategy = None
         self.granularity = None
         self._sizing = None
         self._risk_pc = None
-
-        # Meta-data
         self.id: Union[int, str] = None
         self.status: Literal["submitted", "pending", "open", "cancelled", "filled"] = (
             None
@@ -195,10 +136,6 @@ class Order:
         # Unpack kwargs
         for item in kwargs:
             setattr(self, item, kwargs[item])
-
-        # Enforce stop type
-        if self.stop_loss is not None or self.stop_distance is not None:
-            self.stop_type = self.stop_type if self.stop_type is not None else "limit"
 
     def __repr__(self):
         return self.__str__()
@@ -217,7 +154,7 @@ class Order:
                 side = "buy" if self.direction > 0 else "sell"
 
                 string = (
-                    f"{round(self.size, self.size_precision)} "
+                    f"{self.size} "
                     + f"unit {self.instrument} {self.order_type} "
                     + f"{side} order"
                 )
@@ -248,28 +185,19 @@ class Order:
 
     def __call__(
         self,
-        broker: Broker = None,
         order_price: Decimal = None,
         order_time: datetime = datetime.now(),
-        HCF: Decimal = None,
-        precision: dict = None,
     ) -> None:
         """Order object, called before submission to broker in
         autobot._qualify_orders.
 
         Parameters
         ----------
-        broker : AutoTrader broker API instance, optional
-            The broker-autotrader api instance. The default is None.
-
         order_price : Decimal, optional
             The order price. The default is None.
 
         order_time : datetime, optional
             The time of the order. The default is datetime.now().
-
-        HCF : Decimal, optional
-            The home conversion factor. The default is 1.
 
         precision : dict, optional
             A dictionary containing the precision for order size and price.
@@ -284,207 +212,14 @@ class Order:
             Decimal(str(order_price)) if order_price else self.order_price
         )
         self.order_time = order_time if order_time else self.order_time
-        self.HCF = Decimal(str(HCF)) if HCF is not None else self.HCF
-
-        # Assign precisions
-        # TODO - review this
-        if precision is not None:
-            # Update
-            self.price_precision = precision["price"]
-            self.size_precision = precision["size"]
 
         # Enforce size scalar
         self.size = abs(Decimal(str(self.size))) if self.size is not None else self.size
-
-        # if self.order_type not in ["close", "modify"]:
-        #     self._set_working_price()
-        # self._calculate_exit_prices(broker)
-        # self._calculate_position_size(broker)
-
         self.status = "submitted"
         self.submitted = True
 
-    def _set_working_price(self, order_price: Decimal = None) -> None:
-        """Sets the Orders' working price, for calculating exit targets.
-
-        Parameters
-        ----------
-        order_price : float, optional
-            The order price.
-
-        Returns
-        -------
-        None
-            The working price will be saved as a class attribute.
-        """
-        order_price = (
-            Decimal(str(order_price)) if order_price is not None else self.order_price
-        )
-        if self.order_type == "limit" or self.order_type == "stop-limit":
-            self._working_price = round(self.order_limit_price, self.price_precision)
-        else:
-            if order_price is not None:
-                # TODO - do not use round.
-                self._working_price = round(order_price, self.price_precision)
-            else:
-                self._working_price = None
-
-    def _calculate_exit_prices(self, broker=None, working_price: float = None) -> None:
-        """Calculates the prices of the exit targets from the pip distance
-        values.
-
-        Parameters
-        ----------
-        broker : AutoTrader Broker Interface, optional
-            The autotrade-broker instance. The default is None.
-
-        working_price : float, optional
-            The working price used to calculate amount risked. The default is
-            None.
-
-        Returns
-        -------
-        None
-            The exit prices will be assigned to the order instance.
-        """
-        # TODO - review if this method should exist
-        working_price = (
-            round(working_price, self.price_precision)
-            if working_price is not None
-            else self._working_price
-        )
-
-        if broker is None:
-            # No broker provided, create nominal utils instance
-            utils = BrokerUtils()
-        else:
-            # Use broker-specific utilities
-            utils = broker._utils
-
-        pip_value = (
-            self.pip_value
-            if self.pip_value is not None
-            else utils.get_pip_ratio(self.instrument)
-        )
-
-        # Calculate stop loss price
-        if self.stop_loss is None and self.stop_distance is not None:
-            # Stop loss provided as pip distance, convert to price
-            stop_loss = (
-                working_price - np.sign(self.direction) * self.stop_distance * pip_value
-            )
-            self.stop_loss = round(stop_loss, self.price_precision)
-
-        if (
-            self.stop_type == "trailing"
-            and self.stop_distance is None
-            and working_price is not None
-        ):
-            # Convert stop_loss price to stop_distance as well
-            self.stop_distance = (
-                np.sign(self.direction) * (working_price - self.stop_loss) / pip_value
-            )
-
-        # Calculate take profit price
-        if self.take_profit is None and self.take_distance is not None:
-            # Take profit pip distance specified, convert to price
-            take_profit = (
-                working_price + np.sign(self.direction) * self.take_distance * pip_value
-            )
-            self.take_profit = round(take_profit, self.price_precision)
-
-    def _calculate_position_size(
-        self,
-        broker: Broker = None,
-        working_price: Decimal = None,
-        HCF: Decimal = 1,
-        risk_pc: Decimal = 0,
-        sizing: str | Decimal = "risk",
-        amount_risked: Decimal = None,
-    ) -> None:
-        """Calculates trade size for order.
-
-        Parameters
-        ----------
-        broker : AutoTrader Broker Interface, optional
-            The autotrade-broker instance. The default is None.
-
-        working_price : float, optional
-            The working price used to calculate amount risked. The default is None.
-
-        HCF : float, optional
-            The home conversion factor. The default is 1.
-
-        risk_pc : float, optional
-            The percentage of the account NAV to risk on the trade. The default is 0.
-
-        sizing : str | float, optional
-            The sizing option. The default is 'risk'.
-
-        amount_risked : float, optional
-            The dollar amount risked on the trade. The default is None.
-
-        Returns
-        -------
-        None
-            The trade size will be assigned to the order instance.
-        """
-        # TODO - review this method too. Should be on the user.
-        working_price = (
-            working_price if working_price is not None else self._working_price
-        )
-        HCF = self.HCF if self.HCF is not None else HCF
-        sizing = self._sizing if self._sizing is not None else sizing
-        risk_pc = self._risk_pc if self._risk_pc is not None else risk_pc
-
-        if self.size is None:
-            # Size has not been set
-            if self.target_value is not None:
-                # Calculate size based on target trade value
-                self.size = round(
-                    self.target_value / working_price / HCF, self.size_precision
-                )
-            elif self.base_size is not None:
-                # Size provided in base units, need to convert it
-                self.size = round(self.base_size / HCF, self.size_precision)
-            else:
-                # Size not provided, need to calculate it
-                if sizing == "risk":
-                    # Calculate size from SL placement
-                    try:
-                        amount_risked = (
-                            amount_risked
-                            if amount_risked
-                            else broker.get_NAV() * risk_pc / 100
-                        )
-
-                        size = broker._utils.get_size(
-                            instrument=self.instrument,
-                            amount_risked=amount_risked,
-                            price=working_price,
-                            HCF=HCF,
-                            stop_price=self.stop_loss,
-                            stop_distance=self.stop_distance,
-                        )
-                        self.size = round(size, self.size_precision)
-
-                    except AttributeError:
-                        # Broker is None type
-                        raise Exception(
-                            "Cannot calculate size without broker access. Please "
-                            + "pass size argument, or add broker to Order object."
-                        )
-
-                else:
-                    # Use position size provided via sizing key
-                    self.size = sizing
-
-        else:
-            # Size has been set, enforce precision
-            self.size = round(self.size, self.size_precision)
-
     @classmethod
-    def _partial_fill(cls, order: Order, units_filled: Decimal) -> Order:
+    def _partial_fill(cls, order: "Order", units_filled: Decimal) -> "Order":
         """Partially fills the order."""
         # Enforce Decimal type
         units_filled = Decimal(str(units_filled))
@@ -534,8 +269,28 @@ class Order:
         return self.__dict__
 
     @classmethod
-    def _from_dict(cls, order_dict: dict) -> Order:
+    def _from_dict(cls, order_dict: dict) -> "Order":
         return Order(**order_dict)
+
+    def _modify_from(self, order: "Order"):
+        """Modify this order from another order."""
+        # TODO - review what can be changed here
+
+        # Check order limit price
+        if order.order_limit_price is not None:
+            self.order_limit_price = Decimal(str(order.order_limit_price))
+
+        # Check size
+        if order.size is not None:
+            self.size = Decimal(str(order.size))
+
+        # Check stop loss
+        if order.stop_loss is not None:
+            self.stop_loss = Decimal(str(order.stop_loss))
+
+        # Check take profit
+        if order.take_profit is not None:
+            self.take_profit = Decimal(str(order.take_profit))
 
 
 class MarketOrder(Order):
@@ -654,7 +409,7 @@ class IsolatedPosition(Order):
     When a trade is created from an Order, the Order will be marked as filled.
     """
 
-    def __init__(self, order: Order = None, **kwargs) -> IsolatedPosition:
+    def __init__(self, order: Order = None, **kwargs):
         # Trade data
         self.unrealised_PL = 0
         self.margin_required = 0
@@ -699,7 +454,9 @@ class IsolatedPosition(Order):
             setattr(self, attribute, value)
 
     @classmethod
-    def _split(cls, trade: IsolatedPosition, split_units: Decimal) -> IsolatedPosition:
+    def _split(
+        cls, trade: "IsolatedPosition", split_units: Decimal
+    ) -> "IsolatedPosition":
         """Splits parent IsolatedPosition into new object for partial
         closures.
 
@@ -739,7 +496,7 @@ class Trade:
         fill_direction: int,
         fee: Decimal,
         **kwargs,
-    ) -> Trade:
+    ):
         """Trade constructor."""
         # Trade data
         self.fill_time = fill_time
@@ -755,8 +512,8 @@ class Trade:
 
         # Precision attributes
         # TODO - review this!
-        self._price_precision = 5
-        self._size_precision = 5
+        self._price_precision = 15
+        self._size_precision = 15
 
         # Meta-data
         self.id = None
@@ -839,16 +596,14 @@ class Position:
         self.net_exposure = None
         self.notional = 0
         # TODO - review this!
-        self.price_precision = 5
-        self.size_precision = 5
+        self.price_precision = 15
+        self.size_precision = 15
         self.avg_price = None
         self._prev_avg_price = None
 
         # TODO - include position open time, close time
         # Also need to track max units ? I think that can all be built
         # from fills
-        self.HCF = 1
-
         self.entry_time = None
         self.last_price = None
         self.last_time = None

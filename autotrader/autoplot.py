@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import pandas as pd
 from math import pi
@@ -314,7 +315,7 @@ class AutoPlot:
             title_string = (
                 f"Backtest chart for {instrument} ({trade_results.interval} candles)"
             )
-            formatted_instr = instrument.replace("/", "_")
+            formatted_instr = instrument.replace(os.sep, "_")
             output_file(
                 f"{formatted_instr}-backtest-chart.html",
                 title=f"AutoTrader Backtest Results - {instrument}",
@@ -1323,9 +1324,9 @@ class AutoPlot:
 
         candle_tooltips = [
             ("Date", "@date{%b %d %H:%M:%S}"),
-            ("Open", "@Open{0.0000}"),
-            ("High", "@High{0.0000}"),
-            ("Low", "@Low{0.0000}"),
+            # ("Open", "@Open{0.0000}"),
+            # ("High", "@High{0.0000}"),
+            # ("Low", "@Low{0.0000}"),
             ("Close", "@Close{0.0000}"),
         ]
 

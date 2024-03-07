@@ -1,4 +1,3 @@
-from __future__ import annotations
 import os
 import pickle
 import importlib
@@ -7,10 +6,8 @@ import pandas as pd
 from decimal import Decimal
 from typing import Callable, Union
 from datetime import datetime, timezone
-from autotrader.utilities import NewDataStream
 from autotrader.brokers.broker import AbstractBroker
-from autotrader.brokers.trading import Order, Position, Trade
-from autotrader.brokers.trading import OrderBook
+from autotrader.brokers.trading import Order, Position, Trade, OrderBook
 
 
 class Broker(AbstractBroker):
@@ -103,6 +100,7 @@ class Broker(AbstractBroker):
         self._filled_orders = {}
         self._cancelled_orders = {}
         self._order_id_instrument = {}  # mapper from order_id to instrument
+        self._all_orders: dict[int, Order] = {}
 
         # Isolated positions (formerly "trades")
         # self._open_iso_pos = {}
@@ -405,20 +403,38 @@ class Broker(AbstractBroker):
         )
         order(order_time=datetime_stamp)
 
+        # Define reference order type
+        if order.order_type == "modify":
+            # Get linked order
+            linked_order_id = int(order.related_orders[0])
+            if linked_order_id in self._all_orders:
+                # Get the linked order
+                linked_order = self._all_orders[linked_order_id]
+                ref_order_type = linked_order.order_type
+
+                # Check linked order can be modified
+                if linked_order.status not in ["pending", "open"]:
+                    invalid_order = True
+                    reason = f"Cannot modify order ID {linked_order_id} with status {linked_order.status}."
+
+            else:
+                # Invalid order ID
+                invalid_order = True
+                reason = f"Cannot find order ID {linked_order_id}."
+                ref_order_type = order.order_price
+
+        else:
+            # Use order directly
+            ref_order_type = order.order_type
+
         # Define reference price
-        if order.order_type == "limit" or order.order_type == "stop-limit":
+        if ref_order_type in ["limit", "stop-limit"]:
             # Use limit price
             ref_price = order.order_limit_price
 
         else:
             # Use order price
             ref_price = order.order_price
-
-        # Convert stop distance to price
-        if order.stop_loss is None and order.stop_distance:
-            order.stop_loss = (
-                ref_price - order.direction * order.stop_distance * order.pip_value
-            )
 
         # Verify SL price
         invalid_order = False
@@ -455,6 +471,7 @@ class Broker(AbstractBroker):
             invalid_order = True
 
         # Check limit order does not cross book
+        # TODO - allow for non post only limit orders
         try:
             if order.order_type in ["limit"]:
                 if self._paper_trading:
@@ -482,40 +499,51 @@ class Broker(AbstractBroker):
                 )
         except:
             # Exception, continue
+            # TODO - log!
+            print("ERROR CHECKING LIMIT ORDER")
             pass
 
-        # Assign order ID
-        order.id = self._get_new_order_id()
-        self._order_id_instrument[order.id] = order.instrument
-
-        # Add order to pending_orders dict
-        order.status = "pending"
-        self._pending_orders.setdefault(order.instrument, {}).setdefault(
-            order.id, order
-        )
-
-        # Submit order
-        if invalid_order:
-            # Invalid order, cancel it
-            self.cancel_order(order.id, reason, "_pending_orders", datetime_stamp)
+        # Check order type again
+        if order.order_type == "modify" and not invalid_order:
+            # Modify the linked order
+            linked_order._modify_from(order)
 
         else:
-            # Open order
-            self._move_order(
-                order,
-                from_dict="_pending_orders",
-                to_dict="_open_orders",
-                new_status="open",
+            # Assign order ID
+            order.id = self._get_new_order_id()
+            self._order_id_instrument[order.id] = order.instrument
+            self._all_orders[order.id] = order
+
+            # Add order to pending_orders dict
+            order.status = "pending"
+            self._pending_orders.setdefault(order.instrument, {}).setdefault(
+                order.id, order
             )
 
-            # Print
-            if self._verbosity > 0:
-                print(
-                    f"{datetime_stamp}: Order {order.id} received: {order.__repr__()}"
+            # Submit order
+            if invalid_order:
+                # Invalid order, cancel it
+                self.cancel_order(order.id, reason, "_pending_orders", datetime_stamp)
+
+            else:
+                # Open order
+                self._move_order(
+                    order,
+                    from_dict="_pending_orders",
+                    to_dict="_open_orders",
+                    new_status="open",
                 )
 
+                # Print
+                if self._verbosity > 0:
+                    print(
+                        f"{datetime_stamp}: Order {order.id} received: {order.__repr__()}"
+                    )
+
     def get_orders(
-        self, instrument: str = None, order_status: str = "open"
+        self,
+        instrument: str = None,
+        order_status: str = "open",
     ) -> dict[str, Order]:
         """Returns orders of status order_status."""
         all_orders = getattr(self, f"_{order_status}_orders")
@@ -733,6 +761,8 @@ class Broker(AbstractBroker):
         granularity: str,
     ):
         """Initialise the broker data and cache the result."""
+        if int(self._verbosity) > 0:
+            print(f"Initialising data for {instrument}.")
         if instrument not in self._data_cache:
             candles = self.data_broker.get_candles(
                 instrument=instrument,
@@ -833,7 +863,7 @@ class Broker(AbstractBroker):
                             order.order_type = "limit"
                         else:
                             # Stop order triggered - proceed to market fill
-                            # Fill time is actually within the candle
+                            # Fill time is within the candle
                             reference_price = order.order_stop_price
                             order.order_price = reference_price
                             order.order_type = "market"
@@ -862,6 +892,11 @@ class Broker(AbstractBroker):
                         # Update limit orders based on trade feed
                         if trade is not None:
                             self._public_trade(instrument, trade)
+
+                elif order.order_type == "modify":
+                    # Other order types!
+
+                    a = 0
 
         # Open pending orders
         pending_orders = self.get_orders(instrument, "pending")
@@ -893,10 +928,8 @@ class Broker(AbstractBroker):
             position.last_price = get_last_price(np.sign(position.net_position))
             position.last_time = dt
             position.notional = position.last_price * abs(position.net_position)
-            position.pnl = (
-                position.net_position
-                * (position.last_price - position.avg_price)
-                * position.HCF
+            position.pnl = position.net_position * (
+                position.last_price - position.avg_price
             )
 
         # Update floating pnl and margin available
@@ -1005,7 +1038,7 @@ class Broker(AbstractBroker):
                 # The original order will remain with reduced size
                 self._open_orders[order.instrument][order.id] = order
 
-        order_notional = order.size * reference_price * order.HCF
+        order_notional = order.size * reference_price
         margin_required = self._calculate_margin(order_notional)
 
         if margin_required < self._margin_available or order.reduce_only:
@@ -1021,7 +1054,6 @@ class Broker(AbstractBroker):
                     direction=order.direction,
                     size=order.size,
                     reference_price=reference_price,
-                    precision=order.price_precision,
                 )
             else:
                 # Unrecognised order type
@@ -1047,7 +1079,7 @@ class Broker(AbstractBroker):
             )
 
     def _modify_position(self, trade: Trade, reduce_only: bool):
-        """Modifies the position in a position."""
+        """Modifies the position with a new trade."""
         if trade.instrument in self._positions:
             # Instrument already has a position
             price_precision = self._positions[trade.instrument].price_precision
@@ -1100,6 +1132,7 @@ class Broker(AbstractBroker):
                     self._short_realised_pnl += pnl
 
             # Check if position is zero
+            # TODO - this should be done using Decimal.quantize.
             if round(new_net_position, price_precision) == 0:
                 # Move to closed positions (and add exit time)
                 popped_position = self._positions.pop(trade.instrument)
@@ -1166,8 +1199,7 @@ class Broker(AbstractBroker):
         order_type = order.order_type
         direction = order.direction
         order_id = order.id
-        HCF = order.HCF
-        fill_price = round(fill_price, order.price_precision)
+        fill_price = fill_price
 
         # Check for SL
         if order.stop_loss is not None:
@@ -1177,7 +1209,7 @@ class Broker(AbstractBroker):
                 direction=-order.direction,
                 size=abs(order.size),
                 order_type="stop",
-                order_stop_price=round(order.stop_loss, order.price_precision),
+                order_stop_price=order.stop_loss,
                 reduce_only=True,
                 id=self._get_new_order_id(),
                 parent_order=order.id,
@@ -1202,13 +1234,11 @@ class Broker(AbstractBroker):
                 direction=-order.direction,
                 size=abs(order.size),
                 order_type="limit",
-                order_limit_price=round(order.take_profit, order.price_precision),
+                order_limit_price=order.take_profit,
                 reduce_only=True,
                 id=self._get_new_order_id(),
                 parent_order=order.id,
                 status="open",
-                price_precision=order.price_precision,
-                size_precision=order.size_precision,
                 order_time=fill_time,
                 order_price=fill_price,
             )
@@ -1228,7 +1258,7 @@ class Broker(AbstractBroker):
 
         # Charge trading fees
         commission = self._calculate_commissions(
-            price=fill_price, units=order_size, HCF=HCF, order_type=order_type
+            price=fill_price, units=order_size, order_type=order_type
         )
         self._adjust_balance(-commission, latest_time=fill_time)
 
@@ -1247,8 +1277,6 @@ class Broker(AbstractBroker):
             id=self._get_new_fill_id(),
             order_id=order_id,
             order_type=order_type,
-            _price_precision=order.price_precision,
-            _size_precision=order.size_precision,
         )
         self._fills.append(trade)
 
@@ -1296,7 +1324,6 @@ class Broker(AbstractBroker):
         direction: int,
         size: float,
         reference_price: float = None,
-        precision: int = None,
     ) -> float:
         """Returns an average fill price by filling an order through
         the orderbook.
@@ -1316,10 +1343,6 @@ class Broker(AbstractBroker):
         reference_price : float, optional
             The reference price to use if artificially creating an
             orderbook.
-
-        precision : dict, optional
-            The precision to use for rounding prices. The default
-            is None.
         """
         if reference_price is not None:
             # Emulate book
@@ -1359,17 +1382,12 @@ class Broker(AbstractBroker):
             slippage_pc = slippage_model(size)
             avg_fill_price *= 1 + direction * slippage_pc
 
-        if precision is not None:
-            # Round price to precision
-            avg_fill_price = round(avg_fill_price, precision)
-
         return avg_fill_price
 
     def _calculate_commissions(
         self,
         price: Decimal,
         units: Decimal = None,
-        HCF: Decimal = 1,
         order_type: str = "market",
     ) -> Decimal:
         """Calculates trade commissions."""
@@ -1380,7 +1398,7 @@ class Broker(AbstractBroker):
 
         if self._commission_scheme == "percentage":
             # Commission charged as percentage of trade value
-            trade_value = abs(units) * price * HCF
+            trade_value = abs(units) * price
             commission = (commission_val / 100) * trade_value
 
         elif self._commission_scheme == "fixed_per_unit":
@@ -1497,7 +1515,6 @@ class Broker(AbstractBroker):
             size=size,
             order_type="market",
             id=ref_id,
-            HCF=1,
         )
 
         # Fire the order
@@ -1602,9 +1619,8 @@ class Broker(AbstractBroker):
 
         else:
             # Import the feed's broker modules
-            # Create broker instance
             broker_module = importlib.import_module(
-                f"autotrader.brokers.{data_config['feed']}.broker"
+                f"autotrader.brokers.{data_config['feed']}"
             )
             broker: AbstractBroker = broker_module.Broker(data_config)
             return broker.data_broker

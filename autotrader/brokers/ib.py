@@ -4,11 +4,11 @@ import numpy as np
 import pandas as pd
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
-from autotrader.brokers.broker import AbstractBroker
+from autotrader.brokers.broker import Broker
 from autotrader.brokers.trading import Order, IsolatedPosition, Position
 
 
-class Broker(AbstractBroker):
+class Broker(Broker):
     """AutoTrader-InteractiveBrokers API interface.
 
     Attributes

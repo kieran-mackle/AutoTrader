@@ -2,7 +2,6 @@ from __future__ import annotations
 import pandas as pd
 from autotrader.brokers.broker import Broker
 from datetime import datetime, timezone, timedelta
-from autotrader.brokers.broker_utils import BrokerUtils
 
 try:
     import yfinance

@@ -2,7 +2,6 @@ import pandas as pd
 from datetime import datetime
 from abc import ABC, abstractmethod
 from autotrader.brokers.trading import Order, OrderBook
-from autotrader.brokers.broker_utils import BrokerUtils
 
 
 class AbstractBroker(ABC):
@@ -76,7 +75,7 @@ class AbstractBroker(ABC):
         """Get the historical OHLCV candles for an instrument."""
 
     @abstractmethod
-    def get_orderbook(self, instrument: str, *args, **kwargs):
+    def get_orderbook(self, instrument: str, *args, **kwargs) -> OrderBook:
         """Get the orderbook for an instrument."""
 
     @abstractmethod

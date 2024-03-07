@@ -4,7 +4,7 @@ import traceback
 import numpy as np
 import pandas as pd
 from datetime import datetime, timedelta
-from autotrader.brokers.broker import AbstractBroker
+from autotrader.brokers.broker import Broker
 from autotrader.brokers.trading import Order, IsolatedPosition, Position, Trade
 
 try:
@@ -13,7 +13,7 @@ except ImportError:
     raise Exception("Please use 'pip install v20' to trade using Oanda v20 API.")
 
 
-class Broker(AbstractBroker):
+class Broker(Broker):
     def __init__(self, config: dict):
         """Create v20 context."""
         self.API = config["API"]
