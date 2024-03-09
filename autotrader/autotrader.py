@@ -120,7 +120,6 @@ class AutoTrader:
         self._broker: Union[dict[str, Broker], Broker] = None  # Broker instance(s)
         self._brokers_dict = None  # Dictionary of brokers
         self._broker_name = ""  # Broker name(s)
-        self._broker_verbosity = 0  # Broker verbosity
         self._environment: Literal["paper", "live"] = "paper"  # Trading environment
         self._account_id = None  # Trading account
         self._base_currency = None
@@ -205,7 +204,6 @@ class AutoTrader:
         jupyter_notebook: Optional[bool] = False,
         global_config: Optional[dict] = None,
         instance_str: Optional[str] = None,
-        broker_verbosity: Optional[int] = 0,
         home_currency: Optional[str] = None,
         deploy_time: Optional[datetime] = None,
         logger_kwargs: Optional[dict] = None,
@@ -232,10 +230,9 @@ class AutoTrader:
         feed : str, optional
             The data feed to be used. This can be the same as the broker
             being used, or another data source. Options include 'yahoo',
-            'oanda', 'ib', 'dydx', 'ccxt', 'local' or 'none'. When data is provided
-            via the add_data method, the feed is automatically set to 'local'. If
-            "none" is specified (note: str, not a NoneType object), OHLCV data will
-            not be fetched. The default is None.
+            'oanda', 'ib', 'ccxt:exchange', 'local'. When data is provided
+            via the add_data method, the feed is automatically set to 'local'.
+            The default is None.
 
         notify : int, optional
             The level of notifications (0, 1, 2). The default is 0.
@@ -271,9 +268,6 @@ class AutoTrader:
             deployed when livetrading in continuous mode. When not specified,
             the instance string will be of the form 'autotrader_instance_n'.
             The default is None.
-
-        broker_verbosity : int, optional
-            The verbosity of the broker. The default is 0.
 
         home_currency : str, optional
             The home currency of trading accounts used (intended for FX
@@ -313,7 +307,6 @@ class AutoTrader:
         self._jupyter_notebook = jupyter_notebook
         self._global_config_dict = global_config
         self._instance_str = instance_str
-        self._broker_verbosity = broker_verbosity
         self._base_currency = home_currency
         self._deploy_time = deploy_time
 
@@ -328,6 +321,7 @@ class AutoTrader:
         logger_kwargs["stdout_level"] = verbosity_map.get(verbosity, logging.INFO)
 
         # Save logger kwargs for other classes
+        # TODO - make verbosity control print out only, and logging separate
         self._logger_kwargs = logger_kwargs
 
     def add_strategy(
@@ -890,13 +884,7 @@ class AutoTrader:
             # Scan watchlist has not overwritten strategy watchlist
             self._update_strategy_watchlist()
 
-        # Check for added strategies
-        if len(self._strategy_configs) == 0 and not self._papertrading:
-            self.logger.warning(
-                "no strategy has been provided. Do so by using the"
-                + " 'add_strategy' method of AutoTrader."
-            )
-
+        # Check run mode
         if sum([self._backtest_mode, self._scan_mode]) > 1:
             self.logger.error(
                 "Backtest mode and scan mode are both set to True,"
@@ -1421,9 +1409,9 @@ class AutoTrader:
         # TODO - move this into the config construct method get_broker_config
         if self._multiple_brokers:
             for broker, config in broker_config.items():
-                config["verbosity"] = self._broker_verbosity
+                config["verbosity"] = self._verbosity
         else:
-            broker_config["verbosity"] = self._broker_verbosity
+            broker_config["verbosity"] = self._verbosity
 
         # Connect to exchanges
         self.logger.info("Connecting to exchanges...")
@@ -1592,7 +1580,6 @@ class AutoTrader:
 
         # Instantiate brokers
         brokers = {}
-        # brokers_utils = {}
         for broker_key, config in broker_config.items():
             # Import relevant broker and utilities modules
             if self._backtest_mode or self._papertrading:
@@ -1601,6 +1588,9 @@ class AutoTrader:
             else:
                 # Use real broker
                 broker_name = broker_key.lower().split(":")[0]
+
+            # Add logging options to broker
+            config["logging_options"] = self._logger_kwargs
 
             # Import relevant module
             broker_module = importlib.import_module(f"autotrader.brokers.{broker_name}")

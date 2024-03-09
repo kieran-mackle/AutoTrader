@@ -103,7 +103,7 @@ def get_broker_config(
         else:
             broker_key = broker
 
-        supported_brokers = ["oanda", "ib", "ccxt", "dydx", "virtual"]
+        supported_brokers = ["oanda", "ib", "ccxt", "virtual"]
         if broker.lower() not in supported_brokers:
             raise Exception(f"Unsupported broker: '{broker}'")
 
@@ -159,24 +159,6 @@ def get_broker_config(
                     else False
                 ),
             }
-
-        elif broker.lower() == "dydx":
-            try:
-                eth_address = global_config["DYDX"]["ETH_ADDRESS"]
-                eth_private_key = global_config["DYDX"]["ETH_PRIV_KEY"]
-                config = {
-                    "data_source": "dYdX",
-                    "ETH_ADDRESS": eth_address,
-                    "ETH_PRIV_KEY": eth_private_key,
-                }
-            except KeyError:
-                raise Exception(
-                    "Using dYdX for trading requires authentication via "
-                    + "the global configuration. Please make sure you provide the "
-                    + "following keys:\n ETH_ADDRESS: your ETH address "
-                    + "\n ETH_PRIV_KEY: your ETH private key."
-                    + "These must all be provided under the 'dYdX' key."
-                )
 
         elif broker.lower() == "ccxt":
             try:
@@ -250,6 +232,7 @@ def get_data_config(feed: str, global_config: Optional[dict] = None, **kwargs) -
     global_config : dict
         The global configuration dictionary.
     """
+    # TODO - review if this is needed - probably can merge with broker config above
     if feed is None:
         print("Please specify a data feed.")
         sys.exit(0)
@@ -259,7 +242,7 @@ def get_data_config(feed: str, global_config: Optional[dict] = None, **kwargs) -
         feed, exchange = feed.lower().split(":")
 
     # Check feed
-    supported_feeds = ["oanda", "ib", "ccxt", "dydx", "yahoo", "local", "none"]
+    supported_feeds = ["oanda", "ib", "ccxt", "yahoo", "local", "none"]
     if feed.lower() not in supported_feeds:
         raise Exception(f"Unsupported data feed: '{feed}'")
 

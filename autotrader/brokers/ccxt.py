@@ -2,6 +2,7 @@ import time
 import ccxt
 import pandas as pd
 from datetime import datetime, timezone
+from autotrader.utilities import get_logger
 from autotrader.brokers.broker import Broker
 from autotrader.brokers.trading import OrderBook
 from autotrader.brokers.trading import Order, Trade, Position
@@ -13,11 +14,7 @@ class Broker(Broker):
         # Unpack config and connect to broker-side API
         self.exchange: str = config["exchange"]
         exchange_instance = getattr(ccxt, self.exchange)
-
-        # TODO - improve how this is handled - need to review upstream
-        # but using quick fix for now
         if "api_key" in config:
-            # TODO - allow expanded config here
             ccxt_config = {
                 "apiKey": config["api_key"],
                 "secret": config["secret"],
@@ -26,6 +23,11 @@ class Broker(Broker):
             }
         else:
             ccxt_config = {}
+
+        # Create logger
+        self._logger = get_logger(
+            name=f"{self.exchange}_broker", **config["logging_options"]
+        )
 
         # Instantiate exchange connection
         self.api: ccxt.Exchange = exchange_instance(ccxt_config)
@@ -76,7 +78,7 @@ class Broker(Broker):
             return 0
 
     def place_order(self, order: Order, **kwargs) -> None:
-        """Disassemble order_details dictionary to place order."""
+        """Place an order."""
         order()
 
         # Add order params
@@ -305,7 +307,7 @@ class Broker(Broker):
 
         # Check granularity was provided
         if granularity is None:
-            raise Exception("Please specify candlestick granularity.")
+            granularity = "1m"
 
         def fetch_between_dates():
             # Fetches data between two dates
@@ -333,7 +335,7 @@ class Broker(Broker):
                 data += raw_data
 
                 # Increment start_ts
-                start_ts = raw_data[-1][0]
+                start_ts = raw_data[-1][0] if len(raw_data) > 1 else end_ts
 
                 # Sleep to throttle
                 time.sleep(0.5)
@@ -387,9 +389,14 @@ class Broker(Broker):
 
         return data
 
-    def get_orderbook(self, instrument: str, **kwargs) -> OrderBook:
+    def get_orderbook(
+        self, instrument: str, limit: int = None, params: dict = None, **kwargs
+    ) -> OrderBook:
         """Returns the orderbook"""
-        response = self.api.fetch_order_book(symbol=instrument, **kwargs)
+        params = params if params else {}
+        response = self.api.fetch_order_book(
+            symbol=instrument, limit=limit, params=params
+        )
 
         # Unify format
         orderbook: dict[str, list] = {}
@@ -400,9 +407,19 @@ class Broker(Broker):
 
         return OrderBook(instrument, orderbook)
 
-    def get_public_trades(self, instrument: str, *args, **kwargs):
+    def get_public_trades(
+        self,
+        instrument: str,
+        since: int = None,
+        limit: int = None,
+        params: dict = None,
+        **kwargs,
+    ):
         """Get the public trade history for an instrument."""
-        ccxt_trades = self.api.fetch_trades(instrument, **kwargs)
+        params = params if params else {}
+        ccxt_trades = self.api.fetch_trades(
+            instrument, since=since, limit=limit, params=params
+        )
 
         # Convert to standard form
         trades = []
@@ -417,9 +434,10 @@ class Broker(Broker):
 
         return trades
 
-    def get_funding_rate(self, instrument: str, **kwargs):
+    def get_funding_rate(self, instrument: str, params: dict = None, **kwargs):
         """Returns the current funding rate."""
-        response = self.api.fetch_funding_rate(instrument, **kwargs)
+        params = params if params else {}
+        response = self.api.fetch_funding_rate(instrument, params=params)
         fr_dict = {
             "symbol": instrument,
             "rate": response["fundingRate"],
@@ -433,9 +451,10 @@ class Broker(Broker):
         count: int = None,
         start_time: datetime = None,
         end_time: datetime = None,
-        params: dict = {},
+        params: dict = None,
     ):
         """Fetches the funding rate history."""
+        params = params if params else {}
 
         def response_to_df(response):
             """Converts response to DataFrame."""

@@ -1,11 +1,13 @@
 import os
 import pickle
 import importlib
+import traceback
 import numpy as np
 import pandas as pd
 from decimal import Decimal
 from typing import Callable, Union
 from datetime import datetime, timezone
+from autotrader.utilities import get_logger
 from autotrader.brokers.broker import AbstractBroker
 from autotrader.brokers.trading import Order, Position, Trade, OrderBook
 
@@ -81,10 +83,14 @@ class Broker(AbstractBroker):
         The commission value associated with liquidity taking orders.
     """
 
-    def __init__(self, broker_config: dict = None) -> None:
+    def __init__(self, config: dict = None) -> None:
         """Initialise virtual broker."""
-        if broker_config is not None:
-            self._verbosity = broker_config["verbosity"]
+        # Create logger
+        self._logging_options = config["logging_options"]
+        self._logger = get_logger(name="virtual_broker", **self._logging_options)
+
+        if config is not None:
+            self._verbosity = config["verbosity"]
         else:
             self._verbosity = 0
         self._data_broker = None
@@ -373,6 +379,7 @@ class Broker(AbstractBroker):
         )
 
         # Connect to the data broker
+        data_config["logging_options"] = self._logging_options
         self._data_broker = self._get_data_broker(data_config)
 
         # Initialise balance
@@ -497,11 +504,9 @@ class Broker(AbstractBroker):
                     + f"(reference price: {cross_ref_price}, "
                     + f"limit price: {order.order_limit_price})"
                 )
-        except:
+        except Exception as e:
             # Exception, continue
-            # TODO - log!
-            print("ERROR CHECKING LIMIT ORDER")
-            pass
+            self._logger.error(f"Error checking limit order: {e}")
 
         # Check order type again
         if order.order_type == "modify" and not invalid_order:
@@ -697,7 +702,12 @@ class Broker(AbstractBroker):
         # be at least 1 candle's duration worth since the current time.
         # Currently implicitly assuming latest_time will update by the candle duration.
         count = count if count is not None else len(candles)
-        candles = candles.loc[candles.index < self._latest_time].tail(count)
+        if self._paper_trading:
+            # Do not need to to a time check
+            candles = candles.tail(count)
+        else:
+            # Backtesting - check for lookahead
+            candles = candles.loc[candles.index < self._latest_time].tail(count)
 
         return candles
 
@@ -791,6 +801,9 @@ class Broker(AbstractBroker):
         trade : dict, optional
             A public trade, used to update virtual limit orders.
         """
+        # Update internal clock
+        self._latest_time = dt
+
         # Get latest candle
         candle = self.get_candles(instrument, count=1).iloc[0]
 
@@ -959,6 +972,8 @@ class Broker(AbstractBroker):
 
             except Exception as e:
                 # Something went wrong
+                self._logger.error(f"Exception when updating orders: {e}")
+                self._logger.info(traceback.format_exc())
                 print(f"Exception when updating orders: {e}\n")
 
                 # Cancel orders for this instrument
