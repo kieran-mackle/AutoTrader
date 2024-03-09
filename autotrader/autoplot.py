@@ -342,8 +342,6 @@ class AutoPlot:
         self.autoscale_args = {"y_range": main_plot.y_range, "source": source}
 
         top_figs = []
-        bottom_figs = []
-
         if trade_results is not None:
             account_hist = trade_results.account_history
             account_hist["data_index"] = self._data["data_index"]
@@ -418,6 +416,7 @@ class AutoPlot:
                 #     self._plot_trade_history(open_trades, main_plot, open_summary=True)
 
         # Indicators
+        bottom_figs = []
         if indicators is not None:
             bottom_figs = self._plot_indicators(indicators, main_plot)
 
@@ -474,7 +473,7 @@ class AutoPlot:
         )
         fig.sizing_mode = "stretch_width"
 
-        # Set theme - # TODO - adapt line colours based on theme
+        # Set theme
         curdoc().theme = self._chart_theme
 
         if show_fig:
@@ -593,8 +592,8 @@ class AutoPlot:
         topsource.add(account_history[["NAV", "equity"]].max(1), "High")
 
         navfig = figure(
-            plot_width=self._ohlc_width,
-            plot_height=self._top_fig_height,
+            width=self._ohlc_width,
+            height=self._top_fig_height,
             title="Account History",
             active_drag="pan",
             active_scroll="wheel_zoom",
@@ -704,8 +703,8 @@ class AutoPlot:
 
             # Plot portfolio composition history
             # compfig = figure(
-            #     plot_width=self._ohlc_width,
-            #     plot_height=self._top_fig_height,
+            #     width=self._ohlc_width,
+            #     height=self._top_fig_height,
             #     title="Portfolio Composition History",
             #     x_range=navfig.x_range,
             #     y_range=(0, 1),
@@ -734,8 +733,8 @@ class AutoPlot:
         levsource = ColumnDataSource(leverage)
 
         levfig = figure(
-            plot_width=self._ohlc_width,
-            plot_height=self._top_fig_height,
+            width=self._ohlc_width,
+            height=self._top_fig_height,
             title="Leverage Utilisation History",
             active_drag="pan",
             active_scroll="wheel_zoom",
@@ -759,8 +758,8 @@ class AutoPlot:
         for n, instrument in enumerate(trade_results.instruments_traded):
             if n < max_pos_charts:
                 posfig = figure(
-                    plot_width=self._ohlc_width,
-                    plot_height=self._top_fig_height,
+                    width=self._ohlc_width,
+                    height=self._top_fig_height,
                     title=f"{instrument} Position History",
                     active_drag="pan",
                     active_scroll="wheel_zoom",
@@ -845,7 +844,7 @@ class AutoPlot:
         # returnsfig = figure(
         #     title="Distribution of Returns",
         #     toolbar_location=None,
-        #     plot_height=250,
+        #     height=250,
         # )
         # returnsfig.quad(
         #     top=h,
@@ -1038,8 +1037,8 @@ class AutoPlot:
                     elif indi_type == "multi":
                         # Plot multiple lines on the same figure
                         new_fig = figure(
-                            plot_width=linked_fig.plot_width,
-                            plot_height=130,
+                            width=linked_fig.width,
+                            height=130,
                             title=indicator,
                             tools=linked_fig.tools,
                             active_drag=linked_fig.tools[0],
@@ -1174,8 +1173,8 @@ class AutoPlot:
         legend_label: str = "Data",
     ):
         fig = figure(
-            plot_width=self._ohlc_width,
-            plot_height=self._ohlc_height,
+            width=self._ohlc_width,
+            height=self._ohlc_height,
             title="Custom Plot Data",
             tools=self._fig_tools,
             active_drag="pan",
@@ -1244,8 +1243,8 @@ class AutoPlot:
         # Initiate figure
         if new_fig:
             fig = figure(
-                plot_width=linked_fig.plot_width,
-                plot_height=fig_height,
+                width=linked_fig.width,
+                height=fig_height,
                 title=fig_title,
                 tools=self._fig_tools,
                 active_drag="pan",
@@ -1299,8 +1298,8 @@ class AutoPlot:
         # Initiate figure
         if new_fig:
             fig = figure(
-                plot_width=linked_fig.plot_width,
-                plot_height=fig_height,
+                width=linked_fig.width,
+                height=fig_height,
                 title=fig_title,
                 tools=self._fig_tools,
                 active_drag="pan",
@@ -1388,8 +1387,8 @@ class AutoPlot:
         candle_tooltips = [("Open", "@Open{0.0000}"), ("Close", "@Close{0.0000}")]
 
         candle_plot = figure(
-            plot_width=self._ohlc_width,
-            plot_height=self._ohlc_height,
+            width=self._ohlc_width,
+            height=self._ohlc_height,
             tools=self._fig_tools,
             active_drag="pan",
             active_scroll="wheel_zoom",
@@ -1832,8 +1831,8 @@ class AutoPlot:
         """Plots MACD indicator."""
         # Initialise figure
         fig = figure(
-            plot_width=linked_fig.plot_width,
-            plot_height=self._bottom_fig_height,
+            width=linked_fig.width,
+            height=self._bottom_fig_height,
             title=None,
             tools=linked_fig.tools,
             active_drag=linked_fig.tools[0],
@@ -1906,7 +1905,7 @@ class AutoPlot:
             toolbar_location=None,
             tools=self._fig_tools + ",ywheel_zoom",
             tooltips=tooltips,
-            plot_height=fig_height,
+            height=fig_height,
             active_drag="pan",
             active_scroll="wheel_zoom",
         )
@@ -1929,7 +1928,7 @@ class AutoPlot:
             tooltips="@index: @trades trades",
             x_range=(-1, 1),
             y_range=(0.0, 2.0),
-            plot_height=fig_height,
+            height=fig_height,
         )
 
         pie.wedge(
@@ -1989,8 +1988,8 @@ class AutoPlot:
         if new_fig:
             # Plot on new fig
             fig = figure(
-                plot_width=linked_fig.plot_width,
-                plot_height=self._bottom_fig_height,
+                width=linked_fig.width,
+                height=self._bottom_fig_height,
                 title=None,
                 tools=linked_fig.tools,
                 active_drag=linked_fig.tools[0],

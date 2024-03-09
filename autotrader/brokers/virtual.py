@@ -805,7 +805,11 @@ class Broker(AbstractBroker):
         self._latest_time = dt
 
         # Get latest candle
-        candle = self.get_candles(instrument, count=1).iloc[0]
+        try:
+            candle = self.get_candles(instrument, count=1).iloc[0]
+        except:
+            # No data yet
+            return
 
         def stop_trigger_condition(order_stop_price, order_direction) -> bool:
             """Returns True if the order stop price has been triggered
@@ -953,9 +957,6 @@ class Broker(AbstractBroker):
 
         # Update open position value
         self._NAV = self._equity + self._floating_pnl
-
-        # Update internal clock
-        self._latest_time = dt
 
         # Save state
         if self._paper_trading and self._picklefile is not None:

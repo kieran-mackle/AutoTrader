@@ -196,6 +196,11 @@ class AutoTraderBot:
         # Assign stop trading method to strategy
         self._strategy.stop_trading = autotrader_instance._remove_instance_file
 
+        # Call indicators plotting method
+        if self._backtest_mode:
+            data = self._broker._data_cache[self.instrument]
+            my_strat.create_plotting_indicators(data)
+
         # Assign strategy attributes for tick-based strategy development
         # TODO - improve type hints using strategy base class
         if self._backtest_mode:
@@ -231,6 +236,7 @@ class AutoTraderBot:
         except Exception as e:
             self.logger.error(f"Error when updating strategy: {e}")
             self.logger.info(traceback.format_exc())
+            strategy_orders = []
 
         # Check and qualify orders
         orders = self._check_orders(strategy_orders)
@@ -405,6 +411,9 @@ class AutoTraderBot:
                     else:
                         # Trading on single venue, auto fill
                         order.exchange = self._broker_name
+
+                if order.size is None and order.order_type != "modify":
+                    raise Exception("Must provide order size.")
 
         # Perform checks
         if orders is not None:
