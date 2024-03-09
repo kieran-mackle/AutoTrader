@@ -39,7 +39,7 @@ class Broker(Broker):
             self._sandbox_str = " (sandbox mode)"
 
         # Load markets
-        # TODO - add logging here to indicate markets being loaded.
+        self._logger.info(f"Loading instruments for {self.exchange}.")
         markets = self.api.load_markets()
         self.base_currency = config["base_currency"]
 

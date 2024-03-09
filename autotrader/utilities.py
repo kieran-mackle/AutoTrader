@@ -161,50 +161,44 @@ def get_broker_config(
             }
 
         elif broker.lower() == "ccxt":
-            try:
+            if global_config is not None and broker_key in global_config:
+                # Use configuration provided in config
                 config_data = global_config[broker_key.upper()]
 
-                # Select config based on environment
-                if environment.lower() in config_data:
-                    config_data = config_data[environment.lower()]
-                elif "mainnet" in config_data and environment.lower() == "live":
-                    config_data = config_data["mainnet"]
-                elif "testnet" in config_data and environment.lower() == "paper":
-                    config_data = config_data["testnet"]
+            else:
+                # Use public-only connection
+                config_data = {}
 
-                api_key = config_data["api_key"] if "api_key" in config_data else None
-                secret = config_data["secret"] if "secret" in config_data else None
-                currency = (
-                    config_data["base_currency"]
-                    if "base_currency" in config_data
-                    else "USDT"
-                )
-                sandbox_mode = False if environment.lower() == "live" else True
-                config = {
-                    "data_source": "ccxt",
-                    "exchange": exchange,
-                    "api_key": api_key,
-                    "secret": secret,
-                    "sandbox_mode": sandbox_mode,
-                    "base_currency": currency,
-                }
-                other_args = {"options": {}, "password": None}
-                for key, default_val in other_args.items():
-                    if key in config_data:
-                        config[key] = config_data[key]
-                    else:
-                        config[key] = default_val
+            # Select config based on environment
+            if environment.lower() in config_data:
+                config_data = config_data[environment.lower()]
+            elif "mainnet" in config_data and environment.lower() == "live":
+                config_data = config_data["mainnet"]
+            elif "testnet" in config_data and environment.lower() == "paper":
+                config_data = config_data["testnet"]
 
-            except KeyError:
-                raise Exception(
-                    "Using CCXT for trading requires authentication via "
-                    + "the global configuration. Please make sure you provide the "
-                    + "details in the following format:\n"
-                    + "CCXT:EXCHANGE_NAME:\n"
-                    + '  api_key: "xxxx" (the exchange-specific api key)\n'
-                    + '  secret: "xxxx" (the exchange-specific api secret)\n'
-                    + "  base_currency: USDT (your account's base currency)\n"
-                )
+            api_key = config_data["api_key"] if "api_key" in config_data else None
+            secret = config_data["secret"] if "secret" in config_data else None
+            currency = (
+                config_data["base_currency"]
+                if "base_currency" in config_data
+                else "USDT"
+            )
+            sandbox_mode = False if environment.lower() == "live" else True
+            config = {
+                "data_source": "ccxt",
+                "exchange": exchange,
+                "api_key": api_key,
+                "secret": secret,
+                "sandbox_mode": sandbox_mode,
+                "base_currency": currency,
+            }
+            other_args = {"options": {}, "password": None}
+            for key, default_val in other_args.items():
+                if key in config_data:
+                    config[key] = config_data[key]
+                else:
+                    config[key] = default_val
 
         elif broker.lower() == "virtual":
             config = {}
