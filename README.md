@@ -42,7 +42,7 @@ aim to make using it as easy as possible with detailed tutorials and documentati
 
 ## Latest News
 - [CryptoBots](https://github.com/kieran-mackle/cryptobots) has been released along with version `0.13.0`, offering ready-to-trade strategies from the command line
-- Version 0.7 has been released, adding integrations with [CCXT](https://github.com/ccxt/ccxt) and [dYdX](https://dydx.exchange/) crypto exchanges. Many more powerful upgrades too.
+- Version 0.7 has been released, adding integrations with [CCXT](https://github.com/ccxt/ccxt) crypto exchanges. Many more powerful upgrades too.
 - AutoTrader has been featured in GitClone's recent article, [*Top Crypto Trader Open-Source Projects on Github*](https://gitclone.dev/top-crypto-trader-open-source-projects-on-github/).
 
 ## Features
@@ -66,7 +66,6 @@ more than enough to build a profitable trading system.
 | -------- | ------------- | ------------------ |
 | [Oanda](https://www.oanda.com/)    | Forex CFDs    | Complete |
 | [Interactive Brokers](https://www.interactivebrokers.com/en/home.php) | Many | In progress |
-| [dYdX](https://dydx.exchange/) | Cryptocurrencies | Complete |
 | [CCXT](https://github.com/ccxt/ccxt) | Cryptocurrencies | In progress |
 
 <p align="right">[<a href="#readme-top">back to top</a>]</p>
