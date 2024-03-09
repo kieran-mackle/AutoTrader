@@ -54,9 +54,6 @@ NAME: 'Simple Macd Strategy'    # strategy name
 MODULE: 'macd'                  # strategy module
 CLASS: 'SimpleMACD'             # strategy class
 INTERVAL: '1h'                  # stategy timeframe
-PERIOD: 300                     # candles required by strategy
-SIZING: 'risk'                  # sizing method
-RISK_PC: 1.5                    # risk per trade (%)
 PARAMETERS:                     # strategy parameters
   ema_period: 200
   MACD_fast: 12
@@ -94,8 +91,8 @@ return.
 
 A long order can be created by specifying `direction=1` when creating the 
 `Order`, whereas a short order can be created by specifying `direction=-1`. 
-If there is no trading signal this update, you can create an 
-[empty order](empty-order) with just `Order()`. We also define our exit targets 
+If there is no trading signal this update, you can just return `None`. 
+We also define our exit targets 
 by the `stop_loss` and `take_profit` arguments. The strategy below uses
 the `generate_exit_levels` helper method to calculate these prices.
 
@@ -109,14 +106,18 @@ provided in the Github repository.
 
 
 ```py
-# macd.py
+import pandas as pd
 from finta import TA
-from autotrader import Order, indicators
+from datetime import datetime
+from autotrader.strategy import Strategy
+import autotrader.indicators as indicators
+from autotrader.brokers.trading import Order
+from autotrader.brokers.broker import Broker
 
 
-class SimpleMACD:
+class SimpleMACD(Strategy):
     """Simple MACD Strategy
-    
+
     Rules
     ------
     1. Trade in direction of trend, as per 200EMA.
@@ -124,82 +125,112 @@ class SimpleMACD:
     3. Set stop loss at recent price swing.
     4. Target 1.5 take profit.
     """
-    
-    def __init__(self, parameters, data, instrument):
-        """Define all indicators used in the strategy.
-        """
-        self.name = "Simple MACD Trend Strategy"
+
+    def __init__(
+        self, parameters: dict, instrument: str, broker: Broker, *args, **kwargs
+    ) -> None:
+        """Define all indicators used in the strategy."""
+        self.name = "MACD Trend Strategy"
         self.params = parameters
+        self.broker = broker
         self.instrument = instrument
-        
-        # Initial feature generation (for plotting only)
-        self.generate_features(data)
 
+    def create_plotting_indicators(self, data: pd.DataFrame):
         # Construct indicators dict for plotting
-        self.indicators = {'MACD (12/26/9)': {'type': 'MACD',
-                                              'macd': self.MACD.MACD,
-                                              'signal': self.MACD.SIGNAL},
-                           'EMA (200)': {'type': 'MA',
-                                         'data': self.ema}
-                        }
-    
-    def generate_features(self, data):
-        """Updates MACD indicators and saves them to the class attributes."""
-        # Save data for other functions
-        self.data = data
-        
+        ema, MACD, MACD_CO, MACD_CO_vals, swings = self.generate_features(data)
+        self.indicators = {
+            "MACD (12/26/9)": {
+                "type": "MACD",
+                "macd": MACD.MACD,
+                "signal": MACD.SIGNAL,
+                "histogram": MACD.MACD - MACD.SIGNAL,
+            },
+            "EMA (200)": {"type": "MA", "data": ema},
+        }
+
+    def generate_features(self, data: pd.DataFrame):
         # 200EMA
-        self.ema = TA.EMA(self.data, self.params['ema_period'])
-        
+        ema = TA.EMA(data, self.params["ema_period"])
+
         # MACD
-        self.MACD = TA.MACD(self.data, self.params['MACD_fast'], 
-                            self.params['MACD_slow'], self.params['MACD_smoothing'])
-        self.MACD_CO = indicators.crossover(self.MACD.MACD, self.MACD.SIGNAL)
-        self.MACD_CO_vals = indicators.cross_values(self.MACD.MACD, 
-                                                    self.MACD.SIGNAL,
-                                                    self.MACD_CO)
-        
+        MACD = TA.MACD(
+            data,
+            self.params["MACD_fast"],
+            self.params["MACD_slow"],
+            self.params["MACD_smoothing"],
+        )
+        MACD_CO = indicators.crossover(MACD.MACD, MACD.SIGNAL)
+        MACD_CO_vals = indicators.cross_values(MACD.MACD, MACD.SIGNAL, MACD_CO)
+
         # Price swings
-        self.swings = indicators.find_swings(self.data)
-        
-    def generate_signal(self, data):
+        swings = indicators.find_swings(data)
+
+        return ema, MACD, MACD_CO, MACD_CO_vals, swings
+
+    def generate_signal(self, dt: datetime):
         """Define strategy to determine entry signals."""
-        # Feature calculation
-        self.generate_features(data)
-        
-        # Look for entry signals (index -1 for the latest data)
-        if self.data.Close.values[-1] > self.ema[-1] and \
-            self.MACD_CO[-1] == 1 and \
-            self.MACD_CO_vals[-1] < 0:
-                # Long entry signal detected! Calculate SL and TP prices
-                stop, take = self.generate_exit_levels(signal=1)
-                new_order = Order(direction=1, stop_loss=stop, take_profit=take)
-                
-        elif self.data.Close.values[-1] < self.ema[-1] and \
-            self.MACD_CO[-1] == -1 and \
-            self.MACD_CO_vals[-1] > 0:
-                # Short entry signal detected! Calculate SL and TP prices
-                stop, take = self.generate_exit_levels(signal=-1)
-                new_order = Order(direction=-1, stop_loss=stop, take_profit=take)
+        # Get OHLCV data
+        data = self.broker.get_candles(self.instrument, granularity="1h", count=300)
+        if len(data) < 300:
+            # This was previously a check in AT
+            return None
+
+        # Generate indicators
+        ema, MACD, MACD_CO, MACD_CO_vals, swings = self.generate_features(data)
+
+        # Create orders
+        if (
+            data["Close"].values[-1] > ema.iloc[-1]
+            and MACD_CO.iloc[-1] == 1
+            and MACD_CO_vals.iloc[-1] < 0
+        ):
+            exit_dict = self.generate_exit_levels(signal=1, data=data, swings=swings)
+            new_order = Order(
+                direction=1,
+                size=1,
+                stop_loss=exit_dict["stop_loss"],
+                take_profit=exit_dict["take_profit"],
+            )
+
+        elif (
+            data["Close"].values[-1] < ema.iloc[-1]
+            and MACD_CO.iloc[-1] == -1
+            and MACD_CO_vals.iloc[-1] > 0
+        ):
+            exit_dict = self.generate_exit_levels(signal=-1, data=data, swings=swings)
+            new_order = Order(
+                direction=-1,
+                size=1,
+                stop_loss=exit_dict["stop_loss"],
+                take_profit=exit_dict["take_profit"],
+            )
 
         else:
-            # No trading signal, return a blank Order
-            new_order = Order()
-        
+            new_order = None
+
         return new_order
-    
-    def generate_exit_levels(self, signal):
-        """Function to determine stop loss and take profit prices."""
-        RR = self.params['RR']
-        if signal == 1:
-            # Long signal
-            stop = self.swings.Lows[-1]
-            take = self.data.Close[-1] + RR*(self.data.Close[-1] - stop)
+
+    def generate_exit_levels(
+        self, signal: int, data: pd.DataFrame, swings: pd.DataFrame
+    ):
+        """Function to determine stop loss and take profit levels."""
+        stop_type = "limit"
+        RR = self.params["RR"]
+
+        if signal == 0:
+            stop = None
+            take = None
         else:
-            # Short signal
-            stop = self.swings.Highs[-1]
-            take = self.data.Close[-1] - RR*(stop - self.data.Close[-1])
-        return stop, take
+            if signal == 1:
+                stop = swings["Lows"].iloc[-1]
+                take = data["Close"].iloc[-1] + RR * (data["Close"].iloc[-1] - stop)
+            else:
+                stop = swings["Highs"].iloc[-1]
+                take = data["Close"].iloc[-1] - RR * (stop - data["Close"].iloc[-1])
+
+        exit_dict = {"stop_loss": stop, "stop_type": stop_type, "take_profit": take}
+
+        return exit_dict
 ```
 
 
@@ -212,16 +243,17 @@ deploy your bot. This is all achieved in the example below.
 
 
 ```python
-# runfile.py
+# run.py
 from autotrader import AutoTrader
 
+# Create AutoTrader instance, configure it, and run backtest
 at = AutoTrader()
-at.configure(show_plot=True, verbosity=1, feed='yahoo',
-             mode='continuous', update_interval='1h') 
-at.add_strategy('macd') 
-at.backtest(start = '1/1/2021', end = '1/1/2022')
-at.virtual_account_config(leverage=30)
+at.configure(verbosity=1, show_plot=True, feed="yahoo")
+at.add_strategy("macd")
+at.backtest(start="1/6/2023", end="1/2/2024", localize_to_utc=True)
+at.virtual_account_config(initial_balance=1000, leverage=30)
 at.run()
+
 ```
 
 Let's dive into this a bit more:
@@ -246,7 +278,6 @@ bid/ask spread, initial balance and other settings here.
 - Finally, we run AutoTrader with the command `at.run()`.
 
 Simply run this file, and AutoTrader will do its thing.
-
 
 
 
@@ -328,7 +359,8 @@ Average loss:            -$15.86
 ## Going Live
 Taking a strategy live is as easy as changing a few lines in your runfile.
 Say you would like to trade your strategy on the cryptocurrency exchange 
-[dYdX](https://dydx.exchange/). Then, all you need to do is specify this 
+[Bybit](https://www.bybit.com/invite?ref=7NDOBW). 
+Then, all you need to do is specify this 
 as the `broker` in the `configure` method, as shown below. You will
 just need to make sure you have provided the relevant API keys in your 
 `keys.yaml` file to connect to your exchange.
@@ -337,8 +369,7 @@ just need to make sure you have provided the relevant API keys in your
 from autotrader import AutoTrader
 
 at = AutoTrader()
-at.configure(verbosity=1, broker='dydx',
-             mode='continuous', update_interval='1h') 
+at.configure(verbosity=1, broker='ccxt:bybit') 
 at.add_strategy('macd')
 at.run()
 ```
@@ -346,7 +377,7 @@ at.run()
 
 What if you wanted to paper trade your strategy before putting real money into
 it? Simply configure a virtual trading account and specify the exchange as 
-`dydx` (or whatever `broker` you specify in `configure`) and then you will
+`ccxt:bybit` (or whatever `broker` you specify in `configure`) and then you will
 be paper trading! Doing this, AutoTrader's virtual broker mirrors the real-time
 orderbook of the exchange specified, making execution of orders as accurate as 
 possible.
@@ -355,11 +386,8 @@ possible.
 from autotrader import AutoTrader
 
 at = AutoTrader()
-at.configure(verbosity=1, broker='dydx',
-             mode='continuous', update_interval='1h') 
+at.configure(verbosity=1, broker='ccxt:bybit') 
 at.add_strategy('macd') 
-at.virtual_account_config(leverage=30, exchange='dydx')
+at.virtual_account_config(leverage=30, exchange='ccxt:bybit')
 at.run()
 ```
-
-

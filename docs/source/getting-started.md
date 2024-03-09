@@ -6,7 +6,7 @@ This page has all the information required to download and install AutoTrader.
 
 AutoTrader can be installed in two ways; through 
 [PyPI](https://pypi.org/project/autotrader/) or by cloning the repository 
-directly. 
+directly.
 
 
 ### PyPI Install
@@ -46,7 +46,6 @@ optionally install more dependencies, depending on where you plan to trade or wh
 data from.
 
 Options include:
-- dydx: to include dYdX dependencies
 - ccxt: to include CCXT dependencies
 - oanda: : to include Oanda v20 dependencies
 - ib: to include Interactive Broker dependencies
@@ -58,15 +57,6 @@ example:
 ```
 pip install autotrader[ccxt,yfinance]
 ```
-
-### A note on dYdX Dependency
-The package dependencies of the 
-[dYdX V3 Python interface](https://pypi.org/project/dydx-v3-python/) are 
-very tightly defined. For example, if you try to install AutoTrader with 
-both the `ccxt` and `dydx` dependencies, pip will not be able to resolve
-the conflicts. As such, it is recommended that you maintain separate 
-environments for your trading.
-
 
 ## Demo Repository
 To make getting started with AutoTrader even easier, download the demo repository from

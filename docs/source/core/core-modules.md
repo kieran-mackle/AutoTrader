@@ -6,7 +6,6 @@
 :hidden:
    
 AutoTrader <AutoTrader>
-AutoData <AutoData>
 AutoPlot <AutoPlot>
 AutoBot <AutoBot>
 Utilities <utilities>
@@ -23,7 +22,6 @@ The table below provides a summary of the modules available.
 | Module | Description | 
 | :----: | ----------- |
 | [AutoTrader](autotrader-docs) | The primary API, used for all trading purposes. |
-| [AutoData](autodata-docs) | The data retrieval API, used by AutoTrader and for manual use. |
 | [AutoPlot](autoplot-docs) | The automated plotting tool, used by AutoTrader and for manual use. |
 | [AutoBot](autobot-docs) | A trading bot, used to manage data and run strategies. |
 | [Utilities](utilities-module) | A collection of tools and utilities to make everything work. |
@@ -60,8 +58,7 @@ watchlist. There is a second configuration file, the [global configuration](glob
 conditionally. If you are live trading, you will need to create a global configuration 
 file to provide brokerage account details. You will also need to do this if you wish to use a broker to obtain price data. 
 If you will are only backtesting, you do not need 
-to provide a global configuration file. In this case, [AutoData](autodata-docs) will revert to using the Yahoo Finance 
-API for price data.
+to provide a global configuration file.
 
 
 ### AutoTrader

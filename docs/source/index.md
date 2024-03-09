@@ -31,19 +31,19 @@ to offer. Otherwise, head on over to the
 
 
 ## Supported Brokers and Exchanges
-With AutoTrader `v0.7.0`, you can access over 100 cryptocurrency exchanges thanks to the integration
-of [CCXT](https://github.com/ccxt/ccxt). The table below summarises the connection to supported brokers.
+AutoTrader supports integrations with the following brokers.
 
 | Broker | Asset classes | Integration status | Docs page |
 | -------- | ------------- | ------------------ | --------- |
 | [Oanda](https://www.oanda.com/)    | Forex CFDs    | Complete | [link](oanda-module-docs)|
+| [CCXT](https://github.com/ccxt/ccxt) | Cryptocurrencies | Complete | [link](ccxt-module-docs) |
 | [Interactive Brokers](https://www.interactivebrokers.com/en/home.php) | Many | In progress | [link](ib-module-docs) |
-| [dYdX](https://dydx.exchange/) | Cryptocurrencies | Complete | [link](dydx-module-docs) |
-| [CCXT](https://github.com/ccxt/ccxt) | Cryptocurrencies | In progress | [link](ccxt-module-docs) |
+<!-- | [dYdX](https://dydx.exchange/) | Cryptocurrencies | Complete | [link](dydx-module-docs) | -->
 
 
 ## Latest Changes
-AutoTrader `v0.7.0` has been released! Make sure to check out the [changelog](changelog) when upgrading
+AutoTrader has gone through a full refactor to simplify the way things run.
+Make sure to check out the [changelog](changelog) when upgrading
 for details on the breaking changes and latest features.
 
 ## Index
@@ -60,7 +60,7 @@ Feature Showcase <features/features>
 ```
 
 ```{toctree}
-:maxdepth: 2
+:maxdepth: 1
 :caption: Using AutoTrader
 :hidden:
 
