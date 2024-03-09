@@ -1,3 +1,4 @@
+import pandas as pd
 from datetime import datetime
 from abc import ABC, abstractmethod
 from autotrader.brokers.broker import Broker
@@ -21,3 +22,7 @@ class Strategy(ABC):
     def stop_trading():
         """Self destruct this instance of AutoTrader to stop any further trading."""
         pass
+
+    def create_plotting_indicators(self, data: pd.DataFrame):
+        """This method gets called with an entire backtest dataset to allow you to
+        plot indicators."""

@@ -42,7 +42,7 @@ def supertrend(
     """
 
     if source is None:
-        source = (data.High.values + data.Low.values) / 2
+        source = (data["High"].values + data["Low"].values) / 2
 
     # Calculate ATR
     atr = TA.ATR(data, period)
@@ -62,7 +62,7 @@ def supertrend(
 
     for i in range(1, len(data)):
         if trend == 1:
-            if data.Close.values[i] > max(up[N_up:i]):
+            if data["Close"].values[i] > max(up[N_up:i]):
                 up_list.append(max(up[N_up:i]))
                 up_times.append(data.index[i])
 
@@ -78,7 +78,7 @@ def supertrend(
                 up_times.append(data.index[i])
 
         else:
-            if data.Close.values[i] < min(dn[N_dn:i]):
+            if data["Close"].values[i] < min(dn[N_dn:i]):
                 dn_list.append(min(dn[N_dn:i]))
                 dn_times.append(data.index[i])
 
@@ -131,38 +131,44 @@ def halftrend(
     # Initialisation
     atr2 = TA.ATR(data, 100) / 2
     dev = channel_deviation * atr2
-    high_price = data.High.rolling(amplitude).max().fillna(0)
-    low_price = data.Low.rolling(amplitude).min().fillna(0)
+    high_price = data["High"].rolling(amplitude).max().fillna(0)
+    low_price = data["Low"].rolling(amplitude).min().fillna(0)
     highma = TA.SMA(data, period=amplitude, column="High")
     lowma = TA.SMA(data, period=amplitude, column="Low")
 
     trend = np.zeros(len(data))
     next_trend = np.zeros(len(data))
     max_low_price = np.zeros(len(data))
-    max_low_price[0] = data.Low[0]
+    max_low_price[0] = data["Low"].iloc[0]
     min_high_price = np.zeros(len(data))
-    min_high_price[0] = data.High[0]
+    min_high_price[0] = data["High"].iloc[0]
 
     for i in range(1, len(data)):
         if next_trend[i - 1] == 1:
-            max_low_price[i] = max(low_price[i - 1], max_low_price[i - 1])
+            max_low_price[i] = max(low_price.iloc[i - 1], max_low_price[i - 1])
 
-            if highma[i] < max_low_price[i] and data.Close[i] < data.Low[i - 1]:
+            if (
+                highma.iloc[i] < max_low_price[i]
+                and data["Close"].iloc[i] < data["Low"].iloc[i - 1]
+            ):
                 trend[i] = 1
                 next_trend[i] = 0
-                min_high_price[i] = high_price[i]
+                min_high_price[i] = high_price.iloc[i]
             else:
                 # assign previous values again
                 trend[i] = trend[i - 1]
                 next_trend[i] = next_trend[i - 1]
                 min_high_price[i] = min_high_price[i - 1]
         else:
-            min_high_price[i] = min(high_price[i - 1], min_high_price[i - 1])
+            min_high_price[i] = min(high_price.iloc[i - 1], min_high_price[i - 1])
 
-            if lowma[i] > min_high_price[i] and data.Close[i] > data.High[i - 1]:
+            if (
+                lowma.iloc[i] > min_high_price[i]
+                and data["Close"].iloc[i] > data["High"].iloc[i - 1]
+            ):
                 trend[i] = 0
                 next_trend[i] = 1
-                max_low_price[i] = low_price[i]
+                max_low_price[i] = low_price.iloc[i]
             else:
                 # assign previous values again
                 trend[i] = trend[i - 1]
@@ -183,8 +189,8 @@ def halftrend(
             else:
                 up[i] = max(max_low_price[i - 1], up[i - 1])
 
-            atr_high[i] = up[i] + dev[i]
-            atr_low[i] = up[i] - dev[i]
+            atr_high[i] = up[i] + dev.iloc[i]
+            atr_low[i] = up[i] - dev.iloc[i]
 
         else:
             if trend[i - 1] != 1:
@@ -192,8 +198,8 @@ def halftrend(
             else:
                 down[i] = min(min_high_price[i - 1], down[i - 1])
 
-            atr_high[i] = down[i] + dev[i]
-            atr_low[i] = down[i] - dev[i]
+            atr_high[i] = down[i] + dev.iloc[i]
+            atr_low[i] = down[i] - dev.iloc[i]
 
     halftrend = np.where(trend == 0, up, down)
     buy = np.where((trend == 0) & (np.roll(trend, 1) == 1), 1, 0)
@@ -212,8 +218,8 @@ def halftrend(
     )
 
     # Clear false leading signals
-    htdf.buy.values[:100] = np.zeros(100)
-    htdf.sell.values[:100] = np.zeros(100)
+    htdf["buy"].values[:100] = np.zeros(100)
+    htdf["sell"].values[:100] = np.zeros(100)
 
     # Replace leading zeroes with nan
     htdf["atrHigh"] = htdf.atrHigh.replace(to_replace=0, value=float("nan"))
@@ -280,11 +286,11 @@ def range_filter(
 
     # Get high and low values
     if mov_source == "body":
-        high_val = data.Close
-        low_val = data.Close
+        high_val = data["Close"]
+        low_val = data["Close"]
     elif mov_source == "wicks":
-        high_val = data.High
-        low_val = data.Low
+        high_val = data["High"]
+        low_val = data["Low"]
 
     # Get filter values
     rng = _range_size(
@@ -308,31 +314,33 @@ def range_filter(
 def bullish_engulfing(data: pd.DataFrame, detection: str = None):
     """Bullish engulfing pattern detection."""
     if detection == "SMA50":
-        sma50 = sma(data.Close.values, 50)
-        down_trend = np.where(data.Close.values < sma50, True, False)
+        sma50 = sma(data["Close"].values, 50)
+        down_trend = np.where(data["Close"].values < sma50, True, False)
 
     elif detection == "SMA50/200":
-        sma50 = sma(data.Close.values, 50)
-        sma200 = sma(data.Close.values, 200)
+        sma50 = sma(data["Close"].values, 50)
+        sma200 = sma(data["Close"].values, 200)
 
         down_trend = np.where(
-            (data.Close.values < sma50) & (data.Close.values < sma200), True, False
+            (data["Close"].values < sma50) & (data["Close"].values < sma200),
+            True,
+            False,
         )
     else:
         down_trend = np.full(len(data), True)
 
     body_len = 14  # ema depth for bodyAvg
 
-    body_high = np.maximum(data.Close.values, data.Open.values)
-    body_low = np.minimum(data.Close.values, data.Open.values)
+    body_high = np.maximum(data["Close"].values, data["Open"].values)
+    body_low = np.minimum(data["Close"].values, data["Open"].values)
     body = body_high - body_low
 
     body_avg = ema(body, body_len)
     short_body = body < body_avg
     long_body = body > body_avg
 
-    white_body = data.Open.values < data.Close.values
-    black_body = data.Open.values > data.Close.values
+    white_body = data["Open"].values < data["Close"].values
+    black_body = data["Open"].values > data["Close"].values
 
     inside_bar = [False]
     for i in range(1, len(data)):
@@ -347,11 +355,11 @@ def bullish_engulfing(data: pd.DataFrame, detection: str = None):
             & long_body[i]
             & black_body[i - 1]
             & short_body[i - 1]
-            & (data.Close.values[i] >= data.Open.values[i - 1])
-            & (data.Open.values[i] <= data.Close.values[i - 1])
+            & (data["Close"].values[i] >= data["Open"].values[i - 1])
+            & (data["Open"].values[i] <= data["Close"].values[i - 1])
             & (
-                (data.Close.values[i] > data.Open.values[i - 1])
-                | (data.Open.values[i] < data.Close.values[i - 1])
+                (data["Close"].values[i] > data["Open"].values[i - 1])
+                | (data["Open"].values[i] < data["Close"].values[i - 1])
             )
         )
 
@@ -363,29 +371,31 @@ def bullish_engulfing(data: pd.DataFrame, detection: str = None):
 def bearish_engulfing(data: pd.DataFrame, detection: str = None):
     """Bearish engulfing pattern detection."""
     if detection == "SMA50":
-        sma50 = sma(data.Close.values, 50)
-        up_trend = np.where(data.Close.values > sma50, True, False)
+        sma50 = sma(data["Close"].values, 50)
+        up_trend = np.where(data["Close"].values > sma50, True, False)
     elif detection == "SMA50/200":
-        sma50 = sma(data.Close.values, 50)
-        sma200 = sma(data.Close.values, 200)
+        sma50 = sma(data["Close"].values, 50)
+        sma200 = sma(data["Close"].values, 200)
 
         up_trend = np.where(
-            (data.Close.values > sma50) & (data.Close.values > sma200), True, False
+            (data["Close"].values > sma50) & (data["Close"].values > sma200),
+            True,
+            False,
         )
     else:
         up_trend = np.full(len(data), True)
 
     body_len = 14  # ema depth for bodyAvg
-    body_high = np.maximum(data.Close.values, data.Open.values)
-    body_low = np.minimum(data.Close.values, data.Open.values)
+    body_high = np.maximum(data["Close"].values, data["Open"].values)
+    body_low = np.minimum(data["Close"].values, data["Open"].values)
     body = body_high - body_low
 
     body_avg = ema(body, body_len)
     short_body = body < body_avg
     long_body = body > body_avg
 
-    white_body = data.Open.values < data.Close.values
-    black_body = data.Open.values > data.Close.values
+    white_body = data["Open"].values < data["Close"].values
+    black_body = data["Open"].values > data["Close"].values
 
     inside_bar = [False]
     for i in range(1, len(data)):
@@ -400,11 +410,11 @@ def bearish_engulfing(data: pd.DataFrame, detection: str = None):
             & long_body[i]
             & white_body[i - 1]
             & short_body[i - 1]
-            & (data.Close.values[i] <= data.Open.values[i - 1])
-            & (data.Open.values[i] >= data.Close.values[i - 1])
+            & (data["Close"].values[i] <= data["Open"].values[i - 1])
+            & (data["Open"].values[i] >= data["Close"].values[i - 1])
             & (
-                (data.Close.values[i] < data.Open.values[i - 1])
-                | (data.Open.values[i] > data.Close.values[i - 1])
+                (data["Close"].values[i] < data["Open"].values[i - 1])
+                | (data["Open"].values[i] > data["Close"].values[i - 1])
             )
         )
 
@@ -436,10 +446,10 @@ def find_swings(data: pd.DataFrame, n: int = 2) -> pd.DataFrame:
     # Prepare data
     if isinstance(data, pd.DataFrame):
         # OHLC data
-        hl2 = (data.High.values + data.Low.values) / 2
+        hl2 = (data["High"].values + data["Low"].values) / 2
         swing_data = pd.Series(ema(hl2, n), index=data.index)
-        low_data = data.Low.values
-        high_data = data.High.values
+        low_data = data["Low"].values
+        high_data = data["High"].values
 
     elif isinstance(data, pd.Series):
         # Pandas series data
@@ -801,14 +811,21 @@ def heikin_ashi(data: pd.DataFrame):
 
     # Calculate Heikin Ashi candlesticks
     ha_close = 0.25 * (
-        working_data.Open + working_data.Low + working_data.High + working_data.Close
+        working_data["Open"]
+        + working_data["Low"]
+        + working_data["High"]
+        + working_data["Close"]
     )
-    ha_open = 0.5 * (working_data.Open + working_data.Close)
+    ha_open = 0.5 * (working_data["Open"] + working_data["Close"])
     ha_high = np.maximum(
-        working_data.High.values, working_data.Close.values, working_data.Open.values
+        working_data["High"].values,
+        working_data["Close"].values,
+        working_data["Open"].values,
     )
     ha_low = np.minimum(
-        working_data.Low.values, working_data.Close.values, working_data.Open.values
+        working_data["Low"].values,
+        working_data["Close"].values,
+        working_data["Open"].values,
     )
 
     ha_data = pd.DataFrame(
@@ -832,8 +849,8 @@ def ha_candle_run(ha_data: pd.DataFrame):
     --------
     heikin_ashi
     """
-    green_candle = np.where(ha_data.Close - ha_data.Open > 0, 1, 0)
-    red_candle = np.where(ha_data.Close - ha_data.Open < 0, 1, 0)
+    green_candle = np.where(ha_data["Close"] - ha_data["Open"] > 0, 1, 0)
+    red_candle = np.where(ha_data["Close"] - ha_data["Open"] < 0, 1, 0)
 
     green_run = []
     red_run = []
@@ -860,13 +877,13 @@ def ha_candle_run(ha_data: pd.DataFrame):
 
 def N_period_high(data: pd.DataFrame, N: int):
     """Returns the N-period high."""
-    highs = data.High.rolling(N).max()
+    highs = data["High"].rolling(N).max()
     return highs
 
 
 def N_period_low(data: pd.DataFrame, N: int):
     """Returns the N-period low."""
-    lows = data.Low.rolling(N).min()
+    lows = data["Low"].rolling(N).min()
     return lows
 
 
@@ -1226,8 +1243,8 @@ def last_level_crossed(data: pd.DataFrame, base: float) -> list:
     last_level_crossed = np.nan
     levels_crossed = []
     for i in range(len(data)):
-        high = data.High.values[i]
-        low = data.Low.values[i]
+        high = data["High"].values[i]
+        low = data["Low"].values[i]
 
         upper_prices = []
         lower_prices = []
@@ -1301,8 +1318,8 @@ def last_level_touched(data: pd.DataFrame, grid: np.array) -> np.array:
 
     levels_touched = []
     for i in range(len(data)):
-        high = data.High.values[i]
-        low = data.Low.values[i]
+        high = data["High"].values[i]
+        low = data["Low"].values[i]
 
         upper_prices = []
         lower_prices = []
