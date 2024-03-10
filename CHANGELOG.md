@@ -1,5 +1,36 @@
 # AutoTrader Changelog
 
+## v1.0.0 (2024-03-10)
+
+### Feat
+
+- option to instantiate ccxt broker as read only
+- **Strategy**: add method for including indicators to plot
+- **utilities.py**: added ccxt-download data stream object
+- using logging throughout
+- **utilities.py**: added logger function
+- **Broker**: ccxt broker will translate native TP/SL to ccxt params
+- **Broker**: added broker base class
+- added ability for bots to kill instance
+- **Strategy**: added strategy base class
+
+### Fix
+
+- **utilities.py**: ccxt global config indexing case
+- pass logging config to brokers
+- **AutoTrader**: handling of logger kwargs
+- **AutoTrader**: logging arguments
+- log handling and ccxt instrument precisions
+- **Broker**: use _safe_add method to update ccxt_params
+- **AutoPlot**: fixed plotting nav timezone bug
+- **DataStream**: use generalised data fetch methods of AutoData
+
+### Refactor
+
+- simplified broker module strucutre
+- major refactor of entire project
+- **data**: renamed data to package_data for clarity
+
 ## v0.12.1 (2023-09-26)
 
 ### Fix
