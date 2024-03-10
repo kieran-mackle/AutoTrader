@@ -161,7 +161,7 @@ def get_broker_config(
             }
 
         elif broker.lower() == "ccxt":
-            if global_config is not None and broker_key in global_config:
+            if global_config is not None and broker_key.upper() in global_config:
                 # Use configuration provided in config
                 config_data = global_config[broker_key.upper()]
 
