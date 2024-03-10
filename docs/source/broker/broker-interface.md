@@ -9,7 +9,6 @@ Orders, Trades and Positions <trading>
 Virtual Broker <virtual-broker>
 Oanda <oanda>
 Interactive Brokers <ib>
-dYdX <dydx>
 CCXT <ccxt>
 ```
 
@@ -62,14 +61,6 @@ instance. This allows you to access all methods offered by an exchange,
 outside of the unified methods listed in the table above.
 
 
-## Accessing the Broker Instance
-To access the broker instance from your strategy, set `INCLUDE_BROKER` to 
-True in your [strategy configuration](strategy-config). Doing so, the 
-broker instance and broker utilities will be passed as named arguments
-`broker` and `broker_utils` to your strategy's `__init__` method.
-
-
-
 ## Module Structure
 Each new broker API is contained within its own submodule of the 
 `autotrader.brokers` module. This submodule must contain two more 
@@ -115,14 +106,6 @@ AutoTrader supports Oanda's v20 REST API. See the documentation of the
 
 As of AutoTrader `v0.6.0`, [Interactive Brokers](ib-module-docs) is also 
 supported.
-
-
-### DYDX Cryto Exchange
-
-`broker='dydx'`
-
-[dYdX](https://dydx.exchange/) is a decentralised cryptocurrency derivatives 
-exchange.
 
 
 ### CCXT

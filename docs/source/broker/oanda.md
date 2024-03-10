@@ -4,7 +4,6 @@
 `broker='oanda'`
 
 
-
 ## Supported Features
 
 | Feature | Supported? | Alternative | 
@@ -42,11 +41,10 @@ OANDA:
 ````
 
 
-
 ## API Reference
 
 ```{eval-rst}
-.. autoclass:: autotrader.brokers.oanda.broker.Broker
+.. autoclass:: autotrader.brokers.oanda.Broker
    :members:
    :private-members:
 ```

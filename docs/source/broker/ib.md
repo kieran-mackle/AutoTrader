@@ -15,7 +15,7 @@
 
 ## API Reference
 ```{eval-rst}
-.. autoclass:: autotrader.brokers.ib.broker.Broker
+.. autoclass:: autotrader.brokers.ib.Broker
    :members:
    :private-members:
 ```

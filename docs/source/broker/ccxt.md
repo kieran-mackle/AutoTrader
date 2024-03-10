@@ -90,7 +90,7 @@ CCXT:EXCHANGE:
 
 ## API Reference
 ```{eval-rst}
-.. autoclass:: autotrader.brokers.ccxt.broker.Broker
+.. autoclass:: autotrader.brokers.ccxt.Broker
    :members:
    :private-members:
 ```

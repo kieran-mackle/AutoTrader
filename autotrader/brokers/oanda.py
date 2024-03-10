@@ -1,26 +1,25 @@
+import sys
+import time
+import traceback
+import numpy as np
+import pandas as pd
+from datetime import datetime, timedelta
+from autotrader.brokers.broker import Broker
+from autotrader.brokers.trading import Order, IsolatedPosition, Position, Trade
+
 try:
     import v20
 except ImportError:
     raise Exception("Please use 'pip install v20' to trade using Oanda v20 API.")
-import sys
-import time
-import datetime
-import traceback
-import numpy as np
-import pandas as pd
-from autotrader import utilities, AutoData
-from autotrader.brokers.broker import AbstractBroker
-from autotrader.brokers.broker_utils import BrokerUtils
-from autotrader.brokers.trading import Order, IsolatedPosition, Position, Trade
 
 
-class Broker(AbstractBroker):
-    def __init__(self, oanda_config: dict, utils: BrokerUtils = None):
+class Broker(Broker):
+    def __init__(self, config: dict):
         """Create v20 context."""
-        self.API = oanda_config["API"]
-        self.ACCESS_TOKEN = oanda_config["ACCESS_TOKEN"]
-        self.port = oanda_config["PORT"]
-        self.ACCOUNT_ID = oanda_config["ACCOUNT_ID"]
+        self.API = config["API"]
+        self.ACCESS_TOKEN = config["ACCESS_TOKEN"]
+        self.port = config["PORT"]
+        self.ACCOUNT_ID = config["ACCOUNT_ID"]
         self.api = v20.Context(
             hostname=self.API, token=self.ACCESS_TOKEN, port=self.port
         )
@@ -31,20 +30,18 @@ class Broker(AbstractBroker):
         )
         self.open_positions = {}
 
-        # Assign broker utilities
-        if utils is None:
-            utils = BrokerUtils()
-        self._utils = utils
-
-        # Create AutoData instance
-        data_config = utilities.get_data_config(feed="oanda")
-        self.autodata = AutoData(data_config)
+        # Assign data broker
+        self._data_broker = self
 
     def __repr__(self):
         return "AutoTrader-Oanda Broker Interface"
 
     def __str__(self):
         return "AutoTrader-Oanda Broker Interface"
+
+    @property
+    def data_broker(self):
+        return self._data_broker
 
     def get_NAV(self) -> float:
         """Returns Net Asset Value of account."""
@@ -157,6 +154,322 @@ class Broker(AbstractBroker):
 
         return trades
 
+    def get_positions(self, instrument: str = None, **kwargs) -> dict:
+        """Gets the current positions open on the account."""
+        self._check_connection()
+        response = self.api.position.list_open(accountID=self.ACCOUNT_ID)
+        oanda_open_positions = response.body["positions"]
+        open_positions = {}
+        for position in oanda_open_positions:
+            pos = {
+                "instrument": position.instrument,
+                "long_units": position.long.units,
+                "long_PL": position.long.unrealizedPL,
+                "long_margin": None,
+                "short_units": position.short.units,
+                "short_PL": position.short.unrealizedPL,
+                "short_margin": None,
+                "total_margin": position.marginUsed,
+            }
+
+            # fetch trade ID'strade_IDs
+            trade_IDs = []
+            if abs(pos["long_units"]) > 0:
+                for ID in position.long.tradeIDs:
+                    trade_IDs.append(ID)
+            if abs(pos["short_units"]) > 0:
+                for ID in position.short.tradeIDs:
+                    trade_IDs.append(ID)
+
+            pos["trade_IDs"] = trade_IDs
+
+            if instrument is not None and position.instrument == instrument:
+                open_positions[position.instrument] = Position(**pos)
+            elif instrument is None:
+                open_positions[position.instrument] = Position(**pos)
+
+        return open_positions
+
+    def get_candles(
+        self,
+        instrument: str,
+        granularity: str = None,
+        count: int = None,
+        start_time: datetime = None,
+        end_time: datetime = None,
+        *args,
+        **kwargs,
+    ) -> pd.DataFrame:
+        """Get the historical OHLCV candles for an instrument."""
+        """Retrieves historical price data of a instrument from Oanda v20 API.
+
+        Parameters
+        ----------
+        instrument : str
+            The instrument to fetch data for.
+
+        granularity : str
+            The candlestick granularity, specified as a TimeDelta string
+            (eg. '30s', '5min' or '1d').
+
+        count : int, optional
+            The number of candles to fetch (maximum 5000). The default is None.
+
+        start_time : datetime, optional
+            The data start time. The default is None.
+
+        end_time : datetime, optional
+            The data end time. The default is None.
+
+        Returns
+        -------
+        data : DataFrame
+            The price data, as an OHLC DataFrame.
+
+        Notes
+        -----
+            If a candlestick count is provided, only one of start time or end
+            time should be provided. If neither is provided, the N most
+            recent candles will be provided. If both are provided, the count
+            will be ignored, and instead the dates will be used.
+        """
+        gran_map = {
+            5: "S5",
+            10: "S10",
+            15: "S15",
+            30: "S30",
+            60: "M1",
+            120: "M2",
+            240: "M4",
+            300: "M5",
+            600: "M10",
+            900: "M15",
+            1800: "M30",
+            3600: "H1",
+            7200: "H2",
+            10800: "H3",
+            14400: "H4",
+            21600: "H6",
+            28800: "H8",
+            43200: "H12",
+            86400: "D",
+            604800: "W",
+            2419200: "M",
+        }
+        granularity = gran_map[pd.Timedelta(granularity).total_seconds()]
+
+        if count is not None:
+            # either of count, start_time+count, end_time+count (or start_time+end_time+count)
+            # if count is provided, count must be less than 5000
+            if start_time is None and end_time is None:
+                # fetch count=N most recent candles
+                response = self.api.instrument.candles(
+                    instrument, granularity=granularity, count=count
+                )
+                data = self._response_to_df(response)
+
+            elif start_time is not None and end_time is None:
+                # start_time + count
+                from_time = start_time.timestamp()
+                response = self.api.instrument.candles(
+                    instrument, granularity=granularity, count=count, fromTime=from_time
+                )
+                data = self._response_to_df(response)
+
+            elif end_time is not None and start_time is None:
+                # end_time + count
+                to_time = end_time.timestamp()
+                response = self.api.instrument.candles(
+                    instrument, granularity=granularity, count=count, toTime=to_time
+                )
+                data = self._response_to_df(response)
+
+            else:
+                from_time = start_time.timestamp()
+                to_time = end_time.timestamp()
+
+                # try to get data
+                response = self.api.instrument.candles(
+                    instrument,
+                    granularity=granularity,
+                    fromTime=from_time,
+                    toTime=to_time,
+                )
+
+                # If the request is rejected, max candles likely exceeded
+                if response.status != 200:
+                    data = self._get_extended_oanda_data(
+                        instrument, granularity, from_time, to_time
+                    )
+                else:
+                    data = self._response_to_df(response)
+
+        else:
+            # count is None
+            # Assume that both start_time and end_time have been specified.
+            from_time = start_time.timestamp()
+            to_time = end_time.timestamp()
+
+            # try to get data
+            response = self.api.instrument.candles(
+                instrument, granularity=granularity, fromTime=from_time, toTime=to_time
+            )
+
+            # If the request is rejected, max candles likely exceeded
+            if response.status != 200:
+                data = self._get_extended_oanda_data(
+                    instrument, granularity, from_time, to_time
+                )
+            else:
+                data = self._response_to_df(response)
+
+        return data
+
+    def get_orderbook(self, instrument: str, *args, **kwargs):
+        """Get the orderbook for an instrument."""
+        response = self.api.pricing.get(
+            accountID=self.ACCOUNT_ID, instruments=instrument
+        )
+        prices = response.body["prices"][0].dict()
+
+        # Unify format
+        orderbook = {}
+        for side in ["bids", "asks"]:
+            orderbook[side] = []
+            for level in prices[side]:
+                orderbook[side].append(
+                    {"price": level["price"], "size": level["liquidity"]}
+                )
+        return orderbook
+
+    def get_public_trades(self, *args, **kwargs):
+        """Get the public trade history for an instrument."""
+        raise NotImplementedError
+
+    def _get_extended_oanda_data(self, instrument, granularity, from_time, to_time):
+        """Returns historical data between a date range."""
+        max_candles = 5000
+
+        my_int = self._granularity_to_seconds(granularity)
+        end_time = to_time - my_int
+        partial_from = from_time
+        response = self.api.instrument.candles(
+            instrument,
+            granularity=granularity,
+            fromTime=partial_from,
+            count=max_candles,
+        )
+        data = self._response_to_df(response)
+        last_time = data.index[-1].timestamp()
+
+        while last_time < end_time:
+            candles = min(max_candles, int((end_time - last_time) / my_int))
+            partial_from = last_time
+            response = self.api.instrument.candles(
+                instrument,
+                granularity=granularity,
+                fromTime=partial_from,
+                count=candles,
+            )
+
+            partial_data = self._response_to_df(response)
+            data = pd.concat([data, partial_data])
+            last_time = data.index[-1].timestamp()
+
+        return data
+
+    @staticmethod
+    def _granularity_to_seconds(granularity: str):
+        """Converts the granularity to time in seconds."""
+        allowed_granularities = (
+            "S5",
+            "S10",
+            "S15",
+            "S30",
+            "M1",
+            "M2",
+            "M4",
+            "M5",
+            "M10",
+            "M15",
+            "M30",
+            "H1",
+            "H2",
+            "H3",
+            "H4",
+            "H6",
+            "H8",
+            "H12",
+            "D",
+            "W",
+            "M",
+        )
+
+        if granularity not in allowed_granularities:
+            raise Exception(
+                f"Invalid granularity '{granularity}' for " + "{feed} data feed."
+            )
+
+        letter = granularity[0]
+
+        if len(granularity) > 1:
+            number = float(granularity[1:])
+        else:
+            number = 1
+
+        conversions = {"S": 1, "M": 60, "H": 60 * 60, "D": 60 * 60 * 24}
+        my_int = conversions[letter] * number
+
+        return my_int
+
+    def _response_to_df(self, response):
+        """Function to convert api response into a pandas dataframe."""
+        try:
+            candles = response.body["candles"]
+        except KeyError:
+            raise Exception(
+                "Error dowloading data - please check instrument"
+                + " format and try again."
+            )
+
+        times = []
+        close_price, high_price, low_price, open_price, volume = [], [], [], [], []
+
+        if self._allow_dancing_bears:
+            # Allow all candles
+            for candle in candles:
+                times.append(candle.time)
+                close_price.append(float(candle.mid.c))
+                high_price.append(float(candle.mid.h))
+                low_price.append(float(candle.mid.l))
+                open_price.append(float(candle.mid.o))
+                volume.append(float(candle.volume))
+
+        else:
+            # Only allow complete candles
+            for candle in candles:
+                if candle.complete:
+                    times.append(candle.time)
+                    close_price.append(float(candle.mid.c))
+                    high_price.append(float(candle.mid.h))
+                    low_price.append(float(candle.mid.l))
+                    open_price.append(float(candle.mid.o))
+                    volume.append(float(candle.volume))
+
+        dataframe = pd.DataFrame(
+            {
+                "Open": open_price,
+                "High": high_price,
+                "Low": low_price,
+                "Close": close_price,
+                "Volume": volume,
+            }
+        )
+        dataframe.index = pd.to_datetime(times)
+        dataframe.drop_duplicates(inplace=True)
+
+        return dataframe
+
     def get_isolated_positions(self, instrument: str = None, **kwargs):
         """Returns isolated positions for the specified instrument.
 
@@ -258,42 +571,6 @@ class Broker(AbstractBroker):
         # TODO - veryify functionality of below...
         return Trade(trade)
 
-    def get_positions(self, instrument: str = None, **kwargs) -> dict:
-        """Gets the current positions open on the account."""
-        self._check_connection()
-        response = self.api.position.list_open(accountID=self.ACCOUNT_ID)
-        oanda_open_positions = response.body["positions"]
-        open_positions = {}
-        for position in oanda_open_positions:
-            pos = {
-                "instrument": position.instrument,
-                "long_units": position.long.units,
-                "long_PL": position.long.unrealizedPL,
-                "long_margin": None,
-                "short_units": position.short.units,
-                "short_PL": position.short.unrealizedPL,
-                "short_margin": None,
-                "total_margin": position.marginUsed,
-            }
-
-            # fetch trade ID'strade_IDs
-            trade_IDs = []
-            if abs(pos["long_units"]) > 0:
-                for ID in position.long.tradeIDs:
-                    trade_IDs.append(ID)
-            if abs(pos["short_units"]) > 0:
-                for ID in position.short.tradeIDs:
-                    trade_IDs.append(ID)
-
-            pos["trade_IDs"] = trade_IDs
-
-            if instrument is not None and position.instrument == instrument:
-                open_positions[position.instrument] = Position(**pos)
-            elif instrument is None:
-                open_positions[position.instrument] = Position(**pos)
-
-        return open_positions
-
     def get_position(self, instrument: str) -> Position:
         """Gets position from Oanda."""
         self._check_connection()
@@ -315,7 +592,7 @@ class Broker(AbstractBroker):
         response = self.api.instrument.candles(
             pair, granularity=interval, count=period, dailyAlignment=0
         )
-        data = self._utils.response_to_df(response)
+        data = self.response_to_df(response)
         return data
 
     def check_trade_size(self, instrument: str, units: float) -> float:
@@ -345,8 +622,8 @@ class Broker(AbstractBroker):
         small_granularity = self.get_reduced_granularity(granularity_details, 25)
 
         # Get data equivalent of last candle's granularity
-        time_now = datetime.datetime.now()
-        start_time = time_now - datetime.timedelta(
+        time_now = datetime.now()
+        start_time = time_now - timedelta(
             seconds=secs, minutes=mins, hours=hrs, days=days
         )
         latest_data = self.get_historical_data(
@@ -361,10 +638,10 @@ class Broker(AbstractBroker):
         high_price = max(latest_data.High.values)
         low_price = min(latest_data.Low.values)
         last_time = data.index[-1]
-        stripped_time = datetime.datetime.strptime(
+        stripped_time = datetime.strptime(
             last_time.strftime("%Y-%m-%d %H:%M:%S%z"), "%Y-%m-%d %H:%M:%S%z"
         )
-        new_time = stripped_time + datetime.timedelta(
+        new_time = stripped_time + timedelta(
             seconds=secs, minutes=mins, hours=hrs, days=days
         )
 
@@ -389,7 +666,7 @@ class Broker(AbstractBroker):
             instrument, granularity=interval, fromTime=from_time, toTime=to_time
         )
 
-        data = self._utils.response_to_df(response)
+        data = self.response_to_df(response)
 
         return data
 
@@ -523,11 +800,7 @@ class Broker(AbstractBroker):
                     stack_trace.append(trade_string)
 
                 print("\nWARNING FROM OANDA API: The following exception was caught.")
-                print(
-                    "Time: {}".format(
-                        datetime.datetime.now().strftime("%b %d %H:%M:%S")
-                    )
-                )
+                print("Time: {}".format(datetime.now().strftime("%b %d %H:%M:%S")))
                 print("Exception type : %s " % ex_type.__name__)
                 print("Exception message : %s" % ex_value)
                 print("Stack trace : %s" % stack_trace)
@@ -559,7 +832,7 @@ class Broker(AbstractBroker):
             instrument=order.instrument,
             units=order.direction * size,
             takeProfitOnFill=take_profit_details,
-            **stop_loss_order
+            **stop_loss_order,
         )
 
         return response
@@ -589,7 +862,7 @@ class Broker(AbstractBroker):
             type=ordertype,
             takeProfitOnFill=take_profit_details,
             triggerCondition=trigger_condition,
-            **stop_loss_order
+            **stop_loss_order,
         )
         return response
 
@@ -616,7 +889,7 @@ class Broker(AbstractBroker):
             priceBound=str(price_bound),
             triggerCondition=trigger_condition,
             takeProfitOnFill=take_profit_details,
-            **stop_loss_order
+            **stop_loss_order,
         )
         return response
 
@@ -640,7 +913,7 @@ class Broker(AbstractBroker):
             price=str(price),
             takeProfitOnFill=take_profit_details,
             triggerCondition=trigger_condition,
-            **stop_loss_order
+            **stop_loss_order,
         )
         return response
 
@@ -824,8 +1097,7 @@ class Broker(AbstractBroker):
 
     def _get_order_book(self, instrument: str):
         """Returns the order book of the instrument specified."""
-        orderbook = self.autodata.L2(instrument=instrument)
-        return orderbook
+        return self.get_orderbook(instrument)
 
     def _get_position_book(self, instrument: str):
         """Returns the position book of the instrument specified."""
@@ -838,3 +1110,29 @@ class Broker(AbstractBroker):
             accountID=self.ACCOUNT_ID, instruments=instrument
         )
         return response.body["prices"][0]
+
+    @staticmethod
+    def response_to_df(response: pd.DataFrame):
+        """Function to convert api response into a pandas dataframe."""
+        candles = response.body["candles"]
+        times = []
+        close_price, high_price, low_price, open_price = [], [], [], []
+
+        for candle in candles:
+            times.append(candle.time)
+            close_price.append(float(candle.mid.c))
+            high_price.append(float(candle.mid.h))
+            low_price.append(float(candle.mid.l))
+            open_price.append(float(candle.mid.o))
+
+        dataframe = pd.DataFrame(
+            {
+                "Open": open_price,
+                "High": high_price,
+                "Low": low_price,
+                "Close": close_price,
+            }
+        )
+        dataframe.index = pd.to_datetime(times)
+
+        return dataframe

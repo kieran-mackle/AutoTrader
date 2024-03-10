@@ -1,14 +1,24 @@
+import os
 import sys
 import yaml
 import time
 import pickle
+import logging
 import autotrader
 import numpy as np
 import pandas as pd
 from art import tprint
+from abc import abstractmethod
+from typing import Union, Optional
 from datetime import datetime, timedelta
-from autotrader.brokers.broker import AbstractBroker
 from prometheus_client import start_http_server, Gauge
+from autotrader.brokers.broker import AbstractBroker, Broker
+
+try:
+    from ccxt_download.utilities import load_data
+    from ccxt_download.constants import DEFAULT_DOWNLOAD_DIR, CANDLES
+except:
+    pass
 
 
 def read_yaml(file_path: str) -> dict:
@@ -35,6 +45,7 @@ def write_yaml(data: dict, filepath: str) -> None:
     ----------
     data : dict
         The dictionary to write to yaml.
+
     filepath : str
         The filepath to save the yaml file.
 
@@ -52,7 +63,9 @@ def print_banner():
 
 
 def get_broker_config(
-    broker: str, global_config: dict = None, environment: str = "paper"
+    broker: str,
+    global_config: Optional[dict] = None,
+    environment: Optional[str] = "paper",
 ) -> dict:
     """Returns a broker configuration dictionary.
 
@@ -61,8 +74,10 @@ def get_broker_config(
     broker : str
         The name(s) of the broker/exchange. Specify multiple exchanges using
         comma separation.
+
     global_config : dict
         The global configuration dictionary.
+
     environment : str, optional
         The trading evironment ('demo' or 'real').
 
@@ -88,7 +103,7 @@ def get_broker_config(
         else:
             broker_key = broker
 
-        supported_brokers = ["oanda", "ib", "ccxt", "dydx", "virtual"]
+        supported_brokers = ["oanda", "ib", "ccxt", "virtual"]
         if broker.lower() not in supported_brokers:
             raise Exception(f"Unsupported broker: '{broker}'")
 
@@ -128,84 +143,62 @@ def get_broker_config(
 
         elif broker.lower() == "ib":
             config = {
-                "host": global_config["host"]
-                if "host" in global_config
-                else "127.0.0.1",
+                "host": (
+                    global_config["host"] if "host" in global_config else "127.0.0.1"
+                ),
                 "port": global_config["port"] if "port" in global_config else 7497,
-                "clientID": global_config["clientID"]
-                if "clientID" in global_config
-                else 1,
-                "account": global_config["account"]
-                if "account" in global_config
-                else "",
-                "read_only": global_config["read_only"]
-                if "read_only" in global_config
-                else False,
+                "clientID": (
+                    global_config["clientID"] if "clientID" in global_config else 1
+                ),
+                "account": (
+                    global_config["account"] if "account" in global_config else ""
+                ),
+                "read_only": (
+                    global_config["read_only"]
+                    if "read_only" in global_config
+                    else False
+                ),
             }
 
-        elif broker.lower() == "dydx":
-            try:
-                eth_address = global_config["DYDX"]["ETH_ADDRESS"]
-                eth_private_key = global_config["DYDX"]["ETH_PRIV_KEY"]
-                config = {
-                    "data_source": "dYdX",
-                    "ETH_ADDRESS": eth_address,
-                    "ETH_PRIV_KEY": eth_private_key,
-                }
-            except KeyError:
-                raise Exception(
-                    "Using dYdX for trading requires authentication via "
-                    + "the global configuration. Please make sure you provide the "
-                    + "following keys:\n ETH_ADDRESS: your ETH address "
-                    + "\n ETH_PRIV_KEY: your ETH private key."
-                    + "These must all be provided under the 'dYdX' key."
-                )
-
         elif broker.lower() == "ccxt":
-            try:
+            if global_config is not None and broker_key.upper() in global_config:
+                # Use configuration provided in config
                 config_data = global_config[broker_key.upper()]
 
-                # Select config based on environment
-                if environment.lower() in config_data:
-                    config_data = config_data[environment.lower()]
-                elif "mainnet" in config_data and environment.lower() == "live":
-                    config_data = config_data["mainnet"]
-                elif "testnet" in config_data and environment.lower() == "paper":
-                    config_data = config_data["testnet"]
+            else:
+                # Use public-only connection
+                config_data = {}
 
-                api_key = config_data["api_key"] if "api_key" in config_data else None
-                secret = config_data["secret"] if "secret" in config_data else None
-                currency = (
-                    config_data["base_currency"]
-                    if "base_currency" in config_data
-                    else "USDT"
-                )
-                sandbox_mode = False if environment.lower() == "live" else True
-                config = {
-                    "data_source": "ccxt",
-                    "exchange": exchange,
-                    "api_key": api_key,
-                    "secret": secret,
-                    "sandbox_mode": sandbox_mode,
-                    "base_currency": currency,
-                }
-                other_args = {"options": {}, "password": None}
-                for key, default_val in other_args.items():
-                    if key in config_data:
-                        config[key] = config_data[key]
-                    else:
-                        config[key] = default_val
+            # Select config based on environment
+            if environment.lower() in config_data:
+                config_data = config_data[environment.lower()]
+            elif "mainnet" in config_data and environment.lower() == "live":
+                config_data = config_data["mainnet"]
+            elif "testnet" in config_data and environment.lower() == "paper":
+                config_data = config_data["testnet"]
 
-            except KeyError:
-                raise Exception(
-                    "Using CCXT for trading requires authentication via "
-                    + "the global configuration. Please make sure you provide the "
-                    + "details in the following format:\n"
-                    + "CCXT:EXCHANGE_NAME:\n"
-                    + '  api_key: "xxxx" (the exchange-specific api key)\n'
-                    + '  secret: "xxxx" (the exchange-specific api secret)\n'
-                    + "  base_currency: USDT (your account's base currency)\n"
-                )
+            api_key = config_data["api_key"] if "api_key" in config_data else None
+            secret = config_data["secret"] if "secret" in config_data else None
+            currency = (
+                config_data["base_currency"]
+                if "base_currency" in config_data
+                else "USDT"
+            )
+            sandbox_mode = False if environment.lower() == "live" else True
+            config = {
+                "data_source": "ccxt",
+                "exchange": exchange,
+                "api_key": api_key,
+                "secret": secret,
+                "sandbox_mode": sandbox_mode,
+                "base_currency": currency,
+            }
+            other_args = {"options": {}, "password": None}
+            for key, default_val in other_args.items():
+                if key in config_data:
+                    config[key] = config_data[key]
+                else:
+                    config[key] = default_val
 
         elif broker.lower() == "virtual":
             config = {}
@@ -223,15 +216,17 @@ def get_broker_config(
     return all_config
 
 
-def get_data_config(feed: str, global_config: dict = None, **kwargs) -> dict:
+def get_data_config(feed: str, global_config: Optional[dict] = None, **kwargs) -> dict:
     """Returns a data configuration dictionary for AutoData.
     Parameters
     ----------
     feed : str
         The name of the data feed.
+
     global_config : dict
         The global configuration dictionary.
     """
+    # TODO - review if this is needed - probably can merge with broker config above
     if feed is None:
         print("Please specify a data feed.")
         sys.exit(0)
@@ -241,7 +236,7 @@ def get_data_config(feed: str, global_config: dict = None, **kwargs) -> dict:
         feed, exchange = feed.lower().split(":")
 
     # Check feed
-    supported_feeds = ["oanda", "ib", "ccxt", "dydx", "yahoo", "local", "none"]
+    supported_feeds = ["oanda", "ib", "ccxt", "yahoo", "local", "none"]
     if feed.lower() not in supported_feeds:
         raise Exception(f"Unsupported data feed: '{feed}'")
 
@@ -355,11 +350,86 @@ def get_streaks(trade_summary):
     return longest_winning_streak, longest_losing_streak
 
 
-def unpickle_broker(picklefile: str = ".virtual_broker"):
+def unpickle_broker(picklefile: Optional[str] = ".virtual_broker"):
     """Unpickles a virtual broker instance for post-processing."""
     with open(picklefile, "rb") as file:
         instance = pickle.load(file)
     return instance
+
+
+class CustomLoggingFormatter(logging.Formatter):
+    """Custom logging formatter (for StreamHandlers only)."""
+
+    grey = "\x1b[38;21m"
+    blue = "\x1b[38;5;39m"
+    yellow = "\x1b[38;5;226m"
+    red = "\x1b[38;5;196m"
+    bold_red = "\x1b[31;1m"
+    reset = "\x1b[0m"
+    default_fmt = "%(asctime)s | %(levelname)8s | %(name)8s | %(message)s (%(filename)s:%(lineno)d)"
+
+    def __init__(self, fmt=None):
+        super().__init__()
+
+        self.fmt = fmt if fmt else self.default_fmt
+        self.FORMATS = {
+            logging.DEBUG: self.grey + self.fmt + self.reset,
+            logging.INFO: self.blue + self.fmt + self.reset,
+            logging.WARNING: self.yellow + self.fmt + self.reset,
+            logging.ERROR: self.red + self.fmt + self.reset,
+            logging.CRITICAL: self.bold_red + self.fmt + self.reset,
+        }
+
+    def format(self, record):
+        log_fmt = self.FORMATS.get(record.levelno)
+        formatter = logging.Formatter(log_fmt)
+        return formatter.format(record)
+
+
+def get_logger(
+    name: str,
+    stdout: Optional[bool] = True,
+    stdout_level: Optional[Union[int, str]] = logging.INFO,
+    file: Optional[bool] = False,
+    file_level: Optional[Union[int, str]] = logging.INFO,
+    log_dir: Optional[str] = "autotrader_logs",
+):
+    """Get (or create) a logger."""
+    # Create logger
+    logger = logging.getLogger(name)
+    logger.setLevel(logging.DEBUG)
+
+    # Check for and clear any existing handlers on this logger
+    if logger.hasHandlers():
+        logger.handlers.clear()
+
+    # Create new handlers
+    handlers = []
+
+    # Check for logging to file
+    if file:
+        # Check log directory exists
+        if not os.path.exists(log_dir):
+            os.mkdir(log_dir)
+        logfile_path = os.path.join(log_dir, f"{name}.log")
+        fh = logging.FileHandler(logfile_path, mode="a")
+        fh.setLevel(file_level)
+        fh.setFormatter(logging.Formatter(CustomLoggingFormatter.default_fmt))
+        handlers.append(fh)
+
+    # Check for logging to stdout
+    if stdout:
+        sh = logging.StreamHandler()
+        stdout_level = stdout_level if stdout_level else logging.ERROR
+        sh.setLevel(stdout_level)
+        sh.setFormatter(CustomLoggingFormatter())
+        handlers.append(sh)
+
+    # Add handler to logger
+    for h in handlers:
+        logger.addHandler(h)
+
+    return logger
 
 
 class TradeAnalysis:
@@ -369,15 +439,20 @@ class TradeAnalysis:
     ----------
     instruments_traded : list
         The instruments traded during the trading period.
+
     account_history : pd.DataFrame
         A timeseries history of the account during the trading period.
+
     holding_history : pd.DataFrame
         A timeseries summary of holdings during the trading period, by portfolio
         allocation fraction.
+
     order_history : pd.DataFrame
         A timeseries history of orders placed during the trading period.
+
     cancelled_orders : pd.DataFrame
         Orders which were cancelled during the trading period.
+
     trade_history : pd.DataFrame
         A history of all trades (fills) made during the trading period.
 
@@ -417,7 +492,7 @@ class TradeAnalysis:
         self,
         broker,
         broker_histories: dict,
-        instrument: str = None,
+        instrument: Optional[str] = None,
     ) -> None:
         """Analyses trade account and creates summary of key details."""
         if not isinstance(broker, dict):
@@ -465,12 +540,14 @@ class TradeAnalysis:
             # Save results for this broker instance
             broker_results[broker_name] = {
                 "instruments_traded": list(orders.instrument.unique()),
-                "account_history": account_history,
-                "position_history": position_history,
-                "position_summary": position_summary,
-                "order_history": orders,
-                "cancelled_orders": orders[orders.status == "cancelled"],
-                "trade_history": trade_history,
+                "account_history": self._decimal_to_float(account_history),
+                "position_history": self._decimal_to_float(position_history),
+                "position_summary": self._decimal_to_float(position_summary),
+                "order_history": self._decimal_to_float(orders),
+                "cancelled_orders": self._decimal_to_float(
+                    orders[orders.status == "cancelled"]
+                ),
+                "trade_history": self._decimal_to_float(trade_history),
             }
 
         # Save all results
@@ -478,6 +555,16 @@ class TradeAnalysis:
 
         # Aggregate across broker instances
         self._aggregate_across_brokers(broker_results)
+
+    @staticmethod
+    def _decimal_to_float(df: pd.DataFrame):
+        """Cast all numeric types to floats to support plotting."""
+        for col in df:
+            try:
+                df[col] = df[col].astype(float)
+            except:
+                pass
+        return df
 
     @staticmethod
     def create_position_history(
@@ -498,7 +585,7 @@ class TradeAnalysis:
             directional_trades = (
                 instrument_trade_hist["direction"] * instrument_trade_hist["size"]
             )
-            net_position_hist = round(directional_trades.cumsum(), 8)
+            net_position_hist = directional_trades.cumsum()
 
             # Filter out duplicates
             net_position_hist = net_position_hist[
@@ -517,6 +604,12 @@ class TradeAnalysis:
 
             # Save result
             position_histories_dict[instrument] = net_position_hist
+
+        # If no trades, create empty dataframe
+        if len(instruments_traded) == 0:
+            position_histories_dict = {
+                "empty": pd.DataFrame(index=account_history.index)
+            }
 
         position_histories = pd.concat(position_histories_dict, axis=1)
         return position_histories
@@ -563,9 +656,9 @@ class TradeAnalysis:
                 else:
                     closed_positions_summary[instrument]["avg_long_duration"] = None
                 if directions.count(-1) > 0:
-                    closed_positions_summary[instrument][
-                        "avg_short_duration"
-                    ] = np.mean(np.array(durations)[np.array(directions) == -1])
+                    closed_positions_summary[instrument]["avg_short_duration"] = (
+                        np.mean(np.array(durations)[np.array(directions) == -1])
+                    )
                 else:
                     closed_positions_summary[instrument]["avg_short_duration"] = None
 
@@ -593,9 +686,11 @@ class TradeAnalysis:
             # Append unique instruments traded
             unique_instruments = orders.instrument.unique()
             [
-                instruments_traded.append(instrument)
-                if instrument not in instruments_traded
-                else None
+                (
+                    instruments_traded.append(instrument)
+                    if instrument not in instruments_traded
+                    else None
+                )
                 for instrument in unique_instruments
             ]
 
@@ -683,6 +778,7 @@ class TradeAnalysis:
         broker_name: str = None,
     ) -> pd.DataFrame:
         """Creates a summary dataframe for trades and orders."""
+        # TODO - review this, could likely be cleaner
         instrument = None if isinstance(instrument, list) else instrument
 
         if trades is not None:
@@ -696,6 +792,7 @@ class TradeAnalysis:
         status = []
         ids = []
         times_list = []
+        order_type = []
         order_price = []
         size = []
         direction = []
@@ -720,6 +817,7 @@ class TradeAnalysis:
             size.append(item.size)
             direction.append(item.direction)
             times_list.append(item.order_time)
+            order_type.append(item.order_type)
             order_price.append(item.order_price)
             stop_price.append(item.stop_loss)
             take_price.append(item.take_profit)
@@ -792,6 +890,7 @@ class TradeAnalysis:
                     "instrument": product,
                     "status": status,
                     "order_id": ids,
+                    "order_type": order_type,
                     "order_price": order_price,
                     "order_time": times_list,
                     "size": size,
@@ -997,353 +1096,128 @@ class TradeAnalysis:
         return trade_results
 
 
-class DataStream:
-    """Data stream class.
+class AbstractDataStream(Broker):
+    """Custom data feed base class. Wrapper around broker object without any
+    private trading methods."""
 
-    This class is intended to provide a means of custom data pipelines.
+    @abstractmethod
+    def __init__(self, config: dict[str, any]) -> None:
+        pass
 
-    Attributes
-    ----------
-    instrument : str
-        The instrument being traded.
-    feed : str
-        The data feed.
-    data_filepaths : str|dict
-        The filepaths to locally stored data.
-    quote_data_file : str
-        The filepaths to locally stored quote data.
-    auxdata_files : dict
-        The auxiliary data files.
-    strategy_params : dict
-        The strategy parameters.
-    get_data : AutoData
-        The AutoData instance.
-    data_start : datetime
-        The backtest start date.
-    data_end : datetime
-        The backtest end date.
-    portfolio : bool|list
-        The instruments being traded in a portfolio, if any.
-    data_path_mapper : callable
-        A callable to map an instrument to an absolute filepath of
-        data for that instrument.
 
-    Notes
-    -----
-    A 'dynamic' dataset is one where the specific products being traded
-    change over time. For example, trading contracts on an underlying product.
-    In this case, dynamic_data should be set to True in AutoTrader.add_data
-    method. When True, the datastream will be refreshed each update interval
-    to ensure that data for the relevant contracts are being provided.
+class DataStream(AbstractDataStream):
+    """Custom data feed base class. Wrapper around broker object without any
+    private trading methods."""
 
-    When the data is 'static', the instrument being traded does not change
-    over time. This is the more common scenario. In this case, the datastream
-    is only refreshed during livetrading, to accomodate for new data coming in.
-    In backtesting however, the entire dataset can be provided after the
-    initial call, as it will not evolve during the backtest. Note that future
-    data will not be provided to the strategy; instead, the data returned from
-    the datastream will be filtered by each AutoTraderBot before being passed
-    to the strategy.
+    def __init__(self, config: dict[str, any]) -> None:
+        self._data_broker = self
 
-    """
+    @property
+    def data_broker(self):
+        return self._data_broker
 
-    def __init__(self, **kwargs):
-        # Attributes
-        self.instrument = None
-        self.feed = None
-        self.data_filepaths = None
-        self.quote_data_file = None
-        self.auxdata_files = None
-        self.strategy_params = None
-        self.get_data = None
-        self.data_start = None
-        self.data_end = None
-        self.portfolio = None
-        self.data_path_mapper = None
+    def __repr__(self):
+        return "DataStreamer"
 
-        # Unpack kwargs
-        for item in kwargs:
-            setattr(self, item, kwargs[item])
+    def __str__(self):
+        return "DataStreamer"
 
-    def refresh(self, timestamp: datetime = None):
-        """Returns up-to-date trading data for AutoBot to provide to the
-        strategy.
 
-        Parameters
-        ----------
-        timestamp : datetime, optional
-            The current timestamp, which can be used to fetch
-            data if need. Note that look-ahead is checked for in
-            AutoTrader.autobot, so the data returned from this
-            method can include all available data. The default is
-            None.
+class LocalDataStream(DataStream):
+    """Local data stream object."""
 
-        Returns
-        -------
-        data : pd.DataFrame
-            The OHLC price data.
-        multi_data : dict
-            A dictionary of DataFrames.
-        quote_data : pd.DataFrame
-            The quote data.
-        auxdata : dict
-            Strategy auxiliary data.
+    def __init__(self, config: dict[str, any]) -> None:
+        # Unpack parameters
+        self._directory = config["directory"]
+        self._data_dict: dict[str, str] = config["data_dict"]
+        self._data_path_mapper = config["data_path_mapper"]
 
-        """
-        # Retrieve main data
-        if self.data_filepaths is not None:
-            # Local data filepaths provided
-            if isinstance(self.data_filepaths, str):
-                # Single data filepath provided
-                data = self.get_data._local(
-                    self.data_filepaths, self.data_start, self.data_end
-                )
-                multi_data = None
-
-            elif isinstance(self.data_filepaths, dict):
-                # Multiple data filepaths provided
-                multi_data = {}
-                if self.portfolio:
-                    for instrument, filepath in self.data_filepaths.items():
-                        data = self.get_data._local(
-                            filepath, self.data_start, self.data_end
-                        )
-                        multi_data[instrument] = data
-                else:
-                    for granularity, filepath in self.data_filepaths.items():
-                        data = self.get_data._local(
-                            filepath, self.data_start, self.data_end
-                        )
-                        multi_data[granularity] = data
-
-                # Extract first dataset as base data (arbitrary)
-                data = multi_data[list(self.data_filepaths.keys())[0]]
-
-        elif self.data_path_mapper is not None:
-            # Local data paths provided through mapper function
-            multi_data = {}
-            if self.portfolio:
-                # Portfolio strategy
-                for instrument in self.portfolio:
-                    # Construct filepath
-                    filepath = self.data_path_mapper(instrument)
-
-                    # Save to multidata dict
-                    data = self.get_data._local(
-                        filepath, self.data_start, self.data_end
-                    )
-                    multi_data[instrument] = data
-
-            else:
-                # Single instrument strategy
-                filepath = self.data_path_mapper(self.instrument)
-                granularity = self.strategy_params["granularity"]
-                data = self.get_data._local(filepath, self.data_start, self.data_end)
-                multi_data = None
-
-        else:
-            # Download data
-            multi_data = {}
-            data_func = getattr(self.get_data, f"_{self.feed.lower()}")
-            if self.portfolio:
-                # Portfolio strategy
-                if len(self.portfolio) > 1:
-                    granularity = self.strategy_params["granularity"]
-                    data_key = self.portfolio[0]
-                    for instrument in self.portfolio:
-                        data = data_func(
-                            instrument,
-                            granularity=granularity,
-                            count=self.strategy_params["period"],
-                            start_time=self.data_start,
-                            end_time=self.data_end,
-                        )
-                        multi_data[instrument] = data
-                else:
-                    raise Exception(
-                        "Portfolio strategies require more "
-                        + "than a single instrument. Please set "
-                        + "portfolio to False, or specify more "
-                        + "instruments in the watchlist."
-                    )
-            else:
-                # Single instrument strategy
-                granularities = self.strategy_params["granularity"].split(",")
-                data_key = granularities[0]
-                for granularity in granularities:
-                    data = data_func(
-                        self.instrument,
-                        granularity=granularity,
-                        count=self.strategy_params["period"],
-                        start_time=self.data_start,
-                        end_time=self.data_end,
-                    )
-                    multi_data[granularity] = data
-
-            # Take data as first element of multi-data
-            data = multi_data[data_key]
-
-            if len(multi_data) == 1:
-                multi_data = None
-
-        # Retrieve quote data
-        if self.quote_data_file is not None:
-            if isinstance(self.quote_data_file, str):
-                # Single quote datafile
-                quote_data = self.get_data._local(
-                    self.quote_data_file, self.data_start, self.data_end
-                )
-
-            elif isinstance(quote_data, dict) and self.portfolio:
-                # Multiple quote datafiles provided
-                # TODO - support multiple quote data files (portfolio strategies)
-                raise NotImplementedError(
-                    "Locally-provided quote data not " + "implemented for portfolios."
-                )
-                quote_data = {}
-                for instrument, path in quote_data.items():
-                    quote_data[instrument] = self.get_data._local(
-                        self.quote_data_file,  # need to specify
-                        self.data_start,
-                        self.data_end,
-                    )
-            else:
-                raise Exception("Error in quote data file provided.")
-
-        else:
-            # Download data
-            quote_data_func = getattr(self.get_data, f"_{self.feed.lower()}_quote_data")
-            if self.portfolio:
-                # Portfolio strategy - quote data for each instrument
-                granularity = self.strategy_params["granularity"]
-                quote_data = {}
-                for instrument in self.portfolio:
-                    quote_df = quote_data_func(
-                        multi_data[instrument],
-                        instrument,
-                        granularity,
-                        self.data_start,
-                        self.data_end,
-                        count=self.strategy_params["period"],
-                    )
-                    quote_data[instrument] = quote_df
-
-            else:
-                # Single instrument strategy - quote data for base granularity
-                quote_data = quote_data_func(
-                    data,
-                    self.instrument,
-                    self.strategy_params["granularity"].split(",")[0],
-                    self.data_start,
-                    self.data_end,
-                    count=self.strategy_params["period"],
-                )
-
-        # Retrieve auxiliary data
-        if self.auxdata_files is not None:
-            if isinstance(self.auxdata_files, str):
-                # Single data filepath provided
-                auxdata = self.get_data._local(
-                    self.auxdata_files, self.data_start, self.data_end
-                )
-
-            elif isinstance(self.auxdata_files, dict):
-                # Multiple data filepaths provided
-                auxdata = {}
-                for key, filepath in self.auxdata_files.items():
-                    data = self.get_data._local(
-                        filepath, self.data_start, self.data_end
-                    )
-                    auxdata[key] = data
-        else:
-            auxdata = None
-
-        # Correct any data mismatches
-        if self.portfolio:
-            # Portfolio strategy
-            for instrument in multi_data:
-                matched_data, matched_quote_data = self.match_quote_data(
-                    multi_data[instrument], quote_data[instrument]
-                )
-                multi_data[instrument] = matched_data
-                quote_data[instrument] = matched_quote_data
-        else:
-            # Single instrument data strategy
-            if data is not None:
-                # Data is not None (in case of 'none' data feed)
-                data, quote_data = self.match_quote_data(data, quote_data)
-
-        return data, multi_data, quote_data, auxdata
-
-    def match_quote_data(
-        self, data: pd.DataFrame, quote_data: pd.DataFrame
-    ) -> pd.DataFrame:
-        """Function to match index of trading data and quote data."""
-        datasets = [data, quote_data]
-        adjusted_datasets = []
-
-        for dataset in datasets:
-            # Initialise common index
-            common_index = dataset.index
-
-            # Update common index by intersection with other data
-            for other_dataset in datasets:
-                common_index = common_index.intersection(other_dataset.index)
-
-            # Adjust data using common index found
-            adj_data = dataset[dataset.index.isin(common_index)]
-
-            adjusted_datasets.append(adj_data)
-
-        # Unpack adjusted datasets
-        adj_data, adj_quote_data = adjusted_datasets
-
-        return adj_data, adj_quote_data
-
-    def get_trading_bars(
+    def get_candles(
         self,
-        data: pd.DataFrame,
-        quote_bars: bool,
-        timestamp: datetime = None,
-        processed_strategy_data: dict = None,
-    ) -> dict:
-        """Returns a dictionary of the current bars of the products being
-        traded, based on the up-to-date data passed from autobot.
+        instrument: str,
+        granularity: str = None,
+        count: int = None,
+        start_time: datetime = None,
+        end_time: datetime = None,
+        *args,
+        **kwargs,
+    ) -> pd.DataFrame:
+        # TODO - test with portfolio
 
-        Parameters
-        ----------
-        data : pd.DataFrame
-            The strategy base OHLC data.
-        quote_bars : bool
-            Boolean flag to signal that quote data bars are being requested.
-        processed_strategy_data : dict
-            A dictionary containing all of the processed strategy data,
-            allowing flexibility in what bars are returned.
+        # Get filepath
+        if self._data_dict:
+            # Local using filenames specified
+            filepath = self._data_dict.get(instrument)
 
-        Returns
-        -------
-        dict
-            A dictionary of OHLC bars, keyed by the product name.
+        elif self._data_path_mapper:
+            # Use mapper function
+            prefix = self._data_path_mapper(instrument)
+            filepath = os.path.join(self._directory, f"{prefix}.csv")
 
-        Notes
-        -----
-        The quote data bars dictionary must have the exact same keys as the
-        trading bars dictionary. The quote_bars boolean flag is provided in
-        case a distinction must be made when this method is called.
-        """
-        bars = {}
-        strat_data = (
-            processed_strategy_data["base"]
-            if "base" in processed_strategy_data
-            else processed_strategy_data
-        )
-        if isinstance(strat_data, dict):
-            for instrument, data in strat_data.items():
-                bars[instrument] = data.iloc[-1]
         else:
-            bars[self.instrument] = strat_data.iloc[-1]
+            # Use instrument directory
+            filepath = os.path.join(self._directory, f"{instrument}.csv")
 
-        return bars
+        # Load
+        candles = pd.read_csv(filepath, index_col=0, parse_dates=True)
+
+        return candles
+
+    def get_orderbook(self, instrument: str, *args, **kwargs):
+        raise Exception("Orderbook data is not available from the local datastreamer.")
+
+    def get_public_trades(self, instrument: str, *args, **kwargs):
+        raise Exception(
+            "Public trade data is not available from the local datastreamer."
+        )
+
+
+class CcxtDownloadStreamer(DataStream):
+    """Data Streamer for CCXT Download."""
+
+    def __init__(self, config: dict[str, any]):
+        # Save CCXT-Download attributes
+        self.data_directory = DEFAULT_DOWNLOAD_DIR
+        self._cache_length = 3
+
+        # Initialise cache
+        self._cache: dict[str, pd.DataFrame] = {}
+
+    def get_candles(
+        self,
+        instrument: str,
+        granularity: str = None,
+        start_time: datetime = None,
+        end_time: datetime = None,
+        *args,
+        **kwargs,
+    ) -> pd.DataFrame:
+        # TODO - need to check data ranges, same as in virtual broker?
+        if instrument not in self._cache:
+            # Load from data lake
+            candles = load_data(
+                exchange="bybit",  # TODO - need to get this from somewhere
+                data_type=CANDLES,
+                data_type_id=granularity,
+                symbols=[instrument],
+                start_date=start_time,
+                end_date=end_time,
+            )
+            self._cache[instrument] = candles
+
+        else:
+            candles = self._cache[instrument]
+
+        return candles
+
+    def get_orderbook(self, instrument: str, *args, **kwargs):
+        candles = self._cache[instrument]
+        # Use local orderbook method.
+        return candles
+
+    def get_public_trades(self, instrument: str, *args, **kwargs):
+        # TODO - implement
+        return []
 
 
 class TradeWatcher:
@@ -1373,7 +1247,11 @@ class TradeWatcher:
 
 class Monitor:
     def __init__(
-        self, config_filepath: str = None, config: dict = None, *args, **kwargs
+        self,
+        config_filepath: Optional[str] = None,
+        config: Optional[dict] = None,
+        *args,
+        **kwargs,
     ) -> None:
         """Construct a Monitor instance.
 
@@ -1382,6 +1260,7 @@ class Monitor:
         config_filepath : str, None
             The absolute filepath of the monitor yaml configuration file.
             The default is None.
+
         config : dict, optional
             The monitor configuration dictionary. The default is None.
         """

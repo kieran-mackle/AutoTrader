@@ -75,8 +75,12 @@ need not be. Read more about stop-limit orders
 [here](https://www.investopedia.com/terms/s/stop-limitorder.asp).
 
 ```python
-stop_limit_order = Order(direction=1, order_type='stop-limit', 
-                         order_limit_price=1.2312, order_stop_price=1.2300)
+stop_limit_order = Order(
+    direction=1, 
+    order_type='stop-limit', 
+    order_limit_price=1.2312, 
+    order_stop_price=1.2300
+)
 ```
 
 
@@ -132,15 +136,12 @@ are treated as `market` order type (liquidity consuming) when calculating tradin
 ```
 
 
-
 (isolated-position-object)=
 ## Isolated Positions
 ```{eval-rst}
 .. autoclass:: autotrader.brokers.trading.IsolatedPosition
     :members:
 ```
-
-
 
 
 (position-object)=

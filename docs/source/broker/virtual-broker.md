@@ -73,7 +73,7 @@ and used to simulate execution.
 ## API Reference
 
 ```{eval-rst}
-.. autoclass:: autotrader.brokers.virtual.broker.Broker
+.. autoclass:: autotrader.brokers.virtual.Broker
    :members:
    :private-members:
 ```

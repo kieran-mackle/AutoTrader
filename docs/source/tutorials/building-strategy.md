@@ -57,9 +57,6 @@ NAME: 'Simple Macd Strategy'    # strategy name
 MODULE: 'macd'                  # strategy module
 CLASS: 'SimpleMACD'             # strategy class
 INTERVAL: '1h'                  # stategy timeframe
-PERIOD: 300                     # candles required by strategy
-SIZING: 'risk'                  # sizing method
-RISK_PC: 1.5                    # risk per trade (%)
 PARAMETERS:                     # strategy parameters
   ema_period: 200
   MACD_fast: 12
@@ -78,19 +75,9 @@ alone, as specified by the `WATCHLIST` key. Note that the format
 of the instruments provided here must match your data feed (in this case, 
 Yahoo Finance, which denotes FX with '=X').
 
-It is worth noting that we are taking advantage of AutoTrader's automatic 
-position size calculation, by defining the `SIZING: 'risk'` and `RISK_PC: 1.5` 
-keys. These keys tell AutoTrader to use a risk-based approach to position 
-sizing. As such, when an order is submitted from the strategy, AutoTrader 
-will use the current price and stop-loss price to calculate the appropriate
-position size, capping the maximium loss to the percentage defined by 
-`RISK_PC`. In this case, any single trade can only ever lose 1.5% of the 
-account. 
-
 We also define the `INTERVAL: '1h'` key, meaning that our strategy will run 
-on the 1-hour timeframe. This value is used when retrieving price data 
-through [AutoData](autodata-docs). This is discussed more in the next 
-section.
+on the 1-hour timeframe. This value is used when retrieving price data.
+This is discussed more in the next section.
 
 ```{tip}
 You can find a template strategy configuration file in the 

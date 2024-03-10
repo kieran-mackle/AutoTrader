@@ -1,28 +1,33 @@
 import os
 import sys
 import time
+import pytz
 import pickle
 import timeit
+import logging
 import importlib
 import traceback
-import numpy as np
 import pandas as pd
 from tqdm import tqdm
-from typing import Callable
-from threading import Thread
 from ast import literal_eval
+from threading import Thread
 from scipy.optimize import brute
+from autotrader.strategy import Strategy
 from autotrader.autoplot import AutoPlot
 from autotrader.autobot import AutoTraderBot
+from autotrader.brokers.broker import Broker
 from datetime import datetime, timedelta, timezone
-from autotrader.brokers.broker import AbstractBroker
+from typing import Callable, Optional, Literal, Union
+from autotrader.brokers.virtual import Broker as VirtualBroker
 from autotrader.utilities import (
     read_yaml,
     get_broker_config,
     DataStream,
+    LocalDataStream,
     TradeAnalysis,
     unpickle_broker,
     print_banner,
+    get_logger,
 )
 
 
@@ -33,30 +38,43 @@ class AutoTrader:
     -------
     configure(...)
         Configures run settings for AutoTrader.
+
     add_strategy(...)
         Adds a strategy to the active AutoTrader instance.
+
     backtest(...)
         Configures backtest settings.
+
     optimise(...)
         Configures optimisation settings.
+
     scan(...)
         Configures scan settings.
+
     run()
         Runs AutoTrader with configured settings.
+
     add_data(...)
-        Specify local data files to use for backtests.
+        Specify local data files or data streaming methods to use.
+
     plot_settings(...)
         Configures the plot settings for AutoPlot.
+
     get_bots_deployed(instrument=None)
         Returns the AutoTrader trading bots deployed in the active instance.
+
     plot_backtest(bot=None)
         Plots backtest results of a trading Bot.
+
     plot_multibot_backtest(trade_results=None)
         Plots backtest results for multiple trading bots.
+
     multibot_backtest_analysis(bots=None)
         Analyses backtest results of multiple trading bots.
+
     print_trade_results(trade_results)
         Prints trade results.
+
     print_multibot_trade_results(trade_results=None)
         Prints a multi-bot backtest results.
 
@@ -81,14 +99,11 @@ class AutoTrader:
 
         self._global_config_dict = None
         self._instance_str = None
-        self._run_mode = "continuous"
         self._papertrading = False
         self._timestep = None
         self._strategy_timestep = None
-        self._warmup_period = pd.Timedelta("0s").to_pytimedelta()
+        self._warmup_period = None
         self._feed = None
-        self._req_liveprice = False
-        self._max_workers = None
 
         # Communications
         self._notify = 0
@@ -98,18 +113,14 @@ class AutoTrader:
 
         # Livetrade Parameters
         self._deploy_time = None
-        self._check_data_alignment = True
-        self._allow_dancing_bears = False
         self._maintain_broker_thread = False
 
         # Broker parameters
-        self._execution_method = None  # Execution method
-        self._broker = None  # Broker instance(s)
+        self._execution_method: Callable = None  # Execution method
+        self._broker: Union[dict[str, Broker], Broker] = None  # Broker instance(s)
         self._brokers_dict = None  # Dictionary of brokers
         self._broker_name = ""  # Broker name(s)
-        self._broker_utils = None  # Broker utilities
-        self._broker_verbosity = 0  # Broker verbosity
-        self._environment = "paper"  # Trading environment
+        self._environment: Literal["paper", "live"] = "paper"  # Trading environment
         self._account_id = None  # Trading account
         self._base_currency = None
         self._no_brokers = 0
@@ -121,7 +132,7 @@ class AutoTrader:
         self._shutdown_methods = {}
         self._uninitiated_strat_files = []
         self._uninitiated_strat_dicts = []
-        self._bots_deployed = []
+        self._bots_deployed: list[AutoTraderBot] = []
 
         # Backtesting Parameters
         self._backtest_mode = False
@@ -131,16 +142,11 @@ class AutoTrader:
 
         # Local Data Parameters
         self._data_directory = None
-        self._data_indexing = "open"
-        self._data_stream_object = DataStream
+        self._data_stream_object = LocalDataStream
         self._data_file = None
-        self._MTF_data_files = None
         self._data_path_mapper = None
         self._local_data = None
-        self._local_quote_data = None
-        self._auxdata = None
         self._dynamic_data = False
-        self._allow_duplicate_bars = False
 
         # Virtual Broker Parameters
         self._virtual_broker_config = {}
@@ -174,6 +180,9 @@ class AutoTrader:
         self._use_strat_plot_data = False
         self._plot_portolio_chart = False
 
+        # Initialise logger type
+        self.logger: logging.Logger
+
     def __repr__(self):
         return f"AutoTrader instance"
 
@@ -182,111 +191,97 @@ class AutoTrader:
 
     def configure(
         self,
-        verbosity: int = 1,
-        broker: str = None,
-        execution_method: Callable = None,
-        feed: str = None,
-        req_liveprice: bool = False,
-        notify: int = 0,
-        notification_provider: str = None,
-        home_dir: str = None,
-        allow_dancing_bears: bool = False,
-        account_id: str = None,
-        environment: str = "paper",
-        show_plot: bool = False,
-        jupyter_notebook: bool = False,
-        mode: str = "continuous",
-        update_interval: str = None,
-        data_index_time: str = "open",
-        global_config: dict = None,
-        instance_str: str = None,
-        broker_verbosity: int = 0,
-        home_currency: str = None,
-        allow_duplicate_bars: bool = False,
-        deploy_time: datetime = None,
-        max_workers: int = None,
+        verbosity: Optional[int] = 1,
+        broker: Optional[str] = None,
+        feed: Optional[str] = None,
+        home_dir: Optional[str] = None,
+        notify: Optional[int] = 0,
+        notification_provider: Optional[str] = None,
+        execution_method: Optional[Callable] = None,
+        account_id: Optional[str] = None,
+        environment: Optional[Literal["paper", "live"]] = "paper",
+        show_plot: Optional[bool] = False,
+        jupyter_notebook: Optional[bool] = False,
+        global_config: Optional[dict] = None,
+        instance_str: Optional[str] = None,
+        home_currency: Optional[str] = None,
+        deploy_time: Optional[datetime] = None,
+        logger_kwargs: Optional[dict] = None,
     ) -> None:
         """Configures run settings for AutoTrader.
 
         Parameters
         ----------
         verbosity : int, optional
-            The verbosity of AutoTrader (0, 1, 2). The default is 1.
+            The verbosity of AutoTrader (0, 1, 2, 3). The default is 1. This will be
+            used to configure the loggers, mapping the verbosity to a logging level.
+            For example, verbosity = 0 is equivalent to logging.ERROR, and
+            verbosity = 3 is equivalent to logging.DEBUG.
+
         broker : str, optional
             The broker(s) to connect to for trade execution. Multiple exchanges
             can be provided using comma separattion. The default is 'virtual'.
+
         execution_method : Callable, optional
             The execution model to call when submitting orders to the broker.
             This method must accept the broker instance, the order object,
             order_time and any *args, **kwargs.
+
         feed : str, optional
             The data feed to be used. This can be the same as the broker
             being used, or another data source. Options include 'yahoo',
-            'oanda', 'ib', 'dydx', 'ccxt', 'local' or 'none'. When data is provided
+            'oanda', 'ib', 'ccxt:exchange', 'local'. When data is provided
             via the add_data method, the feed is automatically set to 'local'.
             The default is None.
-        req_liveprice : bool, optional
-            Request live market price from broker before placing trade, rather
-            than using the data already provided. The default is False.
+
         notify : int, optional
             The level of notifications (0, 1, 2). The default is 0.
+
         notification_provider : str, optional
             The notifications provider to use (currently only Telegram supported).
             The default is None.
+
         home_dir : str, optional
             The project home directory. The default is the current working directory.
-        allow_dancing_bears : bool, optional
-            Allow incomplete candles to be passed to the strategy. The default is False.
+
         account_id : str, optional
             The brokerage account ID to be used. The default is None.
+
         environment : str, optional
             The trading environment of this instance ('paper', 'live'). The
             default is 'paper'.
+
         show_plot : bool, optional
             Automatically generate trade chart. The default is False.
+
         jupyter_notebook : bool, optional
             Set to True when running in Jupyter notebook environment. The
             default is False.
-        mode : str, optional
-            The run mode (either 'periodic' or 'continuous'). The default is
-            'periodic'.
-        update_interval : str, optional
-            The update interval to use when running in 'continuous' mode. This
-            should align with the highest resolution bar granularity in your
-            strategy to allow adequate updates. The string inputted will be
-            converted to a timedelta object. If None is passed, the update
-            interval will be inferred from the strategy INTERVAL. The
-            default is None.
-        data_index_time : str, optional
-            The time by which the data is indexed. Either 'open', if the data
-            is indexed by the bar open time, or 'close', if the data is indexed
-            by the bar close time. The default is 'open'.
+
         global_config : dict, optional
             Optionally provide your global configuration directly as a
             dictionary, rather than it being read in from a yaml file. The
             default is None.
+
         instance_str : str, optional
             The name of the active AutoTrader instance, used to control bots
             deployed when livetrading in continuous mode. When not specified,
             the instance string will be of the form 'autotrader_instance_n'.
             The default is None.
-        broker_verbosity : int, optional
-            The verbosity of the broker. The default is 0.
+
         home_currency : str, optional
             The home currency of trading accounts used (intended for FX
             conversions). The default is None.
-        allow_duplicate_bars : bool, optional
-            Allow duplicate bars to be passed on to the strategy. The default
-            is False.
+
         deploy_time : datetime, optional
             The time to deploy the bots. If this is a future time, AutoTrader
             will wait until it is reached before deploying. It will also be used
             as an anchor to synchronise future bot updates. If not specified,
             bots will be deployed as soon as possible, with successive updates
             synchronised to the deployment time.
-        max_workers : int, optional
-            The maximum number of workers to use when spawning threads. The
-            default is None.
+
+        logger_kwargs : dict, optional
+            Keyword arguments to pass on to the logger function, utilities.get_logger.
 
         Returns
         -------
@@ -294,9 +289,9 @@ class AutoTrader:
             Calling this method configures the internal settings of
             the active AutoTrader instance.
         """
+        # TODO - tidy up the signature of this method
         self._verbosity = verbosity
         self._feed = feed
-        self._req_liveprice = req_liveprice
         self._broker_name = broker if broker is not None else self._broker_name
         self._execution_method = execution_method
         self._notify = notify
@@ -306,31 +301,34 @@ class AutoTrader:
             else self._notification_provider
         )
         self._home_dir = home_dir if home_dir is not None else os.getcwd()
-        self._allow_dancing_bears = allow_dancing_bears
-        self._allow_duplicate_bars = allow_duplicate_bars
         self._account_id = account_id
         self._environment = environment
         self._show_plot = show_plot
         self._jupyter_notebook = jupyter_notebook
-        self._run_mode = mode
-        self._timestep = (
-            pd.Timedelta(update_interval).to_pytimedelta()
-            if update_interval is not None
-            else self._timestep
-        )
-        self._data_indexing = data_index_time
         self._global_config_dict = global_config
         self._instance_str = instance_str
-        self._broker_verbosity = broker_verbosity
         self._base_currency = home_currency
         self._deploy_time = deploy_time
-        self._max_workers = max_workers
+
+        # Create logger kwargs
+        logger_kwargs = logger_kwargs if logger_kwargs is not None else {}
+        verbosity_map = {
+            0: logging.ERROR,
+            1: logging.WARNING,
+            2: logging.INFO,
+            3: logging.DEBUG,
+        }
+        logger_kwargs["stdout_level"] = verbosity_map.get(verbosity, logging.INFO)
+
+        # Save logger kwargs for other classes
+        # TODO - make verbosity control print out only, and logging separate
+        self._logger_kwargs = logger_kwargs
 
     def add_strategy(
         self,
         config_filename: str = None,
         config_dict: dict = None,
-        strategy=None,
+        strategy: Strategy = None,
         shutdown_method: str = None,
     ) -> None:
         """Adds a strategy to AutoTrader.
@@ -340,11 +338,14 @@ class AutoTrader:
         config_filename : str, optional
             The prefix of the yaml strategy configuration file, located in
             home_dir/config. The default is None.
+
         config_dict : dict, optional
             Alternative to config_filename, a strategy configuration
             dictionary can be passed directly. The default is None.
+
         strategy : AutoTrader Strategy, optional
             The strategy class object. The default is None.
+
         shutdown_method : str, optional
             The name of the shutdown method in the strategy (if any). This
             method will be called when AutoTrader is livetrading in continuous
@@ -378,6 +379,10 @@ class AutoTrader:
             # Home directory has been set, continue
             if config_dict is None:
                 # Config YAML filepath provided
+                if config_filename is None:
+                    raise Exception(
+                        "Must provide strategy configuration either as dictionary of filename."
+                    )
                 config_file_path = os.path.join(
                     self._home_dir, "config", config_filename
                 )
@@ -397,9 +402,7 @@ class AutoTrader:
                 sys.exit()
 
             # Check for other required keys
-            # TODO - review required keys (WATCHLIST? INTERVAL and
-            # PERIOD only when feed not none)
-            required_keys = ["CLASS", "INTERVAL", "PERIOD"]
+            required_keys = ["CLASS", "INTERVAL"]
             for key in required_keys:
                 if key not in new_strategy:
                     print(
@@ -415,18 +418,6 @@ class AutoTrader:
                     + "run from this instance."
                 )
                 print("Conflicting name:", name)
-
-            # Check PERIOD type
-            if isinstance(new_strategy["PERIOD"], float):
-                # Convert to integer
-                new_strategy["PERIOD"] = int(new_strategy["PERIOD"])
-
-            elif isinstance(new_strategy["PERIOD"], str):
-                # Period provided as time range, convert to int using INTERVAL
-                new_strategy["PERIOD"] = int(
-                    pd.Timedelta(new_strategy["PERIOD"])
-                    / pd.Timedelta(new_strategy["INTERVAL"])
-                )
 
             # Save to AutoTrader instance
             self._strategy_configs[name] = new_strategy
@@ -472,7 +463,7 @@ class AutoTrader:
         slippage_models: dict = None,
         picklefile: str = None,
         exchange: str = None,
-        tradeable_instruments: list = None,
+        tradeable_instruments: list[str] = None,
         refresh_freq: str = "1s",
         home_currency: str = None,
         papertrade: bool = True,
@@ -485,18 +476,23 @@ class AutoTrader:
         ----------
         verbosity : int, optional
             The verbosity of the broker. The default is 0.
+
         initial_balance : float, optional
             The initial balance of the account. The default is 1000.
+
         spread : float, optional
             The bid/ask spread to use in backtest (specified in units defined
             by the spread_units argument). The default is 0.
+
         spread_units : str, optional
             The unit of the spread specified. Options are 'price', meaning that
             the spread is quoted in price units, or 'percentage', meaning that
             the spread is quoted as a percentage of the market price. The default
             is 'price'.
+
         commission : float, optional
             Trading commission as percentage per trade. The default is 0.
+
         commission_scheme : str, optional
             The method with which to apply commissions to trades made. The options
             are (1) 'percentage', where the percentage specified by the commission
@@ -505,44 +501,57 @@ class AutoTrader:
             multiplied by the number of units in the trade, and (3) 'flat', where
             a flat monetary value specified by the commission argument is charged
             per trade made, regardless of size. The default is 'percentage'.
+
         maker_commission : float, optional
             The commission to charge on liquidity-making orders. The default is
             None, in which case the nominal commission argument will be used.
+
         taker_commission: float, optional
             The commission to charge on liquidity-taking orders. The default is
             None, in which case the nominal commission argument will be used.
+
         leverage : int, optional
             Account leverage. The default is 1.
+
         hedging : bool, optional
             Allow hedging in the virtual broker (opening simultaneous
             trades in oposing directions). The default is False.
+
         margin_call_fraction : float, optional
             The fraction of margin usage at which a margin call will occur.
             The default is 0.
+
         default_slippage_model : Callable, optional
             The default model to use when calculating the percentage slippage
             on the fill price, for a given order size. The default functon
             returns zero.
+
         slippage_models : dict, optional
             A dictionary of callable slippage models, keyed by instrument.
+
         picklefile : str, optional
             The filename of the picklefile to load state from. If you do not
             wish to load from state, leave this as None. The default is None.
+
         exchange : str, optional
             The name of the exchange to use for execution. This gets passed to
             an instance of AutoData to update prices and use the realtime
             orderbook for virtual order execution. The default is None.
+
         tradeable_instruments : list, optional
             A list containing strings of the instruments tradeable through the
             exchange specified. This is used to determine which exchange orders
             should be submitted to when trading across multiple exchanges. This
             should account for all instruments provided in the watchlist. The
             default is None.
+
         refresh_freq : str, optional
             The timeperiod to sleep for in between updates of the virtual broker
             data feed when manually papertrading. The default is '1s'.
+
         home_currency : str, optional
             The home currency of the account. The default is None.
+
         papertrade : bool, optional
             A boolean to flag when the account is to be used for papertrading
             (real-time trading on paper). The default is True.
@@ -565,13 +574,17 @@ class AutoTrader:
                 + "configure method before configuring its virtual account."
             )
             sys.exit(0)
-            # self._broker_name += broker_name + ', '
 
         self._papertrading = False if self._backtest_mode else papertrade
+        # TODO - review refresh freq
         self._broker_refresh_freq = refresh_freq
 
         if tradeable_instruments is not None:
             self._virtual_tradeable_instruments[broker_name] = tradeable_instruments
+
+        # Set execution feed: if backtesting, use global feed, otherwise use the exchange
+        # specified (eg. connect to live exchange feed for papertrading)
+        execution_feed = self._feed if self._backtest_mode else exchange
 
         # Construct configuration dictionary
         config = {
@@ -594,7 +607,7 @@ class AutoTrader:
             "slippage_models": slippage_models,
             "picklefile": picklefile,
             # Extra parameters
-            "execution_feed": exchange,
+            "execution_feed": execution_feed,
         }
 
         # Append
@@ -607,7 +620,8 @@ class AutoTrader:
         end: str = None,
         start_dt: datetime = None,
         end_dt: datetime = None,
-        warmup_period: str = "0s",
+        warmup_period: Optional[str] = None,
+        localize_to_utc: Optional[bool] = False,
     ) -> None:
         """Configures settings for backtesting.
 
@@ -615,16 +629,24 @@ class AutoTrader:
         ----------
         start : str, optional
             Start date for backtesting, in format dd/mm/yyyy. The default is None.
+
         end : str, optional
             End date for backtesting, in format dd/mm/yyyy. The default is None.
+
         start_dt : datetime, optional
             Datetime object corresponding to start time. The default is None.
+
         end_dt : datetime, optional
             Datetime object corresponding to end time. The default is None.
+
         warmup_period : str, optional
             A string describing the warmup period to be used. This is
             equivalent to the minimum period of time required to collect
             sufficient data for the strategy. The default is '0s'.
+
+        localize_to_utc : bool, optional
+            If the start and end have been passed as strings, set this to True to
+            localize them to UTC.
 
         Notes
         ------
@@ -634,14 +656,20 @@ class AutoTrader:
         """
         # Convert start and end strings to datetime objects
         if start_dt is None and end_dt is None:
-            start_dt = datetime.strptime(start + "+0000", "%d/%m/%Y%z")
-            end_dt = datetime.strptime(end + "+0000", "%d/%m/%Y%z")
+            start_dt = datetime.strptime(start, "%d/%m/%Y")
+            end_dt = datetime.strptime(end, "%d/%m/%Y")
+            if localize_to_utc:
+                start_dt = pytz.utc.localize(start_dt)
+                end_dt = pytz.utc.localize(end_dt)
 
         # Assign attributes
         self._backtest_mode = True
         self._data_start = start_dt
         self._data_end = end_dt
-        self._warmup_period = pd.Timedelta(warmup_period).to_pytimedelta()
+        self._warmup_period = warmup_period
+
+        # Update logging attributes
+        self._logger_kwargs["stdout"] = False
 
     def optimise(
         self, opt_params: list, bounds: list, Ns: int = 4, force_download: bool = False
@@ -653,14 +681,17 @@ class AutoTrader:
         opt_params : list
             The parameters to be optimised, as they  are named in the
             strategy configuration file.
+
         bounds : list(tuples)
             The bounds on each of the parameters to be optimised, specified
             as a tuple of the form (lower, upper) for each parameter. The
             default is 4.
+
         force_download : bool, optional
             Force AutoTrader to download data each iteration. This is not
             recommended. Instead, you should provide local download to optimise
             on, using the add_data method. The default is False.
+
         Ns : int, optional
             The number of points along each dimension of the optimisation grid.
 
@@ -705,11 +736,8 @@ class AutoTrader:
         self,
         data_dict: dict = None,
         mapper_func: callable = None,
-        quote_data: dict = None,
         data_directory: str = "price_data",
-        abs_dir_path: str = None,
-        auxdata: dict = None,
-        stream_object=None,
+        stream_object: DataStream = None,
         dynamic_data: bool = False,
     ) -> None:
         """Specify local data to run AutoTrader on.
@@ -718,31 +746,22 @@ class AutoTrader:
         ----------
         data_dict : dict, optional
             A dictionary containing the filenames of the datasets
-            to be used. The default is None.
+            to be used, keyed by instrument. The default is None.
+
         mapper_func : callable, optional
             A callable used to provide the absolute filepath to the data
             given the instrument name (as it appears in the watchlist)
             as an input argument. The default is None.
-        quote_data : dict, optional
-            A dictionary containing the quote data filenames
-            of the datasets provided in data_dict. The default is None.
+
         data_directory : str, optional
             The name of the sub-directory containing price
             data files. This directory should be located in the project
             home directory (at.home_dir). The default is 'price_data'.
-        abs_dir_path : str, optional
-            The absolute path to the data_directory. This parameter
-            may be used when the datafiles are stored outside of the project
-            directory. The default is None.
-        auxdata : dict, optional
-            A dictionary containing the data paths to supplement the
-            data passed to the strategy module. For strategies involving
-            multiple products, the keys of this dictionary must correspond
-            to the products, with the auxdata in nested dictionaries or
-            otherwise. The default is None.
-        stream_object : DataStream, optional
+
+        stream_object : LocalDataStream, optional
             A custom data stream object, allowing custom data pipelines. The
-            default is DataStream (from autotrader.utilities).
+            default is LocalDataStream (from autotrader.utilities).
+
         dynamic_data : bool, optional
             A boolean flag to signal that the stream object provided should
             be refreshed each timestep of a backtest. This can be useful when
@@ -765,123 +784,45 @@ class AutoTrader:
             To ensure proper directory configuration, this method should only
             be called after calling autotrader.configure().
 
-            The data provided to the strategy will either contain a single
-            timeframe OHLC dataframe, a dictionary of MTF dataframes, or
-            a dict with 'base' and 'aux' keys, for aux and base strategy
-            data (which could be single of MTF).
-
         Examples
         --------
             An example data_dict is shown below.
 
             >>> data_dict = {'product1': 'filename1.csv',
                              'product2': 'filename2.csv'}
-
-            For MTF data, data_dict should take the form shown below. In
-            the case of MTF data, quote data should only be provided for
-            the base timeframe (ie. the data which will be iterated on
-            when backtesting). Therefore, the quote_data dict will look
-            the same for single timeframe and MTF backtests.
-
-            >>> data_dict = {'product1': {'H1': 'product1_H1.csv',
-                                          'D': 'product1_D.csv'},
-                             'product2': {'H1': 'product2_H1.csv',
-                                          'D': 'product2_D.csv'}
-                             }
-
-            An example for the quate_data dictionary is shown below.
-
-            >>> quote_data = {'product1': 'product1_quote.csv',
-                              'product2': 'product2_quote.csv'}
-
-            The auxdata dictionary can take the form shown below. This data
-            will be passed on to your strategy.
-
-            >>> auxdata = {'product1': 'aux_price_data.csv',
-                           'product2': {'extra_data1': 'dataset1.csv',
-                                        'extra_data2': 'dataset2.csv'}
-                           }
-
         """
-        self._data_directory = data_directory
-        dir_path = (
-            abs_dir_path
-            if abs_dir_path is not None
-            else os.path.join(self._home_dir, data_directory)
-        )
-
         # Trading data
         if data_dict is not None:
             # Assign local data attribute
             local_data = {}
 
             # Populate local_data
-            for product in data_dict:
-                if type(data_dict[product]) == dict:
-                    # MTF data
-                    MTF_data = {}
-                    for timeframe in data_dict[product]:
-                        MTF_data[timeframe] = os.path.join(
-                            dir_path, data_dict[product][timeframe]
-                        )
-
-                    local_data[product] = MTF_data
-                else:
-                    # Single timeframe data
-                    local_data[product] = os.path.join(dir_path, data_dict[product])
-
+            for instrument in data_dict:
+                # Single timeframe data
+                local_data[instrument] = os.path.join(
+                    data_directory, data_dict[instrument]
+                )
             self._local_data = local_data
 
-        # Quote data
-        if quote_data is not None:
-            # Assign local data attribute
-            local_quote_data = {}
-
-            # Populate local_quote_data
-            for product in quote_data:
-                if type(quote_data[product]) == dict:
-                    raise Exception(
-                        "Only a single quote-data file should be "
-                        + "provided per instrument traded."
-                    )
-
-                else:
-                    local_quote_data[product] = os.path.join(
-                        dir_path, quote_data[product]
-                    )
-
-            self._local_quote_data = local_quote_data
-
-        if auxdata is not None:
-            modified_auxdata = {}
-            for product, item in auxdata.items():
-                if isinstance(item, dict):
-                    # Multiple datasets for product
-                    modified_auxdata[product] = {}
-                    for key, dataset in item:
-                        modified_auxdata[product][key] = os.path.join(dir_path, dataset)
-                else:
-                    # Item is not dict
-                    modified_auxdata[product] = os.path.join(dir_path, item)
-
-            self._auxdata = modified_auxdata
-
+        # Check mapper function
         if mapper_func is not None:
             self._data_path_mapper = mapper_func
 
         # Assign data stream object
+        # TODO - move this earlier?
         if stream_object is not None:
             self._data_stream_object = stream_object
 
-        # Fix attributes
+        # Override other data feed attributes
+        self._data_directory = data_directory
         self._feed = "local"
         self._dynamic_data = dynamic_data
 
     def scan(
         self,
-        strategy_filename: str = None,
-        strategy_dict: dict = None,
-        scan_index: str = None,
+        strategy_filename: Optional[str] = None,
+        strategy_dict: Optional[dict] = None,
+        scan_index: Optional[str] = None,
     ) -> None:
         """Configure AutoTrader scan settings.
 
@@ -890,8 +831,10 @@ class AutoTrader:
         strategy_filename : str, optional
              The prefix of yaml strategy configuration file, located in
              home_dir/config. The default is None.
+
         strategy_dict : dict, optional
             A strategy configuration dictionary. The default is None.
+
         scan_index : str, optional
             Forex scan index. The default is None.
 
@@ -910,15 +853,21 @@ class AutoTrader:
 
         # If scan index provided, use that. Else, use strategy watchlist
         scan_index = "Strategy watchlist"
-
         self._scan_mode = True
         self._scan_index = scan_index
-        self._check_data_alignment = False
 
-    def run(self) -> AbstractBroker:
+    def run(self) -> Union[None, Broker]:
         """Performs essential checks and runs AutoTrader."""
+        # Create logger
+        self.logger = get_logger(
+            name="autotrader",
+            **self._logger_kwargs,
+        )
+
         # Print Banner
-        if int(self._verbosity) > 0:
+        if int(self._verbosity) > 0 and (
+            self._logger_kwargs.get("stdout", True) or self._backtest_mode
+        ):
             print_banner()
 
         # Define home_dir if undefined
@@ -935,23 +884,13 @@ class AutoTrader:
             # Scan watchlist has not overwritten strategy watchlist
             self._update_strategy_watchlist()
 
-        # Check for added strategies
-        if (
-            len(self._strategy_configs) == 0
-            and not self._papertrading
-            and int(self._verbosity) > 1
-        ):
-            print(
-                "Warning: no strategy has been provided. Do so by using the"
-                + " 'add_strategy' method of AutoTrader."
-            )
-
+        # Check run mode
         if sum([self._backtest_mode, self._scan_mode]) > 1:
-            print(
-                "Error: backtest mode and scan mode are both set to True,"
+            self.logger.error(
+                "Backtest mode and scan mode are both set to True,"
                 + " but only one of these can run at a time."
+                + "Please check your inputs and try again."
             )
-            print("Please check your inputs and try again.")
             sys.exit(0)
 
         # Check self._timestep
@@ -976,36 +915,38 @@ class AutoTrader:
 
             else:
                 # Livetrading
-                print(
+                self.logger.error(
                     "Please specify the name(s) of the broker(s) "
                     + "you wish to trade with."
                 )
                 sys.exit()
 
+        # Check backtesting configuration
         if self._backtest_mode:
             if self._notify > 0:
-                print(
-                    "Warning: notify set to {} ".format(self._notify)
+                self.logger.warning(
+                    "Notify set to {} ".format(self._notify)
                     + "during backtest. Setting to zero to prevent notifications."
                 )
                 self._notify = 0
 
             # Check that the backtest does not request future data
             if self._data_end > datetime.now(tz=self._data_end.tzinfo):
-                print(
-                    "Warning: you have requested backtest data into the "
+                self.logger.info(
+                    "You have requested backtest data into the "
                     + "future. The backtest end date will be adjsuted to "
                     + "the current time."
                 )
                 self._data_end = datetime.now(tz=self._data_end.tzinfo)
 
-            # Check if the broker has been configured
+            # Check if the virtual broker has been configured
             if len(self._virtual_broker_config) != self._no_brokers:
                 # Virtual accounts have not been configured for the brokers specified
                 if len(self._virtual_broker_config) == 0:
                     # Use default values for all virtual accounts
                     for exchange in self._broker_name.split(","):
                         self.virtual_account_config(papertrade=False, exchange=exchange)
+
                 else:
                     # Partially configured accounts
                     raise Exception(
@@ -1017,7 +958,7 @@ class AutoTrader:
 
         # Check notification settings
         if self._notify > 0 and self._notification_provider is None:
-            print(
+            self.logger.error(
                 "Please specify a notification provided via the " + "configure method."
             )
             sys.exit()
@@ -1028,7 +969,7 @@ class AutoTrader:
             if self._backtest_mode:
                 self._run_optimise()
             else:
-                print("Please set backtest parameters to run optimisation.")
+                self.logger.error("Please set backtest parameters to run optimisation.")
 
         else:
             # Trading
@@ -1036,7 +977,7 @@ class AutoTrader:
                 # Not in backtest mode, yet virtual broker is selected
                 if not self._papertrading and not self._scan_mode:
                     # Not papertrading or scanning either
-                    print(
+                    self.logger.error(
                         "Live-trade mode requires setting the "
                         + "broker. Please do so using the "
                         + "AutoTrader configure method. If you "
@@ -1066,7 +1007,9 @@ class AutoTrader:
             if "telegram" in self._notification_provider.lower():
                 # Use telegram
                 if "TELEGRAM" not in self._global_config_dict:
-                    print("Please configure your telegram bot in keys.yaml.")
+                    self.logger.error(
+                        "Please configure your telegram bot in keys.yaml."
+                    )
                     sys.exit()
 
                 else:
@@ -1074,7 +1017,9 @@ class AutoTrader:
                     required_keys = ["api_key", "chat_id"]
                     for key in required_keys:
                         if key not in self._global_config_dict["TELEGRAM"]:
-                            print(f"Please provide {key} under TELEGRAM in keys.yaml.")
+                            self.logger.error(
+                                f"Please provide {key} under TELEGRAM in keys.yaml."
+                            )
                             sys.exit()
 
                 tg_module = importlib.import_module(f"autotrader.comms.tg")
@@ -1095,7 +1040,7 @@ class AutoTrader:
 
             elif global_config is None and self._feed.lower() in ["oanda", "ib"]:
                 # No global configuration provided, but data feed requires authentication
-                print(
+                self.logger.error(
                     f'Data feed "{self._feed}" requires global '
                     + "configuration. If a config file already "
                     + "exists, make sure to specify the home_dir. "
@@ -1107,9 +1052,9 @@ class AutoTrader:
             # Check global config requirements
             if sum([self._backtest_mode, self._scan_mode, self._papertrading]) == 0:
                 # Livetrade mode
-                if global_config is None:
+                if global_config is None and "ccxt" not in self._broker_name:
                     # No global_config
-                    print(
+                    self.logger.error(
                         "No global configuration found (required for "
                         + "livetrading). Either provide a global configuration dictionary "
                         + "via the configure method, or create a keys.yaml file in your "
@@ -1118,7 +1063,7 @@ class AutoTrader:
                     sys.exit()
 
                 if self._broker_name == "":
-                    print(
+                    self.logger.error(
                         "Please specify the brokers you would like to "
                         + "trade with via the configure method."
                     )
@@ -1129,16 +1074,27 @@ class AutoTrader:
                 inputted_brokers = self._broker_name.lower().replace(" ", "").split(",")
                 for broker in inputted_brokers:
                     if broker.split(":")[0] not in supported_exchanges:
-                        print(
+                        self.logger.error(
                             f"Unsupported broker requested: {self._broker_name}\n"
                             + "Please check the broker(s) specified in configure method and "
                             + "virtual_account_config."
                         )
                         sys.exit()
 
+            # Check tradeable instruments
+            if (
+                self._multiple_brokers
+                and len(self._virtual_tradeable_instruments) != self._no_brokers
+                and self._backtest_mode
+            ):
+                self.logger.error(
+                    "Please define the tradeable instruments for "
+                    + "each virtual account configured."
+                )
+                sys.exit()
+
             # All checks passed, proceed to run main
-            if self._verbosity > 1:
-                print("All preliminary checks complete, proceeding.")
+            self.logger.info("All preliminary checks complete, proceeding.")
             self._main()
 
             if self._papertrading or len(self._bots_deployed) == 0:
@@ -1148,19 +1104,21 @@ class AutoTrader:
 
     def plot_settings(
         self,
-        max_indis_over: int = 3,
-        max_indis_below: int = 2,
-        fig_tools: str = "pan,wheel_zoom,box_zoom,undo,redo,reset,save,crosshair",
-        ohlc_height: int = 400,
-        ohlc_width: int = 800,
-        top_fig_height: int = 150,
-        bottom_fig_height: int = 150,
-        jupyter_notebook: bool = False,
-        show_cancelled: bool = True,
-        chart_timeframe: str = "default",
-        chart_theme: str = "caliber",
-        use_strat_plot_data: bool = False,
-        portfolio_chart: bool = False,
+        max_indis_over: Optional[int] = 3,
+        max_indis_below: Optional[int] = 2,
+        fig_tools: Optional[
+            str
+        ] = "pan,wheel_zoom,box_zoom,undo,redo,reset,save,crosshair",
+        ohlc_height: Optional[int] = 400,
+        ohlc_width: Optional[int] = 800,
+        top_fig_height: Optional[int] = 150,
+        bottom_fig_height: Optional[int] = 150,
+        jupyter_notebook: Optional[bool] = False,
+        show_cancelled: Optional[bool] = True,
+        chart_timeframe: Optional[str] = "default",
+        chart_theme: Optional[str] = "caliber",
+        use_strat_plot_data: Optional[bool] = False,
+        portfolio_chart: Optional[bool] = False,
     ) -> None:
         """Configure the plot settings.
 
@@ -1169,33 +1127,45 @@ class AutoTrader:
         max_indis_over : int, optional
             Maximum number of indicators overlaid on the main chart. The
             default is 3.
+
         max_indis_below : int, optional
             Maximum number of indicators below the main chart. The default is 2.
+
         fig_tools : str, optional
             The figure tools. The default is "pan,wheel_zoom,box_zoom,undo,
             redo,reset,save,crosshair".
+
         ohlc_height : int, optional
             The height (px) of the main chart. The default is 400.
+
         ohlc_width : int, optional
             The width (px) of the main chart. The default is 800.
+
         top_fig_height : int, optional
             The height (px) of the figure above the main chart. The default is 150.
+
         bottom_fig_height : int, optional
             The height (px) of the figure(s) below the main chart. The default is 150.
+
         jupyter_notebook : bool, optional
             Boolean flag when running in Jupyter Notebooks, to allow inline
             plotting. The default is False.
+
         show_cancelled : bool, optional
             Show/hide cancelled trades. The default is True.
+
         chart_timeframe : str, optional
             The bar timeframe to use when gerating the chart. The timeframe
             provided must be a part of the strategy dataset. The default is 'default'.
+
         chart_theme : bool, optional
             The theme of the Bokeh chart generated. The default is "caliber".
+
         use_strat_plot_data : bool, optional
             Boolean flag to use data from the strategy instead of candlestick
             data for the chart. If True, ensure your strategy has a timeseries
             data attribute named 'plot_data'. The default is False.
+
         portfolio_chart : bool, optional
             Override the default plot settings to plot the portfolio chart
             even when running a single instrument backtest.
@@ -1220,7 +1190,9 @@ class AutoTrader:
         self._use_strat_plot_data = use_strat_plot_data
         self._plot_portolio_chart = portfolio_chart
 
-    def get_bots_deployed(self, instrument: str = None) -> dict:
+    def get_bots_deployed(
+        self, instrument: str = None
+    ) -> Union[AutoTraderBot, dict[str, AutoTraderBot]]:
         """Returns a dictionary of AutoTrader trading bots, organised by
         instrument traded.
 
@@ -1328,26 +1300,6 @@ class AutoTrader:
                 print("Total fees paid:         ${}".format(round(total_fees, 3)))
                 print("Total volume traded:     ${}".format(round(total_volume, 2)))
                 print("Average daily volume:    ${}".format(round(adv, 2)))
-                # print("Win rate:                {}%".format(round(win_rate, 1)))
-                # print("Max win:                 ${}".format(round(max_win, 2)))
-                # print("Average win:             ${}".format(round(avg_win, 2)))
-                # print("Max loss:                -${}".format(round(max_loss, 2)))
-                # print("Average loss:            -${}".format(round(avg_loss, 2)))
-                # print(
-                #     "Longest winning streak:  {} positions".format(longest_win_streak)
-                # )
-                # print(
-                #     "Longest losing streak:   {} positions".format(longest_lose_streak)
-                # )
-                # if len(trade_results.position_summary) > 0:
-                #     avg_pos_dur = np.mean(
-                #         trade_results.position_summary.loc["avg_duration"].values
-                #     )
-                #     print(
-                #         "Avg. position duration:  {}".format(
-                #             avg_pos_dur,
-                #         )
-                #     )
 
                 no_open = trade_summary["no_open"]
                 if no_open > 0:
@@ -1360,105 +1312,10 @@ class AutoTrader:
             if no_cancelled > 0:
                 print("Cancelled orders:        {}".format(no_cancelled))
 
-            # if len(trade_results.position_summary) > 0:
-            #     # Long positions
-            #     no_long = trade_results.position_summary.sum(axis=1, numeric_only=True)[
-            #         "no_long"
-            #     ]
-            #     print("\n          Summary of long positions")
-            #     print("----------------------------------------------")
-            #     if no_long > 0:
-            #         # avg_long_win = trade_summary["long_positions"]["avg_long_win"]
-            #         # max_long_win = trade_summary["long_positions"]["max_long_win"]
-            #         # avg_long_loss = trade_summary["long_positions"]["avg_long_loss"]
-            #         # max_long_loss = trade_summary["long_positions"]["max_long_loss"]
-            #         # long_wr = trade_summary["long_positions"]["long_wr"]
-            #         avg_long_dur = np.mean(
-            #             trade_results.position_summary.loc["avg_long_duration"].values
-            #         )
-
-            #         print("No. long positions:      {}".format(no_long))
-            #         print("Avg. position duration:  {}".format(avg_long_dur))
-            #         # print("Win rate:                {}%".format(round(long_wr, 1)))
-            #         # print("Max win:                 ${}".format(round(max_long_win, 2)))
-            #         # print("Average win:             ${}".format(round(avg_long_win, 2)))
-            #         # print("Max loss:                -${}".format(round(max_long_loss, 2)))
-            #         # print("Average loss:            -${}".format(round(avg_long_loss, 2)))
-            #     else:
-            #         print("There were no long positions.")
-
-            #     # Short trades
-            #     no_short = trade_results.position_summary.sum(
-            #         axis=1, numeric_only=True
-            #     )["no_short"]
-            #     print("\n         Summary of short positions")
-            #     print("----------------------------------------------")
-            #     if no_short > 0:
-            #         # avg_short_win = trade_summary["short_positions"]["avg_short_win"]
-            #         # max_short_win = trade_summary["short_positions"]["max_short_win"]
-            #         # avg_short_loss = trade_summary["short_positions"]["avg_short_loss"]
-            #         # max_short_loss = trade_summary["short_positions"]["max_short_loss"]
-            #         # short_wr = trade_summary["short_positions"]["short_wr"]
-            #         avg_short_dur = np.mean(
-            #             trade_results.position_summary.loc["avg_long_duration"].values
-            #         )
-
-            #         print("No. short positions:     {}".format(no_short))
-            #         print("Avg. position duration:  {}".format(avg_short_dur))
-            #         # print("Win rate:                {}%".format(round(short_wr, 1)))
-            #         # print("Max win:                 ${}".format(round(max_short_win, 2)))
-            #         # print("Average win:             ${}".format(round(avg_short_win, 2)))
-            #         # print("Max loss:                -${}".format(round(max_short_loss, 2)))
-            #         # print("Average loss:            -${}".format(round(avg_short_loss, 2)))
-
-            #     else:
-            #         print("There were no short positions.")
-
             # Check for multiple instruments
             if len(trade_results.instruments_traded) > 1:
                 # Mutliple instruments traded
                 instruments = trade_results.instruments_traded
-            #     trade_history = trade_results.isolated_position_history
-
-            #     total_no_trades = []
-            #     max_wins = []
-            #     max_losses = []
-            #     avg_wins = []
-            #     avg_losses = []
-            #     profitable_trades = []
-            #     win_rates = []
-            #     for i in range(len(instruments)):
-            #         instrument_trades = trade_history[
-            #             trade_history.instrument == instruments[i]
-            #         ]
-            #         no_trades = len(instrument_trades)
-            #         total_no_trades.append(no_trades)
-            #         max_wins.append(instrument_trades.profit.max())
-            #         max_losses.append(instrument_trades.profit.min())
-            #         avg_wins.append(
-            #             instrument_trades.profit[instrument_trades.profit > 0].mean()
-            #         )
-            #         avg_losses.append(
-            #             instrument_trades.profit[instrument_trades.profit < 0].mean()
-            #         )
-            #         profitable_trades.append((instrument_trades.profit > 0).sum())
-            #         win_rates.append(
-            #             100 * profitable_trades[i] / no_trades if no_trades > 0 else 0.0
-            #         )
-
-            #     results = pd.DataFrame(
-            #         data={
-            #             "Instrument": instruments,
-            #             "Max. Win": max_wins,
-            #             "Max. Loss": max_losses,
-            #             "Avg. Win": avg_wins,
-            #             "Avg. Loss": avg_losses,
-            #             "Win Rate": win_rates,
-            #         }
-            #     ).fillna(0)
-
-            #     print("\n Instrument Breakdown:")
-            #     print(results.to_string(index=False))
 
         else:
             print("No updates to report.")
@@ -1482,7 +1339,7 @@ class AutoTrader:
             ap = self._instantiate_autoplot()
             ap._portfolio_plot(self.trade_results)
 
-        def single_instrument_plot(bot):
+        def single_instrument_plot(bot: AutoTraderBot):
             data = bot._check_strategy_for_plot_data(self._use_strat_plot_data)
             ap = self._instantiate_autoplot(data)
             ap.plot(trade_results=bot.trade_results)
@@ -1506,33 +1363,38 @@ class AutoTrader:
 
     def _main(self) -> None:
         """Run AutoTrader with configured settings."""
-        # Check tradeable instruments
-        if (
-            self._multiple_brokers
-            and len(self._virtual_tradeable_instruments) != self._no_brokers
-            and self._backtest_mode
-        ):
-            print(
-                "Please define the tradeable instruments for "
-                + "each virtual account configured."
-            )
-            sys.exit()
-
         # Get broker configuration
         if self._backtest_mode or self._papertrading:
+            # Using virtual broker for trade simulation
             names_list = [f"virtual:{i}" for i in self._broker_name.split(",")]
             broker_names = ",".join(names_list)
+
+            # Set start dt
+            if self._warmup_period is None:
+                # Infer from strategy configurations
+                warmup_period = pd.Timedelta(days=1000)
+                for config in self._strategy_configs.values():
+                    warmup_period = min(warmup_period, pd.Timedelta(config["INTERVAL"]))
+            else:
+                # Convert to timedelta
+                warmup_period = pd.Timedelta(self._warmup_period)
+            self._start_dt = self._data_start + warmup_period
+
         else:
+            # Use specified broker name
             broker_names = self._broker_name
+
+        # Create broker configuration
         broker_config = get_broker_config(
             global_config=self._global_config_dict,
             broker=broker_names,
             environment=self._environment,
         )
 
+        # Configure account ID's
         if self._account_id is not None:
             if self._multiple_brokers:
-                print(
+                self.logger.error(
                     "Cannot use provided account ID when "
                     + "trading across multiple exchanges. Please specify the "
                     + "desired account in the keys config."
@@ -1544,18 +1406,17 @@ class AutoTrader:
                 self._global_config_dict["custom_account_id"] = self._account_id
 
         # Append broker verbosity to broker_config
+        # TODO - move this into the config construct method get_broker_config
         if self._multiple_brokers:
             for broker, config in broker_config.items():
-                config["verbosity"] = self._broker_verbosity
+                config["verbosity"] = self._verbosity
         else:
-            broker_config["verbosity"] = self._broker_verbosity
+            broker_config["verbosity"] = self._verbosity
 
         # Connect to exchanges
-        if self._verbosity > 1:
-            print("Connecting to exchanges...")
-        self._assign_broker(broker_config)
-        if self._verbosity > 1:
-            print("  Done.")
+        self.logger.info("Connecting to exchanges...")
+        self._instantiate_brokers(broker_config)
+        self.logger.debug("Finished connection to exchanges.")
 
         # Initialise broker histories
         self._broker_histories = {
@@ -1576,85 +1437,65 @@ class AutoTrader:
         }
 
         # Assign trading bots to each strategy
-        if self._verbosity > 1:
-            print("Spawning trading bots...")
+        self.logger.info("Spawning trading bots...")
+        # TODO - also review below for speedup
         for strategy, config in self._strategy_configs.items():
             # Check for portfolio strategy
             portfolio = config["PORTFOLIO"] if "PORTFOLIO" in config else False
             watchlist = [config["WATCHLIST"]] if portfolio else config["WATCHLIST"]
             for instrument in watchlist:
-                if portfolio:
-                    data_dict = self._local_data
-                    quote_data_path = self._local_quote_data
-                    auxdata = self._auxdata
-                else:
-                    data_dict = (
-                        self._local_data[instrument]
-                        if self._local_data is not None
-                        else None
-                    )
-                    quote_data_path = (
-                        self._local_quote_data[instrument]
-                        if self._local_quote_data is not None
-                        else None
-                    )
-                    auxdata = (
-                        self._auxdata[instrument] if self._auxdata is not None else None
-                    )
-
                 strategy_class = config["CLASS"]
                 strategy_dict = {
                     "config": config,
-                    "class": self._strategy_classes[strategy_class]
-                    if strategy_class in self._strategy_classes
-                    else None,
+                    "class": (
+                        self._strategy_classes[strategy_class]
+                        if strategy_class in self._strategy_classes
+                        else None
+                    ),
                     "shutdown_method": self._shutdown_methods[strategy],
                 }
                 bot = AutoTraderBot(
-                    instrument,
-                    strategy_dict,
-                    self._broker,
-                    self._data_start,
-                    data_dict,
-                    quote_data_path,
-                    auxdata,
-                    self,
+                    instrument=instrument,
+                    strategy_dict=strategy_dict,
+                    broker=self._broker,
+                    autotrader_instance=self,
                 )
                 self._bots_deployed.append(bot)
 
-        if int(self._verbosity) > 0:
-            if self._backtest_mode:
-                print("BACKTEST MODE")
+        # Printouts of trading mode
+        if self._backtest_mode and int(self._verbosity) > 0:
+            print("BACKTEST MODE")
+        else:
+            if self._scan_mode:
+                self.logger.info("Deploying in scan mode.")
+            elif self._papertrading:
+                trade_mode = "auto" if len(self._bots_deployed) > 0 else "manual"
+                extra_str = f"{trade_mode} trade in {self._environment} environment"
+                self.logger.info(f"Deploying in papertrade mode ({extra_str})")
             else:
-                if self._scan_mode:
-                    print("SCAN MODE")
-                elif self._papertrading:
-                    trade_mode = "auto" if len(self._bots_deployed) > 0 else "manual"
-                    extra_str = f"{trade_mode} trade in {self._environment} environment"
-                    print(f"PAPERTRADE MODE ({extra_str})")
-                else:
-                    trade_mode = "auto" if len(self._bots_deployed) > 0 else "manual"
-                    extra_str = f"{trade_mode} trade in {self._environment} environment"
-                    print(f"LIVETRADE MODE ({extra_str})")
-                print(
-                    "Current time: {}".format(
-                        datetime.now().strftime("%A, %B %d %Y, " + "%H:%M:%S")
-                    )
+                trade_mode = "auto" if len(self._bots_deployed) > 0 else "manual"
+                extra_str = f"{trade_mode} trade in {self._environment} environment"
+                self.logger.info(f"Deploying in livetrade mode ({extra_str})")
+            self.logger.info(
+                "Current time: {}".format(
+                    datetime.now().strftime("%A, %B %d %Y, " + "%H:%M:%S")
                 )
+            )
 
-            for bot in self._bots_deployed:
-                if isinstance(bot.instrument, str):
-                    instr_str = bot.instrument
-                else:
-                    instr_str = (
-                        bot.instrument
-                        if len(bot.instrument) < 5
-                        else f"a portfolio of {len(bot.instrument)} instruments"
-                    )
-                print(
-                    f"\nAutoTraderBot assigned to trade {instr_str}",
-                    f"with {bot._broker_name} broker using {bot._strategy_name}.",
+        # Print bots deployed
+        for bot in self._bots_deployed:
+            if isinstance(bot.instrument, str):
+                instr_str = bot.instrument
+            else:
+                instr_str = (
+                    bot.instrument
+                    if len(bot.instrument) < 5
+                    else f"a portfolio of {len(bot.instrument)} instruments"
                 )
+            self.logger.info(
+                f"AutoTraderBot assigned to trade {instr_str}"
+                + f" with {bot._broker_name} broker using {bot._strategy_name}.",
+            )
 
         # Begin trading
         self._trade_update_loop()
@@ -1726,8 +1567,12 @@ class AutoTrader:
         for strategy in self._strategy_configs:
             self._strategy_configs[strategy]["WATCHLIST"] = self._scan_watchlist
 
-    def _assign_broker(self, broker_config: dict) -> None:
-        """Configures and assigns appropriate broker(s) for trading."""
+    def _instantiate_brokers(self, broker_config: dict[str, any]) -> None:
+        """Configures and instantiates the broker(s) for trading.
+
+        If backtest mode is True, all brokers added will be mocked by
+        an instance of the VirtualBroker.
+        """
         # Check for multiple brokers
         if not self._multiple_brokers:
             # Put broker config in dict to allow single iteration
@@ -1735,7 +1580,6 @@ class AutoTrader:
 
         # Instantiate brokers
         brokers = {}
-        brokers_utils = {}
         for broker_key, config in broker_config.items():
             # Import relevant broker and utilities modules
             if self._backtest_mode or self._papertrading:
@@ -1745,28 +1589,22 @@ class AutoTrader:
                 # Use real broker
                 broker_name = broker_key.lower().split(":")[0]
 
-            # Construct utils args
-            utils_args = {}
-            utils_name = broker_key.lower().split(":")[0]
-            if utils_name == "ccxt":
-                utils_args["exchange"] = broker_key.lower().split(":")[1]
+            # Add logging options to broker
+            config["logging_options"] = self._logger_kwargs
 
-            # Import relevant modules
-            broker_module = importlib.import_module(
-                f"autotrader.brokers.{broker_name}.broker"
-            )
-            utils_module = importlib.import_module(
-                f"autotrader.brokers.{utils_name}.utils"
-            )
+            # Import relevant module
+            broker_module = importlib.import_module(f"autotrader.brokers.{broker_name}")
 
-            # Create broker and utils instances
-            utils = utils_module.Utils(**utils_args)
-            broker = broker_module.Broker(config, utils)
+            # Create broker
+            broker: Broker = broker_module.Broker(config)
 
-            if self._backtest_mode or self._papertrading:
+            # Configure virtual broker
+            if isinstance(broker, VirtualBroker):
+                # Backtesting or Papertrading
                 # Using virtual broker, configure account
                 try:
                     account_config = self._virtual_broker_config[broker_key]
+
                 except KeyError:
                     # Broker hasn't been configured properly
                     raise Exception(
@@ -1775,20 +1613,41 @@ class AutoTrader:
                         + f"method, making sure to specify exchange='{broker_key}'."
                     )
 
+                # Set internal clock
+                broker._latest_time = self._start_dt
+
+                # TODO - clean all this up, review data config inputs
                 execution_feed = account_config["execution_feed"]
                 feed = self._feed if execution_feed is None else execution_feed
-                autodata_config = {
+
+                if "ccxt" in feed:
+                    feed, exchange = feed.split(":")
+                else:
+                    # TODO - review:
+                    exchange = execution_feed
+
+                # TODO - make this a config object
+                data_config = {
                     "feed": feed,
                     "environment": self._environment,
                     "global_config": self._global_config_dict,
-                    "allow_dancing_bears": self._allow_dancing_bears,
                     "base_currency": self._base_currency,
+                    "exchange": exchange,
+                    "datastreamer": self._data_stream_object,
+                    "backtest_mode": self._backtest_mode,
+                    "data_start": self._data_start,
+                    "data_end": self._data_end,
+                    "data_dict": self._local_data,
+                    "data_path_mapper": self._data_path_mapper,
+                    "directory": self._data_directory,
+                    "dynamic_data": self._dynamic_data,
                 }
-                broker.configure(**account_config, autodata_config=autodata_config)
+                # TODO - sandbox mode for ccxt handling
+                broker.configure(**account_config, data_config=data_config)
 
             # Append to brokers dict
             brokers[broker_key] = broker
-            brokers_utils[broker_key] = utils
+            # brokers_utils[broker_key] = utils
 
         # Save broker dict
         self._brokers_dict = brokers
@@ -1797,10 +1656,10 @@ class AutoTrader:
         if not self._multiple_brokers:
             # Extract single broker
             brokers = broker
-            brokers_utils = utils
+            # brokers_utils = utils
 
         self._broker = brokers
-        self._broker_utils = brokers_utils
+        # self._broker_utils = brokers_utils
 
     def _run_optimise(self) -> None:
         """Runs optimisation of strategy parameters."""
@@ -1813,8 +1672,7 @@ class AutoTrader:
 
         # Look in self._strategy_configs for config
         if len(self._strategy_configs) > 1:
-            print("Error: please optimise one strategy at a time.")
-            print("Exiting.")
+            self.logger.error("Error: please optimise one strategy at a time.")
             sys.exit(0)
         else:
             config_dict = self._strategy_configs[list(self._strategy_configs.keys())[0]]
@@ -1834,12 +1692,12 @@ class AutoTrader:
         opt_params = result[0]
         opt_value = result[1]
 
-        print("\nOptimisation complete.")
-        print("Time to run: {}s".format(round((stop - start), 3)))
-        print("Optimal parameters:")
-        print(opt_params)
-        print("Objective:")
-        print(opt_value)
+        self.logger.info("\nOptimisation complete.")
+        self.logger.info("Time to run: {}s".format(round((stop - start), 3)))
+        self.logger.info("Optimal parameters:")
+        self.logger.info(opt_params)
+        self.logger.info("Objective:")
+        self.logger.info(opt_value)
 
         # Reset verbosity
         self._verbosity = verbosity
@@ -1869,42 +1727,9 @@ class AutoTrader:
         except:
             objective = 1000
 
-        print("Parameters/objective:", params, "/", round(objective, 3))
+        self.logger.debug("Parameters/objective:", params, "/", round(objective, 3))
 
         return objective
-
-    def _check_bot_data(self) -> None:
-        """Function to compare lengths of bot data."""
-        data_lengths = [len(bot.data) for bot in self._bots_deployed]
-        if min(data_lengths) != np.mean(data_lengths):
-            print(
-                "Warning: mismatched data lengths detected. "
-                + "Correcting via row reduction."
-            )
-            self._normalise_bot_data()
-            print("  Done.\n")
-
-    def _normalise_bot_data(self) -> None:
-        """Function to normalise the data of mutliple bots so that their
-        indexes are equal, allowing backtesting in periodic update mode.
-        """
-
-        # Construct list of bot data
-        data = [bot.data for bot in self._bots_deployed]
-
-        for i, dat in enumerate(data):
-            # Initialise common index
-            comm_index = dat.index
-
-            # Update common index by intersection with other data
-            for j, dat_2 in enumerate(data):
-                comm_index = comm_index.intersection(dat_2.index)
-
-            # Adjust bot data using common indexes
-            adj_data = dat[dat.index.isin(comm_index)]
-
-            # Re-assign bot data
-            self._bots_deployed[i]._replace_data(adj_data)
 
     def _get_instance_id(self, dir_name: str = "active_bots"):
         """Returns an ID for the active AutoTrader instance."""
@@ -1951,22 +1776,27 @@ class AutoTrader:
                     f.write(bot._strategy_name + f" ({bot.instrument})\n")
             instance_file_exists = True
 
-            if int(self._verbosity) > 0 and live_check:
-                print(f"Active AutoTrader instance file: active_bots/{instance_str}")
+            if live_check:
+                self.logger.debug(
+                    f"Active AutoTrader instance file: active_bots/{instance_str}"
+                )
 
         else:
             dirpath = os.path.join(self._home_dir, dir_name)
-            instances = [
-                f
-                for f in os.listdir(dirpath)
-                if os.path.isfile(os.path.join(dir_name, f))
-            ]
-            instance_file_exists = instance_str in instances
+            if os.path.exists(dirpath):
+                instances = [
+                    f
+                    for f in os.listdir(dirpath)
+                    if os.path.isfile(os.path.join(dir_name, f))
+                ]
+                instance_file_exists = instance_str in instances
+            else:
+                instance_file_exists = False
 
-        if int(self._verbosity) > 0 and not instance_file_exists and live_check:
-            print(
-                f"Instance file '{instance_str}' deleted. AutoTrader",
-                "will now shut down.",
+        if not instance_file_exists and live_check:
+            self.logger.info(
+                f"Instance file '{instance_str}' deleted. AutoTrader"
+                + "will now shut down.",
             )
 
         return instance_file_exists
@@ -1984,18 +1814,14 @@ class AutoTrader:
             self._maintain_broker_thread = True
             sleep_time = pd.Timedelta(self._broker_refresh_freq).total_seconds()
 
-            # # Check for multiple brokers
-            # if not self._multiple_brokers:
-            #     brokers = {self._broker_name: self._broker}
-            # else:
-            #     brokers = self._broker
-
             # Run update loop
             while self._maintain_broker_thread:
                 try:
                     for broker_name, broker in self._brokers_dict.items():
                         # Update orders and positions
-                        broker._update_all()
+                        broker: VirtualBroker
+                        # TODO - need to verify timezone issues wont prevent data reach strategy
+                        broker._update_all(dt=datetime.now())
 
                         # Update broker histories
                         hist_dict = self._broker_histories[broker_name]
@@ -2024,12 +1850,18 @@ class AutoTrader:
                         time.sleep(sleep_time)
                 except Exception as e:
                     print(e)
+                    self.logger.error(e)
             else:
-                if int(self._verbosity) > 0:
-                    print("Broker update thread killed.")
+                self.logger.info("Broker update thread killed.")
+
+    def _remove_instance_file(self):
+        # Remove instance file if it exists still
+        if self._check_instance_file(self._instance_str, live_check=False):
+            os.remove(self._instance_filepath)
 
     def shutdown(self):
         """Shutdown the active AutoTrader instance."""
+        self._remove_instance_file()
 
         if int(self._verbosity) > 0 and self._backtest_mode:
             backtest_end_time = timeit.default_timer()
@@ -2045,7 +1877,9 @@ class AutoTrader:
         if self._backtest_mode:
             # Create overall backtest results
             if len(self._bots_deployed) == 1:
-                price_history = self._bots_deployed[0].data
+                # TODO - what if portfolio?
+                bot = self._bots_deployed[0]
+                price_history = bot._broker._data_cache[bot.instrument]
             else:
                 price_history = None
             self.trade_results = TradeAnalysis(
@@ -2117,197 +1951,157 @@ class AutoTrader:
 
         else:
             # Automated trading
-            if self._run_mode.lower() == "continuous":
-                # Running in continuous update mode
-                if self._backtest_mode:
-                    # Backtesting
-                    end_time = self._data_end  # datetime
-                    timestamp = self._data_start + self._warmup_period  # datetime
-                    pbar = tqdm(
-                        total=int((self._data_end - timestamp).total_seconds()),
-                        position=0,
-                        leave=True,
-                    )
-                    while timestamp <= end_time:
-                        # Update each bot with latest data to generate signal
-                        for bot in self._bots_deployed:
-                            bot._update(timestamp=timestamp)
+            self._continuous_trade_loop()
 
-                        # Update histories
-                        for name, broker in self._brokers_dict.items():
-                            hist_dict = self._broker_histories[name]
-                            hist_dict["NAV"].append(broker._NAV)
-                            hist_dict["equity"].append(broker._equity)
-                            hist_dict["margin"].append(broker._margin_available)
-                            hist_dict["open_interest"].append(broker._open_interest)
-                            hist_dict["long_exposure"].append(broker._long_exposure)
-                            hist_dict["short_exposure"].append(broker._short_exposure)
-                            hist_dict["long_unrealised_pnl"].append(
-                                broker._long_unrealised_pnl
-                            )
-                            hist_dict["short_unrealised_pnl"].append(
-                                broker._short_unrealised_pnl
-                            )
-                            hist_dict["long_pnl"].append(broker._long_realised_pnl)
-                            hist_dict["short_pnl"].append(broker._short_realised_pnl)
-                            hist_dict["time"].append(timestamp)
-
-                        # Iterate through time
-                        timestamp += self._timestep
-                        pbar.update(self._timestep.total_seconds())
-                    pbar.close()
-
-                else:
-                    # Live trading
-                    instance_id = self._get_instance_id()
-                    instance_str = (
-                        f"autotrader_instance_{instance_id}"
-                        if self._instance_str is None
-                        else self._instance_str
-                    )
-                    instance_file_exists = self._check_instance_file(instance_str, True)
-
-                    # Get deploy timestamp
-                    if self._deploy_time is not None:
-                        deploy_time = self._deploy_time.timestamp()
-                        if self._verbosity > 0 and datetime.now() < self._deploy_time:
-                            print(f"\nDeploying bots at {self._deploy_time}.")
-
-                    else:
-                        deploy_time = time.time()
-
-                    # Wait until deployment time
-                    while datetime.now().timestamp() < deploy_time - 0.5:
-                        time.sleep(0.5)
-
-                    while instance_file_exists:
-                        # Bot instance file exists
-                        if self._verbosity > 0:
-                            print(f"\nUpdating trading bots.")
-
-                        try:
-                            # Update bots
-                            # TODO - threadpool executor
-                            for bot in self._bots_deployed:
-                                try:
-                                    # TODO - why UTC? Allow setting manually
-                                    bot._update(timestamp=datetime.now(timezone.utc))
-
-                                    if int(self._verbosity) > 0:
-                                        print(
-                                            f"\nBot update complete: {bot._strategy_name}"
-                                        )
-
-                                except:
-                                    if int(self._verbosity) > 0:
-                                        print(
-                                            "Error: failed to update bot running "
-                                            + f"{bot._strategy_name} ({bot.instrument})"
-                                        )
-                                        traceback.print_exc()
-
-                            if self._papertrading:
-                                # Update broker histories
-                                for name, broker in self._brokers_dict.items():
-                                    hist_dict = self._broker_histories[name]
-                                    hist_dict["NAV"].append(broker._NAV)
-                                    hist_dict["equity"].append(broker._equity)
-                                    hist_dict["margin"].append(broker._margin_available)
-                                    hist_dict["long_exposure"].append(
-                                        broker._long_exposure
-                                    )
-                                    hist_dict["short_exposure"].append(
-                                        broker._short_exposure
-                                    )
-                                    hist_dict["long_unrealised_pnl"].append(
-                                        broker._long_unrealised_pnl
-                                    )
-                                    hist_dict["short_unrealised_pnl"].append(
-                                        broker._short_unrealised_pnl
-                                    )
-                                    hist_dict["long_pnl"].append(
-                                        broker._long_realised_pnl
-                                    )
-                                    hist_dict["short_pnl"].append(
-                                        broker._short_realised_pnl
-                                    )
-                                    hist_dict["open_interest"].append(
-                                        broker._open_interest
-                                    )
-                                    # TODO - check timezone below
-                                    hist_dict["time"].append(datetime.now(timezone.utc))
-
-                                # Dump history file to pickle
-                                # TODO - check pickle bool?
-                                with open(f".paper_broker_hist", "wb") as file:
-                                    pickle.dump(self._broker_histories, file)
-
-                            # Go to sleep until next update
-                            sleep_time = self._timestep.total_seconds() - (
-                                (time.time() - deploy_time)
-                                % self._timestep.total_seconds()
-                            )
-                            if int(self._verbosity) > 0:
-                                print(
-                                    f"AutoTrader sleeping until next update at {datetime.now()+timedelta(seconds=sleep_time)}."
-                                )
-                            time.sleep(sleep_time)
-
-                            # Check if instance file still exists
-                            instance_file_exists = self._check_instance_file(
-                                instance_str
-                            )
-
-                        except KeyboardInterrupt:
-                            print("\nKilling bot(s).")
-                            instance_filepath = os.path.join(
-                                self._home_dir, "active_bots", instance_str
-                            )
-                            try:
-                                os.remove(instance_filepath)
-                            except FileNotFoundError:
-                                print(f"Intance file '{instance_str}' already deleted.")
-                            break
-
-            elif self._run_mode.lower() == "periodic":
-                # Trading in periodic update mode
-                if self._backtest_mode:
-                    # Backtesting
-                    self._check_bot_data()
-                    start_range, end_range = self._bots_deployed[
-                        0
-                    ]._get_iteration_range()
-                    for i in range(start_range, end_range):
-                        # Update each bot with latest data to generate signal
-                        for bot in self._bots_deployed:
-                            bot._update(i=i)
-
-                        # Update histories
-                        for name, broker in self._brokers_dict.items():
-                            hist_dict = self._broker_histories[name]
-                            hist_dict["NAV"].append(broker._NAV)
-                            hist_dict["equity"].append(broker._equity)
-                            hist_dict["margin"].append(broker._margin_available)
-                            hist_dict["open_interest"].append(broker._open_interest)
-                            hist_dict["long_exposure"].append(broker._long_exposure)
-                            hist_dict["short_exposure"].append(broker._short_exposure)
-                            hist_dict["long_unrealised_pnl"].append(
-                                broker._long_unrealised_pnl
-                            )
-                            hist_dict["short_unrealised_pnl"].append(
-                                broker._short_unrealised_pnl
-                            )
-                            hist_dict["long_pnl"].append(broker._long_realised_pnl)
-                            hist_dict["short_pnl"].append(broker._short_realised_pnl)
-                            hist_dict["time"].append(broker._latest_time)
-
-                else:
-                    # Live trading
-                    for bot in self._bots_deployed:
-                        bot._update(i=-1)  # Process most recent signal
-
-            # Run shutdown routines
+            # Trade loop complete - run shutdown routines
             self.shutdown()
+
+    def _continuous_trade_loop(self):
+        if self._backtest_mode:
+            # Backtesting
+            end_dt = self._data_end
+            current_dt = self._start_dt
+            pbar = tqdm(
+                total=int((self._data_end - current_dt).total_seconds()),
+                position=0,
+                leave=True,
+            )
+            while current_dt <= end_dt:
+                # Update virtual broker internal clocks
+                for broker in self._brokers_dict.values():
+                    if isinstance(broker, VirtualBroker):
+                        broker._latest_time = current_dt
+
+                # Update each bot with latest data to generate signal
+                for bot in self._bots_deployed:
+                    bot._update(timestamp=current_dt)
+
+                # Update histories
+                for name, broker in self._brokers_dict.items():
+                    hist_dict = self._broker_histories[name]
+                    hist_dict["NAV"].append(broker._NAV)
+                    hist_dict["equity"].append(broker._equity)
+                    hist_dict["margin"].append(broker._margin_available)
+                    hist_dict["open_interest"].append(broker._open_interest)
+                    hist_dict["long_exposure"].append(broker._long_exposure)
+                    hist_dict["short_exposure"].append(broker._short_exposure)
+                    hist_dict["long_unrealised_pnl"].append(broker._long_unrealised_pnl)
+                    hist_dict["short_unrealised_pnl"].append(
+                        broker._short_unrealised_pnl
+                    )
+                    hist_dict["long_pnl"].append(broker._long_realised_pnl)
+                    hist_dict["short_pnl"].append(broker._short_realised_pnl)
+                    hist_dict["time"].append(current_dt)
+
+                # Iterate through time
+                current_dt += self._timestep
+                pbar.update(self._timestep.total_seconds())
+            pbar.close()
+
+        else:
+            # Live trading
+            if self._instance_str is None:
+                # Assign now
+                instance_id = self._get_instance_id()
+                self._instance_str = f"autotrader_instance_{instance_id}"
+
+            # Initialise
+            instance_file_exists = self._check_instance_file(
+                instance_str=self._instance_str,
+                initialisation=True,
+            )
+            # TODO - general 'active_bots' path
+            self._instance_filepath = os.path.join(
+                self._home_dir, "active_bots", self._instance_str
+            )
+
+            # Get deploy timestamp
+            if self._deploy_time is not None:
+                deploy_time = self._deploy_time.timestamp()
+                if datetime.now() < self._deploy_time:
+                    self.logger.info(f"\nDeploying bots at {self._deploy_time}.")
+
+            else:
+                deploy_time = time.time()
+
+            # Wait until deployment time
+            while datetime.now().timestamp() < deploy_time - 0.5:
+                time.sleep(0.5)
+
+            while instance_file_exists:
+                # Bot instance file exists
+                self.logger.debug(f"\nUpdating trading bots.")
+
+                try:
+                    # Update bots
+                    # TODO - threadpool executor
+                    for bot in self._bots_deployed:
+                        try:
+                            # TODO - why UTC? Allow setting manually
+                            bot._update(timestamp=datetime.now(timezone.utc))
+                            self.logger.debug(
+                                f"\nBot update complete: {bot._strategy_name}"
+                            )
+
+                        except:
+                            self.logger.error(
+                                "Error: failed to update bot running "
+                                + f"{bot._strategy_name} ({bot.instrument})"
+                            )
+                            traceback.print_exc()
+
+                    if self._papertrading:
+                        # Update broker histories
+                        for name, broker in self._brokers_dict.items():
+                            hist_dict = self._broker_histories[name]
+                            hist_dict["NAV"].append(broker._NAV)
+                            hist_dict["equity"].append(broker._equity)
+                            hist_dict["margin"].append(broker._margin_available)
+                            hist_dict["long_exposure"].append(broker._long_exposure)
+                            hist_dict["short_exposure"].append(broker._short_exposure)
+                            hist_dict["long_unrealised_pnl"].append(
+                                broker._long_unrealised_pnl
+                            )
+                            hist_dict["short_unrealised_pnl"].append(
+                                broker._short_unrealised_pnl
+                            )
+                            hist_dict["long_pnl"].append(broker._long_realised_pnl)
+                            hist_dict["short_pnl"].append(broker._short_realised_pnl)
+                            hist_dict["open_interest"].append(broker._open_interest)
+                            # TODO - check timezone below
+                            hist_dict["time"].append(datetime.now(timezone.utc))
+
+                        # Dump history file to pickle
+                        # TODO - check pickle bool?
+                        with open(f".paper_broker_hist", "wb") as file:
+                            pickle.dump(self._broker_histories, file)
+
+                    # Calculate sleep time
+                    sleep_time = self._timestep.total_seconds() - (
+                        (time.time() - deploy_time) % self._timestep.total_seconds()
+                    )
+                    self.logger.debug(
+                        f"AutoTrader sleeping until next update at {datetime.now()+timedelta(seconds=sleep_time)}."
+                    )
+                    # Check if instance file still exists
+                    instance_file_exists = self._check_instance_file(
+                        instance_str=self._instance_str,
+                    )
+                    if not instance_file_exists:
+                        # Exit now
+                        break
+
+                    # Go to sleep until next update
+                    time.sleep(sleep_time)
+
+                except KeyboardInterrupt:
+                    self.logger.info("Killing bot(s).")
+                    try:
+                        os.remove(self._instance_filepath)
+                    except FileNotFoundError:
+                        # Already deleted
+                        pass
+                    break
 
     @staticmethod
     def papertrade_snapshot(
@@ -2332,33 +2126,28 @@ class AutoTrader:
 
     def save_state(self):
         """Dumps the current AutoTrader instance to a pickle."""
-        instance_id = self._get_instance_id(dir_name="pickled_instances")
-
-        instance_name = (
-            f"autotrader_instance_{instance_id}"
-            if self._instance_str is None
-            else self._instance_str
-        )
         instance_file_exists = self._check_instance_file(
-            instance_str=instance_name, dir_name="pickled_instances", live_check=False
+            instance_str=self._instance_str,
+            dir_name="pickled_instances",
+            live_check=False,
         )
 
         write = "y"
         if instance_file_exists:
             # The file already exists, check to overwrite
             write = input(
-                f"The instance file '{instance_name}' already "
+                f"The instance file '{self._instance_str}' already "
                 + "exists. Would you like to overwrite it? ([y]/n)  "
             )
 
         if "y" in write.lower():
             # Write to file
             try:
-                filepath = f"pickled_instances/{instance_name}"
+                filepath = f"pickled_instances/{self._instance_str}"
                 with open(filepath, "wb") as file:
                     pickle.dump(self, file)
             except pickle.PicklingError:
-                print("Error - cannot pickle this AutoTrader instance.")
+                self.logger.error("Cannot pickle this AutoTrader instance.")
 
     @staticmethod
     def load_state(instance_name, verbosity: int = 0):

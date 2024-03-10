@@ -1,20 +1,24 @@
 import random
 import ib_insync
 import numpy as np
-from autotrader.brokers.ib.utils import Utils
-from autotrader.brokers.broker import AbstractBroker
+import pandas as pd
+from datetime import datetime
+from dateutil.relativedelta import relativedelta
+from autotrader.brokers.broker import Broker
 from autotrader.brokers.trading import Order, IsolatedPosition, Position
 
 
-class Broker(AbstractBroker):
+class Broker(Broker):
     """AutoTrader-InteractiveBrokers API interface.
 
     Attributes
     ----------
     utils : Utils
         The broker utilities.
+
     ib : ib_insync connection
         Used to query IB.
+
     account : str
         The active IB account.
 
@@ -30,7 +34,7 @@ class Broker(AbstractBroker):
           actions.
     """
 
-    def __init__(self, config: dict, utils: Utils = None) -> None:
+    def __init__(self, config: dict) -> None:
         """Initialise AutoTrader-Interactive Brokers API interface.
 
         Parameters
@@ -38,11 +42,10 @@ class Broker(AbstractBroker):
         config : dict
             The IB configuration dictionary. This can contain the host, port,
             clientID and read_only boolean flag.
+
         utils : Utils, optional
             Broker utilities class instance. The default is None.
         """
-        self.utils = utils if utils is not None else Utils()
-
         self.host = config["host"] if "host" in config else "127.0.0.1"
         self.port = config["port"] if "port" in config else 7497
         self.client_id = (
@@ -55,11 +58,18 @@ class Broker(AbstractBroker):
         self._check_connection()
         self.account = self._get_account() if self.account == "" else self.account
 
+        # Assign data broker
+        self._data_broker = self
+
     def __repr__(self):
         return "AutoTrader-InteractiveBrokers interface"
 
     def __str__(self):
         return "AutoTrader-InteractiveBrokers interface"
+
+    @property
+    def data_broker(self):
+        return self._data_broker
 
     def get_NAV(self) -> float:
         """Returns the net asset/liquidation value of the account."""
@@ -348,11 +358,34 @@ class Broker(AbstractBroker):
 
         return open_positions
 
+    def get_candles(
+        self,
+        instrument: str,
+        granularity: str = None,
+        count: int = None,
+        start_time: datetime = None,
+        end_time: datetime = None,
+        *args,
+        **kwargs,
+    ) -> pd.DataFrame:
+        """Get the historical OHLCV candles for an instrument."""
+        raise NotImplementedError(
+            "Historical market data from IB is not yet supported."
+        )
+
+    def get_orderbook(self, instrument: str, *args, **kwargs):
+        """Get the orderbook for an instrument."""
+        pass
+
+    def get_public_trades(self, instrument: str, *args, **kwargs):
+        """Get the public trade history for an instrument."""
+        pass
+
     def get_summary(self) -> dict:
         """Returns account summary."""
         self._check_connection()
         raw_summary = self.ib.accountSummary(self.account)
-        summary = self.utils.accsum_to_dict(self.account, raw_summary)
+        summary = self.accsum_to_dict(self.account, raw_summary)
 
         return summary
 
@@ -444,7 +477,7 @@ class Broker(AbstractBroker):
         self._check_connection()
 
         # Build contract
-        contract = self.utils.build_contract(order)
+        contract = self.build_contract(order)
 
         # Create market order
         action = "BUY" if order.direction > 0 else "SELL"
@@ -464,7 +497,7 @@ class Broker(AbstractBroker):
         self._check_connection()
 
         # Build contract
-        contract = self.utils.build_contract(order)
+        contract = self.build_contract(order)
 
         # Create stop limit order
         action = "BUY" if order.direction > 0 else "SELL"
@@ -491,7 +524,7 @@ class Broker(AbstractBroker):
         self._check_connection()
 
         # Build contract
-        contract = self.utils.build_contract(order)
+        contract = self.build_contract(order)
 
         action = "BUY" if order.direction > 0 else "SELL"
         units = abs(order.size)
@@ -591,3 +624,214 @@ class Broker(AbstractBroker):
             parentId=parentId,
         )
         return stopLoss_order
+
+    @staticmethod
+    def check_response(response):
+        """Checks API response for errors.
+
+        Parameters
+        ----------
+        response : TYPE
+            DESCRIPTION.
+
+        Returns
+        -------
+        output : TYPE
+            DESCRIPTION.
+        """
+
+        if response.status != 201:
+            message = response.body["errorMessage"]
+        else:
+            message = "Success."
+
+        output = {"Status": response.status, "Message": message}
+
+        return output
+
+    def check_precision(self, pair, price):
+        """Modify a price based on required ordering precision for pair."""
+        N = self.get_precision(pair)
+        corrected_price = round(price, N)
+        return corrected_price
+
+    def get_precision(self, instrument: str, *args, **kwargs):
+        """Returns the precision of the instrument."""
+        # TODO - implement
+        return {"size": 5, "price": 5}
+
+    def check_trade_size(self, pair, units):
+        """Checks the requested trade size against the minimum trade size
+        allowed for the currency pair."""
+        response = self.api.account.instruments(
+            accountID=self.ACCOUNT_ID, instruments=pair
+        )
+        # minimum_units = response.body['instruments'][0].minimumTradeSize
+        trade_unit_precision = response.body["instruments"][0].tradeUnitsPrecision
+
+        return round(units, trade_unit_precision)
+
+    @staticmethod
+    def build_contract(order: Order) -> ib_insync.contract.Contract:
+        """Builds IB contract from the order details."""
+        instrument = order.instrument
+        security_type = order.secType
+
+        # Get contract object
+        contract_object = getattr(ib_insync, security_type)
+
+        if security_type == "Stock":
+            # symbol='', exchange='', currency=''
+            exchange = order.exchange if order.exchange else "SMART"
+            currency = order.currency if order.currency else "USD"
+            contract = contract_object(
+                symbol=instrument, exchange=exchange, currency=currency
+            )
+
+        elif security_type == "Options":
+            raise NotImplementedError(
+                f"Contract building for {security_type.lower()} trading is not supported yet."
+            )
+
+        elif security_type == "Future":
+            # Requires order_details{'instrument', 'exchange', 'contract_month'}
+            exchange = order.exchange if order.exchange else "GLOBEX"
+            currency = order.currency if order.currency else "USD"
+            contract_month = order.contract_month
+            local_symbol = order.localSymbol if order.localSymbol else ""
+            contract = contract_object(
+                symbol=instrument,
+                exchange=exchange,
+                currency=currency,
+                lastTradeDateOrContractMonth=contract_month,
+                localSymbol=local_symbol,
+            )
+
+        elif security_type == "ContFuture":
+            raise NotImplementedError(
+                f"Contract building for {security_type.lower()} trading is not supported yet."
+            )
+
+        elif security_type == "Forex":
+            # pair='', exchange='IDEALPRO', symbol='', currency='', **kwargs)
+            exchange = order.exchange if order.exchange else "IDEALPRO"
+            contract = contract_object(pair=instrument, exchange=exchange)
+
+        elif security_type == "Index":
+            raise NotImplementedError(
+                f"Contract building for {security_type.lower()} trading is not supported yet."
+            )
+
+        elif security_type == "CFD":
+            # symbol='', exchange='', currency='',
+            exchange = order.exchange if order.exchange else "SMART"
+            currency = order.currency if order.currency else "USD"
+            contract = contract_object(
+                symbol=instrument, exchange=exchange, currency=currency
+            )
+
+        elif security_type == "Commodity":
+            raise NotImplementedError(
+                f"Contract building for {security_type.lower()} trading is not supported yet."
+            )
+        elif security_type == "Bond":
+            raise NotImplementedError(
+                f"Contract building for {security_type.lower()} trading is not supported yet."
+            )
+        elif security_type == "FuturesOption":
+            raise NotImplementedError(
+                f"Contract building for {security_type.lower()} trading is not supported yet."
+            )
+        elif security_type == "MutualFund":
+            raise NotImplementedError(
+                f"Contract building for {security_type.lower()} trading is not supported yet."
+            )
+        elif security_type == "Warrant":
+            raise NotImplementedError(
+                f"Contract building for {security_type.lower()} trading is not supported yet."
+            )
+        elif security_type == "Bag":
+            raise NotImplementedError(
+                f"Contract building for {security_type.lower()} trading is not supported yet."
+            )
+        elif security_type == "Crypto":
+            raise NotImplementedError(
+                f"Contract building for {security_type.lower()} trading is not supported yet."
+            )
+
+        return contract
+
+    @staticmethod
+    def accsum_to_dict(account: str = None, data: list = None) -> dict:
+        """Returns account summary list as a dictionary.
+
+        Parameters
+        ----------
+        account : str
+            DESCRIPTION.
+        data : list
+            DESCRIPTION.
+
+        Returns
+        -------
+        out
+            DESCRIPTION.
+        """
+
+        if account is None:
+            account = "All"
+
+        out = {}
+        for av in data:
+            if av.account == account:
+                out[av.tag] = {
+                    "value": av.value,
+                    "currency": av.currency,
+                    "modelCode": av.modelCode,
+                }
+
+        return out
+
+    @staticmethod
+    def positionlist_to_dict(positions: list) -> dict:
+        """Returns position list as a dictionary.
+
+        Parameters
+        ----------
+        positions : list
+            DESCRIPTION.
+
+        Returns
+        -------
+        dict
+            DESCRIPTION.
+
+        """
+        pass
+
+    @staticmethod
+    def _futures_expiry(dt: datetime = datetime.now(), months: int = 1) -> str:
+        """Returns a string of format YYYYMM corresponding to the leading
+        contract month, from the inputted datetime object.
+
+        Parameters
+        ----------
+        dt : datetime, optional
+            The datetime object to convert to string. The default is datetime.now().
+        months : int, optional
+            The month offset from dt. The default is 1.
+
+        Returns
+        -------
+        str
+            A string corresponding to the expiry.
+        """
+        # TODO - if current date is past last trade date... error
+        expiry_dt = dt + relativedelta(months=months)
+        return expiry_dt.strftime("%Y") + expiry_dt.strftime("%m")
+
+    def get_precision(self, instrument, *args, **kwargs):
+        """Returns the precision of the instrument."""
+        # NOTE: this has not been formally implemented yet.
+        # TODO - implement
+        return {"size": 5, "price": 5}

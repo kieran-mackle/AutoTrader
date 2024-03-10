@@ -1,6 +1,6 @@
-import setuptools
 import codecs
 import os.path
+import setuptools
 
 
 def read(rel_path):
@@ -20,7 +20,7 @@ def get_version(rel_path):
 
 # Define extra dependencies
 dydx_dep = ["dydx-v3-python >= 1.9.0"]
-ccxt_dep = ["ccxt >= 2.0.53"]
+ccxt_dep = ["ccxt >= 2.0.53", "ccxt-download"]
 oanda_dep = [
     "v20 >= 3.0.25.0",
 ]
@@ -62,23 +62,20 @@ setuptools.setup(
         "Documentation": "https://autotrader.readthedocs.io/en/latest/",
     },
     classifiers=[
-        "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.8",
-        "Programming Language :: Python :: 3.9",
-        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
         "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
         "Operating System :: OS Independent",
     ],
     keywords=["algotrading", "finance", "crypto", "forex", "python"],
     package_dir={"": "."},
     packages=setuptools.find_packages(where="."),
-    python_requires=">=3.7",
+    python_requires=">=3.11",
     install_requires=[
         "numpy >= 1.20.3",
         "pandas >= 1.3.4",
         "art >= 5.7",
         "PyYAML",
-        "bokeh == 2.3.2",
+        "bokeh == 3.3.0",
         "scipy >= 1.7.1",
         "finta >= 1.3",
         "tqdm>=4.64.0",
@@ -102,7 +99,7 @@ setuptools.setup(
         "setuptools_git",
         "setuptools_scm",
     ],
-    package_data={"": ["data/*.js", "data/keys.yaml"]},
+    package_data={"": ["package_data/*.js", "package_data/keys.yaml"]},
     entry_points={
         "console_scripts": [
             "autotrader = autotrader.bin.cli:cli",

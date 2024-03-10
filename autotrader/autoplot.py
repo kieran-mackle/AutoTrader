@@ -1,9 +1,8 @@
-# import os
+import os
 import numpy as np
 import pandas as pd
 from math import pi
 from typing import Union
-
 from bokeh.models.annotations import Title
 from bokeh.plotting import figure, output_file, show
 from bokeh.io import output_notebook, curdoc
@@ -25,7 +24,13 @@ try:
 except ImportError:
     # Try backported to PY<37 `importlib_resources`
     import importlib_resources as pkg_resources
-from . import data as pkgdata
+from . import package_data as pkgdata
+
+
+# Ignore Bokeh warnings
+import warnings
+
+warnings.filterwarnings(action="ignore")
 
 
 class AutoPlot:
@@ -35,9 +40,11 @@ class AutoPlot:
     -------
     configure()
         Configure the plot settings.
+
     add_tool(tool_name)
         Add bokeh tool to plot. This adds the tool_name string to the fig_tools
         attribute.
+
     plot()
         Creates a trading chart of OHLC price data and indicators.
 
@@ -127,24 +134,33 @@ class AutoPlot:
         max_indis_over : int, optional
             Maximum number of indicators overlaid on the main chart. The
             default is 3.
+
         max_indis_below : int, optional
             Maximum number of indicators below the main chart. The default is 2.
+
         fig_tools : str, optional
             The figure tools. The default is "pan,wheel_zoom,box_zoom,undo,
             redo,reset,save,crosshair".
+
         ohlc_height : int, optional
             The height (px) of the main chart. The default is 400.
+
         ohlc_width : int, optional
             The width (px) of the main chart. The default is 800.
+
         top_fig_height : int, optional
             The height (px) of the figure above the main chart. The default is 150.
+
         bottom_fig_height : int, optional
             The height (px) of the figure(s) below the main chart. The default is 150.
+
         jupyter_notebook : bool, optional
             Boolean flag when running in Jupyter Notebooks, to allow inline
             plotting. The default is False.
+
         show_cancelled : bool, optional
             Show/hide cancelled trades. The default is True.
+
         chart_theme : bool, optional
             The theme of the Bokeh chart generated. The default is "caliber".
 
@@ -204,40 +220,58 @@ class AutoPlot:
 
         over : over
             Generic line indicator over chart with key: data
+
         below : below
             Generic line indicator below chart with key: data
+
         MACD : below
             MACD indicator with keys: macd, signal, histogram
+
         MA : over
              Moving average overlay indicator with key: data
+
         RSI : below
             RSI indicator with key: data
+
         Heikin-Ashi : below
             Heikin Ashi candlesticks with key: data
+
         Supertrend : over
             Supertrend indicator with key: data
+
         Swings : over
             Swing levels indicator with key: data
+
         Engulfing : below
             Engulfing candlestick pattern with key: data
+
         Crossover : below
             Crossover indicator with key: data
+
         Grid : over
             Grid levels with key: data
+
         Pivot : over
             Pivot points with keys: data
+
         HalfTrend : over
             Halftrend indicator with key: data
+
         multi : below
             Multiple indicator type
+
         signals : over
             Trading signals plot with key: data
+
         bands : over
             Shaded bands indicator type
+
         threshold : below
             Threshold indicator type
+
         trading-session : over
             Highlighted trading session times with key: data
+
         bricks : below
             Price-based bricks with keys: data (DataFrame), timescale (bool)
 
@@ -245,10 +279,13 @@ class AutoPlot:
         ----------
         instrument : str, optional
             The traded instrument name. The default is None.
+
         trade_results : TradeAnalysis, optional
             The TradeAnalysis results object. The default is None.
+
         indicators : dict, optional
             Indicators dictionary. The default is None.
+
         show_fig : bool, optional
             Flag to show the chart. The default is True.
 
@@ -266,7 +303,7 @@ class AutoPlot:
         if trade_results is None:
             # Using Indiview
             if instrument is not None:
-                title_string = "AutoTrader IndiView - {}".format(instrument)
+                title_string = f"AutoTrader IndiView - {instrument}"
             else:
                 title_string = "AutoTrader IndiView"
             output_file("indiview-chart.html", title=title_string)
@@ -278,8 +315,9 @@ class AutoPlot:
             title_string = (
                 f"Backtest chart for {instrument} ({trade_results.interval} candles)"
             )
+            formatted_instr = instrument.replace(os.sep, "_")
             output_file(
-                f"{instrument}-backtest-chart.html",
+                f"{formatted_instr}-backtest-chart.html",
                 title=f"AutoTrader Backtest Results - {instrument}",
             )
 
@@ -293,7 +331,7 @@ class AutoPlot:
             main_plot = self._create_main_plot(source)
         else:
             source.add(
-                (self._data.Close >= self._data.Open)
+                (self._data["Close"] >= self._data["Open"])
                 .values.astype(np.uint8)
                 .astype(str),
                 "change",
@@ -304,12 +342,16 @@ class AutoPlot:
         self.autoscale_args = {"y_range": main_plot.y_range, "source": source}
 
         top_figs = []
-        bottom_figs = []
-
         if trade_results is not None:
             account_hist = trade_results.account_history
-            if len(account_hist) != len(self._data):
-                account_hist = self._interpolate_and_merge(account_hist)
+            account_hist["data_index"] = self._data["data_index"]
+            account_hist = self._interpolate_and_merge(account_hist)
+
+            # if len(account_hist) != len(self._data):
+            #     account_hist = self._interpolate_and_merge(account_hist)
+            # else:
+            #     # Need to add data_index column for plot to render NAV
+            #     account_hist["data_index"] = self._data["data_index"]
 
             topsource = ColumnDataSource(account_hist)
             topsource.add(account_hist[["NAV", "equity"]].min(1), "Low")
@@ -318,7 +360,7 @@ class AutoPlot:
             # Get isolated position summary
             trade_summary = trade_results.trade_history
             order_summary = trade_results.order_history
-            indicators = trade_results.indicators  # TODO - where is this assigned
+            indicators = trade_results.indicators
             # open_trades = trade_results.open_isolated_positions
             cancelled_trades = trade_results.cancelled_orders
 
@@ -328,7 +370,6 @@ class AutoPlot:
                 "NAV",
                 new_fig=True,
                 legend_label="Net Asset Value",
-                hover_name="NAV",
             )
             # Add equity balance
             self._plot_lineV2(
@@ -337,7 +378,6 @@ class AutoPlot:
                 "equity",
                 legend_label="Account Balance",
                 line_colour="blue",
-                hover_name="equity",
             )
 
             # Add hover tool
@@ -376,6 +416,7 @@ class AutoPlot:
                 #     self._plot_trade_history(open_trades, main_plot, open_summary=True)
 
         # Indicators
+        bottom_figs = []
         if indicators is not None:
             bottom_figs = self._plot_indicators(indicators, main_plot)
 
@@ -432,7 +473,7 @@ class AutoPlot:
         )
         fig.sizing_mode = "stretch_width"
 
-        # Set theme - # TODO - adapt line colours based on theme
+        # Set theme
         curdoc().theme = self._chart_theme
 
         if show_fig:
@@ -487,7 +528,12 @@ class AutoPlot:
     def _interpolate_and_merge(self, df):
         dt_data = self._data.set_index("date")
         concat_data = pd.concat([dt_data, df]).sort_index()
-        concat_data.index = pd.to_datetime(concat_data.index, utc=True)
+
+        # Check for timezone
+        if self._data["date"][0].tz is not None:
+            # TODO - improve how timezones are handled, this is gross
+            concat_data.index = pd.to_datetime(concat_data.index, utc=True)
+
         interp_data = concat_data.interpolate(method="nearest").bfill()
         merged_data = self._merge_data(interp_data).drop_duplicates()
         merged_data = merged_data.replace("", np.nan).ffill()
@@ -501,6 +547,7 @@ class AutoPlot:
         ----------
         source : ColumnDataSource
             The column data source.
+
         y_range : Bokeh Range
             The y_range attribute of the chart.
 
@@ -545,8 +592,8 @@ class AutoPlot:
         topsource.add(account_history[["NAV", "equity"]].max(1), "High")
 
         navfig = figure(
-            plot_width=self._ohlc_width,
-            plot_height=self._top_fig_height,
+            width=self._ohlc_width,
+            height=self._top_fig_height,
             title="Account History",
             active_drag="pan",
             active_scroll="wheel_zoom",
@@ -656,8 +703,8 @@ class AutoPlot:
 
             # Plot portfolio composition history
             # compfig = figure(
-            #     plot_width=self._ohlc_width,
-            #     plot_height=self._top_fig_height,
+            #     width=self._ohlc_width,
+            #     height=self._top_fig_height,
             #     title="Portfolio Composition History",
             #     x_range=navfig.x_range,
             #     y_range=(0, 1),
@@ -686,8 +733,8 @@ class AutoPlot:
         levsource = ColumnDataSource(leverage)
 
         levfig = figure(
-            plot_width=self._ohlc_width,
-            plot_height=self._top_fig_height,
+            width=self._ohlc_width,
+            height=self._top_fig_height,
             title="Leverage Utilisation History",
             active_drag="pan",
             active_scroll="wheel_zoom",
@@ -711,8 +758,8 @@ class AutoPlot:
         for n, instrument in enumerate(trade_results.instruments_traded):
             if n < max_pos_charts:
                 posfig = figure(
-                    plot_width=self._ohlc_width,
-                    plot_height=self._top_fig_height,
+                    width=self._ohlc_width,
+                    height=self._top_fig_height,
                     title=f"{instrument} Position History",
                     active_drag="pan",
                     active_scroll="wheel_zoom",
@@ -797,7 +844,7 @@ class AutoPlot:
         # returnsfig = figure(
         #     title="Distribution of Returns",
         #     toolbar_location=None,
-        #     plot_height=250,
+        #     height=250,
         # )
         # returnsfig.quad(
         #     top=h,
@@ -933,9 +980,11 @@ class AutoPlot:
                             y_vals,
                             line_width=1.5,
                             legend_label=indicator,
-                            line_color=indicators[indicator]["color"]
-                            if "color" in indicators[indicator]
-                            else colours[indis_over],
+                            line_color=(
+                                indicators[indicator]["color"]
+                                if "color" in indicators[indicator]
+                                else colours[indis_over]
+                            ),
                         )
                     indis_over += 1
 
@@ -988,8 +1037,8 @@ class AutoPlot:
                     elif indi_type == "multi":
                         # Plot multiple lines on the same figure
                         new_fig = figure(
-                            plot_width=linked_fig.plot_width,
-                            plot_height=130,
+                            width=linked_fig.width,
+                            height=130,
                             title=indicator,
                             tools=linked_fig.tools,
                             active_drag=linked_fig.tools[0],
@@ -1020,9 +1069,11 @@ class AutoPlot:
                             new_fig.line(
                                 x_vals,
                                 y_vals,
-                                line_color=indicators[indicator][dataset]["color"]
-                                if "color" in indicators[indicator][dataset]
-                                else "black",
+                                line_color=(
+                                    indicators[indicator][dataset]["color"]
+                                    if "color" in indicators[indicator][dataset]
+                                    else "black"
+                                ),
                                 legend_label=dataset,
                             )
 
@@ -1116,11 +1167,14 @@ class AutoPlot:
         return line_source
 
     def _create_main_plot(
-        self, source, line_colour: str = "black", legend_label: str = "Data"
+        self,
+        source: ColumnDataSource,
+        line_colour: str = "black",
+        legend_label: str = "Data",
     ):
         fig = figure(
-            plot_width=self._ohlc_width,
-            plot_height=self._ohlc_height,
+            width=self._ohlc_width,
+            height=self._ohlc_height,
             title="Custom Plot Data",
             tools=self._fig_tools,
             active_drag="pan",
@@ -1139,23 +1193,21 @@ class AutoPlot:
 
     def _plot_lineV2(
         self,
-        source,
+        source: ColumnDataSource,
         linked_fig,
-        column,
-        new_fig=False,
-        fig_height=150,
-        fig_title=None,
-        legend_label=None,
-        hover_name=None,
-        line_colour="black",
+        column: str,
+        new_fig: bool = False,
+        fig_height: float = 150,
+        fig_title: str = None,
+        legend_label: str = None,
+        line_colour: str = "black",
     ):
         """Generic method to plot data as a line."""
-
         # Initiate figure
         if new_fig:
             fig = figure(
-                plot_width=linked_fig.plot_width,
-                plot_height=fig_height,
+                width=linked_fig.width,
+                height=fig_height,
                 title=fig_title,
                 tools=self._fig_tools,
                 active_drag="pan",
@@ -1191,8 +1243,8 @@ class AutoPlot:
         # Initiate figure
         if new_fig:
             fig = figure(
-                plot_width=linked_fig.plot_width,
-                plot_height=fig_height,
+                width=linked_fig.width,
+                height=fig_height,
                 title=fig_title,
                 tools=self._fig_tools,
                 active_drag="pan",
@@ -1246,8 +1298,8 @@ class AutoPlot:
         # Initiate figure
         if new_fig:
             fig = figure(
-                plot_width=linked_fig.plot_width,
-                plot_height=fig_height,
+                width=linked_fig.width,
+                height=fig_height,
                 title=fig_title,
                 tools=self._fig_tools,
                 active_drag="pan",
@@ -1271,15 +1323,15 @@ class AutoPlot:
 
         candle_tooltips = [
             ("Date", "@date{%b %d %H:%M:%S}"),
-            ("Open", "@Open{0.0000}"),
-            ("High", "@High{0.0000}"),
-            ("Low", "@Low{0.0000}"),
+            # ("Open", "@Open{0.0000}"),
+            # ("High", "@High{0.0000}"),
+            # ("Low", "@Low{0.0000}"),
             ("Close", "@Close{0.0000}"),
         ]
 
         candle_plot = figure(
-            plot_width=self._ohlc_width,
-            plot_height=self._ohlc_height,
+            width=self._ohlc_width,
+            height=self._ohlc_height,
             tools=self._fig_tools,
             active_drag="pan",
             active_scroll="wheel_zoom",
@@ -1335,8 +1387,8 @@ class AutoPlot:
         candle_tooltips = [("Open", "@Open{0.0000}"), ("Close", "@Close{0.0000}")]
 
         candle_plot = figure(
-            plot_width=self._ohlc_width,
-            plot_height=self._ohlc_height,
+            width=self._ohlc_width,
+            height=self._ohlc_height,
             tools=self._fig_tools,
             active_drag="pan",
             active_scroll="wheel_zoom",
@@ -1737,6 +1789,7 @@ class AutoPlot:
                     size=15,
                     fill_color=fill_color,
                     legend_label=long_legend_label,
+                    visible=False,  # hide by default
                 )
 
             # Partial short trades
@@ -1748,6 +1801,7 @@ class AutoPlot:
                     size=15,
                     fill_color=fill_color,
                     legend_label=short_legend_label,
+                    visible=False,  # hide by default
                 )
 
         # Stop loss levels
@@ -1777,8 +1831,8 @@ class AutoPlot:
         """Plots MACD indicator."""
         # Initialise figure
         fig = figure(
-            plot_width=linked_fig.plot_width,
-            plot_height=self._bottom_fig_height,
+            width=linked_fig.width,
+            height=self._bottom_fig_height,
             title=None,
             tools=linked_fig.tools,
             active_drag=linked_fig.tools[0],
@@ -1851,7 +1905,7 @@ class AutoPlot:
             toolbar_location=None,
             tools=self._fig_tools + ",ywheel_zoom",
             tooltips=tooltips,
-            plot_height=fig_height,
+            height=fig_height,
             active_drag="pan",
             active_scroll="wheel_zoom",
         )
@@ -1874,7 +1928,7 @@ class AutoPlot:
             tooltips="@index: @trades trades",
             x_range=(-1, 1),
             y_range=(0.0, 2.0),
-            plot_height=fig_height,
+            height=fig_height,
         )
 
         pie.wedge(
@@ -1934,8 +1988,8 @@ class AutoPlot:
         if new_fig:
             # Plot on new fig
             fig = figure(
-                plot_width=linked_fig.plot_width,
-                plot_height=self._bottom_fig_height,
+                width=linked_fig.width,
+                height=self._bottom_fig_height,
                 title=None,
                 tools=linked_fig.tools,
                 active_drag=linked_fig.tools[0],
@@ -1957,9 +2011,9 @@ class AutoPlot:
             upper_band.values,
             fill_alpha=fill_alpha,
             fill_color=fill_color,
-            legend_label=plot_data["band_name"]
-            if "band_name" in plot_data
-            else legend_label,
+            legend_label=(
+                plot_data["band_name"] if "band_name" in plot_data else legend_label
+            ),
         )
 
         if "mid" in plot_data:
@@ -1969,9 +2023,11 @@ class AutoPlot:
                 mid_line.index,
                 mid_line.values,
                 line_color=line_color,
-                legend_label=plot_data["mid_name"]
-                if "mid_name" in plot_data
-                else "Band Mid Line",
+                legend_label=(
+                    plot_data["mid_name"]
+                    if "mid_name" in plot_data
+                    else "Band Mid Line"
+                ),
             )
 
         return fig

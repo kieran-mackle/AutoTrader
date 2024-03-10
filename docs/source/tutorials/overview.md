@@ -99,13 +99,13 @@ your_trading_project/
 
 
 (trading-environments)=
-# Trading Environments
+## Trading Environments
 There are two trading environments: `paper` and `live`. The environment 
 being used can be specified in the [`configure`](autotrader-configure) 
 method, but it will be overwritten to `paper` any time you call the
 [virtual account configuration](autotrader-virtual-account-config) method.
 
-## Paper Trading
+### Paper Trading
 `environment="paper"`
 
 Paper trading can fall into one of two categories:
@@ -127,7 +127,7 @@ activate this functionality, simply configure a virtual trading account via the
 [virtual account configuration](autotrader-virtual-account-config) method. 
 
 
-## Live Trading
+### Live Trading
 When you are ready to deploy your strategy with real money, set the `environment`
 argument in the [`configure`](autotrader-configure) method to `live`. This will
 switch all of the API pointers to the live endpoints, and fire your orders to

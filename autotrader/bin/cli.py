@@ -63,7 +63,7 @@ def init(strategies, demo, name):
 
     # Construct filepaths
     file_dir = os.path.dirname(os.path.abspath(__file__))
-    data_dir = os.path.join(file_dir, "..", "data")
+    data_dir = os.path.join(file_dir, "..", "package_data")
     if name != ".":
         # Initialise directory specified
         dir_name = name
