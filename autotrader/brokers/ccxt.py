@@ -345,7 +345,7 @@ class Broker(Broker):
         if count is not None:
             if start_time is None and end_time is None:
                 # Fetch N most recent candles
-                raw_data = self.api.fetchOHLCV(
+                raw_data = self.api.fetch_ohlcv(
                     instrument, timeframe=granularity, limit=count, params=kwargs
                 )
             elif start_time is not None and end_time is None:
@@ -353,7 +353,7 @@ class Broker(Broker):
                 start_ts = (
                     None if start_time is None else int(start_time.timestamp() * 1000)
                 )
-                raw_data = self.api.fetchOHLCV(
+                raw_data = self.api.fetch_ohlcv(
                     instrument,
                     timeframe=granularity,
                     since=start_ts,
