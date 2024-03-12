@@ -12,6 +12,7 @@ from tqdm import tqdm
 from ast import literal_eval
 from threading import Thread
 from scipy.optimize import brute
+from autotrader.comms.tg import Telegram
 from autotrader.strategy import Strategy
 from autotrader.autoplot import AutoPlot
 from autotrader.autobot import AutoTraderBot
@@ -107,7 +108,7 @@ class AutoTrader:
 
         # Communications
         self._notify = 0
-        self._notification_provider = ""
+        self._notification_provider: Literal["telegram"] = ""
         self._notifier = None
         self._order_summary_fp = None
 
@@ -196,7 +197,7 @@ class AutoTrader:
         feed: Optional[str] = None,
         home_dir: Optional[str] = None,
         notify: Optional[int] = 0,
-        notification_provider: Optional[str] = None,
+        notification_provider: Optional[Literal["telegram"]] = "telegram",
         execution_method: Optional[Callable] = None,
         account_id: Optional[str] = None,
         environment: Optional[Literal["paper", "live"]] = "paper",
@@ -1008,24 +1009,29 @@ class AutoTrader:
                 # Use telegram
                 if "TELEGRAM" not in self._global_config_dict:
                     self.logger.error(
-                        "Please configure your telegram bot in keys.yaml."
+                        "Please configure your telegram bot in keys.yaml. At "
+                        + "a minimum, you must specify the api_key for your bot. You can "
+                        + "also specify your chat_id. If you do not know it, then send your "
+                        + "bot a message before starting AutoTrader again, and it will "
+                        + "be inferred."
                     )
                     sys.exit()
 
                 else:
                     # Check keys provided
-                    required_keys = ["api_key", "chat_id"]
+                    required_keys = ["api_key"]
                     for key in required_keys:
                         if key not in self._global_config_dict["TELEGRAM"]:
                             self.logger.error(
-                                f"Please provide {key} under TELEGRAM in keys.yaml."
+                                f"Please define {key} under TELEGRAM in keys.yaml."
                             )
                             sys.exit()
 
-                tg_module = importlib.import_module(f"autotrader.comms.tg")
-                self._notifier = tg_module.Telegram(
+                # Instantiate notifier
+                self._notifier = Telegram(
                     api_token=self._global_config_dict["TELEGRAM"]["api_key"],
-                    chat_id=self._global_config_dict["TELEGRAM"]["chat_id"],
+                    chat_id=self._global_config_dict["TELEGRAM"].get("chat_id"),
+                    logger_kwargs=self._logger_kwargs,
                 )
 
             # Check data feed requirements

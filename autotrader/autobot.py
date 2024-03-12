@@ -176,9 +176,9 @@ class AutoTraderBot:
         # Build strategy instantiation arguments
         strategy_inputs = {
             "parameters": params,
-            # "data": self._strat_data,
             "instrument": self.instrument,
             "broker": self._broker,
+            "notifier": self._notifier,
         }
 
         # Instantiate Strategy

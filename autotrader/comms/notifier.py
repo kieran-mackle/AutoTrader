@@ -4,7 +4,7 @@ from autotrader.brokers.trading import Order
 
 class Notifier(ABC):
     @abstractmethod
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, logger_kwargs: dict = None, *args, **kwargs) -> None:
         pass
 
     @abstractmethod
