@@ -1005,34 +1005,35 @@ class AutoTrader:
                 self._global_config_dict = global_config
 
             # Create notifier instance
-            if "telegram" in self._notification_provider.lower():
-                # Use telegram
-                if "TELEGRAM" not in self._global_config_dict:
-                    self.logger.error(
-                        "Please configure your telegram bot in keys.yaml. At "
-                        + "a minimum, you must specify the api_key for your bot. You can "
-                        + "also specify your chat_id. If you do not know it, then send your "
-                        + "bot a message before starting AutoTrader again, and it will "
-                        + "be inferred."
+            if self._notify > 0:
+                if "telegram" in self._notification_provider.lower():
+                    # Use telegram
+                    if "TELEGRAM" not in self._global_config_dict:
+                        self.logger.error(
+                            "Please configure your telegram bot in keys.yaml. At "
+                            + "a minimum, you must specify the api_key for your bot. You can "
+                            + "also specify your chat_id. If you do not know it, then send your "
+                            + "bot a message before starting AutoTrader again, and it will "
+                            + "be inferred."
+                        )
+                        sys.exit()
+
+                    else:
+                        # Check keys provided
+                        required_keys = ["api_key"]
+                        for key in required_keys:
+                            if key not in self._global_config_dict["TELEGRAM"]:
+                                self.logger.error(
+                                    f"Please define {key} under TELEGRAM in keys.yaml."
+                                )
+                                sys.exit()
+
+                    # Instantiate notifier
+                    self._notifier = Telegram(
+                        api_token=self._global_config_dict["TELEGRAM"]["api_key"],
+                        chat_id=self._global_config_dict["TELEGRAM"].get("chat_id"),
+                        logger_kwargs=self._logger_kwargs,
                     )
-                    sys.exit()
-
-                else:
-                    # Check keys provided
-                    required_keys = ["api_key"]
-                    for key in required_keys:
-                        if key not in self._global_config_dict["TELEGRAM"]:
-                            self.logger.error(
-                                f"Please define {key} under TELEGRAM in keys.yaml."
-                            )
-                            sys.exit()
-
-                # Instantiate notifier
-                self._notifier = Telegram(
-                    api_token=self._global_config_dict["TELEGRAM"]["api_key"],
-                    chat_id=self._global_config_dict["TELEGRAM"].get("chat_id"),
-                    logger_kwargs=self._logger_kwargs,
-                )
 
             # Check data feed requirements
             if self._feed is None:
