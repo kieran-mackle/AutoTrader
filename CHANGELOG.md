@@ -1,5 +1,13 @@
 # AutoTrader Changelog
 
+## v1.0.1 (2024-03-12)
+
+### Fix
+
+- **ccxt**: add exception handling for place_order
+- **AutoTrader**: only try instantiate notifier if notify > 0
+- **Notifier**: reimplement telegram notifier
+
 ## v1.0.0 (2024-03-10)
 
 ### Feat
