@@ -1,21 +1,99 @@
 import os
-import telegram
+import requests
 from autotrader.brokers.trading import Order
 from autotrader.comms.notifier import Notifier
-from autotrader.utilities import read_yaml, write_yaml, print_banner
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
+from autotrader.utilities import read_yaml, write_yaml, get_logger
 
 
 class Telegram(Notifier):
-    def __init__(self, api_token: str = None, chat_id: str = None) -> None:
-        self.api_token = api_token
-        self.chat_id = chat_id
+    """Simple telegram bot to send messages.
 
-        if api_token is not None:
-            self.bot = telegram.Bot(api_token)
+    To use this, you must first create a Telegram bot via the BotFather. Then,
+    provide the API token generated here as the api_token. If you do not know
+    your chat_id, send the bot a message on telegram, and it will be inferred
+    when this class is instantiated with the api_token.
+    """
 
     def __repr__(self) -> str:
         return "AutoTrader-Telegram communication module"
+
+    def __init__(
+        self, api_token: str, chat_id: str = None, logger_kwargs: dict = None
+    ) -> None:
+        """Instantiate the bot.
+
+        Parameters
+        ----------
+        token : str
+            The bot API token.
+
+        chat_id : str, optional
+            The default chat_id to send messages to.
+        """
+        # Create logger
+        logger_kwargs = logger_kwargs if logger_kwargs else {}
+        self.logger = get_logger(name="telegram_combot", **logger_kwargs)
+
+        # Save attributes
+        self.token = api_token
+        if chat_id is None:
+            # Try get chat ID
+            self.logger.info(
+                "No chat ID specified - attempting to load from recent updates."
+            )
+            _, chat_id = self.get_chat_id()
+        self.chat_id = chat_id
+
+    def get_chat_id(self):
+        response = requests.get(f"https://api.telegram.org/bot{self.token}/getUpdates")
+        try:
+            chat = response.json()["result"][-1]["message"]["chat"]
+            chat_id = chat["id"]
+            name = chat["first_name"]
+            self.logger.info(f"Found chat ID for {name}: {chat_id}.")
+
+            # Write ID to file for future
+            path = "config/keys.yaml"
+            if os.path.exists(path):
+                # Config file exists, proceed
+                config = read_yaml(path)
+
+                if "TELEGRAM" in config:
+                    # Telegram in config
+                    self.logger.info("Adding chat_id to configuration file.")
+                    if "chat_id" not in config["TELEGRAM"]:
+                        # Add chat ID
+                        config["TELEGRAM"]["chat_id"] = chat_id
+                else:
+                    # Telegram not in config; insert fresh
+                    self.logger.info(
+                        "Adding telegram configuration details to configuration file."
+                    )
+                    config["TELEGRAM"] = {
+                        "api_key": self.token,
+                        "chat_id": chat_id,
+                    }
+
+                # Write to file
+                write_yaml(config, path)
+
+            return name, chat_id
+
+        except IndexError:
+            # No updates to read from
+            self.logger.error(
+                "Cannot find chat ID - please make sure you have recently messaged the bot."
+            )
+            return None, None
+
+    def send_message(self, message: str, chat_id: str = None, *args, **kwargs):
+        if chat_id is None:
+            chat_id = self.chat_id
+        self.logger.debug(f"Sending message to {chat_id}: {message}")
+        url_req = f"https://api.telegram.org/bot{self.token}/sendMessage?chat_id={chat_id}&text={message}"
+        response = requests.get(url_req)
+        if response.status_code != 200:
+            self.logger.error(f"Failed to send message to {chat_id}: {response.reason}")
 
     def send_order(self, order: Order, *args, **kwargs) -> None:
         side = "long" if order.direction > 0 else "short"
@@ -25,157 +103,4 @@ class Telegram(Notifier):
         )
 
         # Create bot and send message
-        self.bot.send_message(chat_id=self.chat_id, text=message)
-
-    def send_message(self, message: str, *args, **kwargs) -> None:
-        """A generic method to send a custom message.
-
-        Parameters
-        ----------
-        message : str
-            The message to be sent.
-        """
-        # Send message
-        self.bot.send_message(chat_id=self.chat_id, text=message)
-
-    def run_bot(self) -> None:
-        """A method to initialise your bot and get your chat ID.
-        This method should be running before you send any messages
-        to it on Telegram. To start, message the BotFather on
-        Telegram, and create a new bot. Use the API token provided
-        to run this method.
-
-        Parameters
-        ----------
-        api_token : str
-            The API token of your telegram bot.
-
-        Returns
-        -------
-        None.
-
-        """
-        print_banner()
-        print("                              AutoTrader Telegram Bot")
-        print("\n  Listening for messages...")
-
-        # Check for api token
-        if self.api_token is None:
-            path = "config/keys.yaml"
-            if os.path.exists(path):
-                # Look to fetch api token from config file
-                config = read_yaml(path)
-                if "TELEGRAM" in config:
-                    if (
-                        config["TELEGRAM"] is not None
-                        and "api_key" in config["TELEGRAM"]
-                    ):
-                        self.api_token = config["TELEGRAM"]["api_key"]
-
-                    else:
-                        print(
-                            "Please add your Telegram API key to the "
-                            + "keys.yaml file."
-                        )
-                        return
-                else:
-                    print(
-                        "Please add a 'TELEGRAM' key to the keys.yaml "
-                        + "file, with a sub-key for the 'api_key'."
-                    )
-                    return
-
-        updater = Updater(self.api_token, use_context=True)
-        dp = updater.dispatcher
-
-        dp.add_handler(CommandHandler("start", self._start_command))
-        dp.add_handler(CommandHandler("help", self._help_command))
-
-        dp.add_handler(MessageHandler(Filters.text, self._handle_message))
-
-        updater.start_polling()
-        updater.idle()
-
-    @staticmethod
-    def _start_command(
-        update,
-        context,
-    ):
-        # Extract user name and chat ID
-        name = update.message.chat.first_name
-        chat_id = str(update.message.chat_id)
-
-        # Create response
-        response = (
-            f"Hi {name}, welcome to your very own AutoTrader "
-            + f"Telegram bot. Your chat ID is {chat_id}. Use this to "
-            + "set-up trading notifications. Note that this ID has also "
-            + "been printed to your computer screen for reference."
-        )
-        print("\n  Start command activated.")
-        print(f"    Chat ID: {chat_id}")
-
-        # Send response
-        update.message.reply_text(response)
-
-    @staticmethod
-    def _help_command(
-        update,
-        context,
-    ):
-        update.message.reply_text("Help is on the way!")
-
-    # @staticmethod
-    def _handle_message(self, update, context):
-        text = str(update.message.text).lower()
-
-        if "id" in text:
-            chat_id = str(update.message.chat_id)
-
-            if "write" in text:
-                # Write chat ID to keys.yaml file
-                path = "config/keys.yaml"
-                if os.path.exists(path):
-                    # Config file exists, proceed
-                    config = read_yaml(path)
-
-                    if "TELEGRAM" in config:
-                        config["TELEGRAM"]["chat_id"] = chat_id
-                    else:
-                        config["TELEGRAM"] = {
-                            "api_key": self.api_token,
-                            "chat_id": chat_id,
-                        }
-
-                    # Write to file
-                    write_yaml(config, path)
-
-                    print("\n  Telegram API keys successfully written to file.")
-
-                    response = "All done."
-
-                else:
-                    response = (
-                        "I couldn't find your keys.yaml directory. "
-                        + "Make sure you are running the bot from your project "
-                        + "home directory, with config/keys.yaml within it."
-                    )
-
-            else:
-                # Return chat ID
-                response = f"Your chat ID is {chat_id}."
-
-                if "print" in text or "show" in text:
-                    print(f"\n  Chat ID: {chat_id}")
-                    response += " This has also been printed to your computer."
-
-        elif "thank" in text or "ty" in text:
-            response = "You're welcome."
-
-        else:
-            response = "I'm not quite ready to respond to that..."
-        update.message.reply_text(response)
-
-    @staticmethod
-    def _error(update, context):
-        print(f"Update {update} caused error {context.error}")
+        self.send_message(message)

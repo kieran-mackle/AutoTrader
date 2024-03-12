@@ -2,6 +2,7 @@ import pandas as pd
 from datetime import datetime
 from abc import ABC, abstractmethod
 from autotrader.brokers.broker import Broker
+from autotrader.comms.notifier import Notifier
 from typing import List, Union, TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
@@ -11,8 +12,31 @@ if TYPE_CHECKING:
 class Strategy(ABC):
     @abstractmethod
     def __init__(
-        self, parameters: dict, instrument: str, broker: Broker, *args, **kwargs
+        self,
+        parameters: dict,
+        instrument: str,
+        broker: Broker,
+        notifier: Notifier,
+        *args,
+        **kwargs
     ) -> None:
+        """Instantiate the strategy. This gets called from the AutoTraderBot assigned to
+        this strategy.
+
+        Parameters
+        ----------
+        parameters : dict
+            The strategy parameters.
+
+        instrument : str
+            The instrument to trade.
+
+        broker : Broker
+            The broker connection.
+
+        notifier : Notifier | None
+            The notifier object. If notify is not set > 0, then this will be a NoneType object.
+        """
         super().__init__()
 
     @abstractmethod

@@ -20,11 +20,7 @@
   <a href="https://pepy.tech/project/autotrader">
     <img src="https://pepy.tech/badge/autotrader/month" alt="Monthly downloads" >
   </a>
-  
-  <a>
-    <img src="https://github.com/kieran-mackle/AutoTrader/actions/workflows/tests.yml/badge.svg" alt="Build Status" >
-  </a>
-  
+
   <a href='https://autotrader.readthedocs.io/en/latest/?badge=latest'>
     <img src='https://readthedocs.org/projects/autotrader/badge/?version=latest' alt='Documentation Status' />
   </a>

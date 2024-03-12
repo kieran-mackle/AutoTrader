@@ -81,32 +81,37 @@ class Broker(Broker):
         """Place an order."""
         order()
 
+        # Check order meets limits
+        limits: dict = self.api.markets.get(order.instrument, {}).get("limits", {})
+        if limits.get("amount") is not None:
+            if order.size < limits["amount"]["min"]:
+                # Order too small
+                self._logger.warning(f"Order below minimum size: {order}")
+                return None
+
         # Add order params
         self._add_params(order)
 
         # Submit order to broker
         if order.order_type == "modify":
             placed_order = self._modify_order(order)
-        elif order.order_type in [
-            "close",
-            "reduce",
-        ]:
-            raise NotImplementedError(
-                f"Order type '{order.order_type}' has not "
-                + "been implemented for the CCXT interface yet."
-            )
+
         else:
             # Regular order
             side = "buy" if order.direction > 0 else "sell"
+
             # Submit the order
-            placed_order = self.api.create_order(
-                symbol=order.instrument,
-                type=order.order_type,
-                side=side,
-                amount=abs(order.size),
-                price=order.order_limit_price,
-                params=order.ccxt_params,
-            )
+            try:
+                placed_order = self.api.create_order(
+                    symbol=order.instrument,
+                    type=order.order_type,
+                    side=side,
+                    amount=abs(order.size),
+                    price=order.order_limit_price,
+                    params=order.ccxt_params,
+                )
+            except Exception as e:
+                placed_order = e
 
         return placed_order
 
