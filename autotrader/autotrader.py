@@ -19,6 +19,7 @@ from autotrader.autobot import AutoTraderBot
 from autotrader.brokers.broker import Broker
 from datetime import datetime, timedelta, timezone
 from typing import Callable, Optional, Literal, Union
+from autotrader.brokers.ccxt import Broker as CCXTBroker
 from autotrader.brokers.virtual import Broker as VirtualBroker
 from autotrader.utilities import (
     read_yaml,
@@ -857,7 +858,7 @@ class AutoTrader:
         self._scan_mode = True
         self._scan_index = scan_index
 
-    def run(self) -> Union[None, Broker]:
+    def run(self) -> Union[None, Broker, VirtualBroker, CCXTBroker]:
         """Performs essential checks and runs AutoTrader."""
         # Create logger
         self.logger = get_logger(
