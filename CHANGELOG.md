@@ -1,5 +1,15 @@
 # AutoTrader Changelog
 
+## v1.1.0 (2024-03-21)
+
+### Feat
+
+- **logging**: logging kwargs get passed to strategy instances
+
+### Fix
+
+- **ccxt**: pass ccxt order params when modifying order
+
 ## v1.0.1 (2024-03-12)
 
 ### Fix
