@@ -411,7 +411,7 @@ def get_logger(
         # Check log directory exists
         if not os.path.exists(log_dir):
             os.mkdir(log_dir)
-        logfile_path = os.path.join(log_dir, f"{name}.log")
+        logfile_path = os.path.join(log_dir, f"{name.replace(os.sep, '_')}.log")
         fh = logging.FileHandler(logfile_path, mode="a")
         fh.setLevel(file_level)
         fh.setFormatter(logging.Formatter(CustomLoggingFormatter.default_fmt))

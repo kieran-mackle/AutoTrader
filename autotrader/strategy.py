@@ -17,6 +17,7 @@ class Strategy(ABC):
         instrument: str,
         broker: Broker,
         notifier: Notifier,
+        logger_kwargs: dict[str, any],
         *args,
         **kwargs
     ) -> None:
@@ -36,6 +37,10 @@ class Strategy(ABC):
 
         notifier : Notifier | None
             The notifier object. If notify is not set > 0, then this will be a NoneType object.
+
+        logger_kwargs : dict[str, any]
+            The logger configuration for this instance of AutoTrader. This can be unpacked
+            into the get_logger() utility function when creating strategy loggers.
         """
         super().__init__()
 

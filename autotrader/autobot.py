@@ -179,6 +179,7 @@ class AutoTraderBot:
             "instrument": self.instrument,
             "broker": self._broker,
             "notifier": self._notifier,
+            "logger_kwargs": self._logger_kwargs,
         }
 
         # Instantiate Strategy

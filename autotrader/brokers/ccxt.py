@@ -667,6 +667,7 @@ class Broker(Broker):
                 type=None,
                 amount=order.size,
                 price=order.order_limit_price,
+                params=order.ccxt_params,
             )
         except Exception as e:
             modified_order = e
