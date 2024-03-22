@@ -1,5 +1,11 @@
 # AutoTrader Changelog
 
+## v1.1.1 (2024-03-22)
+
+### Fix
+
+- **ccxt**: type conversion of order limits check
+
 ## v1.1.0 (2024-03-21)
 
 ### Feat
