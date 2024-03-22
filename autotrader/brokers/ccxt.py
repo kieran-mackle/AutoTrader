@@ -84,7 +84,7 @@ class Broker(Broker):
         # Check order meets limits
         limits: dict = self.api.markets.get(order.instrument, {}).get("limits", {})
         if limits.get("amount") is not None:
-            if order.size < limits["amount"]["min"]:
+            if float(order.size) < float(limits["amount"]["min"]):
                 # Order too small
                 self._logger.warning(f"Order below minimum size: {order}")
                 return None
