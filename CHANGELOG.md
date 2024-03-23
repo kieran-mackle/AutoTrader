@@ -1,5 +1,11 @@
 # AutoTrader Changelog
 
+## v1.1.2 (2024-03-23)
+
+### Fix
+
+- **AutoTrader**: add initial check fro active bots directory before entering trade loop
+
 ## v1.1.1 (2024-03-22)
 
 ### Fix
