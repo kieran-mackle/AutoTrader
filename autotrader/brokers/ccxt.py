@@ -111,6 +111,7 @@ class Broker(Broker):
                     params=order.ccxt_params,
                 )
             except Exception as e:
+                self._logger.error(f"Error placing {order}: {e}")
                 placed_order = e
 
         return placed_order
@@ -180,6 +181,7 @@ class Broker(Broker):
             cancelled_order = self.api.cancel_order(id=order_id, **kwargs)
 
         except Exception as e:
+            self._logger.error(f"Error cancelling order {order_id}: {e}")
             cancelled_order = e
 
         return cancelled_order
@@ -670,6 +672,7 @@ class Broker(Broker):
                 params=order.ccxt_params,
             )
         except Exception as e:
+            self._logger.error(f"Error modifying {order}: {e}")
             modified_order = e
         return modified_order
 
