@@ -965,6 +965,9 @@ class AutoTrader:
             )
             sys.exit()
 
+        # Check bots directory exists
+        self._get_instance_id()
+
         # Preliminary checks complete, continue initialisation
         if self._optimise_mode:
             # Run optimisation
