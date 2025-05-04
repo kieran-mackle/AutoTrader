@@ -1,5 +1,11 @@
 <a name="readme-top"></a>
 
+## AutoTrader is no longer maintained
+
+This project is no longer actively maintained. I've decided to archive it because I no longer have the time to support or update it.
+
+------
+
 <p align="center">
   <a href="https://kieran-mackle.github.io/AutoTrader/">
     <img src="https://user-images.githubusercontent.com/60687606/132320916-23445f43-dfdc-4949-9881-e18f622605d2.png" alt="AutoTrader Logo" width="15%" >
@@ -35,6 +41,7 @@
 AutoTrader is Python-based platform intended to help in the development, optimisation and deployment of automated trading systems. 
 A basic level of experience with Python is recommended for using AutoTrader, but the [docs](https://autotrader.readthedocs.io/en/latest/) 
 aim to make using it as easy as possible with detailed tutorials and documentation.
+
 
 ## Latest News
 - [CryptoBots](https://github.com/kieran-mackle/cryptobots) has been released along with version `1.0.0`, offering ready-to-trade crypto strategies from the command line
